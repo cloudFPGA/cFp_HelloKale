@@ -1,0 +1,5 @@
+# just a log of commands to import cFDK...
+cp -R cFDK/SRA/LIB/TOP/tcl/ ./TOP/
+mkdir TOP/hdl
+cp cFDK/MOD/FMKU60/hdl/top_x1Udp_x1Tcp_x2Mp_x2Mc.vhdl.template ./TOP/hdl/top.vhdl
+cp cFDK/SRA/LIB/TOP/Makefile.template ./Makefile
