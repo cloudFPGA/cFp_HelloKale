@@ -10,7 +10,7 @@
 #  *
 
 # we need absolut pathes 
-rootDir="/home/ngl/gitrepos/cloudFPGA/cFp/cFp_Flash"
+rootDir="/home/ngl/gitrepo/cloudFPGA/cFp/cFp_Flash"
 
 export cFpRootDir="$rootDir/"
 export cFpIpDir="$rootDir/ip/"

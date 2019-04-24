@@ -9,10 +9,6 @@
 #  *       Makefile to build a cloudFPGA-project (cFp)
 #  *
 
-# assert ENVIRONMENT
-#../bash/assert_envs.sh 
-$(shell ./cFDK/SRA/LIB/bash/assert_envs.sh)
-#$(cFpRootDir)/cFDK/SRA/LIB/bash/assert_envs.sh
 
 # NO HEADING OR TRAILING SPACES!!
 SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
@@ -22,31 +18,35 @@ ROLE2_DIR =$(usedRole2Dir)
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
-.PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify
+.PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify assert_env
 #.PHONY: pr_full_mpi pr_only_mpi pr2_only_mpi monolithic_mpi monolithic_mpi_incr RoleMPItype RoleMPI2type RoleMPItypeSrc
 
 all: pr
 #all: src_based
 #OR ip_based, whatever is preferred as default
 
-Role: 
+# assert ENVIRONMENT
+assert_env: 
+	./cFDK/SRA/LIB/bash/assert_envs.sh
+
+Role: assert_env
 	$(MAKE) -C $(ROLE_DIR)
 
-Role2: 
+Role2: assert_env
 	$(MAKE) -C $(ROLE2_DIR)
 
 
 xpr: 
 	mkdir -p $(cFpXprDir)
 
-RoleIp:
+RoleIp: assert_env
 	$(MAKE) -C $(ROLE_DIR)/ ip
 
-RoleIp2:
+RoleIp2: assert_env
 	$(MAKE) -C $(ROLE2_DIR)/ ip
 
 
-ShellSrc:
+ShellSrc: assert_env
 	$(MAKE) -C $(SHELL_DIR) 
 
 src_based: ensureNotMonolithic ShellSrc Role | xpr
@@ -136,17 +136,17 @@ save_mono_incr: ensureMonolithic
 #save_pr_incr: 
 #	$(error THIS IS DONE AUTOMATICALLY DURING THE FLOW)
 
-pr_verify: 
+pr_verify: assert_env
 	$(MAKE) -C ./TOP/tcl/ pr_verify
 
 
-ensureNotMonolithic: | xpr 
+ensureNotMonolithic: assert_env | xpr 
 	@test ! -f ./xpr/.project_monolithic.lock || (cat ./xpr/.project_monolithic.lock && exit 1)
 
-ensureMonolithic:
+ensureMonolithic: assert_env
 	@test  -f ./xpr/.project_monolithic.lock || test ! -d ./xpr/ || (echo "This project was startet with Black Box flow => please clean up first" && exit 1)
 
-ensureDebugNets:
+ensureDebugNets: assert_env
 	@test -f ./TOP/xdc/.DEBUG_SWITCH || /bin/echo -e "This file is a guard for handle_vivado.tcl and should prevent the failure of a build process\nbecuase the make target monolithic_debug is called but the debug nets aren't defined in\n<Top>/TOP/xdc/debug.xdc .\nThis must be done once manually in the Gui and then write "YES" in the last line of this file.\n(It must stay the last line...)\n\nHave you defined the debug nets etc. in <Top>/xdc/debug.xdc?\nNO" > ./TOP/xdc/.DEBUG_SWITCH
 	@test `tail -n 1 ./TOP/xdc/.DEBUG_SWITCH` = YES || (echo "Please define debug nets in ./TOP/xdc/debug.xdc and answer the question in ./TOP/xdc/.DEBUG_SWITCH" && exit 1)
 
