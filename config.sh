@@ -19,7 +19,7 @@ export usedRoleDir="$rootDir/ROLE/RoleFlash/"
 export usedRole2Dir="$rootDir/ROLE/RoleFlash_V2/"
 export cFpSRAtype="x1Udp_x1Tcp_x2Mp_x2Mc"
 export cFpXprDir="$rootDir/xpr/"
-export cFpDcpDir="$rootDir/dcps"
+export cFpDcpDir="$rootDir/dcps/"
 export roleName1="default"
 export roleName2="V2"
 
