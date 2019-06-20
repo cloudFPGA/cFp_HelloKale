@@ -25,7 +25,6 @@
 
 /*****************************************************************************
  * @brief Echo loopback with store and forward in DDR4.
- * @ingroup tcp_app_flash
  *
  * @param[in]  siRXp_Data,   data from pRXPath (RXp)
  * @param[in]  siRXp_SessId, session Id from [RXp]
@@ -69,8 +68,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
 
 
 /*****************************************************************************
- * @brief Transmit Path (.i.e Data and metadata to SHELL.
- * @ingroup tcp_app_flash
+ * @brief Transmit Path (.i.e Data and metadata to SHELL)
  *
  * @param[in]  piSHL_MmioEchoCtrl, configuration of the echo function.
  * @param[in]  siEPt_Data,         data from EchoPassTrough (EPt).
@@ -98,14 +96,15 @@ void pTXPath(
     AxiWord     tcpWord;
     TcpSessId   tcpSessId;
 
-    static enum TxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } txpFsmState = START_OF_SEGMENT;
+    static enum TxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
+                               txpFsmState = START_OF_SEGMENT;
     #pragma HLS reset variable=txpFsmState
 
     switch (txpFsmState ) {
       case START_OF_SEGMENT:
         switch(piSHL_MmioEchoCtrl) {
+          // Read session Id from pEchoPassThrough and forward to [SHL]
           case ECHO_PATH_THRU:
-            // Read session Id from pEchoPassThrough
             if ( !siEPt_SessId.empty() and !soSHL_SessId.full()) {
                 siEPt_SessId.read(tcpSessId);
                 soSHL_SessId.write(tcpSessId);
@@ -113,7 +112,7 @@ void pTXPath(
             }
             break;
           case ECHO_STORE_FWD:
-            //-- Read session Id from pEchoStoreAndForward
+            //-- Read session Id from pEchoStoreAndForward and forward to [SHL]
             if ( !siESf_SessId.empty() and !soSHL_SessId.full()) {
                 siESf_SessId.read(tcpSessId);
                 soSHL_SessId.write(tcpSessId);
@@ -134,7 +133,7 @@ void pTXPath(
       case CONTINUATION_OF_SEGMENT:
         switch(piSHL_MmioEchoCtrl) {
           case ECHO_PATH_THRU:
-            //-- Read incoming data from pEchoPathThrough
+            //-- Read incoming data from pEchoPathThrough and forward to [SHL]
             if ( !siEPt_Data.empty() and !soSHL_Data.full()) {
                 siEPt_Data.read(tcpWord);
                 soSHL_Data.write(tcpWord);
@@ -144,7 +143,7 @@ void pTXPath(
             }
             break;
           case ECHO_STORE_FWD:
-            //-- Read incoming data from pEchoStoreAndForward
+            //-- Read incoming data from pEchoStoreAndForward and forward to [SHL]
             if ( !siESf_Data.empty() and !soSHL_Data.full()) {
                 siESf_Data.read(tcpWord);
                 soSHL_Data.write(tcpWord);
@@ -171,7 +170,6 @@ void pTXPath(
 
 /*****************************************************************************
  * @brief Receive Path (.i.e Data and metadata from SHELL).
- * @ingroup tcp_app_flash
  *
  * @param[in]  piSHL_MmioEchoCtrl, configuration of the echo function.
  * @param[in]  siSHL_Data,         data from SHELL (SHL).
@@ -199,7 +197,8 @@ void pRXPath(
     AxiWord     tcpWord;
     TcpSessId   tcpSessId;
 
-    static enum RxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } rxpFsmState = START_OF_SEGMENT;
+    static enum RxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
+                               rxpFsmState = START_OF_SEGMENT;
     #pragma HLS reset variable=rxpFsmState
 
     switch (rxpFsmState ) {
@@ -269,7 +268,6 @@ void pRXPath(
 
 /*****************************************************************************
  * @brief   Main process of the TCP Application Flash
- * @ingroup tcp_app_flash
  *
  * @param[in]  piSHL_MmioEchoCtrl,  configures the echo function.
  * @param[in]  piSHL_MmioPostSegEn, enables posting of a TCP segment by [MMIO].
@@ -365,6 +363,21 @@ void tcp_app_flash (
     #pragma HLS STREAM variable=sESfToTXp_SessId  depth=2
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
+    //
+    //                 +----------+
+    //       +-------->|   pESf   |---------+
+    //       |         +----------+         |
+    //       |          --------+           |
+    //       | +-------->  sEPt |---------+ |
+    //       | |        --------+         | |
+    //    +--+-+--+                    +--+-+--+
+    //    |  pRXp |                    |  pTXp |
+    //    +---+---+                    +---+---+
+    //       /|\                           |
+    //        |                            |
+    //        |                           \|/
+    //
+    //-------------------------------------------------------------------------
     pRXPath(
             piSHL_MmioEchoCtrl,
             siSHL_Data,

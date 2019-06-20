@@ -154,25 +154,6 @@ bool setInputDataStreams(
     return(OK);
 }
 
-
-
-/*****************************************************************************
- * @brief Read data from a stream.
- * @ingroup tcp_app_flash
- *
- * @param[in]  sDataStream,    the output data stream to read.
- * @param[in]  dataStreamName, the name of the data stream.
- * @param[out] tcpWord,        a pointer to the storage location of the data
- *                              to read.
- * @return VALID if a data was read, otherwise UNVALID.
- ******************************************************************************/
-bool readDataStream(stream <TcpWord> &sDataStream, TcpWord *tcpWord) {
-    // Get the DUT/Data results
-    sDataStream.read(*tcpWord);
-    return(VALID);
-}
-
-
 /*****************************************************************************
  * @brief Dump a data word to a file.
  * @ingroup tcp_app_flash
