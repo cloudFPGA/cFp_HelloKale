@@ -638,7 +638,7 @@ begin
            -- From SHELL / Mmio Interfaces
            --------------------------------------------------------       
           piSHL_MmioEchoCtrl_V => piSHL_Rol_Mmio_TcpEchoCtrl,
-          --[TODO] piSHL_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
+          piSHL_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
           --[TODO] piSHL_MmioCaptPktEn  => piSHL_Rol_Mmio_TcpCaptPktEn,
           
           --------------------------------------------------------
@@ -698,7 +698,7 @@ begin
           -- From SHELL / Mmio Interfaces
           --------------------------------------------------------       
           piSHL_MmioEchoCtrl_V => piSHL_Rol_Mmio_TcpEchoCtrl,
-          --[TODO] piSHL_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
+          piSHL_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
           --[TODO] piSHL_MmioCaptPktEn  => piSHL_Rol_Mmio_TcpCaptPktEn,
           
           --------------------------------------------------------
