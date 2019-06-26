@@ -71,6 +71,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
  * @brief Transmit Path (.i.e Data and metadata to SHELL)
  *
  * @param[in]  piSHL_MmioEchoCtrl, configuration of the echo function.
+ * @param[in]  piSHL_MmioPostSegEn,enables the posting of TCP segments.
  * @param[in]  siEPt_Data,         data from EchoPassTrough (EPt).
  * @param[in]  siEPt_SessId,       metadata from [EPt].
  * @param[in]  siESf_Data,         data from EchoStoreAndForward (ESf).
@@ -82,6 +83,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
  *****************************************************************************/
 void pTXPath(
         ap_uint<2>           piSHL_MmioEchoCtrl,
+        ap_uint<1>           piSHL_MmioPostSegEn,
         stream<AxiWord>     &siEPt_Data,
         stream<TcpSessId>   &siEPt_SessId,
         stream<AxiWord>     &siESf_Data,
@@ -100,18 +102,23 @@ void pTXPath(
                                txpFsmState = START_OF_SEGMENT;
     #pragma HLS reset variable=txpFsmState
 
+    static enum MsgFsmStates { MSG0=0, MSG1, MSG2, MSG3 } \
+                               msgFsmState = MSG0;
+    #pragma HLS reset variable=msgFsmState
+
     switch (txpFsmState ) {
-      case START_OF_SEGMENT:
+
+    case START_OF_SEGMENT:
         switch(piSHL_MmioEchoCtrl) {
-          // Read session Id from pEchoPassThrough and forward to [SHL]
-          case ECHO_PATH_THRU:
+        case ECHO_PATH_THRU:
+            // Read session Id from pEchoPassThrough and forward to [SHL]
             if ( !siEPt_SessId.empty() and !soSHL_SessId.full()) {
                 siEPt_SessId.read(tcpSessId);
                 soSHL_SessId.write(tcpSessId);
                 txpFsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
-          case ECHO_STORE_FWD:
+        case ECHO_STORE_FWD:
             //-- Read session Id from pEchoStoreAndForward and forward to [SHL]
             if ( !siESf_SessId.empty() and !soSHL_SessId.full()) {
                 siESf_SessId.read(tcpSessId);
@@ -119,9 +126,28 @@ void pTXPath(
                 txpFsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
-          case ECHO_OFF:
-          default:
-            // Drain and drop the session Id
+        case ECHO_OFF:
+            // Always drain and drop the session Id (if any)
+            if ( !siEPt_SessId.empty() )
+                siEPt_SessId.read();
+            else if ( !siESf_SessId.empty() )
+                siESf_SessId.read();
+
+            if (piSHL_MmioPostSegEn) {
+                // Prepare for sending a segment to remote host by forwarding
+                // a session-id (here we use a temporary dirty hack ; we always
+                // forward SessId=0 because we know it is '0' after a reset).
+                if (!soSHL_SessId.full()) {
+                    soSHL_SessId.write(0);
+                    txpFsmState = CONTINUATION_OF_SEGMENT;
+                }
+            }
+            else {
+                txpFsmState = CONTINUATION_OF_SEGMENT;
+            }
+            break;
+        default:
+            // Always drain and drop the session Id (if any)
             if ( !siEPt_SessId.empty() )
                 siEPt_SessId.read();
             else if ( !siESf_SessId.empty() )
@@ -130,9 +156,10 @@ void pTXPath(
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
-      case CONTINUATION_OF_SEGMENT:
+
+    case CONTINUATION_OF_SEGMENT:
         switch(piSHL_MmioEchoCtrl) {
-          case ECHO_PATH_THRU:
+        case ECHO_PATH_THRU:
             //-- Read incoming data from pEchoPathThrough and forward to [SHL]
             if ( !siEPt_Data.empty() and !soSHL_Data.full()) {
                 siEPt_Data.read(tcpWord);
@@ -142,7 +169,7 @@ void pTXPath(
                     txpFsmState = START_OF_SEGMENT;
             }
             break;
-          case ECHO_STORE_FWD:
+        case ECHO_STORE_FWD:
             //-- Read incoming data from pEchoStoreAndForward and forward to [SHL]
             if ( !siESf_Data.empty() and !soSHL_Data.full()) {
                 siESf_Data.read(tcpWord);
@@ -152,9 +179,43 @@ void pTXPath(
                     txpFsmState = START_OF_SEGMENT;
             }
             break;
-          case ECHO_OFF:
-          default:
-            // Drain and drop the segments
+        case ECHO_OFF:
+            // Always drain and drop the data segments (if any)
+            if ( !siEPt_Data.empty() )
+                siEPt_Data.read(tcpWord);
+            else if ( !siESf_Data.empty() )
+                siESf_Data.read(tcpWord);
+
+            if (piSHL_MmioPostSegEn) {
+                // Always send the same basic message to the remote host
+                if ( !soSHL_Data.full()) {
+                    switch(msgFsmState) {
+                    case MSG0: // 'Hello Wo'
+                        soSHL_Data.write(AxiWord(0x48656c6c6f20576f, 0xFF, 0));
+                        msgFsmState = MSG1;
+                        break;
+                    case MSG1: // 'rld from'
+                        soSHL_Data.write(AxiWord(0x726c642066726f6d, 0xFF, 0));
+                        msgFsmState = MSG2;
+                        break;
+                    case MSG2: // ' FMKU60 '
+                        soSHL_Data.write(AxiWord(0x20464d4b55363020, 0xFF, 0));
+                        msgFsmState = MSG3;
+                        break;
+                    case MSG3: // '--------'
+                        soSHL_Data.write(AxiWord(0x2d2d2d2d2d2d2d2d, 0xFF, 1));
+                        msgFsmState = MSG0;
+                        txpFsmState = START_OF_SEGMENT;
+                        break;
+                    }
+                }
+                else {
+                    txpFsmState = START_OF_SEGMENT;
+                }
+            }
+            break;
+        default:
+            // Always drain and drop the data segments (if any)
             if ( !siEPt_Data.empty() )
                 siEPt_Data.read(tcpWord);
             else if ( !siESf_Data.empty() )
@@ -164,7 +225,7 @@ void pTXPath(
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
-    }  // End-of: switch (rxpFsmState ) {
+    }  // End-of: switch (txpFsmState ) {
 }
 
 
@@ -270,7 +331,7 @@ void pRXPath(
  * @brief   Main process of the TCP Application Flash
  *
  * @param[in]  piSHL_MmioEchoCtrl,  configures the echo function.
- * @param[in]  piSHL_MmioPostSegEn, enables posting of a TCP segment by [MMIO].
+ * @param[in]  piSHL_MmioPostSegEn, enables posting of TCP segments.
  * @param[in]  piSHL_MmioCaptSegEn, enables capture of a TCP segment by [MMIO].
  * @param[in]  siSHL_Data,          TCP data stream from the SHELL [SHL].
  * @param[in]  siSHL_SessId,        TCP session Id from [SHL].
@@ -284,7 +345,7 @@ void tcp_app_flash (
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
         ap_uint<2>          piSHL_MmioEchoCtrl,
-        //[TODO] ap_uint<1> piSHL_MmioPostSegEn,
+        ap_uint<1>          piSHL_MmioPostSegEn,
         //[TODO] ap_uint<1> piSHL_MmioCaptSegEn,
 
         //------------------------------------------------------
@@ -311,7 +372,7 @@ void tcp_app_flash (
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     #pragma HLS INTERFACE ap_stable    port=piSHL_MmioEchoCtrl
-    //[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_MmioPostSegEn
+    #pragma HLS INTERFACE ap_stable    port=piSHL_MmioPostSegEn
     //[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_MmioCaptSegEn
 
     #pragma HLS resource core=AXI4Stream variable=siSHL_Data   metadata="-bus_bundle siSHL_Data"
@@ -325,7 +386,7 @@ void tcp_app_flash (
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     #pragma HLS INTERFACE ap_stable          port=piSHL_MmioEchoCtrl
-    //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_MmioPostSegEn
+    #pragma HLS INTERFACE ap_stable          port=piSHL_MmioPostSegEn
     //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_MmioCapSegtEn
 
     // [INFO] Always add "register off" because (default value is "both")
@@ -395,6 +456,7 @@ void tcp_app_flash (
 
     pTXPath(
             piSHL_MmioEchoCtrl,
+			piSHL_MmioPostSegEn,
             sRXpToTXp_Data,
             sRXpToTXp_SessId,
             sESfToTXp_Data,

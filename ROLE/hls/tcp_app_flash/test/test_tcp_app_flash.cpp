@@ -54,14 +54,13 @@ int     gSimCnt;
 
 /*****************************************************************************
  * @brief Run a single iteration of the DUT model.
- * @ingroup tcp_app_flash
  *
  * @return Nothing.
  ******************************************************************************/
 void stepDut() {
     tcp_app_flash(
             piSHL_MmioEchoCtrl,
-            //[TODO] piSHL_MmioPostSegEn,
+            piSHL_MmioPostSegEn,
             //[TODO] piSHL_MmioCaptSegEn,
             sSHL_Data,
             sSHL_SessId,
@@ -73,7 +72,6 @@ void stepDut() {
 
 /*****************************************************************************
  * @brief Initialize the input data streams from a file.
- * @ingroup tcp_app_flash
  *
  * @param[in/out] sDataStream,    the input data stream to set.
  * @param[in/out] sMetaStream,    the input meta stream to set.
@@ -136,7 +134,7 @@ bool setInputDataStreams(
             else {
                 sDataStream.write(tcpWord);
                 // Print Data to console
-                printf("[%4.4d] TB is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+                printf("[%4.4d] [TB] is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                         gSimCnt, dataStreamName.c_str(),
                         tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
                 // Increment the TCP session Id
@@ -155,15 +153,14 @@ bool setInputDataStreams(
 }
 
 /*****************************************************************************
- * @brief Dump a data word to a file.
- * @ingroup tcp_app_flash
+ * @brief Dump an Axi data word to a file.
  *
  * @param[in] tcpWord,       a pointer to the data word to dump.
  * @param[in] outFileStream, the output file stream to write to.
  *
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool dumpDataToFile(AxiWord *tcpWord, ofstream &outFileStream) {
+bool writeAxiWordToFile(AxiWord *tcpWord, ofstream &outFileStream) {
     if (!outFileStream.is_open()) {
         printf("### ERROR : Output file stream is not open. \n");
         return(KO);
@@ -176,16 +173,64 @@ bool dumpDataToFile(AxiWord *tcpWord, ofstream &outFileStream) {
     return(OK);
 }
 
+/*******************************************************************************
+ * @brief Converts an UINT8 into a string of 2 HEX characters.
+ *
+ * @param[in]   inputNumber, the UINT8 to convert.
+ * @return      a string of 2 HEX characters.
+ ******************************************************************************/
+string uint8ToStrHex(ap_uint<8> inputNumber) {
+    string                      outputString    = "00";
+    unsigned short int          tempValue       = 16;
+    static const char* const    lut             = "0123456789ABCDEF";
+    	for (int i = 1;i>=0;--i) {
+    tempValue = 0;
+    for (unsigned short int k = 0; k<4; ++k) {
+        if (inputNumber.bit((i+1)*4-k-1) == 1)
+            tempValue += static_cast <unsigned short int>(pow(2.0, 3-k));
+        }
+        outputString[1-i] = lut[tempValue];
+    }
+    return outputString;
+}
+
+/*****************************************************************************
+ * @brief Write a TCP AXI word into a file.
+ *
+ * @param[in] tcpWord, a ref to the AXI word to write.
+ * @param[in] outFile, a ref to the file to write.
+ * @return the number of bytes written into the file.
+ ******************************************************************************/
+int writeTcpWordToFile(AxiWord *tcpWord, ofstream  &outFileStream) {
+    string    tdataToFile = "";
+    int       writtenBytes = 0;
+
+    for (int bytNum=7; bytNum>=0; bytNum--) {
+        if (tcpWord->tkeep.bit(bytNum)) {
+            int hi = ((bytNum*8) + 7);
+            int lo = ((bytNum*8) + 0);
+            ap_uint<8>  octet = tcpWord->tdata.range(hi, lo);
+            tdataToFile += octet; // OBSOLETE uint8ToStrHex(octet);
+            writtenBytes++;
+        }
+    }
+
+    if (tcpWord->tlast == 1)
+        outFileStream << tdataToFile << endl;
+    else
+        outFileStream << tdataToFile;
+
+    return writtenBytes;
+}
 
 /*****************************************************************************
  * @brief Fill an output file with data from an output streams.
- * @ingroup tcp_app_flash
  *
  * @param[in] sDataStream,    the output data stream to read from.
  * @param[in] sMetaStream,    the output meta stream to read from.
  * @param[in] dataStreamName, the name of the data stream.
  * @param[in] metaStreamName, the name of the meta stream.
- * @param[in] outFileName,    the name of the output file to write to.
+ * @param[in] outDataFileName,the name of the output data file to write to.
  * @param[in] nrTxSegs,       a ref to the counter of generated segments.
  *
  * @return OK if successful, otherwise KO.
@@ -195,22 +240,29 @@ bool getOutputDataStreams(
         stream<TcpSessId> &sMetaStream,
         const string       dataStreamName,
         const string       metaStreamName,
-        const string       outFileName,
+        const string       outDataFileName,
         int               &nrTxSegs)
 {
     string      strLine;
-    ofstream    outFileStream;
-    string      datFile = "../../../../test/" + outFileName;
+    ofstream    rawDataFile;
+    ofstream    tcpDataFile;
+    string      rawDataFileName = "../../../../test/" + outDataFileName;
+    string      tcpDataFileName = "../../../../test/" + outDataFileName + ".tcp";
     AxiWord     tcpWord;
     TcpSessId   tcpSessId;
     TcpSessId   expectedSessId = DEFAULT_SESS_ID;
     bool        startOfTcpSeg;
     bool        rc = OK;
     int         nrRxSegs = 0;
-    //-- STEP-1 : OPEN FILE
-    outFileStream.open(datFile.c_str());
-    if ( !outFileStream ) {
-        cout << "### ERROR : Could not open the output data file " << datFile << endl;
+    //-- STEP-1 : OPEN FILES
+    rawDataFile.open(rawDataFileName.c_str());
+    if ( !rawDataFile ) {
+        cout << "### ERROR : Could not open the output data file " << rawDataFileName << endl;
+        return(KO);
+    }
+    tcpDataFile.open(tcpDataFileName.c_str());
+    if ( !tcpDataFile ) {
+        cout << "### ERROR : Could not open the output data file " << tcpDataFileName << endl;
         return(KO);
     }
 
@@ -221,8 +273,10 @@ bool getOutputDataStreams(
         if (startOfTcpSeg) {
             if (!sMetaStream.empty()) {
                 sMetaStream.read(tcpSessId);
-                if (tcpSessId == expectedSessId)
-                    printf("### [TB/Rx] Received TCP session Id = %d.\n", tcpSessId.to_int());
+                if ((tcpSessId == expectedSessId) or (tcpSessId == 0)) {
+                    printf("[%4.4d] [TB/Rx] Received TCP session Id = %d.\n",
+                            gSimCnt, tcpSessId.to_int());
+                }
                 else {
                     printf("### ERROR : Received TCP session Id = %d but expected %d.\n",
                             tcpSessId.to_int(), expectedSessId.to_int());
@@ -234,7 +288,7 @@ bool getOutputDataStreams(
         // Read and drain sDataStream
         if (!sDataStream.empty()) {
             sDataStream.read(tcpWord);
-            printf("[%4.4d] TB is draining output stream \'%s\' - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+            printf("[%4.4d] [TB] is draining output stream \'%s\' - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                     gSimCnt, dataStreamName.c_str(),
                     tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
             if (tcpWord.tlast) {
@@ -243,15 +297,17 @@ bool getOutputDataStreams(
                 if (nrRxSegs < nrTxSegs)
                     expectedSessId++;
             }
-            if (!dumpDataToFile(&tcpWord, outFileStream)) {
+            if (!writeAxiWordToFile(&tcpWord, rawDataFile) or \
+                !writeTcpWordToFile(&tcpWord, tcpDataFile)) {
                 rc = KO;
                 break;
             }
         }
     }
 
-    //-- STEP-3: CLOSE FILE
-    outFileStream.close();
+    //-- STEP-3: CLOSE FILES
+    rawDataFile.close();
+    tcpDataFile.close();
 
     return(rc);
 }
@@ -259,7 +315,6 @@ bool getOutputDataStreams(
 /******************************************************************************
  * @brief Main function.
  *
- * @ingroup test_tcp_app_flash
  ******************************************************************************/
 int main() {
 
@@ -272,7 +327,7 @@ int main() {
     int segCnt = 0;
 
     printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("## TESTBENCH PART-1 STARTS HERE                    ##\n");
     printf("#####################################################\n");
 
     //------------------------------------------------------
@@ -290,40 +345,86 @@ int main() {
     //-- STEP-1.2 : SET THE PASS-THROUGH MODE
     //------------------------------------------------------
     piSHL_MmioEchoCtrl.write(ECHO_PATH_THRU);
-    //[TODO] piSHL_MmioPostPktEn.write(DISABLED);
-    //[TODO] piSHL_MmioCaptPktEn.write(DISABLED);
+    piSHL_MmioPostSegEn.write(DISABLED);
+    //[TODO] piSHL_MmioCaptSegEn.write(DISABLED);
 
     //------------------------------------------------------
-    //-- STEP-2 : MAIN TRAFFIC LOOP
+    //-- STEP-1.3 : MAIN TRAFFIC LOOP
     //------------------------------------------------------
     while (!nrErr) {
-
-        if (gSimCnt < 25)
+        if (gSimCnt < 50)
             stepDut();
         else {
-            printf("## End of simulation at cycle=%3d. \n", gSimCnt);
+            printf("## TESTBENCH PART-1 ENDS HERE ####################\n");
             break;
         }
-
     }  // End: while()
 
     //-------------------------------------------------------
-    //-- STEP-3 : DRAIN AND WRITE OUTPUT FILE STREAMS
+    //-- STEP-1.4 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- TAF-->SHELL ----
     if (!getOutputDataStreams(sTAF_Data, sTAF_SessId,
-            "sTAF_Data", "sTAF_SessId", "ofsTAF_Shl_Data.dat", segCnt))
+            "sTAF_Data", "sTAF_SessId", "ofsTAF_Shl_Echo_Path_Thru_Data.dat", segCnt))
         nrErr++;
 
     //------------------------------------------------------
-    //-- STEP-4 : COMPARE INPUT AND OUTPUT FILE STREAMS
+    //-- STEP-1.5 : COMPARE INPUT AND OUTPUT FILE STREAMS
     //------------------------------------------------------
-    int rc1 = system("diff --brief -w -i -y ../../../../test/ofsTAF_Shl_Data.dat \
+    int rc1 = system("diff --brief -w -i -y ../../../../test/ofsTAF_Shl_Echo_Path_Thru_Data.dat \
                                             ../../../../test/ifsSHL_Taf_Data.dat");
     if (rc1)
-        printf("## Error : File \'ofsTAF_Shl_Data.dat\' does not match \'ifsSHL_Taf_Data.dat\'.\n");
+        printf("## Error : File \'ofsTAF_Shl_Echo_Path_Thru_Data.dat\' does not match \'ifsSHL_Taf_Data.dat\'.\n");
 
     nrErr += rc1;
+
+    printf("#####################################################\n");
+    printf("## TESTBENCH PART-2 STARTS HERE                    ##\n");
+    printf("#####################################################\n");
+
+    //------------------------------------------------------
+    //-- STEP-2.2 : MAIN TRAFFIC LOOP
+    //------------------------------------------------------
+    while (!nrErr) {
+        stepDut();
+        if (gSimCnt == 100) {
+            //------------------------------------------------------
+            //-- STEP-2.1 : SET THE ECHO_OFF & POST_SEG_ENABLE MODES
+            //------------------------------------------------------
+            piSHL_MmioEchoCtrl.write(ECHO_OFF);
+            piSHL_MmioPostSegEn.write(ENABLED);
+            printf("[%4.4d] [TB] is enabling the segment posting mode.\n", gSimCnt);
+        }
+        else if (gSimCnt == 130) {
+            //------------------------------------------------------
+            //-- STEP-2.3 : DISABLE THE POSTING MODE
+            //------------------------------------------------------
+            piSHL_MmioPostSegEn.write(DISABLED);
+            printf("[%4.4d] [TB] is disabling the segment posting mode.\n", gSimCnt);
+        }
+        else if (gSimCnt > 200) {
+            printf("## TESTBENCH PART-2 ENDS HERE ####################\n");
+            break;
+        }
+    }  // End: while()
+
+
+    //-------------------------------------------------------
+    //-- STEP-2.4 : DRAIN AND WRITE OUTPUT FILE STREAMS
+    //-------------------------------------------------------
+    //---- TAF-->SHELL ----
+    if (!getOutputDataStreams(sTAF_Data, sTAF_SessId,
+            "sTAF_Data", "sTAF_SessId", "ofsTAF_Shl_Echo_Off_Data.dat", segCnt))
+        nrErr++;
+
+    //------------------------------------------------------
+    //-- STEP-2.5 : VERIFY CONTENT OF THE TCP OUTPUT FILE
+    //------------------------------------------------------
+    int rc2 = system("[ $(grep -o -c 'Hello World from FMKU60 --------' ../../../../test/ofsTAF_Shl_Echo_Off_Data.dat.tcp) -eq 6 ] ");
+    if (rc2) {
+        printf("## Error : File \'ofsTAF_Shl_Echo_Off_Data.dat.tcp\' does not content 6 instances of the expected \'Hello World\' string.\n");
+        nrErr += 1;
+    }
 
     printf("#####################################################\n");
     if (nrErr)
