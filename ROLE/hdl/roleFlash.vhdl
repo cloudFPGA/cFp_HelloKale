@@ -180,11 +180,11 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     --------------------------------------------------------
     -- MMIO / CTRL_2 Register ----------------
     piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
-    piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
+    piSHL_Rol_Mmio_UdpPostDgmEn         : in    std_ulogic;
+    piSHL_Rol_Mmio_UdpCaptDgmEn         : in    std_ulogic;
     piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
-    piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
+    piSHL_Rol_Mmio_TcpPostSegEn         : in    std_ulogic;
+    piSHL_Rol_Mmio_TcpCaptSegEn         : in    std_ulogic;
 
     --------------------------------------------------------
     -- ROLE EMIF Registers
@@ -271,8 +271,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
       piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_This_MmioPostPktEn  : in  std_logic;
-      --[TODO] piSHL_This_MmioCaptPktEn  : in  std_logic;
+      --[TODO] piSHL_This_MmioPostDgmEn_V  : in  std_logic;
+      --[TODO] piSHL_This_MmioCaptDgmEn_V  : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Udp Data Interfaces
       --------------------------------------------------------
@@ -311,8 +311,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
       piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_This_MmioPostPktEn  : in  std_logic;
-      --[TODO] piSHL_This_MmioCaptPktEn  : in  std_logic;
+      --[TODO] piSHL_This_MmioPostDgmEn_V  : in  std_logic;
+      --[TODO] piSHL_This_MmioCaptDgmEn_V  : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Udp Data Interfaces
       --------------------------------------------------------
@@ -338,39 +338,39 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
-      aclk                 : in  std_logic;
-      aresetn              : in  std_logic;    
+      aclk                  : in  std_logic;
+      aresetn               : in  std_logic;    
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_MmioPostPktEn  : in  std_logic;
-      --[TODO] piSHL_MmioCaptPktEn  : in  std_logic;
+      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      piSHL_MmioPostSegEn_V : in  std_logic;
+      --[TODO] piSHL_MmioCaptSegEn_V  : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
       --------------------------------------------------------
-      siSHL_Data_tdata     : in  std_logic_vector( 63 downto 0);
-      siSHL_Data_tkeep     : in  std_logic_vector(  7 downto 0);
-      siSHL_Data_tlast     : in  std_logic;
-      siSHL_Data_tvalid    : in  std_logic;
-      siSHL_Data_tready    : out std_logic;
+      siSHL_Data_tdata      : in  std_logic_vector( 63 downto 0);
+      siSHL_Data_tkeep      : in  std_logic_vector(  7 downto 0);
+      siSHL_Data_tlast      : in  std_logic;
+      siSHL_Data_tvalid     : in  std_logic;
+      siSHL_Data_tready     : out std_logic;
       --
-      siSHL_SessId_tdata   : in  std_logic_vector( 15 downto 0);
-      siSHL_SessId_tvalid  : in  std_logic;
-      siSHL_SessId_tready  : out std_logic;
+      siSHL_SessId_tdata    : in  std_logic_vector( 15 downto 0);
+      siSHL_SessId_tvalid   : in  std_logic;
+      siSHL_SessId_tready   : out std_logic;
       
       --------------------------------------------------------
       -- To SHELL / Tcp Data Interfaces
       --------------------------------------------------------
-      soSHL_Data_tdata     : out std_logic_vector( 63 downto 0);
-      soSHL_Data_tkeep     : out std_logic_vector(  7 downto 0);
-      soSHL_Data_tlast     : out std_logic;
-      soSHL_Data_tvalid    : out std_logic;
-      soSHL_Data_tready    : in  std_logic;
+      soSHL_Data_tdata      : out std_logic_vector( 63 downto 0);
+      soSHL_Data_tkeep      : out std_logic_vector(  7 downto 0);
+      soSHL_Data_tlast      : out std_logic;
+      soSHL_Data_tvalid     : out std_logic;
+      soSHL_Data_tready     : in  std_logic;
       --
-      soSHL_SessId_tdata   : out std_logic_vector( 15 downto 0);
-      soSHL_SessId_tvalid  : out std_logic;
-      soSHL_SessId_tready  : in  std_logic
+      soSHL_SessId_tdata    : out std_logic_vector( 15 downto 0);
+      soSHL_SessId_tvalid   : out std_logic;
+      soSHL_SessId_tready   : in  std_logic
     );
   end component TcpApplicationFlash;
  
@@ -380,47 +380,47 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
-      ap_clk                    : in  std_logic;
-      ap_rst_n                  : in  std_logic;
+      ap_clk                : in  std_logic;
+      ap_rst_n              : in  std_logic;
       ------------------------------------------------------
       -- BLock-Level I/O Protocol
       ------------------------------------------------------
-      --ap_start                  : in  std_logic;
-      --ap_ready                  : out std_logic;
-      --ap_done                   : out std_logic;
-      --ap_idle                   : out std_logic;
+      --ap_start            : in  std_logic;
+      --ap_ready            : out std_logic;
+      --ap_done             : out std_logic;
+      --ap_idle             : out std_logic;
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V      : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_MmioPostPktEn  : in  std_logic;
-      --[TODO] piSHL_MmioCaptPktEn  : in  std_logic;
+      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      piSHL_MmioPostSegEn_V : in  std_logic;
+      --[TODO] piSHL_MmioCaptSegEn  : in  std_logic;
       
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
       --------------------------------------------------------
-      siSHL_Data_tdata     : in  std_logic_vector( 63 downto 0);
-      siSHL_Data_tkeep     : in  std_logic_vector(  7 downto 0);
-      siSHL_Data_tlast     : in  std_logic;
-      siSHL_Data_tvalid    : in  std_logic;
-      siSHL_Data_tready    : out std_logic;
+      siSHL_Data_tdata      : in  std_logic_vector( 63 downto 0);
+      siSHL_Data_tkeep      : in  std_logic_vector(  7 downto 0);
+      siSHL_Data_tlast      : in  std_logic;
+      siSHL_Data_tvalid     : in  std_logic;
+      siSHL_Data_tready     : out std_logic;
       --
-      siSHL_SessId_tdata   : in  std_logic_vector( 15 downto 0);
-      siSHL_SessId_tvalid  : in  std_logic;
-      siSHL_SessId_tready  : out std_logic;
+      siSHL_SessId_tdata    : in  std_logic_vector( 15 downto 0);
+      siSHL_SessId_tvalid   : in  std_logic;
+      siSHL_SessId_tready   : out std_logic;
       
       --------------------------------------------------------
       -- To SHELL / Tcp Data Interfaces
       --------------------------------------------------------
-      soSHL_Data_tdata     : out std_logic_vector( 63 downto 0);
-      soSHL_Data_tkeep     : out std_logic_vector(  7 downto 0);
-      soSHL_Data_tlast     : out std_logic;
-      soSHL_Data_tvalid    : out std_logic;
-      soSHL_Data_tready    : in  std_logic;
+      soSHL_Data_tdata      : out std_logic_vector( 63 downto 0);
+      soSHL_Data_tkeep      : out std_logic_vector(  7 downto 0);
+      soSHL_Data_tlast      : out std_logic;
+      soSHL_Data_tvalid     : out std_logic;
+      soSHL_Data_tready     : in  std_logic;
       --
-      soSHL_SessId_tdata   : out std_logic_vector( 15 downto 0);
-      soSHL_SessId_tvalid  : out std_logic;
-      soSHL_SessId_tready  : in  std_logic
+      soSHL_SessId_tdata    : out std_logic_vector( 15 downto 0);
+      soSHL_SessId_tvalid   : out std_logic;
+      soSHL_SessId_tready   : in  std_logic
     );
   end component TcpApplicationFlashFail; 
 
@@ -531,8 +531,8 @@ begin
            -- From SHELL / Mmio Interfaces
            --------------------------------------------------------       
           piSHL_This_MmioEchoCtrl_V => piSHL_Rol_Mmio_UdpEchoCtrl,
-          --[TODO] piSHL_This_MmioPostPktEn  => piSHL_Rol_Mmio_UdpPostPktEn,
-          --[TODO] piSHL_This_MmioCaptPktEn  => piSHL_Rol_Mmio_UdpCaptPktEn,
+          --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Rol_Mmio_UdpPostDgmEn,
+          --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Rol_Mmio_UdpCaptDgmEn,
           
           --------------------------------------------------------
           -- From SHELL / Udp Data Interfaces
@@ -582,8 +582,8 @@ begin
           -- From SHELL / Mmio Interfaces
           --------------------------------------------------------       
           piSHL_This_MmioEchoCtrl_V => piSHL_Rol_Mmio_UdpEchoCtrl,
-          --[TODO] piSHL_This_MmioPostPktEn  => piSHL_Rol_Mmio_UdpPostPktEn,
-          --[TODO] piSHL_This_MmioCaptPktEn  => piSHL_Rol_Mmio_UdpCaptPktEn,
+          --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Rol_Mmio_UdpPostDgmEn,
+          --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Rol_Mmio_UdpCaptDgmEn,
           
           --------------------------------------------------------
           -- From SHELL / Udp Data Interfaces
@@ -637,9 +637,9 @@ begin
            --------------------------------------------------------
            -- From SHELL / Mmio Interfaces
            --------------------------------------------------------       
-          piSHL_MmioEchoCtrl_V => piSHL_Rol_Mmio_TcpEchoCtrl,
-          piSHL_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
-          --[TODO] piSHL_MmioCaptPktEn  => piSHL_Rol_Mmio_TcpCaptPktEn,
+          piSHL_MmioEchoCtrl_V    => piSHL_Rol_Mmio_TcpEchoCtrl,
+          piSHL_MmioPostSegEn_V   => piSHL_Rol_Mmio_TcpPostSegEn,
+          --[TODO] piSHL_MmioCaptSegEn_V  => piSHL_Rol_Mmio_TcpCaptSegEn,
           
           --------------------------------------------------------
           -- From SHELL / Tcp Data & Session Id Interfaces
@@ -697,9 +697,9 @@ begin
           --------------------------------------------------------
           -- From SHELL / Mmio Interfaces
           --------------------------------------------------------       
-          piSHL_MmioEchoCtrl_V => piSHL_Rol_Mmio_TcpEchoCtrl,
-          piSHL_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
-          --[TODO] piSHL_MmioCaptPktEn  => piSHL_Rol_Mmio_TcpCaptPktEn,
+          piSHL_MmioEchoCtrl_V      => piSHL_Rol_Mmio_TcpEchoCtrl,
+          piSHL_MmioPostSegEn_V     => piSHL_Rol_Mmio_TcpPostSegEn,
+          --[TODO] piSHL_MmioCaptSegEn  => piSHL_Rol_Mmio_TcpCaptSegEn,
           
           --------------------------------------------------------
           -- From SHELL / Tcp Interfaces

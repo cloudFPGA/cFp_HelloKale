@@ -296,11 +296,11 @@ architecture structural of topFMKU60 is
   --------------------------------------------------------
   -- MMIO / CTRL_2 Register ----------------
   signal sSHL_Rol_Mmio_UdpEchoCtrl          : std_ulogic_vector(  1 downto 0);
-  signal sSHL_Rol_Mmio_UdpPostPktEn         : std_ulogic;
-  signal sSHL_Rol_Mmio_UdpCaptPktEn         : std_ulogic;
+  signal sSHL_Rol_Mmio_UdpPostDgmEn         : std_ulogic;
+  signal sSHL_Rol_Mmio_UdpCaptDgmEn         : std_ulogic;
   signal sSHL_Rol_Mmio_TcpEchoCtrl          : std_ulogic_vector(  1 downto 0);
-  signal sSHL_Rol_Mmio_TcpPostPktEn         : std_ulogic;
-  signal sSHL_Rol_Mmio_TcpCaptPktEn         : std_ulogic;
+  signal sSHL_Rol_Mmio_TcpPostSegEn         : std_ulogic;
+  signal sSHL_Rol_Mmio_TcpCaptSegEn         : std_ulogic;
 
   ------ ROLE EMIF Registers ---------------
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
@@ -533,11 +533,11 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
       poSHL_Rol_Mmio_UdpEchoCtrl          : out   std_ulogic_vector(  1 downto 0);
-      poSHL_Rol_Mmio_UdpPostPktEn         : out   std_ulogic;
-      poSHL_Rol_Mmio_UdpCaptPktEn         : out   std_ulogic;
+      poSHL_Rol_Mmio_UdpPostDgmEn         : out   std_ulogic;
+      poSHL_Rol_Mmio_UdpCaptDgmEn         : out   std_ulogic;
       poSHL_Rol_Mmio_TcpEchoCtrl          : out   std_ulogic_vector(  1 downto 0);
-      poSHL_Rol_Mmio_TcpPostPktEn         : out   std_ulogic;
-      poSHL_Rol_Mmio_TcpCaptPktEn         : out   std_ulogic;
+      poSHL_Rol_Mmio_TcpPostSegEn         : out   std_ulogic;
+      poSHL_Rol_Mmio_TcpCaptSegEn         : out   std_ulogic;
 
       ----------------------------------------------------
       -- ROLE / Shl/ EMIF Registers 
@@ -682,11 +682,11 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
       piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_UdpPostDgmEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_UdpCaptDgmEn         : in    std_ulogic;
       piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_TcpPostSegEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_TcpCaptSegEn         : in    std_ulogic;
              
       ------------------------------------------------------
       -- ROLE EMIF Registers
@@ -1009,11 +1009,11 @@ begin
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
       poSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
-      poSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
-      poSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
+      poSHL_Rol_Mmio_UdpPostDgmEn         => sSHL_Rol_Mmio_UdpPostDgmEn,
+      poSHL_Rol_Mmio_UdpCaptDgmEn         => sSHL_Rol_Mmio_UdpCaptDgmEn,
       poSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
-      poSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
-      poSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
+      poSHL_Rol_Mmio_TcpPostSegEn         => sSHL_Rol_Mmio_TcpPostSegEn,
+      poSHL_Rol_Mmio_TcpCaptSegEn         => sSHL_Rol_Mmio_TcpCaptSegEn,
       
       ------------------------------------------------------
       -- ROLE / Shl/ EMIF Registers 
@@ -1154,11 +1154,11 @@ begin
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
       piSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
-      piSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
-      piSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
+      piSHL_Rol_Mmio_UdpPostDgmEn         => sSHL_Rol_Mmio_UdpPostDgmEn,
+      piSHL_Rol_Mmio_UdpCaptDgmEn         => sSHL_Rol_Mmio_UdpCaptDgmEn,
       piSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
-      piSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
-      piSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
+      piSHL_Rol_Mmio_TcpPostSegEn         => sSHL_Rol_Mmio_TcpPostSegEn,
+      piSHL_Rol_Mmio_TcpCaptSegEn         => sSHL_Rol_Mmio_TcpCaptSegEn,
       
       ------------------------------------------------------
       -- ROLE EMIF Registers
