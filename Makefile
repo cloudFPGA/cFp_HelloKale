@@ -118,6 +118,8 @@ monolithic_incr_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr   
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	$(MAKE) -C ./TOP/tcl/ monolithic_incr_debug
 
+monolithic_proj: ensureMonolithic | xpr ## Only creates a new Vivado project (only works after a clean; does not take dependencies into account)
+	$(MAKE) -C ./TOP/tcl/ monolithic_proj
 
 ##no ROLE, because Role is synthezied with sources!
 #monolithic_mpi: ensureMonolithic ShellSrcMPI RoleMPItypeSrc | xpr 
