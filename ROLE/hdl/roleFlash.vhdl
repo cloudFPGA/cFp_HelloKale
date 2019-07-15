@@ -66,147 +66,187 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     -- SHELL / Global Input Clock and Reset Interface
     --------------------------------------------------------
     piSHL_156_25Clk                     : in    std_ulogic;
-    piSHL_156_25Rst                     : in    std_ulogic;
-    piSHL_156_25Rst_delayed             : in    std_ulogic;
+    piSHL_156_25Rst                     : in    std_ulogic;   
+    piTOP_156_25Rst_delayed             : in    std_ulogic; -- [TODO - Get rid of this delayed reset]
 
     --------------------------------------------------------
-    -- SHELL / Role / Nts0 / Udp Interface
+    -- SHELL / Nts / Udp Interface
     --------------------------------------------------------
-    ---- Input AXI-Write Stream Interface ----------
-    piSHL_Rol_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-    piSHL_Rol_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-    piSHL_Rol_Nts0_Udp_Axis_tlast       : in    std_ulogic;
-    piSHL_Rol_Nts0_Udp_Axis_tvalid      : in    std_ulogic;  
-    poROL_Shl_Nts0_Udp_Axis_tready      : out   std_ulogic;
-    ---- Output AXI-Write Stream Interface ---------
-    piSHL_Rol_Nts0_Udp_Axis_tready      : in    std_ulogic;
-    poROL_Shl_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-    poROL_Shl_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-    poROL_Shl_Nts0_Udp_Axis_tlast       : out   std_ulogic;
-    poROL_Shl_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
-   
+    -- Input UDP Data (AXI4S) ----------
+    siSHL_Nts_Udp_Data_tdata            : in    std_ulogic_vector( 63 downto 0);
+    siSHL_Nts_Udp_Data_tkeep            : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Nts_Udp_Data_tlast            : in    std_ulogic;
+    siSHL_Nts_Udp_Data_tvalid           : in    std_ulogic;  
+    siSHL_Nts_Udp_Data_tready           : out   std_ulogic;
+    -- Output UDP Data (AXI4S) ---------
+    soSHL_Nts_Udp_Data_tdata            : out   std_ulogic_vector( 63 downto 0);
+    soSHL_Nts_Udp_Data_tkeep            : out   std_ulogic_vector(  7 downto 0);
+    soSHL_Nts_Udp_Data_tlast            : out   std_ulogic;
+    soSHL_Nts_Udp_Data_tvalid           : out   std_ulogic;
+    soSHL_Nts_Udp_Data_tready           : in    std_ulogic;
+       
+    ------------------------------------------------------
+    -- SHELL / Nts / Tcp / TxP Data Flow Interfaces
+    ------------------------------------------------------
+    -- FPGA Transmit Path (ROLE-->SHELL) ---------
+    ---- Stream TCP Data ---------------
+    soSHL_Nts_Tcp_Data_tdata            : out   std_ulogic_vector( 63 downto 0);
+    soSHL_Nts_Tcp_Data_tkeep            : out   std_ulogic_vector(  7 downto 0);
+    soSHL_Nts_Tcp_Data_tlast            : out   std_ulogic;
+    soSHL_Nts_Tcp_Data_tvalid           : out   std_ulogic;
+    soSHL_Nts_Tcp_Data_tready           : in    std_ulogic;
+    ---- Stream TCP Metadata -----------
+    soSHL_Nts_Tcp_Meta_tdata            : out   std_ulogic_vector( 15 downto 0);
+    soSHL_Nts_Tcp_Meta_tvalid           : out   std_ulogic;
+    soSHL_Nts_Tcp_Meta_tready           : in    std_ulogic;
+    ---- Stream TCP Data Status --------
+    siSHL_Nts_Tcp_DSts_tdata            : out   std_ulogic_vector( 23 downto 0);
+    siSHL_Nts_Tcp_DSts_tvalid           : out   std_ulogic;
+    siSHL_Nts_Tcp_DSts_tready           : in    std_ulogic;
+
     --------------------------------------------------------
-    -- SHELL / Role / Nts0 / Tcp Interface
+    -- SHELL / Nts / Tcp / RxP Data Flow Interfaces
     --------------------------------------------------------
-    ---- Input TCP Data (AXI4S) ------------------
-    piSHL_Rol_Nts0_TcpData_Axis_tdata   : in    std_ulogic_vector( 63 downto 0);
-    piSHL_Rol_Nts0_TcpData_Axis_tkeep   : in    std_ulogic_vector(  7 downto 0);
-    piSHL_Rol_Nts0_TcpData_Axis_tlast   : in    std_ulogic;
-    piSHL_Rol_Nts0_TcpData_Axis_tvalid  : in    std_ulogic;
-    poROL_Shl_Nts0_TcpData_Axis_tready  : out   std_ulogic;
-    ---- Input TCP Session Id (AXI4S) ------------
-    piSHL_Rol_Nts0_TcpMeta_Axis_tdata   : in    std_ulogic_vector( 15 downto 0);
-    piSHL_Rol_Nts0_TcpMeta_Axis_tvalid  : in    std_ulogic;
-    poROL_Shl_Nts0_TcpMeta_Axis_tready  : out   std_ulogic;
-    ---- Output TCP Data (AXI4S) -----------------
-    piSHL_Rol_Nts0_TcpData_Axis_tready  : in    std_ulogic;
-    poROL_Shl_Nts0_TcpData_Axis_tdata   : out   std_ulogic_vector( 63 downto 0);
-    poROL_Shl_Nts0_TcpData_Axis_tkeep   : out   std_ulogic_vector(  7 downto 0);
-    poROL_Shl_Nts0_TcpData_Axis_tlast   : out   std_ulogic;
-    poROL_Shl_Nts0_TcpData_Axis_tvalid  : out   std_ulogic;
-    ---- Output TCP Session Id (AXI4S) -----------
-    piSHL_Rol_Nts0_TcpMeta_Axis_tready  : in    std_ulogic;
-    poROL_Shl_Nts0_TcpMeta_Axis_tdata   : out   std_ulogic_vector( 15 downto 0);
-    poROL_Shl_Nts0_TcpMeta_Axis_tvalid  : out   std_ulogic;
+    -- FPGA Receive Path (SHELL-->ROLE) ----------
+    ---- Stream TCP Data ---------------
+    siSHL_Nts_Tcp_Data_tdata            : in    std_ulogic_vector( 63 downto 0);
+    siSHL_Nts_Tcp_Data_tkeep            : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Nts_Tcp_Data_tlast            : in    std_ulogic;
+    siSHL_Nts_Tcp_Data_tvalid           : in    std_ulogic;
+    siSHL_Nts_Tcp_Data_tready           : out   std_ulogic;
+    ---- Stream TCP Meta ---------------
+    siSHL_Nts_Tcp_Meta_tdata            : in    std_ulogic_vector( 15 downto 0);
+    siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
+    siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
+    ---- Stream TCP Data Notification --
+    siSHL_Nts_Tcp_Notif_tdata           : out   std_ulogic_vector( 87 downto 0);
+    siSHL_Nts_Tcp_Notif_tvalid          : out   std_ulogic;
+    siSHL_Nts_Tcp_Notif_tready          : in    std_ulogic;
+    ---- Stream TCP Data Request -------
+    soSHL_Nts_Tcp_DReq_tdata            : in    std_ulogic_vector( 31 downto 0); 
+    soSHL_Nts_Tcp_DReq_tvalid           : in    std_ulogic;       
+    soSHL_Nts_Tcp_DReq_tready           : out   std_ulogic;
+
+    ------------------------------------------------------
+    -- SHELL / Nts / Tcp / TxP Ctlr Flow Interfaces
+    ------------------------------------------------------
+    -- FPGA Transmit Path (ROLE-->SHELL) ---------
+    ---- Stream TCP Open Session Request
+    soSHL_Nts_Tcp_OpnReq_tdata          : in    std_ulogic_vector( 47 downto 0);  
+    soSHL_Nts_Tcp_OpnReq_tvalid         : in    std_ulogic;
+    soSHL_Nts_Tcp_OpnReq_tready         : out   std_ulogic;
+    ---- Stream TCP Open Session Status  
+    siSHL_Nts_Tcp_OpnSts_tdata          : out   std_ulogic_vector( 47 downto 0); 
+    siSHL_Nts_Tcp_OpnSts_tvalid         : out   std_ulogic;
+    siSHL_Nts_Tcp_OpnSts_tready         : in    std_ulogic;
+    ---- Stream TCP Close Request ------
+    soSHL_Nts_Tcp_ClsReq_tdata          : in     std_ulogic_vector( 47 downto 0);  
+    soSHL_Nts_Tcp_ClsReq_tvalid         : in     std_ulogic;
+    soSHL_Nts_Tcp_ClsReq_tready         : out    std_ulogic;
+
+    ------------------------------------------------------
+    -- SHELL / Nts / Tcp / RxP Ctlr Flow Interfaces
+    ------------------------------------------------------
+    -- FPGA Receive Path (SHELL-->ROLE) ----------
+    ---- Stream TCP Listen Request -----
+    soSHL_Nts_Tcp_LsnReq_tdata          : in     std_ulogic_vector( 15 downto 0);  
+    soSHL_Nts_Tcp_LsnReq_tvalid         : in     std_ulogic;
+    soSHL_Nts_Tcp_LsnReq_tready         : out    std_ulogic;
+    ---- Stream TCP Listen Status ----
+    siSHL_Nts_Tcp_LsnAck_tdata          : out    std_ulogic_vector( 47 downto 0); 
+    siSHL_Nts_Tcp_LsnAck_tvalid         : out    std_ulogic;
+    siSHL_Nts_Tcp_LsnAck_tready         : in     std_ulogic;
     
     --------------------------------------------------------
-    -- SHELL / Role / Mem / Mp0 Interface
+    -- SHELL / Mem / Mp0 Interface
     --------------------------------------------------------
     ---- Memory Port #0 / S2MM-AXIS ----------------   
-    ------ Stream Read Command -----------------
-    piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-    poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : out   std_ulogic;
-    ------ Stream Read Status ------------------
-    piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-    piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : in    std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_RdSts_tready : out   std_ulogic;
-    ------ Stream Data Input Channel -----------
-    piSHL_Rol_Mem_Mp0_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-    piSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-    piSHL_Rol_Mem_Mp0_Axis_Read_tlast   : in    std_ulogic;
-    piSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : in    std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_Read_tready  : out   std_ulogic;
-    ------ Stream Write Command ----------------
-    piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-    poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
-    ------ Stream Write Status -----------------
-    piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-    piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_WrSts_tready : out   std_ulogic;
-    ------ Stream Data Output Channel ----------
-    piSHL_Rol_Mem_Mp0_Axis_Write_tready : in    std_ulogic; 
-    poROL_Shl_Mem_Mp0_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-    poROL_Shl_Mem_Mp0_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-    poROL_Shl_Mem_Mp0_Axis_Write_tlast  : out   std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_Write_tvalid : out   std_ulogic;
+    ------ Stream Read Command ---------
+    soSHL_Mem_Mp0_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp0_RdCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp0_RdCmd_tready          : in    std_ulogic;
+    ------ Stream Read Status ----------
+    siSHL_Mem_Mp0_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp0_RdSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp0_RdSts_tready          : out   std_ulogic;
+    ------ Stream Data Input Channel ---
+    siSHL_Mem_Mp0_Read_tdata            : in    std_ulogic_vector(511 downto 0);
+    siSHL_Mem_Mp0_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
+    siSHL_Mem_Mp0_Read_tlast            : in    std_ulogic;
+    siSHL_Mem_Mp0_Read_tvalid           : in    std_ulogic;
+    siSHL_Mem_Mp0_Read_tready           : out   std_ulogic;
+    ------ Stream Write Command --------
+    soSHL_Mem_Mp0_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp0_WrCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp0_WrCmd_tready          : in    std_ulogic;
+    ------ Stream Write Status ---------
+    siSHL_Mem_Mp0_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp0_WrSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp0_WrSts_tready          : out   std_ulogic;
+    ------ Stream Data Output Channel --
+    soSHL_Mem_Mp0_Write_tdata           : out   std_ulogic_vector(511 downto 0);
+    soSHL_Mem_Mp0_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
+    soSHL_Mem_Mp0_Write_tlast           : out   std_ulogic;
+    soSHL_Mem_Mp0_Write_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp0_Write_tready          : in    std_ulogic; 
     
     --------------------------------------------------------
-    -- SHELL / Role / Mem / Mp1 Interface
+    -- SHELL / Mem / Mp1 Interface
     --------------------------------------------------------
-    ---- Memory Port #1 / S2MM-AXIS ----------------   
-    ------ Stream Read Command -----------------
-    piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-    poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : out   std_ulogic;
-    ------ Stream Read Status ------------------
-    piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-    piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : in    std_ulogic;
-    poROL_Shl_Mem_Mp1_Axis_RdSts_tready : out   std_ulogic;
-    ------ Stream Data Input Channel -----------
-    piSHL_Rol_Mem_Mp1_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-    piSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-    piSHL_Rol_Mem_Mp1_Axis_Read_tlast   : in    std_ulogic;
-    piSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : in    std_ulogic;
-    poROL_Shl_Mem_Mp1_Axis_Read_tready  : out   std_ulogic;
-    ------ Stream Write Command ----------------
-    piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-    poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : out   std_ulogic;
-    ------ Stream Write Status -----------------
-    piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : in    std_ulogic;
-    piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-    poROL_Shl_Mem_Mp1_Axis_WrSts_tready : out   std_ulogic;
-    ------ Stream Data Output Channel ----------
-    piSHL_Rol_Mem_Mp1_Axis_Write_tready : in    std_ulogic; 
-    poROL_Shl_Mem_Mp1_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-    poROL_Shl_Mem_Mp1_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-    poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
-    poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic;
+    ---- Memory Port #1 / S2MM-AXIS ------------------   
+    ------ Stream Read Command ---------
+    soSHL_Mem_Mp1_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp1_RdCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp1_RdCmd_tready          : in    std_ulogic;
+    ------ Stream Read Status ----------
+    siSHL_Mem_Mp1_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp1_RdSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp1_RdSts_tready          : out   std_ulogic;
+    ------ Stream Data Input Channel ---
+    siSHL_Mem_Mp1_Read_tdata            : in    std_ulogic_vector(511 downto 0);
+    siSHL_Mem_Mp1_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
+    siSHL_Mem_Mp1_Read_tlast            : in    std_ulogic;
+    siSHL_Mem_Mp1_Read_tvalid           : in    std_ulogic;
+    siSHL_Mem_Mp1_Read_tready           : out   std_ulogic;
+    ------ Stream Write Command --------
+    soSHL_Mem_Mp1_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp1_WrCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp1_WrCmd_tready          : in    std_ulogic;
+    ------ Stream Write Status ---------
+    siSHL_Mem_Mp1_WrSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp1_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp1_WrSts_tready          : out   std_ulogic;
+    ------ Stream Data Output Channel --
+    soSHL_Mem_Mp1_Write_tdata           : out   std_ulogic_vector(511 downto 0);
+    soSHL_Mem_Mp1_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
+    soSHL_Mem_Mp1_Write_tlast           : out   std_ulogic;
+    soSHL_Mem_Mp1_Write_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp1_Write_tready          : in    std_ulogic; 
     
     --------------------------------------------------------
-    -- SHELL / Role / Mmio / Flash Debug Interface
+    -- SHELL / Mmio / AppFlash Interface
     --------------------------------------------------------
-    -- MMIO / CTRL_2 Register ----------------
-    piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Rol_Mmio_UdpPostDgmEn         : in    std_ulogic;
-    piSHL_Rol_Mmio_UdpCaptDgmEn         : in    std_ulogic;
-    piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Rol_Mmio_TcpPostSegEn         : in    std_ulogic;
-    piSHL_Rol_Mmio_TcpCaptSegEn         : in    std_ulogic;
+    ---- [DIAG_CTRL_1] -----------------
+    piSHL_Mmio_Mc1_MemTestCtrl          : in    std_ulogic_vector(1 downto 0);
+    ---- [DIAG_STAT_1] -----------------
+    poSHL_Mmio_Mc1_MemTestStat          : out   std_ulogic_vector(1 downto 0);
+    ---- [DIAG_CTRL_2] -----------------
+    piSHL_Mmio_UdpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
+    piSHL_Mmio_UdpPostDgmEn             : in    std_ulogic;
+    piSHL_Mmio_UdpCaptDgmEn             : in    std_ulogic;
+    piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
+    piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
+    piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
+    ---- [APP_RDROL] -------------------
+    poSHL_Mmio_RdReg                    : out  std_logic_vector( 15 downto 0);
+    --- [APP_WRROL] --------------------
+    piSHL_Mmio_WrReg                    : in   std_logic_vector( 15 downto 0);
 
-    --------------------------------------------------------
-    -- ROLE EMIF Registers
-    --------------------------------------------------------
-    poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
-    piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
-    --------------------------------------------------------
-    -- DIAG Registers for MemTest
-    --------------------------------------------------------
-    piDIAG_CTRL                         : in  std_logic_vector(1 downto 0);
-    poDIAG_STAT                         : out std_logic_vector(1 downto 0);
     --------------------------------------------------------
     -- TOP : Secondary Clock (Asynchronous)
     --------------------------------------------------------
     piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
-    
-    ------------------------------------------------
-    -- SMC Interface
-    ------------------------------------------------ 
-    piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
-    piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
-    
+
     poVoid                              : out   std_ulogic
 
   );
@@ -229,33 +269,33 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   ------------------------------------------------------
   -- UDP AXIS READ Register
   ------------------------------------------------------
-  signal sUdpAxisReadReg_tdata              : std_ulogic_vector( 63 downto 0);
-  signal sUdpAxisReadReg_tkeep              : std_ulogic_vector(  7 downto 0);
-  signal sUdpAxisReadReg_tlast              : std_ulogic;
-  signal sUdpAxisReadReg_tvalid             : std_ulogic;
+  signal sUdpAxisReadReg_tdata          : std_ulogic_vector( 63 downto 0);
+  signal sUdpAxisReadReg_tkeep          : std_ulogic_vector(  7 downto 0);
+  signal sUdpAxisReadReg_tlast          : std_ulogic;
+  signal sUdpAxisReadReg_tvalid         : std_ulogic;
    
   ------------------------------------------------------
   -- UDP PASS-THROUGH Register
   ------------------------------------------------------
-  signal sUdpPassThruReg_tdata              : std_ulogic_vector( 63 downto 0);
-  signal sUdpPassThruReg_tkeep              : std_ulogic_vector(  7 downto 0);
-  signal sUdpPassThruReg_tlast              : std_ulogic;
-  signal sUdpPassThruReg_tvalid             : std_ulogic;
+  signal sUdpPassThruReg_tdata          : std_ulogic_vector( 63 downto 0);
+  signal sUdpPassThruReg_tkeep          : std_ulogic_vector(  7 downto 0);
+  signal sUdpPassThruReg_tlast          : std_ulogic;
+  signal sUdpPassThruReg_tvalid         : std_ulogic;
    
-  signal sUdpPassThruReg_isFull             : boolean;
+  signal sUdpPassThruReg_isFull         : boolean;
  
-  signal EMIF_inv   : std_logic_vector(7 downto 0);
+  signal EMIF_inv                       : std_logic_vector(7 downto 0);
 
   -- I hate Vivado HLS 
-  signal sReadTlastAsVector : std_logic_vector(0 downto 0);
-  signal sWriteTlastAsVector : std_logic_vector(0 downto 0);
-  signal sResetAsVector : std_logic_vector(0 downto 0);
+  signal sReadTlastAsVector             : std_logic_vector(0 downto 0);
+  signal sWriteTlastAsVector            : std_logic_vector(0 downto 0);
+  signal sResetAsVector                 : std_logic_vector(0 downto 0);
 
   --============================================================================
   --  VARIABLE DECLARATIONS
   --============================================================================  
-  signal sUdpPostCnt : std_ulogic_vector(9 downto 0);
-  signal sTcpPostCnt : std_ulogic_vector(9 downto 0);
+  signal sUdpPostCnt                    : std_ulogic_vector(9 downto 0);
+  signal sTcpPostCnt                    : std_ulogic_vector(9 downto 0);
  
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -303,10 +343,10 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       ------------------------------------------------------
       -- BLock-Level I/O Protocol
       ------------------------------------------------------
-      --ap_start                  : in  std_logic;
-      --ap_ready                  : out std_logic;
-      --ap_done                   : out std_logic;
-      --ap_idle                   : out std_logic;
+      --ap_start                : in  std_logic;
+      --ap_ready                : out std_logic;
+      --ap_done                 : out std_logic;
+      --ap_idle                 : out std_logic;
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
@@ -426,43 +466,43 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
 
   component MemTestFlash is
     port (
-           ap_clk                     : IN STD_LOGIC;
-           ap_rst_n                   : IN STD_LOGIC;
-           ap_start                   : IN STD_LOGIC;
-           ap_done                    : OUT STD_LOGIC;
-           ap_idle                    : OUT STD_LOGIC;
-           ap_ready                   : OUT STD_LOGIC;
-           piSysReset_V               : IN STD_LOGIC_VECTOR (0 downto 0);
-           piSysReset_V_ap_vld        : IN STD_LOGIC;
-           piMMIO_diag_ctrl_V         : IN STD_LOGIC_VECTOR (1 downto 0);
-           piMMIO_diag_ctrl_V_ap_vld  : IN STD_LOGIC;
-           poMMIO_diag_stat_V         : OUT STD_LOGIC_VECTOR (1 downto 0);
-           poMMIO_diag_stat_V_ap_vld  : OUT STD_LOGIC;
-           poDebug_V                  : OUT STD_LOGIC_VECTOR (15 downto 0);
-           poDebug_V_ap_vld           : OUT STD_LOGIC;
-           soMemRdCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (79 downto 0);
-           soMemRdCmdP0_TVALID        : OUT STD_LOGIC;
-           soMemRdCmdP0_TREADY        : IN STD_LOGIC;
-           siMemRdStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
-           siMemRdStsP0_TVALID        : IN STD_LOGIC;
-           siMemRdStsP0_TREADY        : OUT STD_LOGIC;
-           siMemReadP0_TDATA          : IN STD_LOGIC_VECTOR (511 downto 0);
-           siMemReadP0_TVALID         : IN STD_LOGIC;
-           siMemReadP0_TREADY         : OUT STD_LOGIC;
-           siMemReadP0_TKEEP          : IN STD_LOGIC_VECTOR (63 downto 0);
-           siMemReadP0_TLAST          : IN STD_LOGIC_VECTOR (0 downto 0);
-           soMemWrCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (79 downto 0);
-           soMemWrCmdP0_TVALID        : OUT STD_LOGIC;
-           soMemWrCmdP0_TREADY        : IN STD_LOGIC;
-           siMemWrStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
-           siMemWrStsP0_TVALID        : IN STD_LOGIC;
-           siMemWrStsP0_TREADY        : OUT STD_LOGIC;
-           soMemWriteP0_TDATA         : OUT STD_LOGIC_VECTOR (511 downto 0);
-           soMemWriteP0_TVALID        : OUT STD_LOGIC;
-           soMemWriteP0_TREADY        : IN STD_LOGIC;
-           soMemWriteP0_TKEEP         : OUT STD_LOGIC_VECTOR (63 downto 0);
-           soMemWriteP0_TLAST         : OUT STD_LOGIC_VECTOR (0 downto 0) 
-         );
+      ap_clk                     : IN STD_LOGIC;
+      ap_rst_n                   : IN STD_LOGIC;
+      ap_start                   : IN STD_LOGIC;
+      ap_done                    : OUT STD_LOGIC;
+      ap_idle                    : OUT STD_LOGIC;
+      ap_ready                   : OUT STD_LOGIC;
+      piSysReset_V               : IN STD_LOGIC_VECTOR (0 downto 0);
+      piSysReset_V_ap_vld        : IN STD_LOGIC;
+      piMMIO_diag_ctrl_V         : IN STD_LOGIC_VECTOR (1 downto 0);
+      piMMIO_diag_ctrl_V_ap_vld  : IN STD_LOGIC;
+      poMMIO_diag_stat_V         : OUT STD_LOGIC_VECTOR (1 downto 0);
+      poMMIO_diag_stat_V_ap_vld  : OUT STD_LOGIC;
+      poDebug_V                  : OUT STD_LOGIC_VECTOR (15 downto 0);
+      poDebug_V_ap_vld           : OUT STD_LOGIC;
+      soMemRdCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (79 downto 0);
+      soMemRdCmdP0_TVALID        : OUT STD_LOGIC;
+      soMemRdCmdP0_TREADY        : IN STD_LOGIC;
+      siMemRdStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
+      siMemRdStsP0_TVALID        : IN STD_LOGIC;
+      siMemRdStsP0_TREADY        : OUT STD_LOGIC;
+      siMemReadP0_TDATA          : IN STD_LOGIC_VECTOR (511 downto 0);
+      siMemReadP0_TVALID         : IN STD_LOGIC;
+      siMemReadP0_TREADY         : OUT STD_LOGIC;
+      siMemReadP0_TKEEP          : IN STD_LOGIC_VECTOR (63 downto 0);
+      siMemReadP0_TLAST          : IN STD_LOGIC_VECTOR (0 downto 0);
+      soMemWrCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (79 downto 0);
+      soMemWrCmdP0_TVALID        : OUT STD_LOGIC;
+      soMemWrCmdP0_TREADY        : IN STD_LOGIC;
+      siMemWrStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
+      siMemWrStsP0_TVALID        : IN STD_LOGIC;
+      siMemWrStsP0_TREADY        : OUT STD_LOGIC;
+      soMemWriteP0_TDATA         : OUT STD_LOGIC_VECTOR (511 downto 0);
+      soMemWriteP0_TVALID        : OUT STD_LOGIC;
+      soMemWriteP0_TREADY        : IN STD_LOGIC;
+      soMemWriteP0_TKEEP         : OUT STD_LOGIC_VECTOR (63 downto 0);
+      soMemWriteP0_TLAST         : OUT STD_LOGIC_VECTOR (0 downto 0) 
+    );
   end component MemTestFlash;
 
   
@@ -527,29 +567,29 @@ begin
           aclk                      => piSHL_156_25Clk,
           aresetn                   => (not piSHL_156_25Rst),
           
-           --------------------------------------------------------
-           -- From SHELL / Mmio Interfaces
-           --------------------------------------------------------       
-          piSHL_This_MmioEchoCtrl_V => piSHL_Rol_Mmio_UdpEchoCtrl,
-          --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Rol_Mmio_UdpPostDgmEn,
-          --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Rol_Mmio_UdpCaptDgmEn,
+          --------------------------------------------------------
+          -- From SHELL / Mmio Interfaces
+          --------------------------------------------------------       
+          piSHL_This_MmioEchoCtrl_V => piSHL_Mmio_UdpEchoCtrl,
+          --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
+          --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
           
           --------------------------------------------------------
           -- From SHELL / Udp Data Interfaces
           --------------------------------------------------------
-          siSHL_This_Data_tdata     => piSHL_Rol_Nts0_Udp_Axis_tdata,
-          siSHL_This_Data_tkeep     => piSHL_Rol_Nts0_Udp_Axis_tkeep,
-          siSHL_This_Data_tlast     => piSHL_Rol_Nts0_Udp_Axis_tlast,
-          siSHL_This_Data_tvalid    => piSHL_Rol_Nts0_Udp_Axis_tvalid,
-          siSHL_This_Data_tready    => poROL_Shl_Nts0_Udp_Axis_tready,
+          siSHL_This_Data_tdata     => siSHL_Nts_Udp_Data_tdata,
+          siSHL_This_Data_tkeep     => siSHL_Nts_Udp_Data_tkeep,
+          siSHL_This_Data_tlast     => siSHL_Nts_Udp_Data_tlast,
+          siSHL_This_Data_tvalid    => siSHL_Nts_Udp_Data_tvalid,
+          siSHL_This_Data_tready    => siSHL_Nts_Udp_Data_tready,
           --------------------------------------------------------
           -- To SHELL / Udp Data Interfaces
           --------------------------------------------------------
-          soTHIS_Shl_Data_tdata     => poROL_Shl_Nts0_Udp_Axis_tdata,
-          soTHIS_Shl_Data_tkeep     => poROL_Shl_Nts0_Udp_Axis_tkeep,
-          soTHIS_Shl_Data_tlast     => poROL_Shl_Nts0_Udp_Axis_tlast,
-          soTHIS_Shl_Data_tvalid    => poROL_Shl_Nts0_Udp_Axis_tvalid,
-          soTHIS_Shl_Data_tready    => piSHL_Rol_Nts0_Udp_Axis_tready
+          soTHIS_Shl_Data_tdata     => soSHL_Nts_Udp_Data_tdata,
+          soTHIS_Shl_Data_tkeep     => soSHL_Nts_Udp_Data_tkeep,
+          soTHIS_Shl_Data_tlast     => soSHL_Nts_Udp_Data_tlast,
+          soTHIS_Shl_Data_tvalid    => soSHL_Nts_Udp_Data_tvalid,
+          soTHIS_Shl_Data_tready    => soSHL_Nts_Udp_Data_tready
         );
     
   end generate;
@@ -573,34 +613,34 @@ begin
           ------------------------------------------------------
           -- BLock-Level I/O Protocol
           ------------------------------------------------------
-          --ap_start                  => (not piSHL_156_25Rst),
-          --ap_ready                  => open,
-          --ap_done                   => open,
-          --ap_idle                   => open,
+          --ap_start                => (not piSHL_156_25Rst),
+          --ap_ready                => open,
+          --ap_done                 => open,
+          --ap_idle                 => open,
           
           --------------------------------------------------------
           -- From SHELL / Mmio Interfaces
           --------------------------------------------------------       
-          piSHL_This_MmioEchoCtrl_V => piSHL_Rol_Mmio_UdpEchoCtrl,
-          --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Rol_Mmio_UdpPostDgmEn,
-          --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Rol_Mmio_UdpCaptDgmEn,
+          piSHL_This_MmioEchoCtrl_V => piSHL_Mmio_UdpEchoCtrl,
+          --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
+          --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
           
           --------------------------------------------------------
           -- From SHELL / Udp Data Interfaces
           --------------------------------------------------------
-          siSHL_This_Data_tdata     => piSHL_Rol_Nts0_Udp_Axis_tdata,
-          siSHL_This_Data_tkeep     => piSHL_Rol_Nts0_Udp_Axis_tkeep,
-          siSHL_This_Data_tlast     => fVectorize(piSHL_Rol_Nts0_Udp_Axis_tlast),
-          siSHL_This_Data_tvalid    => piSHL_Rol_Nts0_Udp_Axis_tvalid,
-          siSHL_This_Data_tready    => poROL_Shl_Nts0_Udp_Axis_tready,
+          siSHL_This_Data_tdata     => siSHL_Nts_Udp_Data_tdata,
+          siSHL_This_Data_tkeep     => siSHL_Nts_Udp_Data_tkeep,
+          siSHL_This_Data_tlast     => fVectorize(siSHL_Nts_Udp_Data_tlast),
+          siSHL_This_Data_tvalid    => siSHL_Nts_Udp_Data_tvalid,
+          siSHL_This_Data_tready    => siSHL_Nts_Udp_Data_tready,
           --------------------------------------------------------
           -- To SHELL / Udp Data Interfaces
           --------------------------------------------------------
-          soTHIS_Shl_Data_tdata     => poROL_Shl_Nts0_Udp_Axis_tdata,
-          soTHIS_Shl_Data_tkeep     => poROL_Shl_Nts0_Udp_Axis_tkeep,
-          fScalarize(soTHIS_Shl_Data_tlast) => poROL_Shl_Nts0_Udp_Axis_tlast,
-          soTHIS_Shl_Data_tvalid    => poROL_Shl_Nts0_Udp_Axis_tvalid,
-          soTHIS_Shl_Data_tready    => piSHL_Rol_Nts0_Udp_Axis_tready
+          soTHIS_Shl_Data_tdata     => soSHL_Nts_Udp_Data_tdata,
+          soTHIS_Shl_Data_tkeep     => soSHL_Nts_Udp_Data_tkeep,
+          fScalarize(soTHIS_Shl_Data_tlast) => soSHL_Nts_Udp_Data_tlast,
+          soTHIS_Shl_Data_tvalid    => soSHL_Nts_Udp_Data_tvalid,
+          soTHIS_Shl_Data_tready    => soSHL_Nts_Udp_Data_tready
           
         );
 
@@ -631,41 +671,41 @@ begin
           ------------------------------------------------------
           -- From SHELL / Clock and Reset
           ------------------------------------------------------
-          aclk                 => piSHL_156_25Clk,
-          aresetn              => (not piSHL_156_25Rst),
+          aclk                  => piSHL_156_25Clk,
+          aresetn               => (not piSHL_156_25Rst),
           
-           --------------------------------------------------------
-           -- From SHELL / Mmio Interfaces
-           --------------------------------------------------------       
-          piSHL_MmioEchoCtrl_V    => piSHL_Rol_Mmio_TcpEchoCtrl,
-          piSHL_MmioPostSegEn_V   => piSHL_Rol_Mmio_TcpPostSegEn,
-          --[TODO] piSHL_MmioCaptSegEn_V  => piSHL_Rol_Mmio_TcpCaptSegEn,
+           -------------------- ------------------------------------
+           -- From SHELL / Mmio  Interfaces
+           -------------------- ------------------------------------       
+          piSHL_MmioEchoCtrl_V     => piSHL_Mmio_TcpEchoCtrl,
+          piSHL_MmioPostSegEn_V    => piSHL_Mmio_TcpPostSegEn,
+          --[TODO] piSHL_MmioCaptSegEn_V  => piSHL_Mmio_TcpCaptSegEn,
           
-          --------------------------------------------------------
-          -- From SHELL / Tcp Data & Session Id Interfaces
-          --------------------------------------------------------
-          siSHL_Data_tdata     => piSHL_Rol_Nts0_TcpData_Axis_tdata,
-          siSHL_Data_tkeep     => piSHL_Rol_Nts0_TcpData_Axis_tkeep,
-          siSHL_Data_tlast     => piSHL_Rol_Nts0_TcpData_Axis_tlast,
-          siSHL_Data_tvalid    => piSHL_Rol_Nts0_TcpData_Axis_tvalid,
-          siSHL_Data_tready    => poROL_Shl_Nts0_TcpData_Axis_tready,
+          --------------------- -----------------------------------
+          -- From SHELL / Tcp D ata & Session Id Interfaces
+          --------------------- -----------------------------------
+          siSHL_Data_tdata      => siSHL_Nts_Tcp_Data_tdata,
+          siSHL_Data_tkeep      => siSHL_Nts_Tcp_Data_tkeep,
+          siSHL_Data_tlast      => siSHL_Nts_Tcp_Data_tlast,
+          siSHL_Data_tvalid     => siSHL_Nts_Tcp_Data_tvalid,
+          siSHL_Data_tready     => siSHL_Nts_Tcp_Data_tready,
           --
-          siSHL_SessId_tdata   => piSHL_Rol_Nts0_TcpMeta_Axis_tdata,
-          siSHL_SessId_tvalid  => piSHL_Rol_Nts0_TcpMeta_Axis_tvalid,
-          siSHL_SessId_tready  => poROL_Shl_Nts0_TcpMeta_Axis_tready,
+          siSHL_SessId_tdata    => siSHL_Nts_Tcp_Meta_tdata,
+          siSHL_SessId_tvalid   => siSHL_Nts_Tcp_Meta_tvalid,
+          siSHL_SessId_tready   => siSHL_Nts_Tcp_Meta_tready,
 
-          --------------------------------------------------------
-          -- To SHELL / Tcp Data & Session Id Interfaces
-          --------------------------------------------------------
-          soSHL_Data_tdata     => poROL_Shl_Nts0_TcpData_Axis_tdata,
-          soSHL_Data_tkeep     => poROL_Shl_Nts0_TcpData_Axis_tkeep,
-          soSHL_Data_tlast     => poROL_Shl_Nts0_TcpData_Axis_tlast,
-          soSHL_Data_tvalid    => poROL_Shl_Nts0_TcpData_Axis_tvalid,
-          soSHL_Data_tready    => piSHL_Rol_Nts0_TcpData_Axis_tready,
+          --------------------- -----------------------------------
+          -- To SHELL / Tcp Dat a & Session Id Interfaces
+          --------------------- -----------------------------------
+          soSHL_Data_tdata      => soSHL_Nts_Tcp_Data_tdata,
+          soSHL_Data_tkeep      => soSHL_Nts_Tcp_Data_tkeep,
+          soSHL_Data_tlast      => soSHL_Nts_Tcp_Data_tlast,
+          soSHL_Data_tvalid     => soSHL_Nts_Tcp_Data_tvalid,
+          soSHL_Data_tready     => soSHL_Nts_Tcp_Data_tready,
           --
-          soSHL_SessId_tdata   => poROL_Shl_Nts0_TcpMeta_Axis_tdata,
-          soSHL_SessId_tvalid  => poROL_Shl_Nts0_TcpMeta_Axis_tvalid,
-          soSHL_SessId_tready  => piSHL_Rol_Nts0_TcpMeta_Axis_tready
+          soSHL_SessId_tdata    => soSHL_Nts_Tcp_Meta_tdata,
+          soSHL_SessId_tvalid   => soSHL_Nts_Tcp_Meta_tvalid,
+          soSHL_SessId_tready   => soSHL_Nts_Tcp_Meta_tready
         );
     
   end generate;
@@ -683,51 +723,49 @@ begin
           ------------------------------------------------------
           -- From SHELL / Clock and Reset
           ------------------------------------------------------
-          ap_clk                    => piSHL_156_25Clk,
-          ap_rst_n                  => (not piSHL_156_25Rst),
+          ap_clk                   => piSHL_156_25Clk,
+          ap_rst_n                 => (not piSHL_156_25Rst),
           
           ------------------------------------------------------
           -- BLock-Level I/O Protocol
           ------------------------------------------------------
-          --ap_start                  => (not piSHL_156_25Rst),
-          --ap_ready                  => open,
-          --ap_done                   => open,
-          --ap_idle                   => open,
+          --ap_start               => (not piSHL_156_25Rst),
+          --ap_ready               => open,
+          --ap_done                => open,
+          --ap_idle                => open,
           
           --------------------------------------------------------
           -- From SHELL / Mmio Interfaces
           --------------------------------------------------------       
-          piSHL_MmioEchoCtrl_V      => piSHL_Rol_Mmio_TcpEchoCtrl,
-          piSHL_MmioPostSegEn_V     => piSHL_Rol_Mmio_TcpPostSegEn,
-          --[TODO] piSHL_MmioCaptSegEn  => piSHL_Rol_Mmio_TcpCaptSegEn,
+          piSHL_MmioEchoCtrl_V     => piSHL_Mmio_TcpEchoCtrl,
+          piSHL_MmioPostSegEn_V    => piSHL_Mmio_TcpPostSegEn,
+          --[TODO] piSHL_MmioCaptSegEn  => piSHL_Mmio_TcpCaptSegEn,
           
           --------------------------------------------------------
           -- From SHELL / Tcp Interfaces
           --------------------------------------------------------
-          siSHL_Data_tdata          => piSHL_Rol_Nts0_TcpData_Axis_tdata,
-          siSHL_Data_tkeep          => piSHL_Rol_Nts0_TcpData_Axis_tkeep,
-          -- siSHL_Data_tlast          => fVectorize(piSHL_Rol_Nts0_TcpData_Axis_tlast),
-          siSHL_Data_tlast          => piSHL_Rol_Nts0_TcpData_Axis_tlast,
-          siSHL_Data_tvalid         => piSHL_Rol_Nts0_TcpData_Axis_tvalid,
-          siSHL_Data_tready         => poROL_Shl_Nts0_TcpData_Axis_tready,
+          siSHL_Data_tdata         => siSHL_Nts_Tcp_Data_tdata,
+          siSHL_Data_tkeep         => siSHL_Nts_Tcp_Data_tkeep,
+          siSHL_Data_tlast         => siSHL_Nts_Tcp_Data_tlast,
+          siSHL_Data_tvalid        => siSHL_Nts_Tcp_Data_tvalid,
+          siSHL_Data_tready        => siSHL_Nts_Tcp_Data_tready,
           --
-          siSHL_SessId_tdata        => piSHL_Rol_Nts0_TcpMeta_Axis_tdata,
-          siSHL_SessId_tvalid       => piSHL_Rol_Nts0_TcpMeta_Axis_tvalid,
-          siSHL_SessId_tready       => poROL_Shl_Nts0_TcpMeta_Axis_tready,
+          siSHL_SessId_tdata       => siSHL_Nts_Tcp_Meta_tdata,
+          siSHL_SessId_tvalid      => siSHL_Nts_Tcp_Meta_tvalid,
+          siSHL_SessId_tready      => siSHL_Nts_Tcp_Meta_tready,
           
           --------------------------------------------------------
           -- To SHELL / Tcp Data Interfaces
           --------------------------------------------------------
-          soSHL_Data_tdata         => poROL_Shl_Nts0_TcpData_Axis_tdata,
-          soSHL_Data_tkeep         => poROL_Shl_Nts0_TcpData_Axis_tkeep,
-          -- fScalarize(soSHL_Data_tlast) => poROL_Shl_Nts0_TcpData_Axis_tlast,
-          soSHL_Data_tlast         => poROL_Shl_Nts0_TcpData_Axis_tlast,
-          soSHL_Data_tvalid        => poROL_Shl_Nts0_TcpData_Axis_tvalid,
-          soSHL_Data_tready        => piSHL_Rol_Nts0_TcpData_Axis_tready,
+          soSHL_Data_tdata         => soSHL_Nts_Tcp_Data_tdata,
+          soSHL_Data_tkeep         => soSHL_Nts_Tcp_Data_tkeep,
+          soSHL_Data_tlast         => soSHL_Nts_Tcp_Data_tlast,
+          soSHL_Data_tvalid        => soSHL_Nts_Tcp_Data_tvalid,
+          soSHL_Data_tready        => soSHL_Nts_Tcp_Data_tready,
           --
-          soSHL_SessId_tdata       => poROL_Shl_Nts0_TcpMeta_Axis_tdata,
-          soSHL_SessId_tvalid      => poROL_Shl_Nts0_TcpMeta_Axis_tvalid,
-          soSHL_SessId_tready      => piSHL_Rol_Nts0_TcpMeta_Axis_tready
+          soSHL_SessId_tdata       => soSHL_Nts_Tcp_Meta_tdata,
+          soSHL_SessId_tvalid      => soSHL_Nts_Tcp_Meta_tvalid,
+          soSHL_SessId_tready      => soSHL_Nts_Tcp_Meta_tready
         );
 
   end generate;
@@ -744,52 +782,52 @@ begin
   --#                                                                              #
   --################################################################################
 
-  sReadTlastAsVector(0) <= piSHL_Rol_Mem_Mp0_Axis_Read_tlast;
-  poROL_Shl_Mem_Mp0_Axis_Write_tlast <= sWriteTlastAsVector(0);
+  sReadTlastAsVector(0)     <= siSHL_Mem_Mp0_Read_tlast;
+  soSHL_Mem_Mp0_Write_tlast <= sWriteTlastAsVector(0);
   --sResetAsVector(0) <= piSHL_156_25Rst;
   --sResetAsVector(0) <= piSHL_ROL_EMIF_2B_Reg(0);
-  sResetAsVector(0) <= piSHL_156_25Rst_delayed;
+  sResetAsVector(0) <= piTOP_156_25Rst_delayed;
 
   MEM_TEST: MemTestFlash 
     port map(
            ap_clk                     => piSHL_156_25Clk,
            ap_rst_n                   => (not piSHL_156_25Rst),
-           --ap_rst_n                   => '1',
            ap_start                   => '1',
            piSysReset_V               => sResetAsVector,
            piSysReset_V_ap_vld        => '1',
-           piMMIO_diag_ctrl_V         => piDIAG_CTRL,
+           piMMIO_diag_ctrl_V         => piSHL_Mmio_Mc1_MemTestCtrl,
            piMMIO_diag_ctrl_V_ap_vld  => '1',
-           poMMIO_diag_stat_V         => poDIAG_STAT,
-           --poMMIO_diag_stat_V_ap_vld  => ,
-           poDebug_V                  => poROL_SHL_EMIF_2B_Reg,
-           --poDebug_V_ap_vld           => ,
-           soMemRdCmdP0_TDATA         => poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata ,
-           soMemRdCmdP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid,
-           soMemRdCmdP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
-           siMemRdStsP0_TDATA         => piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata ,
-           siMemRdStsP0_TVALID        => piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid,
-           siMemRdStsP0_TREADY        => poROL_SHL_Mem_Mp0_Axis_RdSts_tready,
-           siMemReadP0_TDATA          => piSHL_Rol_Mem_Mp0_Axis_Read_tdata ,
-           siMemReadP0_TVALID         => piSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
-           siMemReadP0_TREADY         => poROL_SHL_Mem_Mp0_Axis_Read_tready,
-           siMemReadP0_TKEEP          => piSHL_Rol_Mem_Mp0_Axis_Read_tkeep ,
+           poMMIO_diag_stat_V         => poSHL_Mmio_Mc1_MemTestStat,
+           poDebug_V                  => poSHL_Mmio_RdReg,
+           
+           soMemRdCmdP0_TDATA         => soSHL_Mem_Mp0_RdCmd_tdata,
+           soMemRdCmdP0_TVALID        => soSHL_Mem_Mp0_RdCmd_tvalid,
+           soMemRdCmdP0_TREADY        => soSHL_Mem_Mp0_RdCmd_tready,
+           
+           siMemRdStsP0_TDATA         => siSHL_Mem_Mp0_RdSts_tdata,
+           siMemRdStsP0_TVALID        => siSHL_Mem_Mp0_RdSts_tvalid,
+           siMemRdStsP0_TREADY        => siSHL_Mem_Mp0_RdSts_tready,
+           
+           siMemReadP0_TDATA          => siSHL_Mem_Mp0_Read_tdata ,
+           siMemReadP0_TVALID         => siSHL_Mem_Mp0_Read_tvalid,
+           siMemReadP0_TREADY         => siSHL_Mem_Mp0_Read_tready,
+           siMemReadP0_TKEEP          => siSHL_Mem_Mp0_Read_tkeep,
            siMemReadP0_TLAST          => sReadTlastAsVector,
-           soMemWrCmdP0_TDATA         => poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata ,
-           soMemWrCmdP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
-           soMemWrCmdP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
-           siMemWrStsP0_TDATA         => piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata ,
-           siMemWrStsP0_TVALID        => piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid,
-           siMemWrStsP0_TREADY        => poROL_SHL_Mem_Mp0_Axis_WrSts_tready,
-           soMemWriteP0_TDATA         => poROL_Shl_Mem_Mp0_Axis_Write_tdata ,
-           soMemWriteP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_Write_tvalid,
-           soMemWriteP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_Write_tready,
-           soMemWriteP0_TKEEP         => poROL_Shl_Mem_Mp0_Axis_Write_tkeep ,
+           
+           soMemWrCmdP0_TDATA         => soSHL_Mem_Mp0_WrCmd_tdata ,
+           soMemWrCmdP0_TVALID        => soSHL_Mem_Mp0_WrCmd_tvalid,
+           soMemWrCmdP0_TREADY        => soSHL_Mem_Mp0_WrCmd_tready,
+           
+           siMemWrStsP0_TDATA         => siSHL_Mem_Mp0_WrSts_tdata ,
+           siMemWrStsP0_TVALID        => siSHL_Mem_Mp0_WrSts_tvalid,
+           siMemWrStsP0_TREADY        => siSHL_Mem_Mp0_WrSts_tready,
+           
+           soMemWriteP0_TDATA         => soSHL_Mem_Mp0_Write_tdata ,
+           soMemWriteP0_TVALID        => soSHL_Mem_Mp0_Write_tvalid,
+           soMemWriteP0_TREADY        => soSHL_Mem_Mp0_Write_tready,
+           soMemWriteP0_TKEEP         => soSHL_Mem_Mp0_Write_tkeep ,
            soMemWriteP0_TLAST         => sWriteTlastAsVector
          );
   
-
-
-
 end architecture Flash;
   
