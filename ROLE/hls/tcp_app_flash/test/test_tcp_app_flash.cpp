@@ -15,6 +15,7 @@
 #include <hls_stream.h>
 
 #include "../src/tcp_app_flash.hpp"
+#include "../../test_role_utils.hpp"
 
 using namespace std;
 
@@ -29,7 +30,6 @@ using namespace std;
 
 #define DEFAULT_SESS_ID         42
 
-
 //------------------------------------------------------
 //-- DUT INTERFACES DEFINED AS GLOBAL VARIABLES
 //------------------------------------------------------
@@ -39,17 +39,23 @@ ap_uint<1>          piSHL_MmioPostSegEn;
 ap_uint<1>          piSHL_MmioCaptSegEn;
 
 //-- SHELL / TCP Rx Data Interfaces
-stream<AppData>     sSHL_Data    ("sSHL_Data");
-stream<AppMeta>     sSHL_SessId  ("sSHL_SessId");
+stream<AppData>     ssSHL_TAF_Data   ("ssSHL_Data");
+stream<AppMeta>     ssSHL_TAF_SessId ("sSHL_TAF_SessId");
+
+//-- SHELL / Listen Interfaces
+stream<AppLsnReq>   ssTAF_SHL_LsnReq ("ssSHL_TAF_LsnReq");
+stream<AppLsnAck>   ssSHL_TAF_LsnAck ("ssSHL_TAF_LsnAck");
 
 //-- TCP APPLICATION FLASH / TCP Tx Data Interfaces
-stream<AppData>     sTAF_Data    ("sTAF_Data");
-stream<AppMeta>     sTAF_SessId  ("sTAF_SessId");
+stream<AppData>     ssTAF_SHL_Data   ("ssTAF_SHL_Data");
+stream<AppMeta>     ssTAF_SHL_SessId ("ssTAF_SHL_SessId");
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-int     gSimCnt;
+unsigned int    gSimCycCnt;
+bool            gTraceEvent = false;
+bool            gFatalError = false;
 
 
 /*****************************************************************************
@@ -59,15 +65,18 @@ int     gSimCnt;
  ******************************************************************************/
 void stepDut() {
     tcp_app_flash(
+            //-- SHELL / MMIO / Configuration Interfaces
             piSHL_MmioEchoCtrl,
             piSHL_MmioPostSegEn,
             //[TODO] piSHL_MmioCaptSegEn,
-            sSHL_Data,
-            sSHL_SessId,
-            sTAF_Data,
-            sTAF_SessId);
-    gSimCnt++;
-    printf("[%4.4d] STEP DUT \n", gSimCnt);
+            //-- SHELL / TCP Rx Data Interface
+            ssSHL_TAF_Data,
+            ssSHL_TAF_SessId,
+            //-- SHELL / TCP Tx Data Interface
+            ssTAF_SHL_Data,
+            ssTAF_SHL_SessId);
+    gSimCycCnt++;
+    printf("[%4.4d] STEP DUT \n", gSimCycCnt);
 }
 
 /*****************************************************************************
@@ -135,7 +144,7 @@ bool setInputDataStreams(
                 sDataStream.write(tcpWord);
                 // Print Data to console
                 printf("[%4.4d] [TB] is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-                        gSimCnt, dataStreamName.c_str(),
+                        gSimCycCnt, dataStreamName.c_str(),
                         tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
                 // Increment the TCP session Id
                 if (tcpWord.tlast) {
@@ -275,7 +284,7 @@ bool getOutputDataStreams(
                 sMetaStream.read(tcpSessId);
                 if ((tcpSessId == expectedSessId) or (tcpSessId == 0)) {
                     printf("[%4.4d] [TB/Rx] Received TCP session Id = %d.\n",
-                            gSimCnt, tcpSessId.to_int());
+                            gSimCycCnt, tcpSessId.to_int());
                 }
                 else {
                     printf("### ERROR : Received TCP session Id = %d but expected %d.\n",
@@ -289,7 +298,7 @@ bool getOutputDataStreams(
         if (!sDataStream.empty()) {
             sDataStream.read(tcpWord);
             printf("[%4.4d] [TB] is draining output stream \'%s\' - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-                    gSimCnt, dataStreamName.c_str(),
+                    gSimCycCnt, dataStreamName.c_str(),
                     tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
             if (tcpWord.tlast) {
                 startOfTcpSeg = true;
@@ -318,7 +327,7 @@ bool getOutputDataStreams(
  ******************************************************************************/
 int main() {
 
-    gSimCnt = 0;
+    gSimCycCnt = 0;
 
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
@@ -334,8 +343,8 @@ int main() {
     //-- STEP-1.1 : CREATE TRAFFIC AS INPUT STREAMS
     //------------------------------------------------------
     if (nrErr == 0) {
-        if (!setInputDataStreams(sSHL_Data, sSHL_SessId,
-                "sSHL_Data", "sSHL_SessId", "ifsSHL_Taf_Data.dat", segCnt)) {
+        if (!setInputDataStreams(ssSHL_TAF_Data, ssSHL_TAF_SessId,
+                "sSHL_Data", "sSHL_TAF_SessId", "ifsSHL_Taf_Data.dat", segCnt)) {
             printf("### ERROR : Failed to set input data stream. \n");
             nrErr++;
         }
@@ -352,7 +361,7 @@ int main() {
     //-- STEP-1.3 : MAIN TRAFFIC LOOP
     //------------------------------------------------------
     while (!nrErr) {
-        if (gSimCnt < 50)
+        if (gSimCycCnt < 50)
             stepDut();
         else {
             printf("## TESTBENCH PART-1 ENDS HERE ####################\n");
@@ -364,8 +373,8 @@ int main() {
     //-- STEP-1.4 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- TAF-->SHELL ----
-    if (!getOutputDataStreams(sTAF_Data, sTAF_SessId,
-            "sTAF_Data", "sTAF_SessId", "ofsTAF_Shl_Echo_Path_Thru_Data.dat", segCnt))
+    if (!getOutputDataStreams(ssTAF_SHL_Data, ssTAF_SHL_SessId,
+            "ssTAF_SHL_Data", "ssTAF_SHL_SessId", "ofsTAF_Shl_Echo_Path_Thru_Data.dat", segCnt))
         nrErr++;
 
     //------------------------------------------------------
@@ -387,22 +396,22 @@ int main() {
     //------------------------------------------------------
     while (!nrErr) {
         stepDut();
-        if (gSimCnt == 100) {
+        if (gSimCycCnt == 100) {
             //------------------------------------------------------
             //-- STEP-2.1 : SET THE ECHO_OFF & POST_SEG_ENABLE MODES
             //------------------------------------------------------
             piSHL_MmioEchoCtrl.write(ECHO_OFF);
             piSHL_MmioPostSegEn.write(ENABLED);
-            printf("[%4.4d] [TB] is enabling the segment posting mode.\n", gSimCnt);
+            printf("[%5.6d] [TB] is enabling the segment posting mode.\n", gSimCycCnt);
         }
-        else if (gSimCnt == 130) {
+        else if (gSimCycCnt == 130) {
             //------------------------------------------------------
             //-- STEP-2.3 : DISABLE THE POSTING MODE
             //------------------------------------------------------
             piSHL_MmioPostSegEn.write(DISABLED);
-            printf("[%4.4d] [TB] is disabling the segment posting mode.\n", gSimCnt);
+            printf("[%4.4d] [TB] is disabling the segment posting mode.\n", gSimCycCnt);
         }
-        else if (gSimCnt > 200) {
+        else if (gSimCycCnt > 200) {
             printf("## TESTBENCH PART-2 ENDS HERE ####################\n");
             break;
         }
@@ -413,8 +422,8 @@ int main() {
     //-- STEP-2.4 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- TAF-->SHELL ----
-    if (!getOutputDataStreams(sTAF_Data, sTAF_SessId,
-            "sTAF_Data", "sTAF_SessId", "ofsTAF_Shl_Echo_Off_Data.dat", segCnt))
+    if (!getOutputDataStreams(ssTAF_SHL_Data, ssTAF_SHL_SessId,
+            "ssTAF_SHL_Data", "ssTAF_SHL_SessId", "ofsTAF_Shl_Echo_Off_Data.dat", segCnt))
         nrErr++;
 
     //------------------------------------------------------

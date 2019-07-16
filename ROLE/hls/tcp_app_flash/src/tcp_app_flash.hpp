@@ -53,9 +53,29 @@ public:
 };
 
 /********************************************
+ * SINGLE BIT DEFINITIONS
+ ********************************************/
+typedef bool AckBool;  // Acknowledge
+
+/*********************************************************
+ * IPv4 - HEADER FIELDS
+ *  Default Type Definitions (as used by HLS)
+ *********************************************************/
+typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
+
+/*********************************************************
+ * TCP - HEADER FIELDS
+ *  Default Type Definitions (as used by HLS)
+ *********************************************************/
+//typedef ap_uint<16> TcpSrcPort;     // TCP Source Port
+//typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
+typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
+
+/********************************************
  * TCP Session Id
  ********************************************/
 typedef ap_uint<16> TcpSessId;
+
 
 /***********************************************
  * Application Data
@@ -68,6 +88,20 @@ typedef AxiWord     AppData;
  *  Meta-data transfered between TOE and APP.
  ***********************************************/
 typedef TcpSessId   AppMeta;
+
+/***********************************************
+ * Application Listen Request
+ *  The TCP port that the application is willing
+ *  to open for listening.
+ ***********************************************/
+typedef TcpPort     AppLsnReq;
+
+/***********************************************
+ * Application Listen Acknowledgment
+ *  Acknowledge bit returned by TOE after a
+ *  TCP listening port request.
+ ***********************************************/
+typedef AckBool     AppLsnAck;
 
 
 /*************************************************************************

@@ -20,8 +20,28 @@
  *****************************************************************************/
 
 #include "tcp_app_flash.hpp"
+#include "../../test_role_utils.hpp"
 
 #define USE_DEPRECATED_DIRECTIVES
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (LSN_TRACE | ESF_TRACE)
+ ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+
+#define THIS_NAME "TAP"  // TcpAppFlash
+
+#define TRACE_OFF  0x0000
+#define TRACE_ESF 1 <<  1  // EchoStoreForward
+#define TRACE_RXP 1 <<  2  // RxPath
+#define TRACE_TXP 1 <<  3  // TxPath
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
 
 /*****************************************************************************
  * @brief Echo loopback with store and forward in DDR4.
@@ -327,6 +347,7 @@ void pRXPath(
     }  // End-of: switch (rxpFsmState ) {
 }
 
+
 /*****************************************************************************
  * @brief   Main process of the TCP Application Flash
  *
@@ -436,6 +457,7 @@ void tcp_app_flash (
     //    +---+---+                    +---+---+
     //       /|\                           |
     //        |                            |
+    //        |                            |
     //        |                           \|/
     //
     //-------------------------------------------------------------------------
@@ -456,7 +478,7 @@ void tcp_app_flash (
 
     pTXPath(
             piSHL_MmioEchoCtrl,
-			piSHL_MmioPostSegEn,
+            piSHL_MmioPostSegEn,
             sRXpToTXp_Data,
             sRXpToTXp_SessId,
             sESfToTXp_Data,
