@@ -1,5 +1,5 @@
 /*****************************************************************************
- * @file       : test_toe_utils.cpp
+ * @file       : test_role_utils.cpp
  * @brief      : Utilities for the test of TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
@@ -14,9 +14,11 @@
 #include <queue>
 #include <string>
 
-#include "../src/toe.hpp"
-#include "../src/session_lookup_controller/session_lookup_controller.hpp"
-#include "test_toe_utils.hpp"
+#include "role.hpp"
+#include "role_utils.hpp"
+#include "test_role_utils.hpp"
+
+//OBSOLET #include "../src/session_lookup_controller/session_lookup_controller.hpp"
 
 using namespace std;
 using namespace hls;
@@ -52,7 +54,7 @@ void printDmCmd(const char *callerName, DmCmd dmCmd)
  * @param[in] callerName, the name of the caller process (e.g. "Mdh").
  * @param[in] sockPair,   the socket pair to display (in LITTLE-ENDIAN order).
  *****************************************************************************/
-void printAxiSockPair(const char *callerName, AxiSocketPair sockPair)
+void printLeSockPair(const char *callerName, LeSocketPair sockPair)
 {
     printInfo(callerName, "MacSocketPair {Src,Dst} = {{0x%8.8X:0x%4.4X} {0x%8.8X:0x%4.4X}} \n",
         sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
@@ -88,25 +90,25 @@ void printSockPair(const char *callerName, SocketPair sockPair)
  * @brief Print a socket pair association.
  *
  * @param[in] callerName,  the name of the caller process (e.g. "Mdh").
- * @param[in] axiSockPair, the socket pair to display (in LITTLE-ENDIAN order).
+ * @param[in] leSockPair, the socket pair to display (in LITTLE-ENDIAN order).
  *****************************************************************************/
-void printSockPair(const char *callerName, AxiSocketPair axiSockPair)
+void printSockPair(const char *callerName, LeSocketPair leSockPair)
 {
     printInfo(callerName, "SocketPair {Src,Dst} = {0x%8.8X:0x%4.4X, 0x%8.8X:0x%4.4X} = {%3.3d.%3.3d.%3.3d.%3.3d:%5.5d, %3.3d.%3.3d.%3.3d.%3.3d:%5.5d}\n",
-         byteSwap32(axiSockPair.src.addr).to_uint(),
-         byteSwap16(axiSockPair.src.port).to_uint(),
-         byteSwap32(axiSockPair.dst.addr).to_uint(),
-         byteSwap16(axiSockPair.dst.port).to_uint(),
-        (byteSwap32(axiSockPair.src.addr).to_uint() & 0xFF000000) >> 24,
-        (byteSwap32(axiSockPair.src.addr).to_uint() & 0x00FF0000) >> 16,
-        (byteSwap32(axiSockPair.src.addr).to_uint() & 0x0000FF00) >>  8,
-        (byteSwap32(axiSockPair.src.addr).to_uint() & 0x000000FF) >>  0,
-         byteSwap16(axiSockPair.src.port).to_uint(),
-        (byteSwap32(axiSockPair.dst.addr).to_uint() & 0xFF000000) >> 24,
-        (byteSwap32(axiSockPair.dst.addr).to_uint() & 0x00FF0000) >> 16,
-        (byteSwap32(axiSockPair.dst.addr).to_uint() & 0x0000FF00) >>  8,
-        (byteSwap32(axiSockPair.dst.addr).to_uint() & 0x000000FF) >>  0,
-         byteSwap16(axiSockPair.dst.port).to_uint());
+         byteSwap32(leSockPair.src.addr).to_uint(),
+         byteSwap16(leSockPair.src.port).to_uint(),
+         byteSwap32(leSockPair.dst.addr).to_uint(),
+         byteSwap16(leSockPair.dst.port).to_uint(),
+        (byteSwap32(leSockPair.src.addr).to_uint() & 0xFF000000) >> 24,
+        (byteSwap32(leSockPair.src.addr).to_uint() & 0x00FF0000) >> 16,
+        (byteSwap32(leSockPair.src.addr).to_uint() & 0x0000FF00) >>  8,
+        (byteSwap32(leSockPair.src.addr).to_uint() & 0x000000FF) >>  0,
+         byteSwap16(leSockPair.src.port).to_uint(),
+        (byteSwap32(leSockPair.dst.addr).to_uint() & 0xFF000000) >> 24,
+        (byteSwap32(leSockPair.dst.addr).to_uint() & 0x00FF0000) >> 16,
+        (byteSwap32(leSockPair.dst.addr).to_uint() & 0x0000FF00) >>  8,
+        (byteSwap32(leSockPair.dst.addr).to_uint() & 0x000000FF) >>  0,
+         byteSwap16(leSockPair.dst.port).to_uint());
 }
 
 /*****************************************************************************
@@ -116,6 +118,7 @@ void printSockPair(const char *callerName, AxiSocketPair axiSockPair)
  * @param[in] source,     the source of the internal 4-tuple information.
  * @param[in] fourTuple,  the internal 4-tuple encoding of the socket pair.
  *****************************************************************************/
+/******
 void printSockPair(const char *callerName, int src, fourTupleInternal fourTuple)
 {
     SocketPair socketPair;
@@ -139,6 +142,7 @@ void printSockPair(const char *callerName, int src, fourTupleInternal fourTuple)
     }
     printSockPair(callerName, socketPair);
 }
+******/
 
 /*****************************************************************************
  * @brief Print a socket address encoded in LITTLE_ENDIAN order.
@@ -146,7 +150,7 @@ void printSockPair(const char *callerName, int src, fourTupleInternal fourTuple)
  * @param[in] callerName, the name of the caller process (e.g. "Mdh").
  * @param[in] sockAddr,   the socket address to display (in LITTLE-ENDIAN order).
  *****************************************************************************/
-void printAxiSockAddr(const char *callerName, AxiSockAddr sockAddr)
+void printLeSockAddr(const char *callerName, LeSockAddr sockAddr)
 {
     printInfo(callerName, "MacSocketAddr {IpAddr:TcpPort} = {0x%8.8X:0x%4.4X} \n",
         sockAddr.addr.to_uint(), sockAddr.port.to_uint());
@@ -173,13 +177,13 @@ void printSockAddr(const char *callerName, SockAddr sockAddr)
 /*****************************************************************************
  * @brief Print a socket address.
  *
- * @param[in] callerName,  the name of the caller process (e.g. "Mdh").
- * @param[in] axiSockAddr, the socket address to display (in LITTLE-ENDIAN order).
+ * @param[in] callerName, the name of the caller process (e.g. "Mdh").
+ * @param[in] leSockAddr, the socket address to display (in LITTLE-ENDIAN order).
  *****************************************************************************/
-void printSockAddr(const char *callerName, AxiSockAddr axiSockAddr)
+void printSockAddr(const char *callerName, LeSockAddr leSockAddr)
 {
-    SockAddr sockAddr(byteSwap32(axiSockAddr.addr),
-                      byteSwap16(axiSockAddr.port));
+    SockAddr sockAddr(byteSwap32(leSockAddr.addr),
+                      byteSwap16(leSockAddr.port));
     printSockAddr(callerName, sockAddr);
 }
 
