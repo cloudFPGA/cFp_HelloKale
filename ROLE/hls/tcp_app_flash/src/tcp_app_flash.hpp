@@ -37,21 +37,6 @@ enum EchoCtrl {
     ECHO_OFF       = 2
 };
 
-
-/************************************************
- * AXI4 STREAMING INTERFACES (alias AXIS)
- ************************************************/
-class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
-public:
-    ap_uint<64>     tdata;
-    ap_uint<8>      tkeep;
-    ap_uint<1>      tlast;
-public:
-    AxiWord()       {}
-    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-};
-
 /********************************************
  * SINGLE BIT DEFINITIONS
  ********************************************/

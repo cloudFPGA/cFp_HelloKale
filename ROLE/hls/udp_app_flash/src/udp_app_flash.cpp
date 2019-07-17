@@ -23,6 +23,10 @@
  *
  *****************************************************************************/
 
+#include "../../role.hpp"
+#include "../../role_utils.hpp"
+#include "../../test_role_utils.hpp"
+
 #include "udp_app_flash.hpp"
 
 #define USE_DEPRECATED_DIRECTIVES

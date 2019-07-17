@@ -15,6 +15,7 @@
 #include <iostream>
 
 #include "../src/tcp_role_if.hpp"
+
 #include "../../role.hpp"
 #include "../../role_utils.hpp"
 #include "../../test_role_utils.hpp"

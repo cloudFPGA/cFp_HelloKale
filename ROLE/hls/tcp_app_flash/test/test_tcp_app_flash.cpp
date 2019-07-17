@@ -14,8 +14,11 @@
 #include <stdio.h>
 #include <hls_stream.h>
 
-#include "../src/tcp_app_flash.hpp"
+#include "../../role.hpp"
+#include "../../role_utils.hpp"
 #include "../../test_role_utils.hpp"
+
+#include "../src/tcp_app_flash.hpp"
 
 using namespace std;
 

@@ -13,8 +13,9 @@
 #ifndef TEST_ROLE_UTILS_H_
 #define TEST_ROLE_UTILS_H_
 
-//OBSOLETE #include "../src/toe.hpp"
-#include "./test_role_utils.hpp"
+//#include "../role.hpp"
+//#include "../role_utils.hpp"
+//#include "./test_role_utils.hpp"
 
 using namespace std;
 
