@@ -253,11 +253,11 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Nts_Tcp_OpnReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_OpnReq_tready    : std_ulogic;
   ---- Stream LTCP Open Session Status -----
-  signal ssSHL_ROL_Nts_Tcp_OpnSts_tdata     : std_ulogic_vector( 47 downto 0);
-  signal ssSHL_ROL_Nts_Tcp_OpnSts_tvalid    : std_ulogic;
-  signal ssSHL_ROL_Nts_Tcp_OpnSts_tready    : std_ulogic;
+  signal ssSHL_ROL_Nts_Tcp_OpnRep_tdata     : std_ulogic_vector( 23 downto 0);
+  signal ssSHL_ROL_Nts_Tcp_OpnRep_tvalid    : std_ulogic;
+  signal ssSHL_ROL_Nts_Tcp_OpnRep_tready    : std_ulogic;
   ---- Stream TCP Close Request ------------ 
-  signal ssROL_SHL_Nts_Tcp_ClsReq_tdata     : std_ulogic_vector( 47 downto 0);
+  signal ssROL_SHL_Nts_Tcp_ClsReq_tdata     : std_ulogic_vector( 15 downto 0);
   signal ssROL_SHL_Nts_Tcp_ClsReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_ClsReq_tready    : std_ulogic;
 
@@ -267,7 +267,7 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Nts_Tcp_LsnReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_LsnReq_tready    : std_ulogic;
   ---- Stream _SHLTCP Listen Status 
-  signal ssSHL_ROL_Nts_Tcp_LsnAck_tdata     : std_ulogic_vector( 47 downto 0);
+  signal ssSHL_ROL_Nts_Tcp_LsnAck_tdata     : std_ulogic_vector(  7 downto 0);
   signal ssSHL_ROL_Nts_Tcp_LsnAck_tvalid    : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_LsnAck_tready    : std_ulogic;
  
@@ -531,11 +531,11 @@ architecture structural of topFMKU60 is
       siROL_Nts_Tcp_OpnReq_tvalid       : in    std_ulogic;
       siROL_Nts_Tcp_OpnReq_tready       : out   std_ulogic;
       ---- Stream TCP Open Session Status 
-      soROL_Nts_Tcp_OpnSts_tdata        : out   std_ulogic_vector( 47 downto 0);
-      soROL_Nts_Tcp_OpnSts_tvalid       : out   std_ulogic;
-      soROL_Nts_Tcp_OpnSts_tready       : out   std_ulogic;
+      soROL_Nts_Tcp_OpnRep_tdata        : out   std_ulogic_vector( 23 downto 0);
+      soROL_Nts_Tcp_OpnRep_tvalid       : out   std_ulogic;
+      soROL_Nts_Tcp_OpnRep_tready       : in    std_ulogic;
       ---- Stream TCP Close Request ------
-      siROL_Nts_Tcp_ClsReq_tdata        : in    std_ulogic_vector( 47 downto 0);
+      siROL_Nts_Tcp_ClsReq_tdata        : in    std_ulogic_vector( 15 downto 0);
       siROL_Nts_Tcp_ClsReq_tvalid       : in    std_ulogic;
       siROL_Nts_Tcp_ClsReq_tready       : out   std_ulogic;
      
@@ -548,7 +548,7 @@ architecture structural of topFMKU60 is
       siROL_Nts_Tcp_LsnReq_tvalid       : in  std_ulogic;
       siROL_Nts_Tcp_LsnReq_tready       : out std_ulogic;
       ---- Stream TCP Listen Status ------
-      soROL_Nts_Tcp_LsnAck_tdata        : out std_ulogic_vector( 47 downto 0);
+      soROL_Nts_Tcp_LsnAck_tdata        : out std_ulogic_vector(  7 downto 0);
       soROL_Nts_Tcp_LsnAck_tvalid       : out std_ulogic;
       soROL_Nts_Tcp_LsnAck_tready       : in  std_ulogic;
   
@@ -694,9 +694,9 @@ architecture structural of topFMKU60 is
       soSHL_Nts_Tcp_Meta_tvalid           : out   std_ulogic;
       soSHL_Nts_Tcp_Meta_tready           : in    std_ulogic;
       ---- Stream TCP Data Status --------
-      siSHL_Nts_Tcp_DSts_tdata            : out   std_ulogic_vector( 23 downto 0);
-      siSHL_Nts_Tcp_DSts_tvalid           : out   std_ulogic;
-      siSHL_Nts_Tcp_DSts_tready           : in    std_ulogic;
+      siSHL_Nts_Tcp_DSts_tdata            : in    std_ulogic_vector( 23 downto 0);
+      siSHL_Nts_Tcp_DSts_tvalid           : in    std_ulogic;
+      siSHL_Nts_Tcp_DSts_tready           : out   std_ulogic;
   
       --------------------------------------------------------
       -- SHELL / Nts / Tcp / RxP Data Flow Interfaces
@@ -713,43 +713,43 @@ architecture structural of topFMKU60 is
       siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
       ---- Stream TCP Data Notification --
-      siSHL_Nts_Tcp_Notif_tdata           : out   std_ulogic_vector( 87 downto 0);
-      siSHL_Nts_Tcp_Notif_tvalid          : out   std_ulogic;
-      siSHL_Nts_Tcp_Notif_tready          : in    std_ulogic;
+      siSHL_Nts_Tcp_Notif_tdata           : in   std_ulogic_vector( 87 downto 0);
+      siSHL_Nts_Tcp_Notif_tvalid          : in   std_ulogic;
+      siSHL_Nts_Tcp_Notif_tready          : out  std_ulogic;
       ---- Stream TCP Data Request -------
-      soSHL_Nts_Tcp_DReq_tdata            : in    std_ulogic_vector( 31 downto 0); 
-      soSHL_Nts_Tcp_DReq_tvalid           : in    std_ulogic;       
-      soSHL_Nts_Tcp_DReq_tready           : out   std_ulogic;
+      soSHL_Nts_Tcp_DReq_tdata            : out   std_ulogic_vector( 31 downto 0); 
+      soSHL_Nts_Tcp_DReq_tvalid           : out   std_ulogic;       
+      soSHL_Nts_Tcp_DReq_tready           : in    std_ulogic;
   
       ------------------------------------------------------
       -- SHELL / Nts / Tcp / TxP Ctlr Flow Interfaces
       ------------------------------------------------------
       -- FPGA Transmit Path (ROLE-->SHELL) ---------
       ---- Stream TCP Open Session Request
-      soSHL_Nts_Tcp_OpnReq_tdata          : in    std_ulogic_vector( 47 downto 0);  
-      soSHL_Nts_Tcp_OpnReq_tvalid         : in    std_ulogic;
-      soSHL_Nts_Tcp_OpnReq_tready         : out   std_ulogic;
+      soSHL_Nts_Tcp_OpnReq_tdata          : out   std_ulogic_vector( 47 downto 0);  
+      soSHL_Nts_Tcp_OpnReq_tvalid         : out   std_ulogic;
+      soSHL_Nts_Tcp_OpnReq_tready         : in    std_ulogic;
       ---- Stream TCP Open Session Status  
-      siSHL_Nts_Tcp_OpnSts_tdata          : out   std_ulogic_vector( 47 downto 0); 
-      siSHL_Nts_Tcp_OpnSts_tvalid         : out   std_ulogic;
-      siSHL_Nts_Tcp_OpnSts_tready         : in    std_ulogic;
+      siSHL_Nts_Tcp_OpnRep_tdata          : in    std_ulogic_vector( 23 downto 0); 
+      siSHL_Nts_Tcp_OpnRep_tvalid         : in    std_ulogic;
+      siSHL_Nts_Tcp_OpnRep_tready         : out   std_ulogic;
       ---- Stream TCP Close Request ------
-      soSHL_Nts_Tcp_ClsReq_tdata          : in     std_ulogic_vector( 47 downto 0);  
-      soSHL_Nts_Tcp_ClsReq_tvalid         : in     std_ulogic;
-      soSHL_Nts_Tcp_ClsReq_tready         : out    std_ulogic;
+      soSHL_Nts_Tcp_ClsReq_tdata          : out    std_ulogic_vector( 15 downto 0);  
+      soSHL_Nts_Tcp_ClsReq_tvalid         : out    std_ulogic;
+      soSHL_Nts_Tcp_ClsReq_tready         : in     std_ulogic;
   
       ------------------------------------------------------
       -- SHELL / Nts / Tcp / RxP Ctlr Flow Interfaces
       ------------------------------------------------------
       -- FPGA Receive Path (SHELL-->ROLE) ----------
       ---- Stream TCP Listen Request -----
-      soSHL_Nts_Tcp_LsnReq_tdata          : in     std_ulogic_vector( 15 downto 0);  
-      soSHL_Nts_Tcp_LsnReq_tvalid         : in     std_ulogic;
-      soSHL_Nts_Tcp_LsnReq_tready         : out    std_ulogic;
+      soSHL_Nts_Tcp_LsnReq_tdata          : out    std_ulogic_vector( 15 downto 0);  
+      soSHL_Nts_Tcp_LsnReq_tvalid         : out    std_ulogic;
+      soSHL_Nts_Tcp_LsnReq_tready         : in     std_ulogic;
       ---- Stream TCP Listen Status ----
-      siSHL_Nts_Tcp_LsnAck_tdata          : out    std_ulogic_vector( 47 downto 0); 
-      siSHL_Nts_Tcp_LsnAck_tvalid         : out    std_ulogic;
-      siSHL_Nts_Tcp_LsnAck_tready         : in     std_ulogic;
+      siSHL_Nts_Tcp_LsnAck_tdata          : in     std_ulogic_vector(  7 downto 0); 
+      siSHL_Nts_Tcp_LsnAck_tvalid         : in     std_ulogic;
+      siSHL_Nts_Tcp_LsnAck_tready         : out    std_ulogic;
       
       ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
@@ -1095,9 +1095,9 @@ begin
       siROL_Nts_Tcp_OpnReq_tvalid       => ssROL_SHL_Nts_Tcp_OpnReq_tvalid,
       siROL_Nts_Tcp_OpnReq_tready       => ssROL_SHL_Nts_Tcp_OpnReq_tready,
       ---- Stream TCP Open Session Status 
-      soROL_Nts_Tcp_OpnSts_tdata        => ssSHL_ROL_Nts_Tcp_OpnSts_tdata,
-      soROL_Nts_Tcp_OpnSts_tvalid       => ssSHL_ROL_Nts_Tcp_OpnSts_tvalid,
-      soROL_Nts_Tcp_OpnSts_tready       => ssSHL_ROL_Nts_Tcp_OpnSts_tready,
+      soROL_Nts_Tcp_OpnRep_tdata        => ssSHL_ROL_Nts_Tcp_OpnRep_tdata,
+      soROL_Nts_Tcp_OpnRep_tvalid       => ssSHL_ROL_Nts_Tcp_OpnRep_tvalid,
+      soROL_Nts_Tcp_OpnRep_tready       => ssSHL_ROL_Nts_Tcp_OpnRep_tready,
       ---- Stream TCP Close Request ----
       siROL_Nts_Tcp_ClsReq_tdata        => ssROL_SHL_Nts_Tcp_ClsReq_tdata,
       siROL_Nts_Tcp_ClsReq_tvalid       => ssROL_SHL_Nts_Tcp_ClsReq_tvalid,
@@ -1292,9 +1292,9 @@ begin
       soSHL_Nts_Tcp_OpnReq_tvalid       => ssROL_SHL_Nts_Tcp_OpnReq_tvalid,
       soSHL_Nts_Tcp_OpnReq_tready       => ssROL_SHL_Nts_Tcp_OpnReq_tready,
       ---- Stream TCP Open Session Status  
-      siSHL_Nts_Tcp_OpnSts_tdata        => ssSHL_ROL_Nts_Tcp_OpnSts_tdata,
-      siSHL_Nts_Tcp_OpnSts_tvalid       => ssSHL_ROL_Nts_Tcp_OpnSts_tvalid,
-      siSHL_Nts_Tcp_OpnSts_tready       => ssSHL_ROL_Nts_Tcp_OpnSts_tready,
+      siSHL_Nts_Tcp_OpnRep_tdata        => ssSHL_ROL_Nts_Tcp_OpnRep_tdata,
+      siSHL_Nts_Tcp_OpnRep_tvalid       => ssSHL_ROL_Nts_Tcp_OpnRep_tvalid,
+      siSHL_Nts_Tcp_OpnRep_tready       => ssSHL_ROL_Nts_Tcp_OpnRep_tready,
       ---- Stream TCP Close Request ------
       soSHL_Nts_Tcp_ClsReq_tdata        => ssROL_SHL_Nts_Tcp_ClsReq_tdata,
       soSHL_Nts_Tcp_ClsReq_tvalid       => ssROL_SHL_Nts_Tcp_ClsReq_tvalid,

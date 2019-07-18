@@ -123,7 +123,9 @@ void pConnect(
             startupDelay--;
             if (!siTOE_OpnRep.empty()) {
                 // Drain any potential status data
-                siTOE_OpnRep.read();
+                siTOE_OpnRep.read(newConn);
+                printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessionID.to_uint());
+                soTOE_ClsReq.write(newConn.sessionID);
             }
         }
         else
@@ -173,10 +175,12 @@ void pConnect(
                 if (DEBUG_LEVEL & TRACE_CON) {
                     printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
                     printSockAddr(myName, leHostSockAddr);
-                    printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessionID.to_uint());
                 }
-                soTOE_ClsReq.write(newConn.sessionID);
-                opnFsmState = OPN_DONE;
+                #ifndef __SYNTHESIS__
+                  watchDogTimer = 250;
+                #else
+                  watchDogTimer = 10000;
+                #endif
             }
 
         }
@@ -466,13 +470,13 @@ void pWritePath(
 void tcp_role_if(
 
         //------------------------------------------------------
-        //-- ROLE / Rx Data Interface
+        //-- ROLE / TxP Data Interface
         //------------------------------------------------------
         stream<AppData>     &siROL_Data,
         stream<AppMeta>     &siROL_SessId,
 
         //------------------------------------------------------
-        //-- ROLE / Tx Data Interface
+        //-- ROLE / RxP Data Interface
         //------------------------------------------------------
         stream<AppData>     &soROL_Data,
         stream<AppMeta>     &soROL_SessId,
