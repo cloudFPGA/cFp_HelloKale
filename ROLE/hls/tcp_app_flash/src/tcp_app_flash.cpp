@@ -119,7 +119,11 @@ void pTXPath(
 
     //-- LOCAL VARIABLES ------------------------------------------------------
     AxiWord     tcpWord;
+    AxiWord     currAxiWord;
     TcpSessId   tcpSessId;
+
+    static AxiWord prevAxiWord;
+    static bool    wasLastWord = false;
 
     static enum TxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
                                txpFsmState = START_OF_SEGMENT;
@@ -135,10 +139,12 @@ void pTXPath(
         switch(piSHL_MmioEchoCtrl) {
         case ECHO_PATH_THRU:
             // Read session Id from pEchoPassThrough and forward to [SHL]
-            if ( !siEPt_SessId.empty() and !soSHL_SessId.full()) {
-                siEPt_SessId.read(tcpSessId);
-                soSHL_SessId.write(tcpSessId);
+            if ( !siEPt_SessId.empty() and !soSHL_SessId.full() and
+                 !siEPt_Data.empty() ) {
+                soSHL_SessId.write(siEPt_SessId.read());
+                siEPt_Data.read(currAxiWord);
                 txpFsmState = CONTINUATION_OF_SEGMENT;
+                wasLastWord = false;
             }
             break;
         case ECHO_STORE_FWD:
@@ -159,9 +165,10 @@ void pTXPath(
             if (piSHL_MmioPostSegEn) {
                 // Prepare for sending a segment to remote host by forwarding
                 // a session-id (here we use a temporary dirty hack ; we always
-                // forward SessId=0 because we know it is '0' after a reset).
+                // forward SessId=1 because we know it is '1' after the first
+                // session is opened).
                 if (!soSHL_SessId.full()) {
-                    soSHL_SessId.write(0);
+                    soSHL_SessId.write(1);
                     txpFsmState = CONTINUATION_OF_SEGMENT;
                 }
             }
@@ -184,12 +191,19 @@ void pTXPath(
         switch(piSHL_MmioEchoCtrl) {
         case ECHO_PATH_THRU:
             //-- Read incoming data from pEchoPathThrough and forward to [SHL]
-            if ( !siEPt_Data.empty() and !soSHL_Data.full()) {
-                siEPt_Data.read(tcpWord);
-                soSHL_Data.write(tcpWord);
-                // Update FSM state
-                if (tcpWord.tlast)
-                    txpFsmState = START_OF_SEGMENT;
+            if (wasLastWord & !soSHL_Data.full()) {
+                soSHL_Data.write(prevAxiWord);
+                wasLastWord = false;
+                txpFsmState = START_OF_SEGMENT;
+            }
+            else {
+                if (!siEPt_Data.empty() and !soSHL_Data.full()) {
+                    siEPt_Data.read(currAxiWord);
+                    soSHL_Data.write(prevAxiWord);
+                    // Update FSM state
+                   if (currAxiWord.tlast)
+                       wasLastWord = true;
+                }
             }
             break;
         case ECHO_STORE_FWD:
@@ -249,6 +263,9 @@ void pTXPath(
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
     }  // End-of: switch (txpFsmState ) {
+
+    //-- Update the one-word internal pipeline
+    prevAxiWord = currAxiWord;
 }
 
 
@@ -278,8 +295,12 @@ void pRXPath(
     #pragma HLS DATAFLOW
 
     //-- LOCAL VARIABLES ------------------------------------------------------
-    AxiWord     tcpWord;
+	AxiWord     tcpWord;
+    AxiWord     currAxiWord;
     TcpSessId   tcpSessId;
+
+    static bool    wasLastWord = false;
+    static AxiWord prevAxiWord;
 
     static enum RxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
                                rxpFsmState = START_OF_SEGMENT;
@@ -290,10 +311,12 @@ void pRXPath(
         switch(piSHL_MmioEchoCtrl) {
           case ECHO_PATH_THRU:
             //-- Read incoming session Id and forward to pEchoPathThrough
-            if ( !siSHL_SessId.empty() and !soEPt_SessId.full()) {
-                siSHL_SessId.read(tcpSessId);
-                soEPt_SessId.write(tcpSessId);
+            if ( !siSHL_SessId.empty() and !soEPt_SessId.full() and
+                 !siSHL_Data.empty() ) {
+                soEPt_SessId.write(siSHL_SessId.read());
+                siSHL_Data.read(currAxiWord);
                 rxpFsmState = CONTINUATION_OF_SEGMENT;
+                wasLastWord = false;
             }
             break;
           case ECHO_STORE_FWD:
@@ -302,6 +325,7 @@ void pRXPath(
                 siSHL_SessId.read(tcpSessId);
                 soESf_SessId.write(tcpSessId);
                 rxpFsmState = CONTINUATION_OF_SEGMENT;
+                wasLastWord = false;
             }
             break;
           case ECHO_OFF:
@@ -310,20 +334,29 @@ void pRXPath(
             if ( !siSHL_SessId.empty() ) {
                 siSHL_SessId.read(tcpSessId);
                 rxpFsmState = CONTINUATION_OF_SEGMENT;
+                wasLastWord = false;
             }
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
+
       case CONTINUATION_OF_SEGMENT:
         switch(piSHL_MmioEchoCtrl) {
           case ECHO_PATH_THRU:
             //-- Read incoming data and forward to pEchoPathThrough
-            if ( !siSHL_Data.empty() and !soEPt_Data.full()) {
-                siSHL_Data.read(tcpWord);
-                soEPt_Data.write(tcpWord);
-                // Update FSM state
-                if (tcpWord.tlast)
-                    rxpFsmState = START_OF_SEGMENT;
+            if (wasLastWord & !soEPt_Data.full()) {
+                soEPt_Data.write(prevAxiWord);
+                wasLastWord = false;
+                rxpFsmState = START_OF_SEGMENT;
+            }
+            else {
+                if (!siSHL_Data.empty() and !soEPt_Data.full()) {
+                    siSHL_Data.read(currAxiWord);
+                    soEPt_Data.write(prevAxiWord);
+                    // Update FSM state
+                   if (currAxiWord.tlast)
+                       wasLastWord = true;
+                }
             }
             break;
           case ECHO_STORE_FWD:
@@ -347,7 +380,12 @@ void pRXPath(
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
+
     }  // End-of: switch (rxpFsmState ) {
+
+    //-- Update the one-word internal pipeline
+    prevAxiWord = currAxiWord;
+
 }
 
 
@@ -449,19 +487,20 @@ void tcp_app_flash (
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     //
-    //                 +----------+
-    //       +-------->|   pESf   |---------+
-    //       |         +----------+         |
-    //       |          --------+           |
-    //       | +-------->  sEPt |---------+ |
-    //       | |        --------+         | |
-    //    +--+-+--+                    +--+-+--+
-    //    |  pRXp |                    |  pTXp |
-    //    +---+---+                    +---+---+
-    //       /|\                           |
-    //        |                            |
-    //        |                            |
-    //        |                           \|/
+    //       +-+                                   | |
+    //       |S|    1      +----------+            |S|
+    //       |i| +-------->|   pESf   |----------+ |r|
+    //       |n| |         +----------+          | |c|
+    //       |k| |    2     --------+            | +++
+    //       /|\ |  +--------> sEPt |---------+  |  |
+    //       0|  |  |       --------+         |  | \|/
+    //     +--+--+--+--+                   +--+--+--+--+
+    //     |   pRXp    |                   |   pTXp    |
+    //     +------+----+                   +-----+-----+
+    //          /|\                              |
+    //           |                               |
+    //           |                               |
+    //           |                              \|/
     //
     //-------------------------------------------------------------------------
     pRXPath(

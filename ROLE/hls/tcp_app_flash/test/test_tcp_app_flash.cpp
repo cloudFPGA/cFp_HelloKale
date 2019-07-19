@@ -149,9 +149,7 @@ bool setInputDataStreams(
                 printf("[%4.4d] [TB] is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                         gSimCycCnt, dataStreamName.c_str(),
                         tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
-                // Increment the TCP session Id
                 if (tcpWord.tlast) {
-                    tcpSessId++;
                     startOfTcpSeg = true;
                 }
             }
@@ -240,6 +238,7 @@ int writeTcpWordToFile(AxiWord *tcpWord, ofstream  &outFileStream) {
  *
  * @param[in] sDataStream,    the output data stream to read from.
  * @param[in] sMetaStream,    the output meta stream to read from.
+ * @param[in] echoCtrlMode,   the setting of the ECHO mode.
  * @param[in] dataStreamName, the name of the data stream.
  * @param[in] metaStreamName, the name of the meta stream.
  * @param[in] outDataFileName,the name of the output data file to write to.
@@ -250,6 +249,7 @@ int writeTcpWordToFile(AxiWord *tcpWord, ofstream  &outFileStream) {
 bool getOutputDataStreams(
         stream<AxiWord>   &sDataStream,
         stream<TcpSessId> &sMetaStream,
+        EchoCtrl           echoCtrlMode,
         const string       dataStreamName,
         const string       metaStreamName,
         const string       outDataFileName,
@@ -262,7 +262,7 @@ bool getOutputDataStreams(
     string      tcpDataFileName = "../../../../test/" + outDataFileName + ".tcp";
     AxiWord     tcpWord;
     TcpSessId   tcpSessId;
-    TcpSessId   expectedSessId = DEFAULT_SESS_ID;
+    TcpSessId   expectedSessId;
     bool        startOfTcpSeg;
     bool        rc = OK;
     int         nrRxSegs = 0;
@@ -285,7 +285,19 @@ bool getOutputDataStreams(
         if (startOfTcpSeg) {
             if (!sMetaStream.empty()) {
                 sMetaStream.read(tcpSessId);
-                if ((tcpSessId == expectedSessId) or (tcpSessId == 0)) {
+                switch(echoCtrlMode) {
+                case ECHO_PATH_THRU:
+                case ECHO_STORE_FWD:
+                    expectedSessId = DEFAULT_SESS_ID;
+                    break;
+                case ECHO_OFF:
+                    expectedSessId = 1;
+                    break;
+                default:
+                    printf("[%4.4d] [TB/Rx] FATAL-ERROR. Echo mode %d is not supported. \n",
+                           gSimCycCnt,echoCtrlMode);
+                }
+                if (tcpSessId == expectedSessId)  {
                     printf("[%4.4d] [TB/Rx] Received TCP session Id = %d.\n",
                             gSimCycCnt, tcpSessId.to_int());
                 }
@@ -306,8 +318,6 @@ bool getOutputDataStreams(
             if (tcpWord.tlast) {
                 startOfTcpSeg = true;
                 nrRxSegs++;
-                if (nrRxSegs < nrTxSegs)
-                    expectedSessId++;
             }
             if (!writeAxiWordToFile(&tcpWord, rawDataFile) or \
                 !writeTcpWordToFile(&tcpWord, tcpDataFile)) {
@@ -376,7 +386,7 @@ int main() {
     //-- STEP-1.4 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- TAF-->SHELL ----
-    if (!getOutputDataStreams(ssTAF_SHL_Data, ssTAF_SHL_SessId,
+    if (!getOutputDataStreams(ssTAF_SHL_Data, ssTAF_SHL_SessId, ECHO_PATH_THRU,
             "ssTAF_SHL_Data", "ssTAF_SHL_SessId", "ofsTAF_Shl_Echo_Path_Thru_Data.dat", segCnt))
         nrErr++;
 
@@ -425,7 +435,7 @@ int main() {
     //-- STEP-2.4 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- TAF-->SHELL ----
-    if (!getOutputDataStreams(ssTAF_SHL_Data, ssTAF_SHL_SessId,
+    if (!getOutputDataStreams(ssTAF_SHL_Data, ssTAF_SHL_SessId, ECHO_OFF,
             "ssTAF_SHL_Data", "ssTAF_SHL_SessId", "ofsTAF_Shl_Echo_Off_Data.dat", segCnt))
         nrErr++;
 
