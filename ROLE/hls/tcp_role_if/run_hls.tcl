@@ -53,7 +53,6 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
-add_files     ${currDir}/../role.cpp
 add_files     ${currDir}/../role_utils.cpp
 add_files     ${currDir}/../test_role_utils.cpp
 
