@@ -1,3 +1,28 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : tcp_role_if.cpp
  * @brief      : TCP Role Interface (TRIF)
@@ -6,22 +31,19 @@
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
  *----------------------------------------------------------------------------
  *
  * @details    : This process handles the control flow interface between the
  *  the SHELL and the ROLE. The main purpose of the TRIF is to open port(s) for
  *   listening and for connecting to remote host(s).
  *
- * @todo       : [TODO - The logic for listening and connecting is most likely going to end up in the FMS].
+ * @todo       : [TODO - The logic for listening and connecting is most likely going to end up in the FMC].
  *
  *****************************************************************************/
 
 #include "tcp_role_if.hpp"
 
-#include "../../role.hpp"
+//#include "../../role.hpp"
 #include "../../role_utils.hpp"
 #include "../../test_role_utils.hpp"
 
@@ -30,6 +52,13 @@
 using namespace hls;
 using namespace std;
 
+/************************************************
+ * INTERFACE SYNTHESIS DIRECTIVES
+ *  For the time being, we continue designing
+ *  with the DEPRECATED directives because the
+ *  new PRAGMAs do not work for us.
+ ************************************************/
+#undef USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -68,19 +97,18 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 /*****************************************************************************
  * @brief Client connection to remote HOST or FPGA socket (COn).
  *
- * @param[out] soTOE_OpnReq,  open connection request to TOE.
- * @param[in]  siTOE_OpnRep,  open connection reply from TOE.
- * @param[out] soTOE_ClsReq,  close connection request to TOE.
+ * @param[in]  piSHL_Enable,  enable signal from [SHELL].
+ * @param[out] soTOE_OpnReq,  open connection request to [TOE].
+ * @param[in]  siTOE_OpnRep,  open connection reply from [TOE].
+ * @param[out] soTOE_ClsReq,  close connection request to [TOE].
  *
  * @details
  *  For testing purposes, this connect process opens a single connection to a
  *   'hard-code' remote HOST IP address (10.12.200.50) and port 8803.
  *
- * @note ([FIXME - Remove this note)
- *  This code is not executed. It is added here to terminate every HLS
- *   stream of the module.
  ******************************************************************************/
 void pConnect(
+        ap_uint<1>          *piSHL_Enable,
         stream<AppOpnReq>   &soTOE_OpnReq,
         stream<AppOpnSts>   &siTOE_OpnRep,
         stream<AppClsReq>   &soTOE_ClsReq)
@@ -91,40 +119,22 @@ void pConnect(
     const char *myName  = concat3(THIS_NAME, "/", "COn");
 
     static AppOpnReq     leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
-    static AppOpnSts     newConn;
+    static AppOpnSts     newConn;         // [FIXME - Change to default Big-Endian]
     static ap_uint< 12>  watchDogTimer;
 
-    // Set a startup delay long enough to account for the initialization
-    // of TOE's listen port table which takes 32,768 cycles after reset.
-    //  [FIXME - StartupDelay must be replaced by a piSHELL_Reday signal]
-    static ap_uint<16>         startupDelay = 0x8000;
-    #pragma HLS reset variable=startupDelay
-
     static enum OpnFsmStates{ OPN_IDLE, OPN_REQ, OPN_REP, OPN_DONE } opnFsmState=OPN_IDLE;
-    #pragma HLS reset variable=opnFsmState
-
-    /*** OBSOLETE ********
-    if (!openConStatus.empty() && !openConnection.full() && !closeConnection.full()) {
-    		openConStatus.read(newConn);
-    		tuple.ip_address = 0x0b010101; //0x0a010101;
-    		tuple.ip_port =  0x3412;//0x4412;
-    		openConnection.write(tuple);
-    		if (newConn.success) {
-    			closeConnection.write(newConn.sessionID);
-    			//closePort.write(tuple.ip_port);
-    		}
-    	}
-    **********************/
+    #pragma HLS reset                                       variable=opnFsmState
 
     switch (opnFsmState) {
 
     case OPN_IDLE:
-        if (startupDelay > 0) {
-            startupDelay--;
+        //OBSOLETE-20190827 if (startupDelay > 0) {
+        //OBSOLETE-20190827     startupDelay--;
+        if (*piSHL_Enable != 1) {
             if (!siTOE_OpnRep.empty()) {
                 // Drain any potential status data
                 siTOE_OpnRep.read(newConn);
-                printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessionID.to_uint());
+                printWarn(myName, "Draining unexpected residue from the \'OpnRep\' stream. As a result, request to close sessionId=%d.\n", newConn.sessionID.to_uint());
                 soTOE_ClsReq.write(newConn.sessionID);
             }
         }
@@ -194,8 +204,9 @@ void pConnect(
  * @brief Request the TOE to start listening (LSn) for incoming connections
  *  on a specific port (.i.e open connection for reception mode).
  *
- * @param[out] soTOE_LsnReq,   listen port request to TOE.
- * @param[in]  siTOE_LsnAck,   listen port acknowledge from TOE.
+ * @param[in]  piSHL_Enable,   enable signal from [SHELL].
+ * @param[out] soTOE_LsnReq,   listen port request to [TOE].
+ * @param[in]  siTOE_LsnAck,   listen port acknowledge from [TOE].
  *
  * @warning
  *  The Port Table (PRt) supports two port ranges; one for static ports (0 to
@@ -204,9 +215,9 @@ void pConnect(
  *   connections. Therefore, listening port numbers must be in the range 0
  *   to 32,767.
  * 
- * @return Nothing.
  ******************************************************************************/
 void pListen(
+        ap_uint<1>          *piSHL_Enable,
         stream<AppLsnReq>   &soTOE_LsnReq,
         stream<AppLsnAck>   &siTOE_LsnAck)
 {
@@ -217,19 +228,21 @@ void pListen(
 
     static ap_uint<8>  watchDogTimer;
 
-    // Set a startup delay long enough to account for the initialization
-    // of TOE's listen port table which takes 32,768 cycles after reset.
-    static ap_uint<16>         startupDelay = 0x8000;
-    #pragma HLS reset variable=startupDelay
+    //OBSOLETE_20190827 // Set a startup delay long enough to account for the initialization
+    //OBSOLETE_20190827     // of TOE's listen port table which takes 32,768 cycles after reset.
+    //OBSOLETE_20190827     static ap_uint<16>         startupDelay = 0x8000;
+    //OBSOLETE_20190827     #pragma HLS reset variable=startupDelay
 
     static enum LsnFsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE } lsnFsmState=LSN_IDLE;
-    #pragma HLS reset variable=lsnFsmState
+    #pragma HLS reset                                                  variable=lsnFsmState
 
     switch (lsnFsmState) {
 
     case LSN_IDLE:
-        if (startupDelay > 0)
-            startupDelay--;
+        //OBSOLETE_20190827 if (startupDelay > 0)
+        //OBSOLETE_20190827     startupDelay--;
+        if (*piSHL_Enable != 1)
+            return;
         else
             lsnFsmState = LSN_SEND_REQ;
         break;
@@ -448,6 +461,7 @@ void pWritePath(
  * @brief   Main process of the TCP Role Interface (TRIF)
  * @ingroup tcp_role_if
  *
+ * @param[in]  piSHL_Mmio_En Enable signal from [MMIO].
  * @param[in]  siROL_Data    TCP data stream from [ROLE].
  * @param[in]  siROL_SessId  TCP session Id  from [ROLE].
  * @param[out] soRL_Data     TCP data stream to   [ROLE].
@@ -468,6 +482,11 @@ void pWritePath(
  *
  *****************************************************************************/
 void tcp_role_if(
+
+        //------------------------------------------------------
+        //-- SHELL / Mmio Interface
+        //------------------------------------------------------
+        ap_uint<1>          *piSHL_Mmio_En,
 
         //------------------------------------------------------
         //-- ROLE / TxP Data Interface
@@ -516,6 +535,10 @@ void tcp_role_if(
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
+  #if defined(USE_DEPRECATED_DIRECTIVES)
+
+    #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En    name=piSHL_Mmio_En
+
     #pragma HLS resource core=AXI4Stream variable=siROL_Data   metadata="-bus_bundle siROL_Data"
     #pragma HLS resource core=AXI4Stream variable=siROL_SessId metadata="-bus_bundle siROL_SessId"
 
@@ -543,6 +566,39 @@ void tcp_role_if(
 
     #pragma HLS resource core=AXI4Stream variable=soTOE_ClsReq metadata="-bus_bundle soTOE_ClsReq"
 
+  #else
+
+    #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En  name=piSHL_Mmio_En
+
+    #pragma HLS INTERFACE axis off           port=siROL_Data     name=siROL_Data
+    #pragma HLS INTERFACE axis off           port=siROL_SessId   name=siROL_SessId
+
+    #pragma HLS INTERFACE axis off           port=soROL_Data     name=soROL_Data
+    #pragma HLS INTERFACE axis off           port=soROL_SessId   name=soROL_SessId
+
+    #pragma HLS INTERFACE axis off           port=siTOE_Notif    name=siTOE_Notif
+    #pragma HLS DATA_PACK                variable=siTOE_Notif
+    #pragma HLS INTERFACE axis off           port=soTOE_DReq     name=soTOE_DReq
+    #pragma HLS DATA_PACK                variable=soTOE_DReq
+    #pragma HLS INTERFACE axis off           port=siTOE_Data     name=siTOE_Data
+    #pragma HLS INTERFACE axis off           port=siTOE_SessId   name=siTOE_SessId
+
+    #pragma HLS INTERFACE axis off           port=soTOE_LsnReq   name=soTOE_LsnReq
+    #pragma HLS INTERFACE axis off           port=siTOE_LsnAck   name=siTOE_LsnAck
+
+    #pragma HLS INTERFACE axis off           port=soTOE_Data     name=soTOE_Data
+    #pragma HLS INTERFACE axis off           port=soTOE_SessId   name=soTOE_SessId
+    #pragma HLS INTERFACE axis off           port=siTOE_DSts     name=siTOE_DSts
+
+    #pragma HLS INTERFACE axis off           port=soTOE_OpnReq   name=soTOE_OpnReq
+    #pragma HLS DATA_PACK                variable=soTOE_OpnReq
+    #pragma HLS INTERFACE axis off           port=siTOE_OpnRep   name=siTOE_OpnRep
+    #pragma HLS DATA_PACK                variable=siTOE_OpnRep
+
+    #pragma HLS INTERFACE axis off           port=soTOE_ClsReq   name=soTOE_ClsReq
+
+  #endif
+
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
 
@@ -550,11 +606,13 @@ void tcp_role_if(
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pConnect(
+            piSHL_Mmio_En,
             soTOE_OpnReq,
             siTOE_OpnRep,
             soTOE_ClsReq);
 
     pListen(
+            piSHL_Mmio_En,
             soTOE_LsnReq,
             siTOE_LsnAck);
 

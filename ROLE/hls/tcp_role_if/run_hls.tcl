@@ -86,11 +86,32 @@ if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level all
 }
 
+#-----------------------------
 # Export RTL (refer to UG902)
-#   -format ( sysgen | ip_catalog | syn_dcp )
-#-------------------------------------------------
+#-----------------------------
+#
+# -description <string>
+#    Provides a description for the generated IP Catalog IP.
+# -display_name <string>
+#    Provides a display name for the generated IP.
+# -flow (syn|impl)
+#    Obtains more accurate timing  and utilization data for the specified HDL using RTL synthesis.
+# -format (ip_catalog|sysgen|syn_dcp)
+#    Specifies the format to package the IP.
+# -ip_name <string>
+#    Provides an IP name for the generated IP.
+# -library <string>
+#    Specifies  the library name for the generated IP catalog IP.
+# -rtl (verilog|vhdl)
+#    Selects which HDL is used when the '-flow' option is executed. If not specified, verilog is
+#    the default language.
+# -vendor <string>
+#    Specifies the vendor string for the generated IP catalog IP.
+# -version <string>
+#    Specifies the version string for the generated IP catalog.
+#---------------------------------------------------------------------------------------------------
 if { $hlsRtl } {
-    export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
 }
 
 # Exit Vivado HLS

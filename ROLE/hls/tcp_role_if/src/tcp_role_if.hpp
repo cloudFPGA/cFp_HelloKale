@@ -1,3 +1,28 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : tcp_role_if.hpp
  * @brief      : TCP Role Interface (TRIF).
@@ -6,7 +31,6 @@
  * Component   : Interface with Network Transport Stack (NTS) of the SHELL.
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
@@ -24,47 +48,17 @@
 using namespace hls;
 
 
-//OBSOLETE #define NR_SESSION_ENTRIES  4
-//OBSOLETE #define TRIF_MAX_SESSIONS   NR_SESSION_ENTRIES
-
-
-/********************************************
- * Specific Definitions for the TCP Role I/F
- ********************************************/
-
-
-//OBSOLETE /********************************************
-//OBSOLETE  * Session Id Table Entry
-//OBSOLETE  ********************************************/
-//OBSOLETE class SessionIdCamEntry {
-//OBSOLETE   public:
-//OBSOLETE    TcpSessId   sessId;
-//OBSOLETE     ValBit      valid;
-//OBSOLETE
-//OBSOLETE     SessionIdCamEntry() {}
-//OBSOLETE     SessionIdCamEntry(TcpSessId tcpSessId, ValBit val) :
-//OBSOLETE         sessId(tcpSessId), valid(val){}
-//OBSOLETE };
-
-
-//OBSOLETE /********************************************
-//OBSOLETE  * Session Id CAM
-//OBSOLETE  ********************************************/
-//OBSOLETE class SessionIdCam {
-//OBSOLETE   public:
-//OBSOLETE     SessionIdCamEntry CAM[NR_SESSION_ENTRIES];
-//OBSOLETE     SessionIdCam();
-//OBSOLETE     bool   write(SessionIdCamEntry wrEntry);
-//OBSOLETE     bool   search(TcpSessId        sessId);
-//OBSOLETE };
-
-
 /*************************************************************************
  *
  * ENTITY - TCP ROLE INTERFACE (TRIF)
  *
  *************************************************************************/
 void tcp_role_if(
+
+        //------------------------------------------------------
+        //-- SHELL / Mmio Interface
+        //------------------------------------------------------
+        ap_uint<1>          *piSHL_Mmio_En,
 
         //------------------------------------------------------
         //-- ROLE / Rx Data Interface

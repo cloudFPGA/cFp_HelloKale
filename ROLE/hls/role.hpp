@@ -139,6 +139,7 @@ using namespace hls;
  ********************************************/
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 
 typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
@@ -422,11 +423,11 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
  * AXI4 STREAMING INTERFACES (alias AXIS)
  ************************************************/
 class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
-public:
+  public:
     ap_uint<64>     tdata;
     ap_uint<8>      tkeep;
     ap_uint<1>      tlast;
-public:
+  public:
     AxiWord()       {}
     AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
             tdata(tdata), tkeep(tkeep), tlast(tlast) {}
@@ -1201,6 +1202,14 @@ typedef AxiWord     AppData;
  *  Meta-data transfered between TOE and APP.
  ***********************************************/
 typedef TcpSessId   AppMeta;
+
+//OBSOLETE-20190828 class AppMeta {
+//OBSOLETE-20190828   public:
+//OBSOLETE-20190828     SessionId       tdata;  // TCP Session ID
+//OBSOLETE-20190828   public:
+//OBSOLETE-20190828     AppMeta()       {}
+//OBSOLETE-20190828     AppMeta(SessionId tdata) : tdata(tdata) {}
+//OBSOLETE-20190828 };
 
 /***********************************************
  * Application Open Request

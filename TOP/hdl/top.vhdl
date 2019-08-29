@@ -171,10 +171,10 @@ end topFMKU60;
 --*****************************************************************************
 architecture structural of topFMKU60 is
 
-  --===========================================================================
-  --== SIGNAL DECLARATIONS
-  --===========================================================================
-
+  --------------------------------------------------------
+  -- [TOP] SIGNAL DECLARATIONS 
+  --------------------------------------------------------
+ 
   -- Global User Clocks ----------------------------------
   signal sTOP_156_25Clk                     : std_ulogic;
   signal sTOP_250_00Clk                     : std_ulogic;
@@ -182,7 +182,7 @@ architecture structural of topFMKU60 is
   -- Global Reset ----------------------------------------
   signal sTOP_156_25Rst_n                   : std_ulogic;
   signal sTOP_156_25Rst                     : std_ulogic;
-  signal sTOP_156_25Rst_delayed             : std_ulogic;
+  --OBSOLETE-20190826 signal sTOP_156_25Rst_delayed             : std_ulogic;
     
   -- Global Source Synchronous Clock and Reset -----------
   signal sSHL_156_25Clk                     : std_ulogic;
@@ -190,12 +190,12 @@ architecture structural of topFMKU60 is
   
   -- Bitstream Identification Value ----------------------
   signal sTOP_Timestamp                     : stTimeStamp; 
-     
+   
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : [SHELL/Nts] <--> [ROLE/Nts] 
   --------------------------------------------------------
   
-  -- UDP Interfaces ------------------------------
+  -- UDP Interfaces ------------------------------------
   ---- UDP Data (AXI4S) --------------------
   signal ssROL_SHL_Nts_Udp_Data_tdata       : std_ulogic_vector( 63 downto 0);
   signal ssROL_SHL_Nts_Udp_Data_tkeep       : std_ulogic_vector(  7 downto 0);
@@ -208,9 +208,8 @@ architecture structural of topFMKU60 is
   signal ssSHL_ROL_Nts_Udp_Data_tlast       : std_ulogic;
   signal ssSHL_ROL_Nts_Udp_Data_tvalid      : std_ulogic;
   signal ssSHL_ROL_Nts_Udp_Data_tready      : std_ulogic;
-    
-  -- TCP Interfaces --------------------------------------
-
+  
+  -- TCP Interfaces ------------------------------------
   ---- FPGA Transmit Data Path (ROLE--> SHELL) ---
   ---- Stream TCP Data ---------------------
   signal ssROL_SHL_Nts_Tcp_Data_tdata       : std_ulogic_vector( 63 downto 0);
@@ -226,9 +225,8 @@ architecture structural of topFMKU60 is
   signal ssSHL_ROL_Nts_Tcp_DSts_tdata       : std_ulogic_vector( 23 downto 0);
   signal ssSHL_ROL_Nts_Tcp_DSts_tvalid      : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_DSts_tready      : std_ulogic;
-
   ---- FPGA Receive Data Path (SHELL-->ROLE) -----
-  ---- Stream TCP Data ---------------
+  ---- Stream TCP Data ---------------------
   signal ssSHL_ROL_Nts_Tcp_Data_tdata       : std_ulogic_vector( 63 downto 0);
   signal ssSHL_ROL_Nts_Tcp_Data_tkeep       : std_ulogic_vector(  7 downto 0);
   signal ssSHL_ROL_Nts_Tcp_Data_tlast       : std_ulogic;
@@ -246,13 +244,12 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Nts_Tcp_DReq_tdata       : std_ulogic_vector( 31 downto 0);
   signal ssROL_SHL_Nts_Tcp_DReq_tvalid      : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_DReq_tready      : std_ulogic;    
-
   ---- FPGA Transmit Ctrl Path (ROLE-->SHELL) ----
   ---- Stream  TCP Open Session Request ----
   signal ssROL_SHL_Nts_Tcp_OpnReq_tdata     : std_ulogic_vector( 47 downto 0);
   signal ssROL_SHL_Nts_Tcp_OpnReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_OpnReq_tready    : std_ulogic;
-  ---- Stream LTCP Open Session Status -----
+  ---- Stream TCP Open Session Status ------
   signal ssSHL_ROL_Nts_Tcp_OpnRep_tdata     : std_ulogic_vector( 23 downto 0);
   signal ssSHL_ROL_Nts_Tcp_OpnRep_tvalid    : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_OpnRep_tready    : std_ulogic;
@@ -260,7 +257,6 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Nts_Tcp_ClsReq_tdata     : std_ulogic_vector( 15 downto 0);
   signal ssROL_SHL_Nts_Tcp_ClsReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_ClsReq_tready    : std_ulogic;
-
   ---- FPGA Receive Ctrl Path (ETH-->ROL) --------
   ---- Stream TCP Listen Request -----------
   signal ssROL_SHL_Nts_Tcp_LsnReq_tdata     : std_ulogic_vector( 15 downto 0);   
@@ -336,6 +332,10 @@ architecture structural of topFMKU60 is
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : [MMIO] <--> [ROLE] 
   --------------------------------------------------------
+  ---- [PHY_RESET] -------------------------
+  signal sSHL_ROL_Mmio_Ly7Rst               : std_ulogic;
+  ---- [PHY_ENABLE] ------------------------
+  signal sSHL_ROL_Mmio_Ly7En                : std_ulogic;
   ---- DIAG_CTRL_1 -------------------------
   signal sSHL_ROL_Mmio_Mc1_MemTestCtrl      : std_ulogic_vector(  1 downto 0);
   ---- DIAG_STAT_1 -------------------------
@@ -460,7 +460,7 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- ROLE / Output Clock and Reset Interfaces
       ------------------------------------------------------
-      piTOP_156_25Rst_delayed           : in    std_ulogic;
+      -- OBSOLETE-20190826 piTOP_156_25Rst_delayed           : in    std_ulogic;
       poROL_156_25Clk                   : out   std_ulogic;
       poROL_156_25Rst                   : out   std_ulogic;
 
@@ -617,15 +617,18 @@ architecture structural of topFMKU60 is
       siROL_Mem_Mp1_Write_tlast         : in    std_ulogic;
       siROL_Mem_Mp1_Write_tvalid        : in    std_ulogic;
       siROL_Mem_Mp1_Write_tready        : out   std_ulogic;
-      
+         
       --------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       --------------------------------------------------------
-      -- DIAG_CTRL_1 -------------------------
+      ---- PHY_RESET --------------------
+      poROL_Mmio_Ly7Rst                 : out   std_ulogic;
+      ---- PHY_ENABLE -------------------
+      poROL_Mmio_Ly7En                  : out   std_ulogic;
+      ---- DIAG_CTRL_1 ------------------
       poROL_Mmio_Mc1_MemTestCtrl        : out   std_ulogic_vector(  1 downto 0);
-      -- DIAG_STAT_1 --------------------
+      ---- DIAG_STAT_1 -----------------
       piROL_Mmio_Mc1_MemTestStat        : in    std_ulogic_vector(  1 downto 0); -- [FIXME: Why 7:0 and not 7:6 ? ]
-      -- Diagnostic Registers Interface ----------
       ---- DIAG_CTRL_2 ------------------
       poROL_Mmio_UdpEchoCtrl            : out   std_ulogic_vector(  1 downto 0);
       poROL_Mmio_UdpPostDgmEn           : out   std_ulogic;
@@ -641,8 +644,8 @@ architecture structural of topFMKU60 is
       --------------------------------------------------------
       -- ROLE / Fmc / Management Interface 
       --------------------------------------------------------
-      -- NOT_USED_BY_THIS_SHELL poROL_Fmc_Rank                    : out   std_logic_vector(31 downto 0);
-      -- NOT_USED_BY_THIS_SHELL poROL_Fmc_Size                    : out   std_logic_vector(31 downto 0);
+      poROL_Fmc_Rank                    : out   std_logic_vector(31 downto 0);
+      poROL_Fmc_Size                    : out   std_logic_vector(31 downto 0);
       
       poVoid                            : out   std_ulogic
  
@@ -661,7 +664,7 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       piSHL_156_25Clk                     : in    std_ulogic;
       piSHL_156_25Rst                     : in    std_ulogic;
-      piTOP_156_25Rst_delayed             : in    std_ulogic;  -- [TODO - Get rid of this delayed reset]
+      --OBSOLETE-20190826 piTOP_156_25Rst_delayed             : in    std_ulogic;  -- [TODO - Get rid of this delayed reset]
       
       ------------------------------------------------------
       -- SHELL / Nts / Udp Interface
@@ -820,6 +823,10 @@ architecture structural of topFMKU60 is
       --------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
       --------------------------------------------------------
+      ---- [PHY_RESET] -------------------
+      piSHL_Mmio_Ly7Rst                   : in   std_ulogic;
+      ---- [PHY_ENABLE] ------------------
+      piSHL_Mmio_Ly7En                    : in   std_ulogic;
       ---- [DIAG_CTRL_1] -----------------
       piSHL_Mmio_Mc1_MemTestCtrl          : in    std_ulogic_vector(  1 downto 0);
       ---- [DIAG_STAT_1] -----------------
@@ -903,6 +910,7 @@ begin
       DATAVALID => open             -- Not used in the static mode
     );
    
+   /*** OBSOLETE-20190826 
    -- ========================================================================
    -- == Generation of delayed reset for HLS cores
    -- ==  [TODO: SUPER-UGGLY!!! Get rid of this reset or move it into SHL]
@@ -926,7 +934,8 @@ begin
        end if;
      end if;
    end process;
-
+   ***/
+   
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
   --==   This version of the SHELL has the following user interfaces:
@@ -1024,7 +1033,7 @@ begin
       ------------------------------------------------------
       -- ROLE / Reset and Clock Interfaces
       ------------------------------------------------------
-      piTOP_156_25Rst_delayed           => sTOP_156_25Rst_delayed,
+      -- OBSOLETE-20190826  piTOP_156_25Rst_delayed           => sTOP_156_25Rst_delayed,
       poROL_156_25Clk                   => sSHL_156_25Clk,
       poROL_156_25Rst                   => sSHL_156_25Rst,
 
@@ -1185,6 +1194,10 @@ begin
       ------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       ------------------------------------------------------
+      ---- [PHY_RESET] -----------------
+      poROL_Mmio_Ly7Rst                 => (sSHL_ROL_Mmio_Ly7Rst),
+      ---- [PHY_ENABLE] --------------
+      poROL_Mmio_Ly7En                  => (sSHL_ROL_Mmio_Ly7En),
       ---- [DIAG_CTRL_1] ---------------
       poROL_Mmio_Mc1_MemTestCtrl        => sSHL_ROL_Mmio_Mc1_MemTestCtrl,
       ---- [DIAG_STAT_1] ---------------
@@ -1204,8 +1217,8 @@ begin
       --------------------------------------------------------
       -- ROLE / Fmc / Management Interface 
       --------------------------------------------------------
-      -- NOT_USED_BY_THIS_SHELL poROL_Fmc_Rank                    => sSHL_ROL_Fmc_Rank,
-      -- NOT_USED_BY_THIS_SHELL poROL_Fmc_Size                    => sSHL_ROL_Fmc_Size
+      poROL_Fmc_Rank                    => sSHL_ROL_Fmc_Rank,
+      poROL_Fmc_Size                    => sSHL_ROL_Fmc_Size,
       
       poVoid                            => open
          
@@ -1222,9 +1235,9 @@ begin
       -- SHELL / Global Input Clock and Reset Interface
       ------------------------------------------------------
       piSHL_156_25Clk                   => sSHL_156_25Clk,
-      piSHL_156_25Rst                   => sSHL_156_25Rst,     
-      piTOP_156_25Rst_delayed           => sTOP_156_25Rst_delayed,
-            
+      piSHL_156_25Rst                   => sSHL_156_25Rst,
+      --OBSOLETE-20190826 piTOP_156_25Rst_delayed           => sTOP_156_25Rst_delayed,
+    
       ------------------------------------------------------
       -- SHELL / Nts / Udp Interface
       ------------------------------------------------------
@@ -1380,8 +1393,12 @@ begin
       soSHL_Mem_Mp1_Write_tready        => ssROL_SHL_Mem_Mp1_Write_tready,
       
       ------------------------------------------------------
-      -- SHELL / Mmio / Flash Debug Interface
+      -- SHELL / Mmio / AppFlash Interface
       ------------------------------------------------------
+      ---- [PHY_RESET] -----------------
+      piSHL_Mmio_Ly7Rst                 => sSHL_ROL_Mmio_Ly7Rst,
+      ---- [PHY_ENABLE] ----------------
+      piSHL_Mmio_Ly7En                  => sSHL_ROL_Mmio_Ly7En,
       ---- [DIAG_CTRL_1] ---------------
       piSHL_Mmio_Mc1_MemTestCtrl        => sSHL_ROL_Mmio_Mc1_MemTestCtrl,
       ---- [DIAG_STAT_1] ---------------
