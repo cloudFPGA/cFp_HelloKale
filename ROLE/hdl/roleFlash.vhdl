@@ -838,7 +838,7 @@ begin
           -- From SHELL / Clock and Reset
           ------------------------------------------------------
           aclk                      => piSHL_156_25Clk,
-          aresetn                   => (not piSHL_156_25Rst or not piSHL_Mmio_Ly7Rst),
+          aresetn                   => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
           
           --------------------------------------------------------
           -- From SHELL / Mmio Interfaces
@@ -956,7 +956,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         ap_clk                    => piSHL_156_25Clk,
-        ap_rst_n                  => (not piSHL_156_25Rst or not piSHL_Mmio_Ly7Rst),
+        ap_rst_n                  => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
         
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
@@ -1093,7 +1093,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         aclk                      => piSHL_156_25Clk,
-        aresetn                   => (not piSHL_156_25Rst or not piSHL_Mmio_Ly7Rst),
+        aresetn                   => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
         
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
@@ -1134,7 +1134,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         ap_clk                    => piSHL_156_25Clk,
-        ap_rst_n                  => (not piSHL_156_25Rst or not piSHL_Mmio_Ly7Rst),
+        ap_rst_n                  => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
         
         ------------------------------------------------------
         -- BLock-Level I/O Protocol
@@ -1196,7 +1196,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         aclk                  => piSHL_156_25Clk,
-        aresetn               => (not piSHL_156_25Rst or not piSHL_Mmio_Ly7Rst),
+        aresetn               => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
         
          -------------------- ------------------------------------
          -- From SHELL / Mmio  Interfaces
@@ -1246,7 +1246,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         ap_clk                   => piSHL_156_25Clk,
-        ap_rst_n                 => (not piSHL_156_25Rst or not piSHL_Mmio_Ly7Rst),
+        ap_rst_n                 => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
         
         ------------------------------------------------------
         -- BLock-Level I/O Protocol
@@ -1336,7 +1336,7 @@ begin
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
       ap_clk                     => piSHL_156_25Clk,
-      ap_rst_n                   => (not piSHL_156_25Rst or not piSHL_Mmio_Ly7Rst),
+      ap_rst_n                   => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
       ------------------------------------------------------
       -- BLock-Level I/O Protocol
       ------------------------------------------------------
