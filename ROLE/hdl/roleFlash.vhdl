@@ -116,6 +116,8 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     siSHL_Nts_Tcp_Data_tready           : out   std_ulogic;
     ---- Stream TCP Meta ---------------
     siSHL_Nts_Tcp_Meta_tdata            : in    std_ulogic_vector( 15 downto 0);
+    siSHL_Nts_Tcp_Meta_tkeep            : in    std_ulogic_vector(  1 downto 0);
+    siSHL_Nts_Tcp_Meta_tlast            : in    std_ulogic;
     siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
     siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
     ---- Stream TCP Data Notification --
@@ -264,9 +266,9 @@ end Role_x1Udp_x1Tcp_x2Mp;
 
 architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
 
-  constant cAPP_USE_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cUDP_USE_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cTCP_USE_DEPRECATED_DIRECTIVES  : boolean := false;
+  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
+  constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
+  constant cTCP_RIF_DEPRECATED_DIRECTIVES  : boolean := false;
 
   --============================================================================
   --  SIGNAL DECLARATIONS
@@ -408,7 +410,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
     );
   end component UdpApplicationFlashTodo;
   
-  component TcpApplicationFlash is
+  component TcpApplicationFlashDepre is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
@@ -447,22 +449,16 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soSHL_SessId_tvalid   : out std_logic;
       soSHL_SessId_tready   : in  std_logic
     );
-  end component TcpApplicationFlash;
+  end component TcpApplicationFlashDepre;
  
-  component TcpApplicationFlashTodo is
+  component TcpApplicationFlash is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
       ap_clk                : in  std_logic;
       ap_rst_n              : in  std_logic;
-      ------------------------------------------------------
-      -- BLock-Level I/O Protocol
-      ------------------------------------------------------
-      --ap_start            : in  std_logic;
-      --ap_ready            : out std_logic;
-      --ap_done             : out std_logic;
-      --ap_idle             : out std_logic;
+ 
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
@@ -480,6 +476,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       siSHL_Data_tready     : out std_logic;
       --
       siSHL_SessId_tdata    : in  std_logic_vector( 15 downto 0);
+      siSHL_SessId_tkeep    : in  std_logic_vector(  1 downto 0);
+      siSHL_SessId_tlast    : in  std_logic;
       siSHL_SessId_tvalid   : in  std_logic;
       siSHL_SessId_tready   : out std_logic;
       
@@ -493,10 +491,12 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soSHL_Data_tready     : in  std_logic;
       --
       soSHL_SessId_tdata    : out std_logic_vector( 15 downto 0);
+      soSHL_SessId_tkeep    : out std_logic_vector(  1 downto 0);
+      soSHL_SessId_tlast    : out std_logic;
       soSHL_SessId_tvalid   : out std_logic;
       soSHL_SessId_tready   : in  std_logic
     );
-  end component TcpApplicationFlashTodo; 
+  end component TcpApplicationFlash; 
 
   component TcpRoleInterfaceDepre is
     port (
@@ -639,6 +639,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       siROL_Data_tready         : out std_ulogic;
       ---- Stream TCP Metadata ---------
       siROL_SessId_V_V_tdata    : in  std_ulogic_vector( 15 downto 0);
+      -- [TODO-siROL_SessId_tkeep]
+      -- [TODO-siROL_SessId_tlast]
       siROL_SessId_V_V_tvalid   : in  std_ulogic;
       siROL_SessId_V_v_tready   : out std_ulogic; 
         
@@ -654,6 +656,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soROL_Data_tready         : in  std_ulogic;
       ---- Stream TCP Metadata ---------
       soROL_SessId_V_V_tdata    : out std_ulogic_vector( 15 downto 0);
+      -- [TODO-soROL_SessId_tkeep]
+      -- [TODO-soROL_SessId_tlast]
       soROL_SessId_V_V_tvalid   : out std_ulogic;
       soROL_SessId_V_V_tready   : in  std_ulogic;
          
@@ -828,7 +832,7 @@ begin
   --#                                                                              #
   --################################################################################
   
-  gTcpRoleInterface : if cTCP_USE_DEPRECATED_DIRECTIVES = true
+  gTcpRoleInterface : if cTCP_RIF_DEPRECATED_DIRECTIVES = true
     generate
          
       TRIF : TcpRoleInterfaceDepre
@@ -893,7 +897,7 @@ begin
           siTOE_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
           siTOE_Data_tready         => siSHL_Nts_Tcp_Data_tready,
           ---- Stream TCP Metadata ---------
-          siTOE_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata, 
+          siTOE_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
           siTOE_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
           siTOE_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
           
@@ -975,6 +979,8 @@ begin
         siROL_Data_tready         => ssTAF_TRIF_Data_tready,
         ---- Stream TCP Metadata ---------
         siROL_SessId_V_V_tdata    => ssTAF_TRIF_Meta_tdata,
+        -- [TODO-siROL_SessId_tkeep]
+        -- [TODO-siROL_SessId_tlast]
         siROL_SessId_V_V_tvalid   => ssTAF_TRIF_Meta_tvalid,
         siROL_SessId_V_V_tready   => ssTAF_TRIF_Meta_tready,
           
@@ -990,6 +996,8 @@ begin
         soROL_Data_tready         => ssTRIF_TAF_Data_tready,
         ---- Stream TCP Metadata ---------
         soROL_SessId_V_V_tdata    => ssTRIF_TAF_Meta_tdata,
+        -- [TODO-soROL_SessId_tkeep]
+        -- [TODO-soROL_SessId_tlast]
         soROL_SessId_V_V_tvalid   => ssTRIF_TAF_Meta_tvalid,
         soROL_SessId_V_V_tready   => ssTRIF_TAF_Meta_tready,
            
@@ -1079,7 +1087,7 @@ begin
   --#                                                                              #
   --################################################################################
 
-  gUdpAppFlashDepre : if cUDP_USE_DEPRECATED_DIRECTIVES = true generate
+  gUdpAppFlashDepre : if cUDP_APP_DEPRECATED_DIRECTIVES = true generate
    
     --==========================================================================
     --==  INST: UDP-APPLICATION_FLASH for FMKU60
@@ -1182,14 +1190,14 @@ begin
   --#                                                                              #
   --################################################################################
 
-  gTcpAppFlash : if cAPP_USE_DEPRECATED_DIRECTIVES = true generate
+  gTcpAppFlash : if cTCP_APP_DEPRECATED_DIRECTIVES = true generate
     
     --==========================================================================
     --==  INST: UDP-APPLICATION_FLASH for FMKU60
     --==   This version of the 'tcp_app_flash' has the following interfaces:
     --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
     --==========================================================================
-    TAF : TcpApplicationFlash
+    TAF : TcpApplicationFlashDepre
       port map (
       
         ------------------------------------------------------
@@ -1239,22 +1247,14 @@ begin
     --==   This version of the 'tcp_app_flash' has the following interfaces:
     --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
     --==========================================================================
-    TAF : TcpApplicationFlashTodo
+    TAF : TcpApplicationFlash
       port map (
       
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         ap_clk                   => piSHL_156_25Clk,
-        ap_rst_n                 => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
-        
-        ------------------------------------------------------
-        -- BLock-Level I/O Protocol
-        ------------------------------------------------------
-        --ap_start               => (not piSHL_156_25Rst),
-        --ap_ready               => open,
-        --ap_done                => open,
-        --ap_idle                => open,
+        ap_rst_n                 => not (piSHL_Mmio_Ly7Rst),
         
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
@@ -1273,6 +1273,8 @@ begin
         siSHL_Data_tready        => siSHL_Nts_Tcp_Data_tready,
         --
         siSHL_SessId_tdata       => siSHL_Nts_Tcp_Meta_tdata,
+        siSHL_SessId_tkeep       => (others=>'1'),             -- [TODO-siSHL_Nts_Tcp_Meta_tkeep]
+        siSHL_SessId_tlast       => '1',                       -- [TODO-siSHL_Nts_Tcp_Meta_tlast]
         siSHL_SessId_tvalid      => siSHL_Nts_Tcp_Meta_tvalid,
         siSHL_SessId_tready      => siSHL_Nts_Tcp_Meta_tready,
         
@@ -1286,6 +1288,8 @@ begin
         soSHL_Data_tready        => soSHL_Nts_Tcp_Data_tready,
         --
         soSHL_SessId_tdata       => soSHL_Nts_Tcp_Meta_tdata,
+        soSHL_SessId_tkeep       => open,                      -- [TODO-soSHL_Nts_Tcp_Meta_tkeep]
+        soSHL_SessId_tlast       => open,                      -- [TODO-soSHL_Nts_Tcp_Meta_tlast]
         soSHL_SessId_tvalid      => soSHL_Nts_Tcp_Meta_tvalid,
         soSHL_SessId_tready      => soSHL_Nts_Tcp_Meta_tready
       );
