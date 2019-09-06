@@ -43,6 +43,9 @@ csynth: ## Runs the HLS C synthesis
 cosim: ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
+export: ## Exports the RTL as IP
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
+
 project: ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl	
 
