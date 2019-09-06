@@ -56,10 +56,10 @@ typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
 //typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
 typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
 
-/********************************************
- * TCP Session Id
- ********************************************/
-typedef ap_uint<16> TcpSessId;
+//OBSOLETE-20190906 /********************************************
+//OBSOLETE-20190906  * TCP Session Id
+//OBSOLETE-20190906  ********************************************/
+//OBSOLETE-20190906 typedef ap_uint<16> TcpSessId;
 
 
 /***********************************************
@@ -68,11 +68,11 @@ typedef ap_uint<16> TcpSessId;
  ***********************************************/
 typedef AxiWord     AppData;
 
-/***********************************************
- * Application Metadata
- *  Meta-data transfered between TOE and APP.
- ***********************************************/
-typedef TcpSessId   AppMeta;
+//OBSOLETE-20190906 /***********************************************
+//OBSOLETE-20190906  * Application Metadata
+//OBSOLETE-20190906  *  Meta-data transfered between TOE and APP.
+//OBSOLETE-20190906  ***********************************************/
+//OBSOLETE-20190906 typedef TcpSessId   AppMeta;
 
 /***********************************************
  * Application Listen Request
@@ -99,9 +99,9 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          piSHL_MmioEchoCtrl,
-        ap_uint<1>          piSHL_MmioPostSegEn,
-        //[TODO] ap_uint<1> piSHL_MmioCaptSegEn,
+        ap_uint<2>          *piSHL_MmioEchoCtrl,
+        ap_uint<1>          *piSHL_MmioPostSegEn,
+        //[TODO] ap_uint<1> *piSHL_MmioCaptSegEn,
 
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface

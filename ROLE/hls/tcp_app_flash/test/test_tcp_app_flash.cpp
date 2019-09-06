@@ -17,7 +17,6 @@
 #include "../../role.hpp"
 #include "../../role_utils.hpp"
 #include "../../test_role_utils.hpp"
-
 #include "../src/tcp_app_flash.hpp"
 
 using namespace std;
@@ -69,8 +68,8 @@ bool            gFatalError = false;
 void stepDut() {
     tcp_app_flash(
             //-- SHELL / MMIO / Configuration Interfaces
-            piSHL_MmioEchoCtrl,
-            piSHL_MmioPostSegEn,
+            &piSHL_MmioEchoCtrl,
+            &piSHL_MmioPostSegEn,
             //[TODO] piSHL_MmioCaptSegEn,
             //-- SHELL / TCP Rx Data Interface
             ssSHL_TAF_Data,
@@ -95,8 +94,8 @@ void stepDut() {
  * @return OK if successful,  otherwise KO.
  ******************************************************************************/
 bool setInputDataStreams(
-        stream<AxiWord>    &sDataStream,
-        stream<TcpSessId>  &sMetaStream,
+        stream<AppData>    &sDataStream,
+        stream<AppMeta>    &sMetaStream,
         const string        dataStreamName,
         const string        metaStreamName,
         const string        inpFileName,
@@ -127,7 +126,7 @@ bool setInputDataStreams(
             // Write to sMetaStream
             if (startOfTcpSeg) {
                 if (!sMetaStream.full()) {
-                    sMetaStream.write(tcpSessId);
+                    sMetaStream.write(AppMeta(tcpSessId));
                     startOfTcpSeg = false;
                     nrSegments += 1;
                 }
@@ -247,8 +246,8 @@ int writeTcpWordToFile(AxiWord *tcpWord, ofstream  &outFileStream) {
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
 bool getOutputDataStreams(
-        stream<AxiWord>   &sDataStream,
-        stream<TcpSessId> &sMetaStream,
+        stream<AppData>   &sDataStream,
+        stream<AppMeta>   &sMetaStream,
         EchoCtrl           echoCtrlMode,
         const string       dataStreamName,
         const string       metaStreamName,
@@ -260,7 +259,8 @@ bool getOutputDataStreams(
     ofstream    tcpDataFile;
     string      rawDataFileName = "../../../../test/" + outDataFileName;
     string      tcpDataFileName = "../../../../test/" + outDataFileName + ".tcp";
-    AxiWord     tcpWord;
+    AppData     tcpWord;
+    AppMeta     appMeta;
     TcpSessId   tcpSessId;
     TcpSessId   expectedSessId;
     bool        startOfTcpSeg;
@@ -284,7 +284,8 @@ bool getOutputDataStreams(
         // Read and drain sMetaStream
         if (startOfTcpSeg) {
             if (!sMetaStream.empty()) {
-                sMetaStream.read(tcpSessId);
+                sMetaStream.read(appMeta);
+                tcpSessId = appMeta.tdata;
                 switch(echoCtrlMode) {
                 case ECHO_PATH_THRU:
                 case ECHO_STORE_FWD:
