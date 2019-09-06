@@ -64,6 +64,14 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
+# Set reset behavior to control mode (see UG902)
+#-------------------------------------------------
+config_rtl -reset control
+
+# Disable start propagation FIFOs (see UG902)
+#-------------------------------------------------
+config_rtl -disable_start_propagation
+
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
