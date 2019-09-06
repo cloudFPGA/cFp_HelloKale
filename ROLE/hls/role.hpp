@@ -1,3 +1,28 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : role.hpp
  * @brief      : Generic cFDK ROLE types and definitions.
@@ -6,7 +31,6 @@
  * Component   : Role (ROLE|ROL)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
@@ -341,8 +365,8 @@ typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
  * - .
  * - .
  *************************************************************************/
-
-typedef ap_uint<16> SessionId;
+#define         cSHL_SESSION_ID_WIDTH  16   // [TODO - Move into a CFG file.]
+typedef ap_uint<cSHL_SESSION_ID_WIDTH> SessionId;
 
 
 /***********************************************
@@ -418,6 +442,19 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
+/*
+ * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
+ */
+ template<int D>
+   struct Axis {
+     ap_uint<D>       tdata;
+     ap_uint<(D+7)/8> tkeep;
+     ap_uint<1>       tlast;
+     Axis() {}
+     Axis(ap_uint<D> single_data) :
+          tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
+   };
+
 
 /***********************************************
  * AXI4 STREAMING INTERFACES (alias AXIS)
@@ -439,16 +476,6 @@ class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
 //------------------------------------------------
 typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
 typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
-
-
-//OBSOLETE struct axiWord {
-//OBSOLETE     ap_uint<64>     data;
-//OBSOLETE     ap_uint<8>      keep;
-//OBSOLETE     ap_uint<1>      last;
-//OBSOLETE     axiWord() {}
-//OBSOLETE     axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last) :
-//OBSOLETE             data(data), keep(keep), last(last) {}
-//OBSOLETE };
 
 
 /***********************************************
@@ -1201,15 +1228,9 @@ typedef AxiWord     AppData;
  * Application Metadata
  *  Meta-data transfered between TOE and APP.
  ***********************************************/
-typedef TcpSessId   AppMeta;
+//OBSOLETE-20190906 typedef TcpSessId   AppMeta;
+typedef Axis<cSHL_SESSION_ID_WIDTH>     AppMeta;
 
-//OBSOLETE-20190828 class AppMeta {
-//OBSOLETE-20190828   public:
-//OBSOLETE-20190828     SessionId       tdata;  // TCP Session ID
-//OBSOLETE-20190828   public:
-//OBSOLETE-20190828     AppMeta()       {}
-//OBSOLETE-20190828     AppMeta(SessionId tdata) : tdata(tdata) {}
-//OBSOLETE-20190828 };
 
 /***********************************************
  * Application Open Request
