@@ -70,7 +70,8 @@ config_rtl -reset control
 
 # Disable start propagation FIFOs (see UG902)
 #-------------------------------------------------
-config_rtl -disable_start_propagation
+# [TODO - Check vivado_hls version and only enable this command if >= 2018]
+# config_rtl -disable_start_propagation
 
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
