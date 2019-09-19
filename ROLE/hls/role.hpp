@@ -65,6 +65,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ap_int.h"
 
+using namespace hls;
+
+
 static const uint16_t MAX_SESSIONS = 32;
 
 #define NO_TX_SESSIONS 10 // Number of Tx Sessions to open for testing
@@ -103,8 +106,28 @@ static const int OOO_L_BITS = 13;       // max length in bits of OOO blocks allo
 static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comparison 2^(32-1) of sequence numbers etc.
 
 
+/*************************************************************************
+ * GLOBAL DEFINES and GENERIC TYPES
+ *************************************************************************/
+#define cIP4_ADDR_WIDTH            32
 
-using namespace hls;
+#define cTCP_PORT_WIDTH            16
+
+#define cSHL_TOE_SESS_ID_WIDTH     16   // [TODO - Move into a CFG file.]
+#define cSHL_TOE_LSN_ACK_WIDTH     1    // [TODO - Move into a CFG file.]
+#define cSHL_TOE_LSN_REQ_WIDTH     cSHL_TOE_SESS_ID_WIDTH
+#define cSHL_TOE_OPN_REQ_WIDTH    (cIP4_ADDR_WIDTH + cTCP_PORT_WIDTH)
+
+typedef ap_uint<cSHL_TOE_SESS_ID_WIDTH> SessionId;
+typedef ap_uint<cSHL_TOE_LSN_ACK_WIDTH> LsnAck;
+typedef ap_uint<cSHL_TOE_LSN_REQ_WIDTH> LsnReq;
+typedef ap_uint<cSHL_TOE_OPN_REQ_WIDTH> OpnReq;
+
+
+
+
+
+
 
 #ifndef __SYNTHESIS__
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
@@ -149,7 +172,7 @@ using namespace hls;
 
 #define BROADCASTCHANNELS 2
 
-// SOME QUERY AND COMMAND DEFINITIONS
+// SOME QUERY, LISTEN AND COMMAND DEFINITIONS
 #define QUERY_RD              0
 #define QUERY_WR              1
 #define QUERY_INIT            1
@@ -158,14 +181,18 @@ using namespace hls;
 
 #define CMD_INIT  1
 
+#define LSN_ACK   1
+
+
 /********************************************
  * SINGLE BIT DEFINITIONS
  ********************************************/
-typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
+typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
 typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 
-typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+typedef bool AckBool; // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
 typedef bool ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
 typedef bool RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
@@ -290,9 +317,6 @@ typedef ap_uint<64> LeTcpData;        // TCP Data stream
 
 /*************************************************************************
  * NETWORK LAYER-3 DEFINITIONS
- *************************************************************************
- * Terminology & Conventions
- * - a PACKET (or IpPacket) refers to an IP-PDU (i.e., Header+Data).
  *************************************************************************/
 
 /*********************************************************
@@ -357,7 +381,6 @@ typedef ap_uint<15> TcpStaPort;     // TCP Static  Port [0x0000..0x7FFF]
 typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
 
 
-
 /*************************************************************************
  * GENERIC TYPES and CLASSES USED BY TOE
  *************************************************************************
@@ -365,8 +388,46 @@ typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
  * - .
  * - .
  *************************************************************************/
-#define         cSHL_SESSION_ID_WIDTH  16   // [TODO - Move into a CFG file.]
-typedef ap_uint<cSHL_SESSION_ID_WIDTH> SessionId;
+
+/**********************************************************
+ * GENERIC BASE AXI4 STREAMING INTERFACES (alias AXIS)
+ **********************************************************/
+template<int D>
+   class Axis {
+     public:
+       ap_uint<D>       tdata;
+       ap_uint<(D+7)/8> tkeep;
+       ap_uint<1>       tlast;
+       Axis() {}
+       Axis(ap_uint<D> single_data) :
+           tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
+   };
+
+/************************************************
+ * DERIVED AXI4 STREAMING CLASSES
+ ************************************************/
+
+
+/************************************************
+ * FIXED-SIZE (64) AXI4 STREAMING INTERFACE
+ ************************************************/
+class AxiWord {
+  public:
+    ap_uint<64>     tdata;
+    ap_uint<8>      tkeep;
+    ap_uint<1>      tlast;
+  public:
+    AxiWord()       {}
+    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+};
+
+#define TLAST       1
+
+// Sub-types of the generic AXI4-Stream Interface
+//------------------------------------------------
+typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
+typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
 
 
 /***********************************************
@@ -442,40 +503,11 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
-/*
- * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
- */
- template<int D>
-   struct Axis {
-     ap_uint<D>       tdata;
-     ap_uint<(D+7)/8> tkeep;
-     ap_uint<1>       tlast;
-     Axis() {}
-     Axis(ap_uint<D> single_data) :
-          tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
-   };
 
 
-/***********************************************
- * AXI4 STREAMING INTERFACES (alias AXIS)
- ************************************************/
-class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
-  public:
-    ap_uint<64>     tdata;
-    ap_uint<8>      tkeep;
-    ap_uint<1>      tlast;
-  public:
-    AxiWord()       {}
-    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-};
 
-#define TLAST       1
 
-// Sub-types of the generic AXI4-Stream Interface
-//------------------------------------------------
-typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
-typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
+
 
 
 /***********************************************
@@ -1212,13 +1244,6 @@ struct appReadRequest
 };
 
 /***********************************************
- * Application Write Status
- *  The status returned by TOE after a write
- *  data transfer.
- ***********************************************/
-typedef ap_int<17>  AppWrSts;
-
-/***********************************************
  * Application Data
  *  Data transfered between TOE and APP.
  ***********************************************/
@@ -1228,16 +1253,44 @@ typedef AxiWord     AppData;
  * Application Metadata
  *  Meta-data transfered between TOE and APP.
  ***********************************************/
+typedef Axis<cSHL_TOE_SESS_ID_WIDTH>    AppMeta;
 //OBSOLETE-20190906 typedef TcpSessId   AppMeta;
-typedef Axis<cSHL_SESSION_ID_WIDTH>     AppMeta;
 
+/***********************************************
+ * Application Write Status
+ *  The status returned by TOE after a write
+ *  data transfer.
+ ***********************************************/
+class AppWrSts
+{
+  public:
+    TcpSegLen    segLen;  // The #bytes written or an error code if status==0
+    StsBit       status;  // OK=1
+};
+//OBSOLETE_20190919 typedef ap_int<17>  AppWrSts;
 
 /***********************************************
  * Application Open Request
  *  The socket address that the application
  *  wants to open.
+ *    [FIXME - Must switch to NETWORK ORDER]
+ *  [FYI] The 1st element appearing in the class
+ *   is aligned on the LSB of the Axis vector.
  ***********************************************/
-typedef LeSockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
+typedef LeSockAddr AppOpnReq;
+
+//OBSOLETE_20190918 class AppOpnReq : public LeSockAddr {
+//OBSOLETE_20190918   public :
+//OBSOLETE_20190918     AppOpnReq() {}
+//OBSOLETE_20190918 };
+
+//OBSOLETE_20190918 typedef Axis<cSHL_TOE_OPN_REQ_WIDTH>   AppOpnReq;
+//OBSOLETE_20190918 class AppOpnReq : public Axis<48>, public LeSockAddr {
+//OBSOLETE_20190918   public:
+//OBSOLETE_20190918     AppOpnReq() {}
+//OBSOLETE_20190918     AppOpnReq(LeSockAddr leSockAddr) :
+//OBSOLETE_20190918         Axis((leSockAddr.port, leSockAddr.addr)) {}
+//OBSOLETE_20190918 };
 
 /***********************************************
  * Application Open Status [TODO - Rename to Reply]
@@ -1251,24 +1304,24 @@ typedef OpenStatus  AppOpnSts;
  *  The TCP port that the application is willing
  *  to open for listening.
  ***********************************************/
-typedef TcpPort     AppLsnReq;
+typedef Axis<cSHL_TOE_LSN_REQ_WIDTH>    AppLsnReq;
+//OBSOLETE_20190918 typedef TcpPort     AppLsnReq;
 
 /***********************************************
  * Application Listen Acknowledgment
  *  Acknowledge bit returned by TOE after a
  *  TCP listening port request.
  ***********************************************/
-typedef AckBit      AppLsnAck;
+typedef Axis<cSHL_TOE_LSN_ACK_WIDTH>    AppLsnAck;
+//OBSOLETE_20190918 typedef AckBit      AppLsnAck;
 
 /***********************************************
  * Application Close Request
  *  The socket address that the application
  *  wants to open.
  ***********************************************/
-typedef SessionId   AppClsReq;
-
-
-
+typedef Axis<cSHL_TOE_SESS_ID_WIDTH>    AppClsReq;
+//OBSOLETE_20190919 typedef SessionId   AppClsReq;
 
 
 template<typename T> void pStreamMux(

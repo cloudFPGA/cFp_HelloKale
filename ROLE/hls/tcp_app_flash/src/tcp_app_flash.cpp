@@ -54,7 +54,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  new PRAGMAs do not always work for us.
  ************************************************/
 #undef USE_DEPRECATED_DIRECTIVES
-//OBSOLETE-20190905 #define USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES

@@ -43,11 +43,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tcp_role_if.hpp"
 
-//#include "../../role.hpp"
 #include "../../role_utils.hpp"
 #include "../../test_role_utils.hpp"
 
-#include <stdint.h>
+//OBSOLETE #include <stdint.h>
 
 using namespace hls;
 using namespace std;
@@ -67,6 +66,7 @@ using namespace std;
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
 #endif
+
 
 #define THIS_NAME "TRIF"
 
@@ -94,6 +94,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 #define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
 
+
 /*****************************************************************************
  * @brief Client connection to remote HOST or FPGA socket (COn).
  *
@@ -118,8 +119,9 @@ void pConnect(
 
     const char *myName  = concat3(THIS_NAME, "/", "COn");
 
-    static AppOpnReq     leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
-    static AppOpnSts     newConn;         // [FIXME - Change to default Big-Endian]
+    static LeSockAddr    leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+                                          // [FIXME - Change to default Big-Endian]
+    static AppOpnSts     newConn;
     static ap_uint< 12>  watchDogTimer;
 
     static enum OpnFsmStates{ OPN_IDLE, OPN_REQ, OPN_REP, OPN_DONE } opnFsmState=OPN_IDLE;
@@ -128,8 +130,6 @@ void pConnect(
     switch (opnFsmState) {
 
     case OPN_IDLE:
-        //OBSOLETE-20190827 if (startupDelay > 0) {
-        //OBSOLETE-20190827     startupDelay--;
         if (*piSHL_Enable != 1) {
             if (!siTOE_OpnRep.empty()) {
                 // Drain any potential status data
@@ -228,19 +228,12 @@ void pListen(
 
     static ap_uint<8>  watchDogTimer;
 
-    //OBSOLETE_20190827 // Set a startup delay long enough to account for the initialization
-    //OBSOLETE_20190827     // of TOE's listen port table which takes 32,768 cycles after reset.
-    //OBSOLETE_20190827     static ap_uint<16>         startupDelay = 0x8000;
-    //OBSOLETE_20190827     #pragma HLS reset variable=startupDelay
-
     static enum LsnFsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE } lsnFsmState=LSN_IDLE;
     #pragma HLS reset                                                  variable=lsnFsmState
 
     switch (lsnFsmState) {
 
     case LSN_IDLE:
-        //OBSOLETE_20190827 if (startupDelay > 0)
-        //OBSOLETE_20190827     startupDelay--;
         if (*piSHL_Enable != 1)
             return;
         else
@@ -249,7 +242,7 @@ void pListen(
 
     case LSN_SEND_REQ:
         if (!soTOE_LsnReq.full()) {
-            AppLsnReq    tcpListenPort = DEFAULT_FPGA_LSN_PORT;
+            TcpPort  tcpListenPort = DEFAULT_FPGA_LSN_PORT;
             soTOE_LsnReq.write(tcpListenPort);
             if (DEBUG_LEVEL & TRACE_LSN) {
                 printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
@@ -270,9 +263,9 @@ void pListen(
     case LSN_WAIT_ACK:
         watchDogTimer--;
         if (!siTOE_LsnAck.empty()) {
-            bool    listenDone;
+            AppLsnAck  listenDone;
             siTOE_LsnAck.read(listenDone);
-            if (listenDone) {
+            if (listenDone.tdata) {
                 printInfo(myName, "Received listen acknowledgment from [TOE].\n");
                 lsnFsmState = LSN_DONE;
             }
@@ -432,7 +425,7 @@ void pWritePath(
             soTOE_SessId.write(tcpSessId);
             if (DEBUG_LEVEL & TRACE_WRP) {
                 printInfo(myName, "Received new session ID #%d from [ROLE].\n",
-                          tcpSessId.to_uint());
+                          tcpSessId.tdata.to_uint());
             }
             wrpFsmState = WRP_STREAM;
         }
@@ -570,32 +563,32 @@ void tcp_role_if(
 
     #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
-    #pragma HLS INTERFACE axis off           port=siROL_Data     name=siROL_Data
-    #pragma HLS INTERFACE axis off           port=siROL_SessId   name=siROL_SessId
+    #pragma HLS INTERFACE axis register both port=siROL_Data     name=siROL_Data
+    #pragma HLS INTERFACE axis register both port=siROL_SessId   name=siROL_SessId
 
-    #pragma HLS INTERFACE axis off           port=soROL_Data     name=soROL_Data
-    #pragma HLS INTERFACE axis off           port=soROL_SessId   name=soROL_SessId
+    #pragma HLS INTERFACE axis register both port=soROL_Data     name=soROL_Data
+    #pragma HLS INTERFACE axis register both port=soROL_SessId   name=soROL_SessId
 
-    #pragma HLS INTERFACE axis off           port=siTOE_Notif    name=siTOE_Notif
+    #pragma HLS INTERFACE axis register both port=siTOE_Notif    name=siTOE_Notif
     #pragma HLS DATA_PACK                variable=siTOE_Notif
-    #pragma HLS INTERFACE axis off           port=soTOE_DReq     name=soTOE_DReq
+    #pragma HLS INTERFACE axis register both port=soTOE_DReq     name=soTOE_DReq
     #pragma HLS DATA_PACK                variable=soTOE_DReq
-    #pragma HLS INTERFACE axis off           port=siTOE_Data     name=siTOE_Data
-    #pragma HLS INTERFACE axis off           port=siTOE_SessId   name=siTOE_SessId
+    #pragma HLS INTERFACE axis register both port=siTOE_Data     name=siTOE_Data
+    #pragma HLS INTERFACE axis register both port=siTOE_SessId   name=siTOE_SessId
 
-    #pragma HLS INTERFACE axis off           port=soTOE_LsnReq   name=soTOE_LsnReq
-    #pragma HLS INTERFACE axis off           port=siTOE_LsnAck   name=siTOE_LsnAck
+    #pragma HLS INTERFACE axis register both port=soTOE_LsnReq   name=soTOE_LsnReq
+    #pragma HLS INTERFACE axis register both port=siTOE_LsnAck   name=siTOE_LsnAck
 
-    #pragma HLS INTERFACE axis off           port=soTOE_Data     name=soTOE_Data
-    #pragma HLS INTERFACE axis off           port=soTOE_SessId   name=soTOE_SessId
-    #pragma HLS INTERFACE axis off           port=siTOE_DSts     name=siTOE_DSts
+    #pragma HLS INTERFACE axis register both port=soTOE_Data     name=soTOE_Data
+    #pragma HLS INTERFACE axis register both port=soTOE_SessId   name=soTOE_SessId
+    #pragma HLS INTERFACE axis register both port=siTOE_DSts     name=siTOE_DSts
 
-    #pragma HLS INTERFACE axis off           port=soTOE_OpnReq   name=soTOE_OpnReq
+    #pragma HLS INTERFACE axis register both port=soTOE_OpnReq   name=soTOE_OpnReq
     #pragma HLS DATA_PACK                variable=soTOE_OpnReq
-    #pragma HLS INTERFACE axis off           port=siTOE_OpnRep   name=siTOE_OpnRep
+    #pragma HLS INTERFACE axis register both port=siTOE_OpnRep   name=siTOE_OpnRep
     #pragma HLS DATA_PACK                variable=siTOE_OpnRep
 
-    #pragma HLS INTERFACE axis off           port=soTOE_ClsReq   name=soTOE_ClsReq
+    #pragma HLS INTERFACE axis register both port=soTOE_ClsReq   name=soTOE_ClsReq
 
   #endif
 

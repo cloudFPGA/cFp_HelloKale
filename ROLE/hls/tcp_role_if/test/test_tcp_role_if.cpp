@@ -237,14 +237,14 @@ void pTOE(
         if (!siTRIF_LsnReq.empty()) {
             siTRIF_LsnReq.read(appLsnPortReq);
             printInfo(myLsnName, "Received a listen port request #%d from [TRIF].\n",
-                      appLsnPortReq.to_int());
+                      appLsnPortReq.tdata.to_int());
             lsnState = LSN_SEND_ACK;
         }
         break;
     case LSN_SEND_ACK: // SEND ACK BACK TO [TRIF]
         if (!soTRIF_LsnAck.full()) {
-            soTRIF_LsnAck.write(true);
-            fpgaLsnPort = appLsnPortReq.to_int();
+            soTRIF_LsnAck.write(AppLsnAck(LSN_ACK));
+            fpgaLsnPort = appLsnPortReq.tdata.to_int();
             lsnState = LSN_WAIT_REQ;
         }
         else {
@@ -256,16 +256,17 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #2 - OPEN CONNECTION
     //------------------------------------------------------
-    AppOpnReq   leHostSockAddr(byteSwap32(DEFAULT_HOST_IP4_ADDR),
-                               byteSwap16(DEFAULT_HOST_LSN_PORT));
+    //OBSOLETE-20190919 LeSockAddr leHostSockAddr(byteSwap32(DEFAULT_HOST_IP4_ADDR),
+    //OBSOLETE-20190919                           byteSwap16(DEFAULT_HOST_LSN_PORT));
+    AppOpnReq  opnReq;
 
     OpenStatus  opnReply(DEFAULT_SESSION_ID, SESS_IS_OPENED);
     switch(opnState) {
     case OPN_WAIT_REQ:
         if (!siTRIF_OpnReq.empty()) {
-            siTRIF_OpnReq.read(leHostSockAddr);
+            siTRIF_OpnReq.read(opnReq);
             printInfo(myOpnName, "Received a request to open the following remote socket address:\n");
-            printSockAddr(myOpnName, leHostSockAddr);
+            printSockAddr(myOpnName, LeSockAddr(opnReq.addr, opnReq.port));
             opnState = OPN_SEND_REP;
         }
         break;
@@ -284,7 +285,7 @@ void pTOE(
     //-- FSM #3 - RX DATA PATH
     //------------------------------------------------------
     static AppRdReq    appRdReq;
-    static AppMeta     sessionId;
+    static SessionId   sessionId;
     static int         byteCnt = 0;
     static int         segCnt  = 0;
     const  int         nrSegToSend = 3;
@@ -368,7 +369,7 @@ void pTOE(
                 siTRIF_SessId.read(sessId);
                 siTRIF_Data.read(appData);
                 if (DEBUG_LEVEL & TRACE_TOE) {
-                    printInfo(myTxpName, "Receiving data for session #%d\n", sessId.to_int());
+                    printInfo(myTxpName, "Receiving data for session #%d\n", sessId.tdata.to_int());
                     printAxiWord(myTxpName, appData);
                 }
                 if (!appData.tlast)

@@ -17,6 +17,7 @@ tags
 #--------
 *.log
 *.jou
+*.wcfg
 *_prj/
 *.Xil/
 vivado*.str
