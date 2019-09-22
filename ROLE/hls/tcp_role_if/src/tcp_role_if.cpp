@@ -46,8 +46,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../role_utils.hpp"
 #include "../../test_role_utils.hpp"
 
-//OBSOLETE #include <stdint.h>
-
 using namespace hls;
 using namespace std;
 
@@ -57,7 +55,7 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not work for us.
  ************************************************/
-#undef USE_DEPRECATED_DIRECTIVES
+#define USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -551,6 +549,7 @@ void tcp_role_if(
     #pragma HLS resource core=AXI4Stream variable=soTOE_Data   metadata="-bus_bundle soTOE_Data"
     #pragma HLS resource core=AXI4Stream variable=soTOE_SessId metadata="-bus_bundle soTOE_SessId"
     #pragma HLS resource core=AXI4Stream variable=siTOE_DSts   metadata="-bus_bundle siTOE_DSts"
+    #pragma HLS DATA_PACK                variable=siTOE_DSts
 
     #pragma HLS resource core=AXI4Stream variable=soTOE_OpnReq metadata="-bus_bundle soTOE_OpnReq"
     #pragma HLS DATA_PACK                variable=soTOE_OpnReq
@@ -582,6 +581,7 @@ void tcp_role_if(
     #pragma HLS INTERFACE axis register both port=soTOE_Data     name=soTOE_Data
     #pragma HLS INTERFACE axis register both port=soTOE_SessId   name=soTOE_SessId
     #pragma HLS INTERFACE axis register both port=siTOE_DSts     name=siTOE_DSts
+    #pragma HLS DATA_PACK                variable=siTOE_DSts
 
     #pragma HLS INTERFACE axis register both port=soTOE_OpnReq   name=soTOE_OpnReq
     #pragma HLS DATA_PACK                variable=soTOE_OpnReq
