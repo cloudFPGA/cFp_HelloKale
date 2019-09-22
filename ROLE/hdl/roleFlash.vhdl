@@ -266,9 +266,9 @@ end Role_x1Udp_x1Tcp_x2Mp;
 
 architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
 
-  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
+  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cTCP_RIF_DEPRECATED_DIRECTIVES  : boolean := false;
+  constant cTCP_RIF_DEPRECATED_DIRECTIVES  : boolean := true;
 
   --============================================================================
   --  SIGNAL DECLARATIONS
@@ -338,7 +338,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
  
   --===========================================================================
   --== COMPONENT DECLARATIONS
-  --=========================================================================== 
+  --===========================================================================
   component UdpApplicationFlash is
     port (
       ------------------------------------------------------
@@ -370,7 +370,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soTHIS_Shl_Data_tready    : in  std_logic
     );
   end component UdpApplicationFlash;
-
+  
   component UdpApplicationFlashTodo is
     port (
       ------------------------------------------------------
@@ -410,7 +410,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
     );
   end component UdpApplicationFlashTodo;
   
-  component TcpApplicationFlashDepre is
+  component TcpApplicationFlash is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
@@ -449,9 +449,9 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soSHL_SessId_tvalid   : out std_logic;
       soSHL_SessId_tready   : in  std_logic
     );
-  end component TcpApplicationFlashDepre;
- 
-  component TcpApplicationFlash is
+  end component TcpApplicationFlash;
+  
+  component TcpApplicationFlashTodo is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
@@ -496,9 +496,9 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soSHL_SessId_tvalid   : out std_logic;
       soSHL_SessId_tready   : in  std_logic
     );
-  end component TcpApplicationFlash; 
-
-  component TcpRoleInterfaceDepre is
+  end component TcpApplicationFlashTodo;
+ 
+  component TcpRoleInterface is
     port (
       ------------------------------------------------------
       -- SHELL / Clock and Reset
@@ -612,9 +612,9 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soTOE_ClsReq_tready       : in  std_ulogic
      
     );
-  end component TcpRoleInterfaceDepre;
-  
-  component TcpRoleInterface is
+  end component TcpRoleInterface;
+ 
+  component TcpRoleInterfaceTodo is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
@@ -742,7 +742,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soTOE_ClsReq_tready       : in  std_ulogic
      
     );
-  end component TcpRoleInterface;
+  end component TcpRoleInterfaceTodo;
   
   component MemTestFlash is
     port (
@@ -845,14 +845,14 @@ begin
   gTcpRoleInterface : if cTCP_RIF_DEPRECATED_DIRECTIVES = true
     generate
          
-      TRIF : TcpRoleInterfaceDepre
+      TRIF : TcpRoleInterface
     
         port map (
           ------------------------------------------------------
           -- From SHELL / Clock and Reset
           ------------------------------------------------------
           aclk                      => piSHL_156_25Clk,
-          aresetn                   => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
+          aresetn                   => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
           
           --------------------------------------------------------
           -- From SHELL / Mmio Interfaces
@@ -959,18 +959,18 @@ begin
           soTOE_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
           soTOE_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready
     
-        ); -- End of: TcpRoleInterfaceDepre
+        ); -- End of: TcpRoleInterface
 
   else generate
     
-    TRIF : TcpRoleInterface
+    TRIF : TcpRoleInterfaceTodo
 
       port map (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         ap_clk                    => piSHL_156_25Clk,
-        ap_rst_n                  => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
+        ap_rst_n                  => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
         
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
@@ -1121,7 +1121,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         aclk                      => piSHL_156_25Clk,
-        aresetn                   => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
+        aresetn                   => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
         
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
@@ -1162,7 +1162,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         ap_clk                    => piSHL_156_25Clk,
-        ap_rst_n                  => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
+        ap_rst_n                  => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
         
         ------------------------------------------------------
         -- BLock-Level I/O Protocol
@@ -1217,14 +1217,14 @@ begin
     --==   This version of the 'tcp_app_flash' has the following interfaces:
     --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
     --==========================================================================
-    TAF : TcpApplicationFlashDepre
+    TAF : TcpApplicationFlash
       port map (
       
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         aclk                  => piSHL_156_25Clk,
-        aresetn               => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
+        aresetn               => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
         
          -------------------- ------------------------------------
          -- From SHELL / Mmio  Interfaces
@@ -1267,7 +1267,7 @@ begin
     --==   This version of the 'tcp_app_flash' has the following interfaces:
     --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
     --==========================================================================
-    TAF : TcpApplicationFlash
+    TAF : TcpApplicationFlashTodo
       port map (
       
         ------------------------------------------------------
@@ -1360,7 +1360,7 @@ begin
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
       ap_clk                     => piSHL_156_25Clk,
-      ap_rst_n                   => not (piSHL_156_25Rst or piSHL_Mmio_Ly7Rst),
+      ap_rst_n                   => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
       ------------------------------------------------------
       -- BLock-Level I/O Protocol
       ------------------------------------------------------
