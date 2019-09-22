@@ -111,7 +111,7 @@ if { $hlsCoSim } {
 #    Specifies the version string for the generated IP catalog.
 #---------------------------------------------------------------------------------------------------
 if { $hlsRtl } {
-    export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
 }
 
 # Exit Vivado HLS
