@@ -523,6 +523,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       siROL_Data_tready         : out std_ulogic;
       ---- Stream TCP Metadata ---------
       siROL_SessId_tdata        : in  std_ulogic_vector( 15 downto 0);
+      siROL_SessId_tkeep        : in  std_ulogic_vector(  1 downto 0);
+      siROL_SessId_tlast        : in  std_ulogic;
       siROL_SessId_tvalid       : in  std_ulogic;
       siROL_SessId_tready       : out std_ulogic; 
         
@@ -538,6 +540,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soROL_Data_tready         : in  std_ulogic;
       ---- Stream TCP Metadata ---------
       soROL_SessId_tdata        : out std_ulogic_vector( 15 downto 0);
+      soROL_SessId_tkeep        : out std_ulogic_vector(  1 downto 0);
+      soROL_SessId_tlast        : out std_ulogic;
       soROL_SessId_tvalid       : out std_ulogic;
       soROL_SessId_tready       : in  std_ulogic;
          
@@ -560,6 +564,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       siTOE_Data_tready         : out std_ulogic;
       ---- Stream TCP Metadata -------
       siTOE_SessId_tdata        : in  std_ulogic_vector( 15 downto 0);
+      siTOE_SessId_tkeep        : in  std_ulogic_vector(  1 downto 0);
+      siTOE_SessId_tlast        : in  std_ulogic;
       siTOE_SessId_tvalid       : in  std_ulogic;
       siTOE_SessId_tready       : out std_ulogic;       
       
@@ -568,11 +574,15 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       ------------------------------------------------------
       -- FPGA Receive Path (SHELL-->ROLE) -------
       ---- Stream TCP Listen Request -
-      soTOE_LsnReq_tdata        : out std_ulogic_vector( 15 downto 0);   
+      soTOE_LsnReq_tdata        : out std_ulogic_vector( 15 downto 0);
+      soTOE_LsnReq_tkeep        : out std_ulogic_vector(  1 downto 0);
+      soTOE_LsnReq_tlast        : out std_ulogic;
       soTOE_LsnReq_tvalid       : out std_ulogic;
       soTOE_LsnReq_tready       : in  std_ulogic;
       ---- Stream TCP Listen Status --
       siTOE_LsnAck_tdata        : in  std_ulogic_vector(  7 downto 0);
+      siTOE_LsnAck_tkeep        : in  std_ulogic;
+      siTOE_LsnAck_tlast        : in  std_ulogic;
       siTOE_LsnAck_tvalid       : in  std_ulogic;
       siTOE_LsnAck_tready       : out std_ulogic;
      
@@ -587,6 +597,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soTOE_Data_tready         : in  std_ulogic;
       ---- Stream TCP Metadata -------
       soTOE_SessId_tdata        : out std_ulogic_vector( 15 downto 0);
+      soTOE_SessId_tkeep        : out std_ulogic_vector(  1 downto 0);
+      soTOE_SessId_tlast        : out std_ulogic;
       soTOE_SessId_tvalid       : out std_ulogic;
       soTOE_SessId_tready       : in  std_ulogic;
       ---- Stream TCP Data Status ----
@@ -608,6 +620,8 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       siTOE_OpnRep_tready       : out std_ulogic;
       ---- Stream TCP Close Request --
       soTOE_ClsReq_tdata        : out std_ulogic_vector( 15 downto 0);
+      soTOE_ClsReq_tkeep        : out std_ulogic_vector(  1 downto 0);
+      soTOE_ClsReq_tlast        : out std_ulogic;
       soTOE_ClsReq_tvalid       : out std_ulogic;
       soTOE_ClsReq_tready       : in  std_ulogic
      
@@ -871,6 +885,8 @@ begin
           siROL_Data_tready         => ssTAF_TRIF_Data_tready,
           ---- Stream TCP Metadata ---------
           siROL_SessId_tdata        => ssTAF_TRIF_Meta_tdata,
+          siROL_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
+          siROL_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
           siROL_SessId_tvalid       => ssTAF_TRIF_Meta_tvalid,
           siROL_SessId_tready       => ssTAF_TRIF_Meta_tready,
             
@@ -886,6 +902,8 @@ begin
           soROL_Data_tready         => ssTRIF_TAF_Data_tready,
           ---- Stream TCP Metadata ---------
           soROL_SessId_tdata        => ssTRIF_TAF_Meta_tdata,
+          soROL_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soROL_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
           soROL_SessId_tvalid       => ssTRIF_TAF_Meta_tvalid,
           soROL_SessId_tready       => ssTRIF_TAF_Meta_tready,
              
@@ -908,6 +926,8 @@ begin
           siTOE_Data_tready         => siSHL_Nts_Tcp_Data_tready,
           ---- Stream TCP Metadata ---------
           siTOE_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
+          siTOE_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
+          siTOE_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
           siTOE_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
           siTOE_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
           
@@ -916,11 +936,15 @@ begin
           ------------------------------------------------------
           -- FPGA Receive Path (SHELL-->ROLE) ------- :
           ---- Stream TCP Listen Request -----
-          soTOE_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata, 
+          soTOE_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
+          soTOE_LsnReq_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soTOE_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
           soTOE_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
           soTOE_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
           ---- Stream TCP Listen -------------
-          siTOE_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata, 
+          siTOE_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata,
+          siTOE_LsnAck_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
+          siTOE_LsnAck_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
           siTOE_LsnAck_tvalid       => siSHL_Nts_Tcp_LsnAck_tvalid, 
           siTOE_LsnAck_tready       => siSHL_Nts_Tcp_LsnAck_tready, 
            
@@ -935,6 +959,8 @@ begin
           soTOE_Data_tready         => soSHL_Nts_Tcp_Data_tready,
           ---- Stream TCP Metadata ---------
           soTOE_SessId_tdata        => soSHL_Nts_Tcp_Meta_tdata,
+          soTOE_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soTOE_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
           soTOE_SessId_tvalid       => soSHL_Nts_Tcp_Meta_tvalid,
           soTOE_SessId_tready       => soSHL_Nts_Tcp_Meta_tready,
           ---- Stream TCP Data Status ------
@@ -956,6 +982,8 @@ begin
           siTOE_OpnRep_tready       => siSHL_Nts_Tcp_OpnRep_tready,
           ---- Stream TCP Close Request ------
           soTOE_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
+          soTOE_ClsReq_tkeep        => open,        -- [TODO: Until SHELL I/F is compliant] 
+          soTOE_ClsReq_tlast        => open,        -- [TODO: Until SHELL I/F is compliant]     
           soTOE_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
           soTOE_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready
     
