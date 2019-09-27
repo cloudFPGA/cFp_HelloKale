@@ -93,37 +93,42 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
 
 
-/*****************************************************************************
+/******************************************************************************
  * @brief Client connection to remote HOST or FPGA socket (COn).
  *
  * @param[in]  piSHL_Enable,  enable signal from [SHELL].
  * @param[out] soTOE_OpnReq,  open connection request to [TOE].
  * @param[in]  siTOE_OpnRep,  open connection reply from [TOE].
  * @param[out] soTOE_ClsReq,  close connection request to [TOE].
+ * @param[out] poROL_SConId,  session connect Id to [ROL].
  *
  * @details
  *  For testing purposes, this connect process opens a single connection to a
  *   'hard-code' remote HOST IP address (10.12.200.50) and port 8803.
- *
+ *  The session ID of this single connection is provided to the TCP Application
+ *  Flash process (TAF) of the ROLE over the 'poROL_SConId' port.
  ******************************************************************************/
 void pConnect(
-        ap_uint<1>          *piSHL_Enable,
-        stream<AppOpnReq>   &soTOE_OpnReq,
-        stream<AppOpnSts>   &siTOE_OpnRep,
-        stream<AppClsReq>   &soTOE_ClsReq)
+        CmdBit                *piSHL_Enable,
+        stream<AppOpnReq>     &soTOE_OpnReq,
+        stream<AppOpnSts>     &siTOE_OpnRep,
+        stream<AppClsReqAxis> &soTOE_ClsReq,
+        SessionId             *poROL_SConId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "COn");
 
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum OpnFsmStates{ OPN_IDLE, OPN_REQ, OPN_REP, OPN_DONE } opnFsmState=OPN_IDLE;
+    #pragma HLS reset                                       variable=opnFsmState
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static LeSockAddr    leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
                                           // [FIXME - Change to default Big-Endian]
     static AppOpnSts     newConn;
     static ap_uint< 12>  watchDogTimer;
-
-    static enum OpnFsmStates{ OPN_IDLE, OPN_REQ, OPN_REP, OPN_DONE } opnFsmState=OPN_IDLE;
-    #pragma HLS reset                                       variable=opnFsmState
 
     switch (opnFsmState) {
 
@@ -169,7 +174,9 @@ void pConnect(
                 if (DEBUG_LEVEL & TRACE_CON) {
                     printInfo(myName, "Client successfully connected to remote socket:\n");
                     printSockAddr(myName, leHostSockAddr);
+                    printInfo(myName, "The Session ID of this connection is: %d\n", newConn.sessionID.to_int());
                 }
+                *poROL_SConId = newConn.sessionID;
                 opnFsmState = OPN_DONE;
             }
             else {
@@ -215,19 +222,21 @@ void pConnect(
  * 
  ******************************************************************************/
 void pListen(
-        ap_uint<1>          *piSHL_Enable,
-        stream<AppLsnReq>   &soTOE_LsnReq,
-        stream<AppLsnAck>   &siTOE_LsnAck)
+        ap_uint<1>            *piSHL_Enable,
+        stream<AppLsnReqAxis> &soTOE_LsnReq,
+        stream<AppLsnAckAxis> &siTOE_LsnAck)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char    *myName      = concat3(THIS_NAME, "/", "LSn");
 
-    static ap_uint<8>  watchDogTimer;
-
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum LsnFsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE } lsnFsmState=LSN_IDLE;
     #pragma HLS reset                                                  variable=lsnFsmState
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static ap_uint<8>  watchDogTimer;
 
     switch (lsnFsmState) {
 
@@ -261,7 +270,7 @@ void pListen(
     case LSN_WAIT_ACK:
         watchDogTimer--;
         if (!siTOE_LsnAck.empty()) {
-            AppLsnAck  listenDone;
+            AppLsnAckAxis  listenDone;
             siTOE_LsnAck.read(listenDone);
             if (listenDone.tdata) {
                 printInfo(myName, "Received listen acknowledgment from [TOE].\n");
@@ -311,7 +320,7 @@ void pReadRequestHandler(
     static enum                RrhFsmStates { RRH_WAIT_NOTIF, RRH_SEND_DREQ } rrhFsmState=RRH_WAIT_NOTIF;
     #pragma HLS reset variable=rrhFsmState
 
-    //-- OTHER LOCAL VARIABLES ------------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static   AppNotif notif;
 
     switch(rrhFsmState) {
@@ -346,20 +355,22 @@ void pReadRequestHandler(
  *****************************************************************************/
 void pReadPath(
         stream<AppData>     &siTOE_Data,
-        stream<AppMeta>     &siTOE_SessId,
+        stream<AppMetaAxis> &siTOE_SessId,
         stream<AppData>     &soROL_Data,
-        stream<AppMeta>     &soROL_SessId)
+        stream<AppMetaAxis> &soROL_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
-    AppData    currWord;
-    AppMeta    sessId;
-
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum RdpFsmStates { RDP_WAIT_META=0, RDP_STREAM } rdpFsmState = RDP_WAIT_META;
     #pragma HLS reset variable=rdpFsmState
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    AppData     currWord;
+    AppMetaAxis sessId;
 
     switch (rdpFsmState ) {
     case RDP_WAIT_META:
@@ -397,9 +408,9 @@ void pReadPath(
  ******************************************************************************/
 void pWritePath(
         stream<AppData>      &siROL_Data,
-        stream<AppMeta>      &siROL_SessId,
+        stream<AppMetaAxis>  &siROL_SessId,
         stream<AppData>      &soTOE_Data,
-        stream<AppMeta>      &soTOE_SessId,
+        stream<AppMetaAxis>  &soTOE_SessId,
         stream<AppWrSts>     &siTOE_DSts)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -407,13 +418,14 @@ void pWritePath(
 
     const char *myName  = concat3(THIS_NAME, "/", "WRp");
 
-    AppMeta   tcpSessId;
-    AxiWord   currWordIn;
-    AxiWord   currWordOut;
-
-    //-- FSM ----------------
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum WrpFsmStates { WRP_WAIT_META=0, WRP_STREAM } wrpFsmState = WRP_WAIT_META;
     #pragma HLS reset variable=wrpFsmState
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    AppMetaAxis   tcpSessId;
+    AxiWord       currWordIn;
+    AxiWord       currWordOut;
 
     switch (wrpFsmState) {
     case WRP_WAIT_META:
@@ -477,51 +489,56 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- SHELL / Mmio Interface
         //------------------------------------------------------
-        ap_uint<1>          *piSHL_Mmio_En,
+        CmdBit                *piSHL_Mmio_En,
 
         //------------------------------------------------------
         //-- ROLE / TxP Data Interface
         //------------------------------------------------------
-        stream<AppData>     &siROL_Data,
-        stream<AppMeta>     &siROL_SessId,
+        stream<AppData>       &siROL_Data,
+        stream<AppMetaAxis>   &siROL_SessId,
 
         //------------------------------------------------------
         //-- ROLE / RxP Data Interface
         //------------------------------------------------------
-        stream<AppData>     &soROL_Data,
-        stream<AppMeta>     &soROL_SessId,
+        stream<AppData>       &soROL_Data,
+        stream<AppMetaAxis>   &soROL_SessId,
 
         //------------------------------------------------------
         //-- TOE / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppNotif>    &siTOE_Notif,
-        stream<AppRdReq>    &soTOE_DReq,
-        stream<AppData>     &siTOE_Data,
-        stream<AppMeta>     &siTOE_SessId,
+        stream<AppNotif>      &siTOE_Notif,
+        stream<AppRdReq>      &soTOE_DReq,
+        stream<AppData>       &siTOE_Data,
+        stream<AppMetaAxis>   &siTOE_SessId,
 
         //------------------------------------------------------
         //-- TOE / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReq>   &soTOE_LsnReq,
-        stream<AppLsnAck>   &siTOE_LsnAck,
+        stream<AppLsnReqAxis> &soTOE_LsnReq,
+        stream<AppLsnAckAxis> &siTOE_LsnAck,
 
         //------------------------------------------------------
         //-- TOE / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>     &soTOE_Data,
-        stream<AppMeta>     &soTOE_SessId,
-        stream<AppWrSts>    &siTOE_DSts,
+        stream<AppData>       &soTOE_Data,
+        stream<AppMetaAxis>   &soTOE_SessId,
+        stream<AppWrSts>      &siTOE_DSts,
 
         //------------------------------------------------------
         //-- TOE / Tx Open Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>   &soTOE_OpnReq,
-        stream<AppOpnSts>   &siTOE_OpnRep,
+        stream<AppOpnReq>     &soTOE_OpnReq,
+        stream<AppOpnSts>     &siTOE_OpnRep,
 
         //------------------------------------------------------
         //-- TOE / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReq>   &soTOE_ClsReq)
+        stream<AppClsReqAxis> &soTOE_ClsReq,
+
+        //------------------------------------------------------
+        //-- ROLE / Session Connect Id Interface
+        //------------------------------------------------------
+        SessionId             *poROL_SConId)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -558,6 +575,8 @@ void tcp_role_if(
 
     #pragma HLS resource core=AXI4Stream variable=soTOE_ClsReq metadata="-bus_bundle soTOE_ClsReq"
 
+    #pragma HLS INTERFACE ap_vld register    port=poROL_SConId
+
   #else
 
     #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En  name=piSHL_Mmio_En
@@ -590,6 +609,8 @@ void tcp_role_if(
 
     #pragma HLS INTERFACE axis register both port=soTOE_ClsReq   name=soTOE_ClsReq
 
+    #pragma HLS INTERFACE ap_vld register    port=poROL_SConId
+
   #endif
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -602,7 +623,8 @@ void tcp_role_if(
             piSHL_Mmio_En,
             soTOE_OpnReq,
             siTOE_OpnRep,
-            soTOE_ClsReq);
+            soTOE_ClsReq,
+            poROL_SConId);
 
     pListen(
             piSHL_Mmio_En,

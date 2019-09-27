@@ -52,6 +52,11 @@ void tcp_app_flash (
         //[TODO] ap_uint<1> *piSHL_MmioCaptSegEn,
 
         //------------------------------------------------------
+        //-- TRIF / Session Connect Id Interface
+        //------------------------------------------------------
+        SessionId           *piTRIF_SConnectId,
+
+        //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
         stream<AppData>     &siSHL_Data,

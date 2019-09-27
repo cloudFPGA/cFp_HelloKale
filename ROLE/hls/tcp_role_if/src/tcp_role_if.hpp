@@ -58,51 +58,55 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- SHELL / Mmio Interface
         //------------------------------------------------------
-        ap_uint<1>          *piSHL_Mmio_En,
+        CmdBit                  *piSHL_Mmio_En,
 
         //------------------------------------------------------
         //-- ROLE / Rx Data Interface
         //------------------------------------------------------
-        stream<AppData>     &siROL_Data,
-        stream<AppMeta>     &siROL_SessId,
+        stream<AppData>         &siROL_Data,
+        stream<AppMetaAxis>     &siROL_SessId,
 
         //------------------------------------------------------
         //-- ROLE / Tx Data Interface
         //------------------------------------------------------
-        stream<AppData>     &soROL_Data,
-        stream<AppMeta>     &soROL_SessId,
+        stream<AppData>         &soROL_Data,
+        stream<AppMetaAxis>     &soROL_SessId,
 
         //------------------------------------------------------
         //-- TOE / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppNotif>    &siTOE_Notif,
-        stream<AppRdReq>    &soTOE_DReq,
-        stream<AppData>     &siTOE_Data,
-        stream<AppMeta>     &siTOE_SessId,
+        stream<AppNotif>        &siTOE_Notif,
+        stream<AppRdReq>        &soTOE_DReq,
+        stream<AppData>         &siTOE_Data,
+        stream<AppMetaAxis>     &siTOE_SessId,
 
         //------------------------------------------------------
         //-- TOE / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReq>   &soTOE_LsnReq,
-        stream<AppLsnAck>   &siTOE_LsnAck,
+        stream<AppLsnReqAxis>   &soTOE_LsnReq,
+        stream<AppLsnAckAxis>   &siTOE_LsnAck,
 
         //------------------------------------------------------
         //-- TOE / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>     &soTOE_Data,
-        stream<AppMeta>     &soTOE_SessId,
-        stream<AppWrSts>    &siTOE_DSts,
+        stream<AppData>         &soTOE_Data,
+        stream<AppMetaAxis>     &soTOE_SessId,
+        stream<AppWrSts>        &siTOE_DSts,
 
         //------------------------------------------------------
         //-- TOE / Open Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>   &soTOE_OpnReq,
-        stream<AppOpnSts>   &siTOE_OpnRep,
+        stream<AppOpnReq>       &soTOE_OpnReq,
+        stream<AppOpnSts>       &siTOE_OpnRep,
 
         //------------------------------------------------------
         //-- TOE / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReq>   &soTOE_ClsReq
+        stream<AppClsReqAxis>   &soTOE_ClsReq,
 
+        //------------------------------------------------------
+        //-- ROLE / Session Connect Id Interface
+        //------------------------------------------------------
+        SessionId               *poROL_SConId
 );
 

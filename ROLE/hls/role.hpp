@@ -114,20 +114,16 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 #define cTCP_PORT_WIDTH            16
 
 #define cSHL_TOE_SESS_ID_WIDTH     16   // [TODO - Move into a CFG file.]
-#define cSHL_TOE_LSN_ACK_WIDTH     1    // [TODO - Move into a CFG file.]
+#define cSHL_TOE_LSN_ACK_WIDTH      1   // [TODO - Move into a CFG file.]
 #define cSHL_TOE_LSN_REQ_WIDTH     cSHL_TOE_SESS_ID_WIDTH
 #define cSHL_TOE_OPN_REQ_WIDTH    (cIP4_ADDR_WIDTH + cTCP_PORT_WIDTH)
+#define cSHL_TOE_CLS_REQ_WIDTH     cSHL_TOE_SESS_ID_WIDTH
 
 typedef ap_uint<cSHL_TOE_SESS_ID_WIDTH> SessionId;
 typedef ap_uint<cSHL_TOE_LSN_ACK_WIDTH> LsnAck;
 typedef ap_uint<cSHL_TOE_LSN_REQ_WIDTH> LsnReq;
 typedef ap_uint<cSHL_TOE_OPN_REQ_WIDTH> OpnReq;
-
-
-
-
-
-
+typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
 
 #ifndef __SYNTHESIS__
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
@@ -1253,8 +1249,14 @@ typedef AxiWord     AppData;
  * Application Metadata
  *  Meta-data transfered between TOE and APP.
  ***********************************************/
-typedef Axis<cSHL_TOE_SESS_ID_WIDTH>    AppMeta;
-//OBSOLETE-20190906 typedef TcpSessId   AppMeta;
+typedef TcpSessId   AppMeta;
+
+class AppMetaAxis : public Axis<cSHL_TOE_SESS_ID_WIDTH> {
+  public:
+    AppMetaAxis() {}
+    AppMetaAxis(AppMeta sessId) :
+        Axis<cSHL_TOE_SESS_ID_WIDTH>(sessId) {}
+};
 
 /***********************************************
  * Application Write Status
@@ -1279,19 +1281,6 @@ class AppWrSts
  ***********************************************/
 typedef LeSockAddr AppOpnReq;
 
-//OBSOLETE_20190918 class AppOpnReq : public LeSockAddr {
-//OBSOLETE_20190918   public :
-//OBSOLETE_20190918     AppOpnReq() {}
-//OBSOLETE_20190918 };
-
-//OBSOLETE_20190918 typedef Axis<cSHL_TOE_OPN_REQ_WIDTH>   AppOpnReq;
-//OBSOLETE_20190918 class AppOpnReq : public Axis<48>, public LeSockAddr {
-//OBSOLETE_20190918   public:
-//OBSOLETE_20190918     AppOpnReq() {}
-//OBSOLETE_20190918     AppOpnReq(LeSockAddr leSockAddr) :
-//OBSOLETE_20190918         Axis((leSockAddr.port, leSockAddr.addr)) {}
-//OBSOLETE_20190918 };
-
 /***********************************************
  * Application Open Status [TODO - Rename to Reply]
  *  Information returned by TOE after an open
@@ -1304,24 +1293,44 @@ typedef OpenStatus  AppOpnSts;
  *  The TCP port that the application is willing
  *  to open for listening.
  ***********************************************/
-typedef Axis<cSHL_TOE_LSN_REQ_WIDTH>    AppLsnReq;
-//OBSOLETE_20190918 typedef TcpPort     AppLsnReq;
+typedef TcpPort     AppLsnReq;
+
+class AppLsnReqAxis : public Axis<cSHL_TOE_LSN_REQ_WIDTH> {
+  public:
+    AppLsnReqAxis() {}
+    AppLsnReqAxis(AppLsnReq req) :
+      Axis<cSHL_TOE_LSN_REQ_WIDTH>(req) {}
+};
 
 /***********************************************
  * Application Listen Acknowledgment
  *  Acknowledge bit returned by TOE after a
  *  TCP listening port request.
  ***********************************************/
-typedef Axis<cSHL_TOE_LSN_ACK_WIDTH>    AppLsnAck;
-//OBSOLETE_20190918 typedef AckBit      AppLsnAck;
+typedef AckBit      AppLsnAck;
+
+class AppLsnAckAxis : public Axis<cSHL_TOE_LSN_ACK_WIDTH> {
+  public:
+    AppLsnAckAxis() {}
+    //AppLsnAckAxis(const AppLsnAck &appLsnAck) :
+    //    Axis<cSHL_TOE_LSN_ACK_WIDTH>(appLsnAck) {}
+    AppLsnAckAxis(AppLsnAck ack) :
+        Axis<cSHL_TOE_LSN_ACK_WIDTH>(ack) {}
+};
 
 /***********************************************
  * Application Close Request
  *  The socket address that the application
  *  wants to open.
  ***********************************************/
-typedef Axis<cSHL_TOE_SESS_ID_WIDTH>    AppClsReq;
-//OBSOLETE_20190919 typedef SessionId   AppClsReq;
+typedef SessionId   AppClsReq;
+
+class AppClsReqAxis : public Axis<cSHL_TOE_CLS_REQ_WIDTH> {
+  public:
+    AppClsReqAxis() {}
+    AppClsReqAxis(AppClsReq req) :
+        Axis<cSHL_TOE_CLS_REQ_WIDTH>(req) {}
+};
 
 
 template<typename T> void pStreamMux(

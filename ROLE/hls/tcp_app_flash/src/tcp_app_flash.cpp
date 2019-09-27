@@ -96,7 +96,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
         stream<AppMeta>   &soTXp_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW  // Why not #pragma HLS PIPELINE II=1 ?
+    #pragma HLS PIPELINE II=1
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     AxiWord     axiWord;
@@ -160,6 +160,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
  *
  * @param[in]  piSHL_MmioEchoCtrl, configuration of the echo function.
  * @param[in]  piSHL_MmioPostSegEn,enables the posting of TCP segments.
+ * @param[in]  piTRIF_SConnectId,  session connect Id from [TRIF].
  * @param[in]  siEPt_Data,         data from EchoPassTrough (EPt).
  * @param[in]  siEPt_SessId,       metadata from [EPt].
  * @param[in]  siESf_Data,         data from EchoStoreAndForward (ESf).
@@ -171,7 +172,8 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
  *****************************************************************************/
 void pTXPath(
         ap_uint<2>          *piSHL_MmioEchoCtrl,
-        ap_uint<1>          *piSHL_MmioPostSegEn,
+        CmdBit              *piSHL_MmioPostSegEn,
+        SessionId           *piTRIF_SConnectId,
         stream<AppData>     &siEPt_Data,
         stream<AppMeta>     &siEPt_SessId,
         stream<AppData>     &siESf_Data,
@@ -180,7 +182,7 @@ void pTXPath(
         stream<AppMeta>     &soSHL_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW // #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum TxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
@@ -209,7 +211,7 @@ void pTXPath(
                  !siEPt_Data.empty() ) {
                 AppMeta appMeta;
                 siEPt_SessId.read(appMeta);
-                soSHL_SessId.write(appMeta.tdata);
+                soSHL_SessId.write(appMeta);
                 siEPt_Data.read(currAxiWord);
                 txpFsmState = CONTINUATION_OF_SEGMENT;
                 wasLastWord = false;
@@ -220,7 +222,7 @@ void pTXPath(
             if ( !siESf_SessId.empty() and !soSHL_SessId.full()) {
                 AppMeta appMeta;
                 siESf_SessId.read(appMeta);
-                soSHL_SessId.write(appMeta.tdata);
+                soSHL_SessId.write(appMeta);
                 txpFsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
@@ -233,11 +235,13 @@ void pTXPath(
 
             if (*piSHL_MmioPostSegEn) {
                 // Prepare for sending a segment to remote host by forwarding
-                // a session-id (here we use a temporary dirty hack ; we always
-                // forward SessId=1 because we know it is '1' after the first
-                // session is opened).
+                // a session-id
+                // OBSOLETE_20190924 // (here we use a temporary dirty hack ; we always forward the
+                // OBSOLETE_20190924 //  SessId=1 because we know it is '1' after the first session is opened).
                 if (!soSHL_SessId.full()) {
-                    soSHL_SessId.write(AppMeta(1));  // [FIXME-Must retrieve the session ID from TRIF]
+                    // OBSOLETE_20190924 soSHL_SessId.write(AppMeta(1));  // [FIXME-Must retrieve the session ID from TRIF]
+                    SessionId sessConId = *piTRIF_SConnectId;
+                    soSHL_SessId.write(AppMeta(sessConId));
                     txpFsmState = CONTINUATION_OF_SEGMENT;
                 }
             }
@@ -362,7 +366,7 @@ void pRXPath(
         stream<AppMeta>      &soESf_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1  // #pragma HLS DATAFLOW //
+    #pragma HLS PIPELINE II=1
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum RxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
@@ -376,7 +380,6 @@ void pRXPath(
     //-- LOCAL VARIABLES ------------------------------------------------------
     AxiWord        tcpWord;
     AxiWord        currAxiWord;
-    //OBSOLETE TcpSessId      tcpSessId;
 
     switch (rxpFsmState ) {
       case START_OF_SEGMENT:
@@ -463,6 +466,7 @@ void pRXPath(
  *
  * @param[in]  piSHL_MmioEchoCtrl,  configures the echo function.
  * @param[in]  piSHL_MmioPostSegEn, enables posting of TCP segments.
+ * @param[in]  piTRIF_SConnectId,   session connect Id from [TRIF].
  * @param[in]  piSHL_MmioCaptSegEn, enables capture of a TCP segment by [MMIO].
  * @param[in]  siSHL_Data,          TCP data stream from the SHELL [SHL].
  * @param[in]  siSHL_SessId,        TCP session Id from [SHL].
@@ -476,8 +480,13 @@ void tcp_app_flash (
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
         ap_uint<2>          *piSHL_MmioEchoCtrl,
-        ap_uint<1>          *piSHL_MmioPostSegEn,
+        CmdBit              *piSHL_MmioPostSegEn,
         //[TODO] ap_uint<1> *piSHL_MmioCaptSegEn,
+
+        //------------------------------------------------------
+        //-- TRIF / Session Connect Id Interface
+        //------------------------------------------------------
+        SessionId           *piTRIF_SConnectId,
 
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
@@ -506,7 +515,10 @@ void tcp_app_flash (
     #pragma HLS INTERFACE ap_stable    port=piSHL_MmioPostSegEn
     //[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_MmioCaptSegEn
 
+    #pragma HLS INTERFACE ap_stable    port=piTRIF_SConnectId
+
     #pragma HLS resource core=AXI4Stream variable=siSHL_Data   metadata="-bus_bundle siSHL_Data"
+
     #pragma HLS resource core=AXI4Stream variable=siSHL_SessId metadata="-bus_bundle siSHL_SessId"
     #pragma HLS resource core=AXI4Stream variable=soSHL_Data   metadata="-bus_bundle soSHL_Data"
     #pragma HLS resource core=AXI4Stream variable=soSHL_SessId metadata="-bus_bundle soSHL_SessId"
@@ -516,6 +528,8 @@ void tcp_app_flash (
     #pragma HLS INTERFACE ap_stable          port=piSHL_MmioEchoCtrl
     #pragma HLS INTERFACE ap_stable          port=piSHL_MmioPostSegEn name=piSHL_MmioPostSegEn
     //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_MmioCapSegtEn name=piSHL_MmioCapSegtEn
+
+    #pragma HLS INTERFACE ap_vld       port=piTRIF_SConnectId
 
     // [INFO] Always add "register off" because (default value is "both")
     #pragma HLS INTERFACE axis register both port=siSHL_Data
@@ -567,7 +581,7 @@ void tcp_app_flash (
     //           |                               |
     //           |                               |
     //           |                              \|/
-    //#pragma HLS dependence variable=_____ inter false
+    //
     //-------------------------------------------------------------------------
     pRXPath(
             piSHL_MmioEchoCtrl,
@@ -587,6 +601,7 @@ void tcp_app_flash (
     pTXPath(
             piSHL_MmioEchoCtrl,
             piSHL_MmioPostSegEn,
+            piTRIF_SConnectId,
             sRXpToTXp_Data,
             sRXpToTXp_SessId,
             sESfToTXp_Data,

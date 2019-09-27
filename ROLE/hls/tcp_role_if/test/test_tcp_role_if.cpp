@@ -82,13 +82,13 @@ unsigned int    gMaxSimCycles = 0x8000 + 200;
 void pROLE(
         //-- TRIF / Rx Data Interface
         stream<AppData>     &siTRIF_Data,
-        stream<AppMeta>     &siTRIF_SessId,
+        stream<AppMetaAxis> &siTRIF_SessId,
         //-- TRIF / Tx Data Interface
         stream<AppData>     &soTRIF_Data,
-        stream<AppMeta>     &soTRIF_SessId)
+        stream<AppMetaAxis> &soTRIF_SessId)
 {
-    AppData     currWord;
-    AppMeta     tcpSessId;
+    AppData         currWord;
+    AppMetaAxis     tcpSessId;
 
     const char *myRxName  = concat3(THIS_NAME, "/", "ROLE-Rx");
     const char *myTxName  = concat3(THIS_NAME, "/", "ROLE-Tx");
@@ -166,24 +166,24 @@ void pMMIO(
  *
  ******************************************************************************/
 void pTOE(
-        int                 &nrErr,
+        int                   &nrErr,
         //-- TOE / Ready Signal
-        StsBit              *poMMIO_Ready,
+        StsBit                *poMMIO_Ready,
         //-- TOE / Tx Data Interfaces
-        stream<AppNotif>    &soTRIF_Notif,
-        stream<AppRdReq>    &siTRIF_DReq,
-        stream<AppData>     &soTRIF_Data,
-        stream<AppMeta>     &soTRIF_SessId,
+        stream<AppNotif>      &soTRIF_Notif,
+        stream<AppRdReq>      &siTRIF_DReq,
+        stream<AppData>       &soTRIF_Data,
+        stream<AppMetaAxis>   &soTRIF_SessId,
         //-- TOE / Listen Interfaces
-        stream<AppLsnReq>   &siTRIF_LsnReq,
-        stream<AppLsnAck>   &soTRIF_LsnAck,
+        stream<AppLsnReqAxis> &siTRIF_LsnReq,
+        stream<AppLsnAckAxis> &soTRIF_LsnAck,
         //-- TOE / Rx Data Interfaces
-        stream<AppData>     &siTRIF_Data,
-        stream<AppMeta>     &siTRIF_SessId,
-        stream<AppWrSts>    &soTRIF_DSts,
+        stream<AppData>       &siTRIF_Data,
+        stream<AppMetaAxis>   &siTRIF_SessId,
+        stream<AppWrSts>      &soTRIF_DSts,
         //-- TOE / Open Interfaces
-        stream<AppOpnReq>   &siTRIF_OpnReq,
-        stream<AppOpnSts>   &soTRIF_OpnRep)
+        stream<AppOpnReq>     &siTRIF_OpnReq,
+        stream<AppOpnSts>     &soTRIF_OpnRep)
 {
     TcpSegLen  tcpSegLen  = 32;
 
@@ -230,7 +230,7 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #1 - LISTENING
     //------------------------------------------------------
-    static AppLsnReq appLsnPortReq;
+    static AppLsnReqAxis appLsnPortReq;
 
     switch (lsnState) {
     case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
@@ -243,7 +243,7 @@ void pTOE(
         break;
     case LSN_SEND_ACK: // SEND ACK BACK TO [TRIF]
         if (!soTRIF_LsnAck.full()) {
-            soTRIF_LsnAck.write(AppLsnAck(LSN_ACK));
+            soTRIF_LsnAck.write(AppLsnAckAxis(LSN_ACK));
             fpgaLsnPort = appLsnPortReq.tdata.to_int();
             lsnState = LSN_WAIT_REQ;
         }
@@ -365,11 +365,11 @@ void pTOE(
         case TXP_WAIT_META:
             if (!siTRIF_SessId.empty() && !siTRIF_Data.empty()) {
                 AppData     appData;
-                AppMeta     sessId;
+                AppMetaAxis sessId;
                 siTRIF_SessId.read(sessId);
                 siTRIF_Data.read(appData);
                 if (DEBUG_LEVEL & TRACE_TOE) {
-                    printInfo(myTxpName, "Receiving data for session #%d\n", sessId.tdata.to_int());
+                    printInfo(myTxpName, "Receiving data for session #%d\n", sessId.tdata.to_uint());
                     printAxiWord(myTxpName, appData);
                 }
                 if (!appData.tlast)
@@ -394,7 +394,6 @@ void pTOE(
 /*****************************************************************************
  * @brief Main function.
  *
- * @ingroup test_tcp_role_if
  ******************************************************************************/
 int main()
 {
@@ -402,35 +401,37 @@ int main()
     //-- DUT SIGNAL INTERFACES
     //------------------------------------------------------
     //-- SHL / Mmio Interface
-    ap_uint<1>          sMMIO_TRIF_Enable;
+    CmdBit              sMMIO_TRIF_Enable;
     //-- TOE / Ready Signal
     StsBit              sTOE_MMIO_Ready;
+    //-- ROLE / Session Connect Id Interface
+    SessionId           sTRIF_ROLE_SConId;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
     //-- ROLE / Rx Data Interface
-    stream<AppData>     ssROLE_TRIF_Data    ("ssROLE_TRIF_Data");
-    stream<AppMeta>     ssROLE_TRIF_SessId  ("ssROLE_TRIF_SessId");
+    stream<AppData>       ssROLE_TRIF_Data    ("ssROLE_TRIF_Data");
+    stream<AppMetaAxis>   ssROLE_TRIF_SessId  ("ssROLE_TRIF_SessId");
     //-- ROLE / This / Tx Data Interface
-    stream<AppData>     ssTRIF_ROLE_Data    ("ssTRIF_ROLE_Data");
-    stream<AppMeta>     ssTRIF_ROLE_SessId  ("ssTRIF_ROLE_SessId");
+    stream<AppData>       ssTRIF_ROLE_Data    ("ssTRIF_ROLE_Data");
+    stream<AppMetaAxis>   ssTRIF_ROLE_SessId  ("ssTRIF_ROLE_SessId");
     //-- TOE  / Rx Data Interfaces
-    stream<AppNotif>    ssTOE_TRIF_Notif    ("ssTOE_TRIF_Notif");
-    stream<AppData>     ssTOE_TRIF_Data     ("ssTOE_TRIF_Data");
-    stream<AppMeta>     ssTOE_TRIF_SessId   ("ssTOE_TRIF_SessId");
-    stream<AppRdReq>    ssTRIF_TOE_DReq     ("ssTRIF_TOE_DReq");
+    stream<AppNotif>      ssTOE_TRIF_Notif    ("ssTOE_TRIF_Notif");
+    stream<AppData>       ssTOE_TRIF_Data     ("ssTOE_TRIF_Data");
+    stream<AppMetaAxis>   ssTOE_TRIF_SessId   ("ssTOE_TRIF_SessId");
+    stream<AppRdReq>      ssTRIF_TOE_DReq     ("ssTRIF_TOE_DReq");
     //-- TOE  / Listen Interfaces
-    stream<AppLsnAck>   ssTOE_TRIF_LsnAck   ("ssTOE_TRIF_LsnAck");
-    stream<AppLsnReq>   ssTRIF_TOE_LsnReq   ("ssTRIF_TOE_LsnReq");
+    stream<AppLsnAckAxis> ssTOE_TRIF_LsnAck   ("ssTOE_TRIF_LsnAck");
+    stream<AppLsnReqAxis> ssTRIF_TOE_LsnReq   ("ssTRIF_TOE_LsnReq");
     //-- TOE  / Tx Data Interfaces
-    stream<AppWrSts>    ssTOE_TRIF_DSts     ("ssTOE_TRIF_DSts");
-    stream<AppData>     ssTRIF_TOE_Data     ("ssTRIF_TOE_Data");
-    stream<AppMeta>     ssTRIF_TOE_SessId   ("ssTRIF_TOE_SessId");
+    stream<AppWrSts>      ssTOE_TRIF_DSts     ("ssTOE_TRIF_DSts");
+    stream<AppData>       ssTRIF_TOE_Data     ("ssTRIF_TOE_Data");
+    stream<AppMetaAxis>   ssTRIF_TOE_SessId   ("ssTRIF_TOE_SessId");
     //-- TOE  / Connect Interfaces
-    stream<AppOpnSts>   ssTOE_TRIF_OpnSts   ("ssTOE_TRIF_OpnSts");
-    stream<AppOpnReq>   ssTRIF_TOE_OpnReq   ("ssTRIF_TOE_OpnReq");
-    stream<AppClsReq>   ssTRIF_TOE_ClsReq   ("ssTRIF_TOE_ClsReq");
+    stream<AppOpnSts>     ssTOE_TRIF_OpnSts   ("ssTOE_TRIF_OpnSts");
+    stream<AppOpnReq>     ssTRIF_TOE_OpnReq   ("ssTRIF_TOE_OpnReq");
+    stream<AppClsReqAxis> ssTRIF_TOE_ClsReq   ("ssTRIF_TOE_ClsReq");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -507,7 +508,9 @@ int main()
             ssTRIF_TOE_OpnReq,
             ssTOE_TRIF_OpnSts,
             //-- TOE / Close Interfaces
-            ssTRIF_TOE_ClsReq);
+            ssTRIF_TOE_ClsReq,
+            //-- ROLE / Session Connect Id Interface
+            &sTRIF_ROLE_SConId);
 
         //-------------------------------------------------
         //-- EMULATE APP
