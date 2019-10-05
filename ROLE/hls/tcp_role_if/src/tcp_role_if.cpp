@@ -43,8 +43,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tcp_role_if.hpp"
 
-#include "../../role_utils.hpp"
-#include "../../test_role_utils.hpp"
+//OBSOLETE_20191005 #include "../../role_utils.hpp"
+//OBSOLETE_20191005 #include "../../test_role_utils.hpp"
 
 using namespace hls;
 using namespace std;
@@ -111,7 +111,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 void pConnect(
         CmdBit                *piSHL_Enable,
         stream<AppOpnReq>     &soTOE_OpnReq,
-        stream<AppOpnSts>     &siTOE_OpnRep,
+        stream<AppOpnRep>     &siTOE_OpnRep,
         stream<AppClsReqAxis> &soTOE_ClsReq,
         SessionId             *poROL_SConId)
 {
@@ -125,9 +125,9 @@ void pConnect(
     #pragma HLS reset                                       variable=opnFsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static LeSockAddr    leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+    static LE_SockAddr   leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
                                           // [FIXME - Change to default Big-Endian]
-    static AppOpnSts     newConn;
+    static AppOpnRep     newConn;
     static ap_uint< 12>  watchDogTimer;
 
     switch (opnFsmState) {
@@ -528,7 +528,7 @@ void tcp_role_if(
         //-- TOE / Tx Open Interfaces
         //------------------------------------------------------
         stream<AppOpnReq>     &soTOE_OpnReq,
-        stream<AppOpnSts>     &siTOE_OpnRep,
+        stream<AppOpnRep>     &siTOE_OpnRep,
 
         //------------------------------------------------------
         //-- TOE / Close Interfaces

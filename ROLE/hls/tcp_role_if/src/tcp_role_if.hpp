@@ -40,10 +40,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *****************************************************************************/
 
-#include "../../role.hpp"
 
 #include <hls_stream.h>
 #include "ap_int.h"
+
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe.hpp"
+#include "../../role.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.hpp"
 
 using namespace hls;
 
@@ -97,7 +100,7 @@ void tcp_role_if(
         //-- TOE / Open Interfaces
         //------------------------------------------------------
         stream<AppOpnReq>       &soTOE_OpnReq,
-        stream<AppOpnSts>       &siTOE_OpnRep,
+        stream<AppOpnRep>       &siTOE_OpnRep,
 
         //------------------------------------------------------
         //-- TOE / Close Interfaces

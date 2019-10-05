@@ -16,9 +16,9 @@
 
 #include "../src/tcp_role_if.hpp"
 
-#include "../../role.hpp"
-#include "../../role_utils.hpp"
-#include "../../test_role_utils.hpp"
+//OBSOLETE_20191005 #include "../../role.hpp"
+//OBSOLETE_20191005 #include "../../role_utils.hpp"
+//OBSOLETE_20191005 #include "../../test_role_utils.hpp"
 
 using namespace hls;
 
@@ -183,12 +183,13 @@ void pTOE(
         stream<AppWrSts>      &soTRIF_DSts,
         //-- TOE / Open Interfaces
         stream<AppOpnReq>     &siTRIF_OpnReq,
-        stream<AppOpnSts>     &soTRIF_OpnRep)
+        stream<AppOpnRep>     &soTRIF_OpnRep)
 {
     TcpSegLen  tcpSegLen  = 32;
 
     static Ip4Addr hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
     static TcpPort fpgaLsnPort = -1;
+    static TcpPort hostTcpPort = DEFAULT_HOST_LSN_PORT;
     static int     loop        = 1;
 
     static enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_ACK}  lsnState = LSN_WAIT_REQ;
@@ -256,8 +257,6 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #2 - OPEN CONNECTION
     //------------------------------------------------------
-    //OBSOLETE-20190919 LeSockAddr leHostSockAddr(byteSwap32(DEFAULT_HOST_IP4_ADDR),
-    //OBSOLETE-20190919                           byteSwap16(DEFAULT_HOST_LSN_PORT));
     AppOpnReq  opnReq;
 
     OpenStatus  opnReply(DEFAULT_SESSION_ID, SESS_IS_OPENED);
@@ -266,7 +265,7 @@ void pTOE(
         if (!siTRIF_OpnReq.empty()) {
             siTRIF_OpnReq.read(opnReq);
             printInfo(myOpnName, "Received a request to open the following remote socket address:\n");
-            printSockAddr(myOpnName, LeSockAddr(opnReq.addr, opnReq.port));
+            printSockAddr(myOpnName, LE_SockAddr(opnReq.addr, opnReq.port));
             opnState = OPN_SEND_REP;
         }
         break;
@@ -300,9 +299,10 @@ void pTOE(
             sessionId   = DEFAULT_SESSION_ID;
             tcpSegLen   = DEFAULT_SESSION_LEN;
             hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
+            hostTcpPort = DEFAULT_HOST_LSN_PORT;
             if (!soTRIF_Notif.full()) {
-                soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen,
-                                            hostIp4Addr, fpgaLsnPort));
+                soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen, hostIp4Addr,
+                                            hostTcpPort, fpgaLsnPort));
                 printInfo(myRxpName, "Sending notification #%d to [TRIF] (sessId=%d, segLen=%d).\n",
                           segCnt, sessionId.to_int(), tcpSegLen.to_int());
                 rxpState = RXP_WAIT_DREQ;
@@ -429,7 +429,7 @@ int main()
     stream<AppData>       ssTRIF_TOE_Data     ("ssTRIF_TOE_Data");
     stream<AppMetaAxis>   ssTRIF_TOE_SessId   ("ssTRIF_TOE_SessId");
     //-- TOE  / Connect Interfaces
-    stream<AppOpnSts>     ssTOE_TRIF_OpnSts   ("ssTOE_TRIF_OpnSts");
+    stream<AppOpnRep>     ssTOE_TRIF_OpnRep   ("ssTOE_TRIF_OpnRep");
     stream<AppOpnReq>     ssTRIF_TOE_OpnReq   ("ssTRIF_TOE_OpnReq");
     stream<AppClsReqAxis> ssTRIF_TOE_ClsReq   ("ssTRIF_TOE_ClsReq");
 
@@ -470,7 +470,7 @@ int main()
             ssTOE_TRIF_DSts,
             //-- TOE / Open Interfaces
             ssTRIF_TOE_OpnReq,
-            ssTOE_TRIF_OpnSts);
+            ssTOE_TRIF_OpnRep);
 
         //-------------------------------------------------
         //-- EMULATE MMIO
@@ -506,7 +506,7 @@ int main()
             ssTOE_TRIF_DSts,
             //-- TOE / Tx Open Interfaces
             ssTRIF_TOE_OpnReq,
-            ssTOE_TRIF_OpnSts,
+            ssTOE_TRIF_OpnRep,
             //-- TOE / Close Interfaces
             ssTRIF_TOE_ClsReq,
             //-- ROLE / Session Connect Id Interface
