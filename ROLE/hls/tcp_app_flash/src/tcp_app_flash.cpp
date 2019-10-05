@@ -41,10 +41,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *****************************************************************************/
 
-#include "../../role.hpp"
-#include "../../role_utils.hpp"
-#include "../../test_role_utils.hpp"
-
 #include "tcp_app_flash.hpp"
 
 /************************************************

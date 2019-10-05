@@ -53,8 +53,8 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
-add_files     ${currDir}/../role_utils.cpp
-add_files     ${currDir}/../test_role_utils.cpp
+add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe_utils.cpp
+add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
 

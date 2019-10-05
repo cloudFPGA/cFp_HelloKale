@@ -15,10 +15,6 @@
 #include <iostream>
 #include <hls_stream.h>
 
-
-#include "../../role.hpp"
-#include "../../role_utils.hpp"
-#include "../../test_role_utils.hpp"
 #include "../src/tcp_app_flash.hpp"
 
 using namespace hls;
@@ -42,8 +38,6 @@ using namespace std;
 //-- TESTBENCH DEFINES
 //------------------------------------------------------
 #define MAX_SIM_CYCLES  500
-#define OK              true
-#define KO              false
 #define VALID           true
 #define UNVALID         false
 #define DONE            true
@@ -56,6 +50,12 @@ using namespace std;
 
 #define STARTUP_DELAY   25
 
+//------------------------------------------------------
+// UTILITY PROTOTYPE DEFINITIONS
+//------------------------------------------------------
+bool writeAxiWordToFile(AxiWord  *tcpWord, ofstream &outFileStream);
+int  writeTcpWordToFile(AxiWord  *tcpWord, ofstream &outFile);
+
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //--  These variables might be updated/overwritten by the
@@ -66,56 +66,6 @@ bool            gTraceEvent   = false;
 bool            gFatalError   = false;
 unsigned int    gMaxSimCycles = MAX_SIM_CYCLES;
 
-
-/*****************************************************************************
- * @brief Dump an Axi data word to a file.
- *
- * @param[in] tcpWord,       a pointer to the data word to dump.
- * @param[in] outFileStream, the output file stream to write to.
- *
- * @return OK if successful, otherwise KO.
- ******************************************************************************/
-bool writeAxiWordToFile(AxiWord *tcpWord, ofstream &outFileStream) {
-    if (!outFileStream.is_open()) {
-        printf("### ERROR : Output file stream is not open. \n");
-        return(KO);
-    }
-    outFileStream << hex << noshowbase << setfill('0') << setw(16) << tcpWord->tdata.to_uint64();
-    outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(2)  << tcpWord->tkeep.to_int();
-    outFileStream << " ";
-    outFileStream << setw(1) << tcpWord->tlast.to_int() << "\n";
-    return(OK);
-}
-
-/*****************************************************************************
- * @brief Write a TCP AXI word into a file.
- *
- * @param[in] tcpWord, a ref to the AXI word to write.
- * @param[in] outFile, a ref to the file to write.
- * @return the number of bytes written into the file.
- ******************************************************************************/
-int writeTcpWordToFile(AxiWord *tcpWord, ofstream  &outFileStream) {
-    string    tdataToFile = "";
-    int       writtenBytes = 0;
-
-    for (int bytNum=7; bytNum>=0; bytNum--) {
-        if (tcpWord->tkeep.bit(bytNum)) {
-            int hi = ((bytNum*8) + 7);
-            int lo = ((bytNum*8) + 0);
-            ap_uint<8>  octet = tcpWord->tdata.range(hi, lo);
-            tdataToFile += octet; // OBSOLETE uint8ToStrHex(octet);
-            writtenBytes++;
-        }
-    }
-
-    if (tcpWord->tlast == 1)
-        outFileStream << tdataToFile << endl;
-    else
-        outFileStream << tdataToFile;
-
-    return writtenBytes;
-}
 
 /*****************************************************************************
  * @brief Receiving part of the TRIF process.

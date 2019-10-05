@@ -16,13 +16,15 @@
  *****************************************************************************/
 
 #include <stdio.h>
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <math.h>
 #include <hls_stream.h>
 #include "ap_int.h"
 #include <stdint.h>
+
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.hpp"
 
 using namespace hls;
 
@@ -48,7 +50,7 @@ void tcp_app_flash (
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
         ap_uint<2>          *piSHL_MmioEchoCtrl,
-        ap_uint<1>          *piSHL_MmioPostSegEn,
+        CmdBit              *piSHL_MmioPostSegEn,
         //[TODO] ap_uint<1> *piSHL_MmioCaptSegEn,
 
         //------------------------------------------------------
