@@ -40,12 +40,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *****************************************************************************/
 
-
 #include <hls_stream.h>
 #include "ap_int.h"
 
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe.hpp"
-#include "../../role.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.hpp"
 
 using namespace hls;

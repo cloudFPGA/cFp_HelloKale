@@ -55,8 +55,6 @@ set_top       ${projectName}
 add_files     ${currDir}/src/${projectName}.cpp
 add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe_utils.cpp
 add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.cpp
-#OBSOLETE-20191005 add_files     ${currDir}/../role_utils.cpp
-#OBSOLETE-20191005 add_files     ${currDir}/../test_role_utils.cpp
 
 add_files -tb ${currDir}/test/test_${projectName}.cpp
 

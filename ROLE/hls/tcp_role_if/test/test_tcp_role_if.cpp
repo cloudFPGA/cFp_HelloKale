@@ -16,12 +16,7 @@
 
 #include "../src/tcp_role_if.hpp"
 
-//OBSOLETE_20191005 #include "../../role.hpp"
-//OBSOLETE_20191005 #include "../../role_utils.hpp"
-//OBSOLETE_20191005 #include "../../test_role_utils.hpp"
-
 using namespace hls;
-
 using namespace std;
 
 //---------------------------------------------------------
@@ -39,10 +34,10 @@ using namespace std;
 #define DEBUG_LEVEL (TRACE_TOE | TRACE_ROLE)
 
 //------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
+//-- TESTBENCH DEFINITIONS
 //------------------------------------------------------
 #define MAX_SIM_CYCLES   500
-
+#define LSN_ACK            1
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES

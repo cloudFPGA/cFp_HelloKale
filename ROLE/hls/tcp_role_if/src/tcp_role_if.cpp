@@ -43,9 +43,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tcp_role_if.hpp"
 
-//OBSOLETE_20191005 #include "../../role_utils.hpp"
-//OBSOLETE_20191005 #include "../../test_role_utils.hpp"
-
 using namespace hls;
 using namespace std;
 
