@@ -67,7 +67,6 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     --------------------------------------------------------
     piSHL_156_25Clk                     : in    std_ulogic;
     piSHL_156_25Rst                     : in    std_ulogic;
-    --OBSOLETE-20190826 piTOP_156_25Rst_delayed             : in    std_ulogic; -- [TODO - Get rid of this delayed reset]
 
     --------------------------------------------------------
     -- SHELL / Nts / Udp Interface
@@ -121,7 +120,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
     siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
     ---- Stream TCP Data Notification --
-    siSHL_Nts_Tcp_Notif_tdata           : in    std_ulogic_vector( 87 downto 0);
+    siSHL_Nts_Tcp_Notif_tdata           : in    std_ulogic_vector(7+96 downto 0);
     siSHL_Nts_Tcp_Notif_tvalid          : in    std_ulogic;
     siSHL_Nts_Tcp_Notif_tready          : out   std_ulogic;
     ---- Stream TCP Data Request -------
@@ -137,7 +136,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     soSHL_Nts_Tcp_OpnReq_tdata          : out   std_ulogic_vector( 47 downto 0);  
     soSHL_Nts_Tcp_OpnReq_tvalid         : out   std_ulogic;
     soSHL_Nts_Tcp_OpnReq_tready         : in    std_ulogic;
-    ---- Stream TCP Open Session Status  
+    ---- Stream TCP Open Session Reply -  
     siSHL_Nts_Tcp_OpnRep_tdata          : in    std_ulogic_vector( 23 downto 0); 
     siSHL_Nts_Tcp_OpnRep_tvalid         : in    std_ulogic;
     siSHL_Nts_Tcp_OpnRep_tready         : out   std_ulogic;
@@ -154,7 +153,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     soSHL_Nts_Tcp_LsnReq_tdata          : out   std_ulogic_vector( 15 downto 0);  
     soSHL_Nts_Tcp_LsnReq_tvalid         : out   std_ulogic;
     soSHL_Nts_Tcp_LsnReq_tready         : in    std_ulogic;
-    ---- Stream TCP Listen Status ----
+    ---- Stream TCP Listen Acknnoledge -
     siSHL_Nts_Tcp_LsnAck_tdata          : in    std_ulogic_vector(  7 downto 0); 
     siSHL_Nts_Tcp_LsnAck_tvalid         : in    std_ulogic;
     siSHL_Nts_Tcp_LsnAck_tready         : out   std_ulogic;
@@ -273,28 +272,9 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   --============================================================================
   --  SIGNAL DECLARATIONS
   --============================================================================  
-
   -- Delayed reset signal and counter 
   signal s156_25Rst_delayed             : std_ulogic;
   signal sRstDelayCounter               : std_ulogic_vector(5 downto 0);
-
-  ------------------------------------------------------
-  -- UDP AXIS READ Register
-  ------------------------------------------------------
-  signal sUdpAxisReadReg_tdata          : std_ulogic_vector( 63 downto 0);
-  signal sUdpAxisReadReg_tkeep          : std_ulogic_vector(  7 downto 0);
-  signal sUdpAxisReadReg_tlast          : std_ulogic;
-  signal sUdpAxisReadReg_tvalid         : std_ulogic;
-   
-  ------------------------------------------------------
-  -- UDP PASS-THROUGH Register
-  ------------------------------------------------------
-  signal sUdpPassThruReg_tdata          : std_ulogic_vector( 63 downto 0);
-  signal sUdpPassThruReg_tkeep          : std_ulogic_vector(  7 downto 0);
-  signal sUdpPassThruReg_tlast          : std_ulogic;
-  signal sUdpPassThruReg_tvalid         : std_ulogic;
-   
-  signal sUdpPassThruReg_isFull         : boolean;
 
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : TRIF <--> TAF 
@@ -324,23 +304,12 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   signal ssTAF_TRIF_Meta_tvalid         : std_ulogic;
   signal ssTAF_TRIF_Meta_tready         : std_ulogic;
   
-  
-  signal EMIF_inv                       : std_logic_vector(7 downto 0);
-
-  -- I hate Vivado HLS 
-  --OBSOLETE-20190826 signal sReadTlastAsVector             : std_logic_vector(0 downto 0);
-  --OBSOLETE-20190826 signal sWriteTlastAsVector            : std_logic_vector(0 downto 0);
-  --OBSOLETE-20190826 signal sResetAsVector                 : std_logic_vector(0 downto 0);
   signal sSHL_Mem_Mp0_Write_tlast       : std_ulogic_vector(0 downto 0); 
-
-  signal sUdpPostCnt                    : std_ulogic_vector(9 downto 0);
-  signal sTcpPostCnt                    : std_ulogic_vector(9 downto 0);
 
   --============================================================================
   --  VARIABLE DECLARATIONS
   --============================================================================  
-  
- 
+   
   --===========================================================================
   --== COMPONENT DECLARATIONS
   --===========================================================================
@@ -354,25 +323,25 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_This_MmioPostDgmEn_V  : in  std_logic;
-      --[TODO] piSHL_This_MmioCaptDgmEn_V  : in  std_logic;
+      piSHL_MmioEchoCtrl_V :    in  std_logic_vector(  1 downto 0);
+      --[TODO] piSHL_MmioPostDgmEn_V  : in  std_logic;
+      --[TODO] piSHL_MmioCaptDgmEn_V  : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Udp Data Interfaces
       --------------------------------------------------------
-      siSHL_This_Data_tdata     : in  std_logic_vector( 63 downto 0);
-      siSHL_This_Data_tkeep     : in  std_logic_vector(  7 downto 0);
-      siSHL_This_Data_tlast     : in  std_logic;
-      siSHL_This_Data_tvalid    : in  std_logic;
-      siSHL_This_Data_tready    : out std_logic;
+      siSHL_Data_tdata          : in  std_logic_vector( 63 downto 0);
+      siSHL_Data_tkeep          : in  std_logic_vector(  7 downto 0);
+      siSHL_Data_tlast          : in  std_logic;
+      siSHL_Data_tvalid         : in  std_logic;
+      siSHL_Data_tready         : out std_logic;
       --------------------------------------------------------
       -- To SHELL / Udp Data Interfaces
       --------------------------------------------------------
-      soTHIS_Shl_Data_tdata     : out std_logic_vector( 63 downto 0);
-      soTHIS_Shl_Data_tkeep     : out std_logic_vector(  7 downto 0);
-      soTHIS_Shl_Data_tlast     : out std_logic;
-      soTHIS_Shl_Data_tvalid    : out std_logic;
-      soTHIS_Shl_Data_tready    : in  std_logic
+      soSHL_Data_tdata          : out std_logic_vector( 63 downto 0);
+      soSHL_Data_tkeep          : out std_logic_vector(  7 downto 0);
+      soSHL_Data_tlast          : out std_logic;
+      soSHL_Data_tvalid         : out std_logic;
+      soSHL_Data_tready         : in  std_logic
     );
   end component UdpApplicationFlash;
   
@@ -387,25 +356,25 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_This_MmioPostDgmEn_V  : in  std_logic;
-      --[TODO] piSHL_This_MmioCaptDgmEn_V  : in  std_logic;
+      piSHL_MmioEchoCtrl_V      : in  std_logic_vector(  1 downto 0);
+      --[TODO] piSHL_MmioPostDgmEn_V  : in  std_logic;
+      --[TODO] piSHL_MmioCaptDgmEn_V  : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Udp Data Interfaces
       --------------------------------------------------------
-      siSHL_This_Data_tdata     : in  std_logic_vector( 63 downto 0);
-      siSHL_This_Data_tkeep     : in  std_logic_vector(  7 downto 0);
-      siSHL_This_Data_tlast     : in  std_logic_vector(  0 downto 0);
-      siSHL_This_Data_tvalid    : in  std_logic;
-      siSHL_This_Data_tready    : out std_logic;
+      siSHL_Data_tdata          : in  std_logic_vector( 63 downto 0);
+      siSHL_Data_tkeep          : in  std_logic_vector(  7 downto 0);
+      siSHL_Data_tlast          : in  std_logic_vector(  0 downto 0);
+      siSHL_Data_tvalid         : in  std_logic;
+      siSHL_Data_tready         : out std_logic;
       --------------------------------------------------------
       -- To SHELL / Udp Data Interfaces
       --------------------------------------------------------
-      soTHIS_Shl_Data_tdata     : out std_logic_vector( 63 downto 0);
-      soTHIS_Shl_Data_tkeep     : out std_logic_vector(  7 downto 0);
-      soTHIS_Shl_Data_tlast     : out std_logic_vector(  0 downto 0);
-      soTHIS_Shl_Data_tvalid    : out std_logic;
-      soTHIS_Shl_Data_tready    : in  std_logic
+      soSHL_Data_tdata          : out std_logic_vector( 63 downto 0);
+      soSHL_Data_tkeep          : out std_logic_vector(  7 downto 0);
+      soSHL_Data_tlast          : out std_logic_vector(  0 downto 0);
+      soSHL_Data_tvalid         : out std_logic;
+      soSHL_Data_tready         : in  std_logic
     );
   end component UdpApplicationFlashTodo;
   
@@ -564,7 +533,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       -- TOE / RxP Data Interfaces
       ------------------------------------------------------
       ---- Stream TCP Data Notification 
-      siTOE_Notif_tdata     : in  std_ulogic_vector( 87 downto 0);
+      siTOE_Notif_tdata     : in  std_ulogic_vector(7+96 downto 0); -- 8-bits boundary
       siTOE_Notif_tvalid    : in  std_ulogic;
       siTOE_Notif_tready    : out std_ulogic;
       ---- Stream TCP Data Request ---
@@ -1192,26 +1161,26 @@ begin
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------      
-        piSHL_This_MmioEchoCtrl_V => piSHL_Mmio_UdpEchoCtrl,
-        --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
-        --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
+        piSHL_MmioEchoCtrl_V      => piSHL_Mmio_UdpEchoCtrl,
+        --[TODO] piSHL_MmioPostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
+        --[TODO] piSHL_MmioCaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
         
         --------------------------------------------------------
         -- From SHELL / Udp Data Interfaces
         --------------------------------------------------------
-        siSHL_This_Data_tdata     => siSHL_Nts_Udp_Data_tdata,
-        siSHL_This_Data_tkeep     => siSHL_Nts_Udp_Data_tkeep,
-        siSHL_This_Data_tlast     => siSHL_Nts_Udp_Data_tlast,
-        siSHL_This_Data_tvalid    => siSHL_Nts_Udp_Data_tvalid,
-        siSHL_This_Data_tready    => siSHL_Nts_Udp_Data_tready,
+        siSHL_Data_tdata          => siSHL_Nts_Udp_Data_tdata,
+        siSHL_Data_tkeep          => siSHL_Nts_Udp_Data_tkeep,
+        siSHL_Data_tlast          => siSHL_Nts_Udp_Data_tlast,
+        siSHL_Data_tvalid         => siSHL_Nts_Udp_Data_tvalid,
+        siSHL_Data_tready         => siSHL_Nts_Udp_Data_tready,
         --------------------------------------------------------
         -- To SHELL / Udp Data Interfaces
         --------------------------------------------------------
-        soTHIS_Shl_Data_tdata     => soSHL_Nts_Udp_Data_tdata,
-        soTHIS_Shl_Data_tkeep     => soSHL_Nts_Udp_Data_tkeep,
-        soTHIS_Shl_Data_tlast     => soSHL_Nts_Udp_Data_tlast,
-        soTHIS_Shl_Data_tvalid    => soSHL_Nts_Udp_Data_tvalid,
-        soTHIS_Shl_Data_tready    => soSHL_Nts_Udp_Data_tready
+        soSHL_Data_tdata          => soSHL_Nts_Udp_Data_tdata,
+        soSHL_Data_tkeep          => soSHL_Nts_Udp_Data_tkeep,
+        soSHL_Data_tlast          => soSHL_Nts_Udp_Data_tlast,
+        soSHL_Data_tvalid         => soSHL_Nts_Udp_Data_tvalid,
+        soSHL_Data_tready         => soSHL_Nts_Udp_Data_tready
       );
     
   else generate
@@ -1233,26 +1202,26 @@ begin
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------       
-        piSHL_This_MmioEchoCtrl_V => piSHL_Mmio_UdpEchoCtrl,
-        --[TODO] piSHL_This_MmioPostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
-        --[TODO] piSHL_This_MmioCaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
+        piSHL_MmioEchoCtrl_V      => piSHL_Mmio_UdpEchoCtrl,
+        --[TODO] piSHL_MmioPostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
+        --[TODO] piSHL_MmioCaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
         
         --------------------------------------------------------
         -- From SHELL / Udp Data Interfaces
         --------------------------------------------------------
-        siSHL_This_Data_tdata     => siSHL_Nts_Udp_Data_tdata,
-        siSHL_This_Data_tkeep     => siSHL_Nts_Udp_Data_tkeep,
-        siSHL_This_Data_tlast     => fVectorize(siSHL_Nts_Udp_Data_tlast),
-        siSHL_This_Data_tvalid    => siSHL_Nts_Udp_Data_tvalid,
-        siSHL_This_Data_tready    => siSHL_Nts_Udp_Data_tready,
+        siSHL_Data_tdata          => siSHL_Nts_Udp_Data_tdata,
+        siSHL_Data_tkeep          => siSHL_Nts_Udp_Data_tkeep,
+        siSHL_Data_tlast          => fVectorize(siSHL_Nts_Udp_Data_tlast),
+        siSHL_Data_tvalid         => siSHL_Nts_Udp_Data_tvalid,
+        siSHL_Data_tready         => siSHL_Nts_Udp_Data_tready,
         --------------------------------------------------------
         -- To SHELL / Udp Data Interfaces
         --------------------------------------------------------
-        soTHIS_Shl_Data_tdata     => soSHL_Nts_Udp_Data_tdata,
-        soTHIS_Shl_Data_tkeep     => soSHL_Nts_Udp_Data_tkeep,
-        fScalarize(soTHIS_Shl_Data_tlast) => soSHL_Nts_Udp_Data_tlast,
-        soTHIS_Shl_Data_tvalid    => soSHL_Nts_Udp_Data_tvalid,
-        soTHIS_Shl_Data_tready    => soSHL_Nts_Udp_Data_tready
+        soSHL_Data_tdata          => soSHL_Nts_Udp_Data_tdata,
+        soSHL_Data_tkeep          => soSHL_Nts_Udp_Data_tkeep,
+        fScalarize(soSHL_Data_tlast) => soSHL_Nts_Udp_Data_tlast,
+        soSHL_Data_tvalid         => soSHL_Nts_Udp_Data_tvalid,
+        soSHL_Data_tready         => soSHL_Nts_Udp_Data_tready
       );
 
   end generate;
@@ -1409,18 +1378,14 @@ begin
 
   --################################################################################
   --#                                                                              #
-  --#    #    #  ######  #    #  ######                                            #
-  --#    ##  ##  #       ##  ##    #    ###### ###### ######                       #
-  --#    # ## #  #####   # ## #    #    #      #        #                          #
-  --#    #    #  #       #    #    #    ####   ######   #                          #
-  --#    #    #  #       #    #    #    #           #   #                          #
-  --#    #    #  ######  #    #    #    ###### ######   #                          #
+  --#    #    #  ######  #    #  ######                         #####    ####      #
+  --#    ##  ##  #       ##  ##    #    ###### ###### ######    #    #  #   ##     #
+  --#    # ## #  #####   # ## #    #    #      #        #       #####   #  # #     #
+  --#    #    #  #       #    #    #    ####   ######   #       #       # #  #     #
+  --#    #    #  #       #    #    #    #           #   #       #       ##   #     #
+  --#    #    #  ######  #    #    #    ###### ######   #       #        ####      #
   --#                                                                              #
   --################################################################################
-
-  --OBSOLETE-20190826 sReadTlastAsVector(0)     <= siSHL_Mem_Mp0_Read_tlast;
-  --OBSOLETE-20190826 soSHL_Mem_Mp0_Write_tlast <= sWriteTlastAsVector(0);
-  --OBSOLETE-20190826 sResetAsVector(0)         <= piTOP_156_25Rst_delayed;
 
   MEM_TEST: MemTestFlash
     port map(
@@ -1483,6 +1448,38 @@ begin
     );
     
     soSHL_Mem_Mp0_Write_tlast <= fScalarize(sSHL_Mem_Mp0_Write_tlast);
-  
+    
+    --################################################################################
+    --#                                                                              #
+    --#    #    #  ######  #    #  ######                         #####     #        #
+    --#    ##  ##  #       ##  ##    #    ###### ###### ######    #    #   ##        #
+    --#    # ## #  #####   # ## #    #    #      #        #       #####   # #        #
+    --#    #    #  #       #    #    #    ####   ######   #       #         #        #
+    --#    #    #  #       #    #    #    #           #   #       #         #        #
+    --#    #    #  ######  #    #    #    ###### ######   #       #       #####      #
+    --#                                                                              #
+    --################################################################################
+     --------------------------------------------------------
+     -- SHELL / Mem / Mp1 Interface
+     --------------------------------------------------------
+     ---- Memory Port #1 / S2MM-AXIS ------------------   
+     ------ Stream Read Command ---------
+     soSHL_Mem_Mp1_RdCmd_tdata           <= (others => '0');
+     soSHL_Mem_Mp1_RdCmd_tvalid          <= '0';
+         ------ Stream Read Status ----------
+     siSHL_Mem_Mp1_RdSts_tready          <= '0';
+          ------ Stream Data Input Channel ---
+     siSHL_Mem_Mp1_Read_tready           <= '0';
+     ------ Stream Write Command --------
+     soSHL_Mem_Mp1_WrCmd_tdata           <= (others => '0');
+     soSHL_Mem_Mp1_WrCmd_tvalid          <= '0';
+     ------ Stream Write Status ---------
+     siSHL_Mem_Mp1_WrSts_tready          <= '0';
+     ------ Stream Data Output Channel --
+     soSHL_Mem_Mp1_Write_tdata           <= (others => '0');
+     soSHL_Mem_Mp1_Write_tkeep           <= (others => '0');
+     soSHL_Mem_Mp1_Write_tlast           <= '0';
+     soSHL_Mem_Mp1_Write_tvalid          <= '0';
+
 end architecture Flash;
   

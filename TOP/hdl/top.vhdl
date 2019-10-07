@@ -171,7 +171,7 @@ end topFMKU60;
 --*****************************************************************************
 architecture structural of topFMKU60 is
 
-  --------------------------------------------------------
+  --------------------------------------------------------n
   -- [TOP] SIGNAL DECLARATIONS 
   --------------------------------------------------------
  
@@ -237,7 +237,7 @@ architecture structural of topFMKU60 is
   signal ssSHL_ROL_Nts_Tcp_Meta_tvalid      : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_Meta_tready      : std_ulogic;
   ---- Stream TCP Data Notification --------
-  signal ssSHL_ROL_Nts_Tcp_Notif_tdata      : std_ulogic_vector( 87 downto 0);
+  signal ssSHL_ROL_Nts_Tcp_Notif_tdata      : std_ulogic_vector(7+96 downto 0);  -- 8-bits boundary
   signal ssSHL_ROL_Nts_Tcp_Notif_tvalid     : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_Notif_tready     : std_ulogic;
   ---- Stream TCP Data Request -------------
@@ -514,7 +514,7 @@ architecture structural of topFMKU60 is
       soROL_Nts_Tcp_Meta_tvalid         : out   std_ulogic;
       soROL_Nts_Tcp_Meta_tready         : in    std_ulogic;
       ---- Stream TCP Data Notification 
-      soROL_Nts_Tcp_Notif_tdata         : out   std_ulogic_vector( 87 downto 0);
+      soROL_Nts_Tcp_Notif_tdata         : out   std_ulogic_vector(7+96 downto 0);  -- 8-bits boundary
       soROL_Nts_Tcp_Notif_tvalid        : out   std_ulogic;
       soROL_Nts_Tcp_Notif_tready        : in    std_ulogic;
       ---- Stream TCP Data Request -------
@@ -664,7 +664,6 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       piSHL_156_25Clk                     : in    std_ulogic;
       piSHL_156_25Rst                     : in    std_ulogic;
-      --OBSOLETE-20190826 piTOP_156_25Rst_delayed             : in    std_ulogic;  -- [TODO - Get rid of this delayed reset]
       
       ------------------------------------------------------
       -- SHELL / Nts / Udp Interface
@@ -682,7 +681,7 @@ architecture structural of topFMKU60 is
       soSHL_Nts_Udp_Data_tlast            : out   std_ulogic;
       soSHL_Nts_Udp_Data_tready           : in    std_ulogic;
       
-    ------------------------------------------------------
+      ------------------------------------------------------
       -- SHELL / Nts / Tcp / TxP Data Flow Interfaces
       ------------------------------------------------------
       -- FPGA Transmit Path (ROLE-->SHELL) ---------
@@ -713,10 +712,12 @@ architecture structural of topFMKU60 is
       siSHL_Nts_Tcp_Data_tready           : out   std_ulogic;
       ---- Stream TCP Meta ---------------
       siSHL_Nts_Tcp_Meta_tdata            : in    std_ulogic_vector( 15 downto 0);
+      siSHL_Nts_Tcp_Meta_tkeep            : in    std_ulogic_vector(  1 downto 0);
+      siSHL_Nts_Tcp_Meta_tlast            : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
       ---- Stream TCP Data Notification --
-      siSHL_Nts_Tcp_Notif_tdata           : in   std_ulogic_vector( 87 downto 0);
+      siSHL_Nts_Tcp_Notif_tdata           : in   std_ulogic_vector(7+96 downto 0);  -- 8-bits boundary
       siSHL_Nts_Tcp_Notif_tvalid          : in   std_ulogic;
       siSHL_Nts_Tcp_Notif_tready          : out  std_ulogic;
       ---- Stream TCP Data Request -------
@@ -1285,6 +1286,8 @@ begin
       siSHL_Nts_Tcp_Data_tready         => ssSHL_ROL_Nts_Tcp_Data_tready,
       ---- Stream TCP Meta ---------------
       siSHL_Nts_Tcp_Meta_tdata          => ssSHL_ROL_Nts_Tcp_Meta_tdata,
+      siSHL_Nts_Tcp_Meta_tkeep          => (others => '1'),
+      siSHL_Nts_Tcp_Meta_tlast          => '1',
       siSHL_Nts_Tcp_Meta_tvalid         => ssSHL_ROL_Nts_Tcp_Meta_tvalid,
       siSHL_Nts_Tcp_Meta_tready         => ssSHL_ROL_Nts_Tcp_Meta_tready,
       ---- Stream TCP Data Notification --
