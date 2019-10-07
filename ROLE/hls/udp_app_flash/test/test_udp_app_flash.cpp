@@ -1,13 +1,35 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : test_udp_app_flash.cpp
  * @brief      : Testbench for UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
- * Component   : Role
+ * Component   : RoleFlash
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *****************************************************************************/
 
@@ -18,7 +40,24 @@
 
 using namespace std;
 
+//---------------------------------------------------------
+// HELPERS FOR THE DEBUGGING TRACES
+//  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+//---------------------------------------------------------
+#define THIS_NAME "TB"
 
+#define TRACE_OFF     0x0000
+#define TRACE_URIF   1 <<  1
+#define TRACE_UAF    1 <<  2
+#define TRACE_MMIO   1 <<  3
+#define TRACE_ALL     0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
+//------------------------------------------------------
+//-- TESTBENCH DEFINES
+//------------------------------------------------------
+#define MAX_SIM_CYCLES  500
 #define OK          true
 #define KO          false
 #define VALID       true
@@ -28,18 +67,28 @@ using namespace std;
 #define ENABLED     (ap_uint<1>)1
 #define DISABLED    (ap_uint<1>)0
 
+//---------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//--  These variables might be updated/overwritten by the
+//--  content of a test-vector file.
+//---------------------------------------------------------
+unsigned int    gSimCycCnt    = 0;
+bool            gTraceEvent   = false;
+bool            gFatalError   = false;
+unsigned int    gMaxSimCycles = MAX_SIM_CYCLES;
+
 //------------------------------------------------------
 //-- DUT INTERFACES AS GLOBAL VARIABLES
 //------------------------------------------------------
 
-//-- SHELL / Uaf / Mmio / Config Interfaces
-ap_uint<2>          piSHL_This_MmioEchoCtrl;
-ap_uint<1>          piSHL_This_MmioPostPktEn;
-ap_uint<1>          piSHL_This_MmioCaptPktEn;
+//-- SHELL / MMIO / Configuration Interfaces
+ap_uint<2>          sSHL_UAF_MmioEchoCtrl;
+ap_uint<1>          sSHL_UAF_MmioPostPktEn;
+ap_uint<1>          sSHL_UAF_MmioCaptPktEn;
 
-//-- SHELL / Uaf / Udp Interfaces
-stream<UdpWord>		sSHL_Uaf_Data	("sSHL_Uaf_Data");
-stream<UdpWord>     sUAF_Shl_Data  	("sUAF_Shl_Data");
+//-- SHELL / UDP Interfaces
+stream<UdpWord>     ssSHL_UAF_Data      ("ssSHL_UAF_Data");
+stream<UdpWord>     ssUAF_SHL_Data      ("ssUAF_SHL_Data");
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -49,22 +98,23 @@ int         simCnt;
 
 /*****************************************************************************
  * @brief Run a single iteration of the DUT model.
- * @ingroup udp_app_flash
+ *
  * @return Nothing.
  ******************************************************************************/
 void stepDut() {
     udp_app_flash(
-    		piSHL_This_MmioEchoCtrl,
-			//[TODO] piSHL_This_MmioPostPktEn,
-			//[TODO] piSHL_This_MmioCaptPktEn,
-			sSHL_Uaf_Data, sUAF_Shl_Data);
+            sSHL_UAF_MmioEchoCtrl,
+            //[TODO] sSHL_UAF_MmioPostPktEn,
+            //[TODO] sSHL_UAF_MmioCaptPktEn,
+            ssSHL_UAF_Data,
+            ssUAF_SHL_Data);
+
     simCnt++;
     printf("[%4.4d] STEP DUT \n", simCnt);
 }
 
 /*****************************************************************************
  * @brief Initialize an input data stream from a file.
- * @ingroup udp_app_flash
  *
  * @param[in] sDataStream, the input data stream to set.
  * @param[in] dataStreamName, the name of the data stream.
@@ -113,11 +163,8 @@ bool setInputDataStream(stream<UdpWord> &sDataStream, const string dataStreamNam
     return(OK);
 }
 
-
-
 /*****************************************************************************
  * @brief Read data from a stream.
- * @ingroup udp_app_flash
  *
  * @param[in]  sDataStream,    the output data stream to read.
  * @param[in]  dataStreamName, the name of the data stream.
@@ -134,7 +181,6 @@ bool readDataStream(stream <UdpWord> &sDataStream, UdpWord *udpWord) {
 
 /*****************************************************************************
  * @brief Dump a data word to a file.
- * @ingroup udp_app_flash
  *
  * @param[in] udpWord,      a pointer to the data word to dump.
  * @param[in] outFileStream,the output file stream to write to.
@@ -153,10 +199,8 @@ bool dumpDataToFile(UdpWord *udpWord, ofstream &outFileStream) {
     return(OK);
 }
 
-
 /*****************************************************************************
  * @brief Fill an output file with data from an output stream.
- * @ingroup udp_app_flash
  *
  * @param[in] sDataStream,    the output data stream to set.
  * @param[in] dataStreamName, the name of the data stream.
@@ -218,7 +262,7 @@ int main() {
     //-- STEP-1.1 : CREATE TRAFFIC AS INPUT STREAMS
     //------------------------------------------------------
     if (nrErr == 0) {
-        if (!setInputDataStream(sSHL_Uaf_Data, "sSHL_Uaf_Data", "ifsSHL_Uaf_Data.dat")) {
+        if (!setInputDataStream(ssSHL_UAF_Data, "ssSHL_UAF_Data", "ifsSHL_Uaf_Data.dat")) {
             printf("### ERROR : Failed to set input data stream \"sSHL_Uaf_Data\". \n");
             nrErr++;
         }
@@ -227,9 +271,9 @@ int main() {
     //------------------------------------------------------
     //-- STEP-1.2 : SET THE PASS-THROUGH MODE
     //------------------------------------------------------
-    piSHL_This_MmioEchoCtrl.write(ECHO_PATH_THRU);
-    //[TODO] piSHL_This_MmioPostPktEn.write(DISABLED);
-    //[TODO] piSHL_This_MmioCaptPktEn.write(DISABLED);
+    sSHL_UAF_MmioEchoCtrl.write(ECHO_PATH_THRU);
+    //[TODO] sSHL_UAF_MmioPostPktEn.write(DISABLED);
+    //[TODO] sSHL_UAF_MmioCaptPktEn.write(DISABLED);
 
     //------------------------------------------------------
     //-- STEP-2 : MAIN TRAFFIC LOOP
@@ -249,7 +293,7 @@ int main() {
     //-- STEP-3 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- UAF-->SHELL ----
-    if (!getOutputDataStream(sUAF_Shl_Data, "sUAF_Shl_Data", "ofsUAF_Shl_Data.dat"))
+    if (!getOutputDataStream(ssUAF_SHL_Data, "ssUAF_SHL_Data", "ofsUAF_Shl_Data.dat"))
         nrErr++;
 
     //------------------------------------------------------
