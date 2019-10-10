@@ -184,13 +184,14 @@ void pTXPath(
     static enum TxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
                                txpFsmState = START_OF_SEGMENT;
     #pragma HLS reset variable=txpFsmState
-    static enum MsgFsmStates { MSG0=0, MSG1, MSG2, MSG3 } \
+    static enum MsgFsmStates { MSG0=0, MSG1, MSG2, MSG3, MSG_GAP} \
                                msgFsmState = MSG0;
     #pragma HLS reset variable=msgFsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static AxiWord prevAxiWord;
-    static bool    wasLastWord;
+    static AxiWord    prevAxiWord;
+    static bool       wasLastWord;
+    static ap_uint<8> msgGapSize;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     AxiWord        tcpWord;
@@ -232,10 +233,7 @@ void pTXPath(
             if (*piSHL_MmioPostSegEn) {
                 // Prepare for sending a segment to remote host by forwarding
                 // a session-id
-                // OBSOLETE_20190924 // (here we use a temporary dirty hack ; we always forward the
-                // OBSOLETE_20190924 //  SessId=1 because we know it is '1' after the first session is opened).
                 if (!soSHL_SessId.full()) {
-                    // OBSOLETE_20190924 soSHL_SessId.write(AppMeta(1));  // [FIXME-Must retrieve the session ID from TRIF]
                     SessionId sessConId = *piTRIF_SConnectId;
                     soSHL_SessId.write(AppMeta(sessConId));
                     txpFsmState = CONTINUATION_OF_SEGMENT;
@@ -310,9 +308,16 @@ void pTXPath(
                         break;
                     case MSG3: // '--------'
                         soSHL_Data.write(AxiWord(0x2d2d2d2d2d2d2d2d, 0xFF, 1));
-                        msgFsmState = MSG0;
-                        txpFsmState = START_OF_SEGMENT;
+                        msgGapSize  = 4;
+                        msgFsmState = MSG_GAP;
                         break;
+                    case MSG_GAP: // Short pause before sending next segment
+                        if (msgGapSize)
+                            msgGapSize--;
+                        else {
+                            msgFsmState = MSG0;
+                            txpFsmState = START_OF_SEGMENT;
+                        }
                     }
                 }
                 else {

@@ -115,32 +115,31 @@ bool pTRIF_Recv(
     AppData     tcpWord;
     AppMeta     appMeta;
     TcpSessId   tcpSessId;
-    bool        startOfTcpSeg;
+    static int  startOfSegCount = 0;
 
-    //-- EMPTY STREAMS AND DUMP DATA TO FILE
-    startOfTcpSeg = true;
     // Read and drain the siMetaStream
-    if (startOfTcpSeg) {
-        if (!siTAF_SessId.empty()) {
-            siTAF_SessId.read(appMeta);
-            tcpSessId = appMeta;
-            printInfo(myName, "Reading META (SessId) = %d \n", tcpSessId.to_uint());
-            startOfTcpSeg = false;
+    if (!siTAF_SessId.empty()) {
+        siTAF_SessId.read(appMeta);
+        startOfSegCount++;
+        if (startOfSegCount > 1) {
+            printWarn(myName, "Meta and Data stream did not arrive in expected order!\n");
         }
-        // Read and drain sDataStream
-        if (!siTAF_Data.empty()) {
-            siTAF_Data.read(tcpWord);
-            printInfo(myName, "Reading [TAF] - DATA = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-                      tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
-            if (tcpWord.tlast) {
-                startOfTcpSeg = true;
-                nrSegments++;
-            }
-            //-- Write data to file
-            if (!writeAxiWordToFile(&tcpWord, rawFileStream) or \
-                !writeTcpWordToFile(&tcpWord, tcpFileStream)) {
-                return KO;
-            }
+        tcpSessId = appMeta;
+        printInfo(myName, "Reading META (SessId) = %d \n", tcpSessId.to_uint());
+    }
+    // Read and drain sDataStream
+    if (!siTAF_Data.empty()) {
+        siTAF_Data.read(tcpWord);
+        printInfo(myName, "Reading [TAF] - DATA = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+                  tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
+        if (tcpWord.tlast) {
+            startOfSegCount--;
+            nrSegments++;
+        }
+        //-- Write data to file
+        if (!writeAxiWordToFile(&tcpWord, rawFileStream) or \
+            !writeTcpWordToFile(&tcpWord, tcpFileStream)) {
+            return KO;
         }
     }
     return OK;
@@ -254,7 +253,10 @@ void pTRIF(
     string inpDatFile1 = "../../../../test/ifsSHL_Taf_Data.dat";
     string outRawFile1 = "../../../../test/ofsTAF_Shl_Echo_Path_Thru_Data.dat";
     string outTcpFile1 = "../../../../test/ofsTAF_Shl_Echo_Path_Thru_Data.tcp";
-    string outDatFile2 = "../../../../test/ofsTAF_Shl_Echo_Off_Data.dat";
+    static ofstream ofsRaw2;
+    static ofstream ofsTcp2;
+    string outRawFile2 = "../../../../test/ofsTAF_Shl_Echo_Off_Data.dat";
+    string outTcpFile2 = "../../../../test/ofsTAF_Shl_Echo_Off_Data.tcp";
     static int      graceTime;
 
     bool rcSend;
@@ -270,13 +272,19 @@ void pTRIF(
     //-- STEP-2 : TEST THE PASS-THROUGH MODE
     //------------------------------------------------------
     if (gSimCycCnt == STARTUP_DELAY) {
+        printf("\n## PART-1 : TEST OF THE PASS-THROUGH MODE ####################\n");
+        rxSegCnt = 0;
         *poTAF_EchoCtrl  = ECHO_PATH_THRU;
         *poTAF_PostSegEn = DISABLED;
-        //[TODO] *poTAF_CaptSegEn = DISABLED;
         *poTAF_SessConId = (SessionId(0));
-    }
-    else if (!doneWithPassThroughTest1) {
-        //-- STEP-1.1 : OPEN INPUT TEST FILE #1
+
+        //-- STEP-2.0 : REMOVE PREVIOUS OUTPUT FILES
+        std::remove(outRawFile1.c_str());
+        std::remove(outRawFile2.c_str());
+        std::remove(outTcpFile1.c_str());
+        std::remove(outTcpFile2.c_str());
+
+        //-- STEP-2.1 : OPEN INPUT TEST FILE #1
         if (!ifs1.is_open()) {
             ifs1.open (inpDatFile1.c_str(), ifstream::in);
             if (!ifs1) {
@@ -286,7 +294,7 @@ void pTRIF(
                 return;
             }
         }
-        //-- STEP-1.2 : OPEN TWO OUTPUT DATA FILES #1
+        //-- STEP-2.2 : OPEN TWO OUTPUT DATA FILES #1
         if (!ofsRaw1.is_open()) {
             ofsRaw1.open (outRawFile1.c_str(), ofstream::out);
             if (!ofsRaw1) {
@@ -305,14 +313,16 @@ void pTRIF(
                  return;
              }
          }
-        //-- STEP-1.3 : FEED THE TAF
+    }
+    else if (!doneWithPassThroughTest1) {
+        //-- STEP-2.3 : FEED THE TAF
         rcSend = pTRIF_Send(
                 nrErr,
                 soTAF_Data,
                 soTAF_SessId,
                 ifs1,
                 txSegCnt);
-        //-- STEP-1.4 : READ FROM THE TAF
+        //-- STEP-2.4 : READ FROM THE TAF
         rcRecv = pTRIF_Recv(
                 nrErr,
                 siTAF_Data,
@@ -320,7 +330,7 @@ void pTRIF(
                 ofsRaw1,
                 ofsTcp1,
                 rxSegCnt);
-        //-- STEP-1.5 : CHECK IF TEST IS FINISHED
+        //-- STEP-2.5 : CHECK IF TEST IS FINISHED
         if (!rcSend or !rcRecv or (txSegCnt == rxSegCnt)) {
             ifs1.close();
             ofsRaw1.close();
@@ -336,7 +346,7 @@ void pTRIF(
     }
 
     //------------------------------------------------------
-    //-- STEP-2 : GIVE TEST #1 SOME GRACE TIME TO FINISH
+    //-- STEP-3 : GIVE TEST #1 SOME GRACE TIME TO FINISH
     //------------------------------------------------------
     if (!doneWithPassThroughTest1 or (gSimCycCnt < graceTime))
         return;
@@ -345,42 +355,58 @@ void pTRIF(
     //-- STEP-3 : TEST THE POST-SEGMENT MODE
     //------------------------------------------------------
     if (gSimCycCnt == graceTime) {
+        printf("## PART-2 : TEST OF THE POST-SEGMENT MODE ######################\n");
+        rxSegCnt = 0;
+        //-- STEP-3.1 : SET THE ECHO_OFF & POST_SEG_ENABLE MODES
         *poTAF_EchoCtrl  = ECHO_OFF;
         *poTAF_PostSegEn = ENABLED;
-        //[TODO] *poTAF_CaptSegEn = DISABLED;
-        //-- Set the Session Connect Id Interface
+        printInfo(myName, "Enabling the segment posting mode.\n");
+        //-- STEP-3.2 : SET FORWARD A NEW SESSION CONNECT ID TO TCP_APP_FLASH
         *poTAF_SessConId = (SessionId(1));
+        //-- STEP-3.3 : OPEN TWO OUTPUT DATA FILES #2
+        if (!ofsRaw2.is_open()) {
+            ofsRaw2.open (outRawFile2.c_str(), ofstream::out);
+            if (!ofsRaw2) {
+                printFatal(myName, "Could not open the output Raw data file \'%s\'. \n", outRawFile2.c_str());
+                nrErr++;
+                doneWithPostSegmentTest2 = true;
+                return;
+            }
+        }
+        if (!ofsTcp2.is_open()) {
+             ofsTcp2.open (outTcpFile2.c_str(), ofstream::out);
+             if (!ofsTcp2) {
+                 printFatal(myName, "Could not open the Tcp output data file \'%s\'. \n", outTcpFile2.c_str());
+                 nrErr++;
+                 doneWithPostSegmentTest2 = true;
+                 return;
+             }
+         }
     }
     else if (!doneWithPostSegmentTest2) {
-
+        //-- STEP-3.4 : READ FROM THE TAF
+        rcRecv = pTRIF_Recv(
+                nrErr,
+                siTAF_Data,
+                siTAF_SessId,
+                ofsRaw2,
+                ofsTcp2,
+                rxSegCnt);
+        //-- STEP-3.5 : IF TEST IS FINISHED, DISABLE THE POSTING MODE
+        if (!rcRecv or (rxSegCnt == 6)) {
+            *poTAF_PostSegEn = DISABLED;
+            printInfo(myName, "Disabling the segment posting mode.\n");
+            //-- CLOSE FILES AND VERIFY CONTENT OF OUTPUT FILES
+            ofsRaw2.close();
+            ofsTcp2.close();
+            int rc1 = system("[ $(grep -o -c '6F57206F6C6C65486D6F726620646C72203036554B4D46202D2D2D2D2D2D2D2D' ../../../../test/ofsTAF_Shl_Echo_Off_Data.tcp) -eq 6 ] ");
+            if (rc1) {
+                printError(myName, "File \'%s\' does not content 6 instances of the expected \'Hello World\' string.\n", std::string(outTcpFile2).c_str());
+                nrErr += 1;
+            }
+            doneWithPostSegmentTest2 = true;
+        }
     }
-
-/***
-while (gSimCycCnt < 300) {
-    stepDut(ssDataFromTrif, ssMetaFromTrif);
-    if (gSimCycCnt == 100) {
-        //------------------------------------------------------
-        //-- STEP-2.1 : SET THE ECHO_OFF & POST_SEG_ENABLE MODES
-        //------------------------------------------------------
-        piSHL_MmioEchoCtrl.write(ECHO_OFF);
-        piSHL_MmioPostSegEn.write(ENABLED);
-        printf("[%5.6d] [TB] is enabling the segment posting mode.\n", gSimCycCnt);
-    }
-    else if (gSimCycCnt == 130) {
-        //------------------------------------------------------
-        //-- STEP-2.3 : DISABLE THE POSTING MODE
-        //------------------------------------------------------
-        piSHL_MmioPostSegEn.write(DISABLED);
-        printf("[%4.4d] [TB] is disabling the segment posting mode.\n", gSimCycCnt);
-    }
-    else if (gSimCycCnt > 200) {
-        printf("## TESTBENCH PART-2 ENDS HERE ####################\n");
-        break;
-    }
-}  // End: while()
-***/
-
-
 }
 
 
@@ -420,7 +446,7 @@ int main() {
     int segCnt = 0;
 
     printf("#####################################################\n");
-    printf("## TESTBENCH PART-1 STARTS HERE                    ##\n");
+    printf("## TESTBENCH STARTS HERE                           ##\n");
     printf("#####################################################\n");
 
     //-----------------------------------------------------
