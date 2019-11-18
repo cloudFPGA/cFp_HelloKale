@@ -13,6 +13,21 @@
 # ATTENTION: This script EXPECTS THAT IT IS EXECUTED FROM THE REPOISOTORY ROOT AND ALL NECESSARY ENVIROMENT IS SOURCED! 
 # $root should bet set externally
 
+# STEP 0: we need to set the right environment
+
+export rootDir=$root
+export cFpRootDir="$rootDir/"
+export cFpIpDir="$rootDir/ip/"
+export cFpMOD="FMKU60"
+export usedRoleDir="$rootDir/ROLE/"
+export usedRole2Dir="$rootDir/ROLE/"
+export cFpSRAtype="Themisto"
+export cFpXprDir="$rootDir/xpr/"
+export cFpDcpDir="$rootDir/dcps/"
+export roleName1="default"
+export roleName2="unused"
+
+
 # STEP-1: make a monolithic build
 cd $root
 make monolithic
