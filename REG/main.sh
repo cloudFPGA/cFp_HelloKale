@@ -28,11 +28,14 @@ export roleName1="default"
 export roleName2="unused"
 
 echo "set cFp environment"
+retval=1
 
 # STEP-1: make a monolithic build
 echo "======== START of STEP-1 ========"
 cd $root
 make monolithic
+retval=$? # saving return value
 echo "======== END of STEP-1 ========"
 
+exit $retval
 
