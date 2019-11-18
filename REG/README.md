@@ -1,4 +1,4 @@
-cFDK Regression
+cloudFPGA Regression
 ====================
 
 In order to achieve a certain level of stability and quality of code, cloudFPGA relies on regression builds.
@@ -19,6 +19,8 @@ export root=$PWD
 $root/REG/main.sh
 ```
 (e.g. as Jenkins build command).
+
+The `main.sh` script sets also all necessary cF-environment variables, like a `env/setenv.sh` script would do.
 
 If there are other scripts then the `main.sh` script present in this folder, it is expected that *they are called by `main.sh`*.
 
