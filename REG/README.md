@@ -1,27 +1,27 @@
 cloudFPGA Regression
 ====================
 
-In order to achieve a certain level of stability and quality of code, cloudFPGA relies on regression builds.
-To manage them easily, this folder contains a `main.sh` script that is called by e.g. Jenkins. 
+A regression is a suite of functional verification tests executed against the cFp_Flash project. Such a regression is typically called by a Jenkins server during the software development process.
 
-**The `main.sh` script expects that all environments are set!**
-This means, e.g.:
-* The Xilinx environments are sourced
-* `$root` is set.
+A regression is executed by calling a shell script such as:
+  - `run_main.sh` which performs a '_build monolithic_' of the FPGA followed by a RTL/CO-SIMULATION of the HLS-based IP cores.
 
-So, the build script **should be called as follows:**
+**Warning**
+The above scripts must be executed from the cFp_Flash root directory which must be defined ahead with the _$cFpFlashRootDir_ variable. Any other environment variable must also be sourced beforehand.
+
+**Example** 
+The main cFp_Flash regression script can be called as follows:
+
 ```
 source /tools/Xilinx/Vivado/2017.4/settings64.sh
 
 echo $PWD
-export root=$PWD
+export cFpFlashRootDir=$PWD
 
-$root/REG/main.sh
+$cFpFlashRootDir/REG/run_main.sh
 ```
-(e.g. as Jenkins build command).
 
-The `main.sh` script sets also all necessary cF-environment variables, like a `env/setenv.sh` script would do.
-
-If there are other scripts then the `main.sh` script present in this folder, it is expected that *they are called by `main.sh`*.
+**About the _run_main_ script**  
+The `run_main.sh` script is the main entry point for running a regression. It sets all necessary cF-environment variables, like a typical `env/setenv.sh` script would do. Next, if other scripts are to be run, they are expected to be called by `run_main.sh`.
 
 
