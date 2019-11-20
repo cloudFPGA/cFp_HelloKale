@@ -42,30 +42,34 @@ export roleName2="unused"
 echo "Set cFp environment."
 retval=1
 
+echo "================================================================"
+echo "===   START OF REGRESSION:" 
+echo "===     $0"
+echo "================================================================"
 
 echo "================================================================"
-echo "===   START OF REGRESSION: $0"
-echo "================================================================"
-
-echo "================================================================"
-echo "===   REGRESSION $0 - START OF BUILD: \'monolithic\' "
+echo "===   REGRESSION - START OF BUILD: 'monolithic' "
+echo "===     $0"
 echo "================================================================"
 cd $cFpFlashRootDir 
 make monolithic
 exit_on_error $? 
 echo "================================================================"
-echo "===   REGRESSION $0 - END OF BUILD  : \'monolithic\' "
+echo "===   REGRESSION - END OF BUILD  : 'monolithic' "
+echo "===     $0"
 echo "================================================================"
 
 echo "================================================================"
-echo "===   REGRESSION $0 - START OF COSIM "
+echo "===   REGRESSION - START OF COSIM "
+echo "===     $0"
 echo "================================================================"
 export cFdkRootDir=$cFpFlashRootDir/cFDK
 cd $cFdkRootDir 
-sh $cFdkRootDir/run_cosim_reg.sh
+sh $cFdkRootDir/REG/run_cosim_reg.sh
 exit_on_error $? 
 echo "================================================================"
-echo "===   REGRESSION $0 - END OF COSIM "
+echo "===   REGRESSION - END OF COSIM "
+echo "===     $0"
 echo "================================================================"
 
 exit 0
