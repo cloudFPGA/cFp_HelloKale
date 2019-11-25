@@ -5,9 +5,9 @@
 -- *
 -- *----------------------------------------------------------------------------
 -- *                                                
--- * Title : Top level design for the FLASH content of the FMKU60 module.
+-- * Title : Top level design for the BRING-UP TEST of the FMKU60 module.
 -- *                                                             
--- * File    : topFlash.vhdl
+-- * File    : top.vhdl
 -- *
 -- * Created : Feb. 2018
 -- * Authors : Francois Abel <fab@zurich.ibm.com>
@@ -17,11 +17,11 @@
 -- *
 -- * Dependencies : cloudFPGA Shell IP v1.0.
 -- *
--- * Description : This top level implements the design programmed into the
--- *  Flash of the FMKU60. The design builds on the Shell-Role Architecture
--- *  by specifying the content of the Flash as if it was a specific user's
+-- * Description : This top level implements a design to test and bring-up
+-- *  the FMKU60 module. The design builds on the Shell-Role Architecture
+-- *  by specifying the content of the Role as if it was a specific user
 -- *  application. 
--- *    This design instantiates the default version of the cloudFPGA Shell
+-- *    This design instantiates a limited version of the cloudFPGA Shell
 -- *  as an IP core which consists of a hardware TCP/IP network stack on top
 -- *  of the 10Gb Ethernet interface #0 (ETH0) and a synchronous dynamic 
 -- *  random access memory (SRDM) interface with two DDR4 memory channels
@@ -48,8 +48,8 @@ use     IEEE.numeric_std.all;
 library UNISIM; 
 use     UNISIM.vcomponents.all;
 
---library WORK; 
---use     WORK.topFlash_pkg.all;
+--library WORK;
+--use     WORK.topFlash_pkg.all;  -- Not used
 
 library XIL_DEFAULTLIB;
 use     XIL_DEFAULTLIB.topFMKU_pkg.all;
@@ -115,51 +115,51 @@ entity topFMKU60 is
     ------------------------------------------------------
     -- LED / Heart Beat Interface (Yellow LED)
     ------------------------------------------------------
-    poTOP_Led_HeartBeat_n           : out   std_ulogic;
+    poLED_HeartBeat_n               : out   std_ulogic;
   
     ------------------------------------------------------
     -- -- DDR(4) / Memory Channel 0 Interface (Mc0)
     ------------------------------------------------------
-    pioDDR_Top_Mc0_DmDbi_n          : inout std_ulogic_vector( 8 downto 0);
-    pioDDR_Top_Mc0_Dq               : inout std_ulogic_vector(71 downto 0);
-    pioDDR_Top_Mc0_Dqs_p            : inout std_ulogic_vector( 8 downto 0);
-    pioDDR_Top_Mc0_Dqs_n            : inout std_ulogic_vector( 8 downto 0);
-    poTOP_Ddr4_Mc0_Act_n            : out   std_ulogic;
-    poTOP_Ddr4_Mc0_Adr              : out   std_ulogic_vector(16 downto 0);
-    poTOP_Ddr4_Mc0_Ba               : out   std_ulogic_vector( 1 downto 0);
-    poTOP_Ddr4_Mc0_Bg               : out   std_ulogic_vector( 1 downto 0);
-    poTOP_Ddr4_Mc0_Cke              : out   std_ulogic;
-    poTOP_Ddr4_Mc0_Odt              : out   std_ulogic;
-    poTOP_Ddr4_Mc0_Cs_n             : out   std_ulogic;
-    poTOP_Ddr4_Mc0_Ck_p             : out   std_ulogic;
-    poTOP_Ddr4_Mc0_Ck_n             : out   std_ulogic;
-    poTOP_Ddr4_Mc0_Reset_n          : out   std_ulogic;
+    pioDDR4_Mem_Mc0_DmDbi_n         : inout std_ulogic_vector( 8 downto 0);
+    pioDDR4_Mem_Mc0_Dq              : inout std_ulogic_vector(71 downto 0);
+    pioDDR4_Mem_Mc0_Dqs_p           : inout std_ulogic_vector( 8 downto 0);
+    pioDDR4_Mem_Mc0_Dqs_n           : inout std_ulogic_vector( 8 downto 0);
+    poDDR4_Mem_Mc0_Act_n            : out   std_ulogic;
+    poDDR4_Mem_Mc0_Adr              : out   std_ulogic_vector(16 downto 0);
+    poDDR4_Mem_Mc0_Ba               : out   std_ulogic_vector( 1 downto 0);
+    poDDR4_Mem_Mc0_Bg               : out   std_ulogic_vector( 1 downto 0);
+    poDDR4_Mem_Mc0_Cke              : out   std_ulogic;
+    poDDR4_Mem_Mc0_Odt              : out   std_ulogic;
+    poDDR4_Mem_Mc0_Cs_n             : out   std_ulogic;
+    poDDR4_Mem_Mc0_Ck_p             : out   std_ulogic;
+    poDDR4_Mem_Mc0_Ck_n             : out   std_ulogic;
+    poDDR4_Mem_Mc0_Reset_n          : out   std_ulogic;
 
     ------------------------------------------------------
     -- DDR(4) / Memory Channel 1 Interface (Mc1)
     ------------------------------------------------------
-    pioDDR_Top_Mc1_DmDbi_n          : inout std_ulogic_vector( 8 downto 0);
-    pioDDR_Top_Mc1_Dq               : inout std_ulogic_vector(71 downto 0);
-    pioDDR_Top_Mc1_Dqs_p            : inout std_ulogic_vector( 8 downto 0);
-    pioDDR_Top_Mc1_Dqs_n            : inout std_ulogic_vector( 8 downto 0);
-    poTOP_Ddr4_Mc1_Act_n            : out   std_ulogic;
-    poTOP_Ddr4_Mc1_Adr              : out   std_ulogic_vector(16 downto 0);
-    poTOP_Ddr4_Mc1_Ba               : out   std_ulogic_vector( 1 downto 0);
-    poTOP_Ddr4_Mc1_Bg               : out   std_ulogic_vector( 1 downto 0);
-    poTOP_Ddr4_Mc1_Cke              : out   std_ulogic;
-    poTOP_Ddr4_Mc1_Odt              : out   std_ulogic;
-    poTOP_Ddr4_Mc1_Cs_n             : out   std_ulogic;
-    poTOP_Ddr4_Mc1_Ck_p             : out   std_ulogic;
-    poTOP_Ddr4_Mc1_Ck_n             : out   std_ulogic;
-    poTOP_Ddr4_Mc1_Reset_n          : out   std_ulogic;
+    pioDDR4_Mem_Mc1_DmDbi_n         : inout std_ulogic_vector( 8 downto 0);
+    pioDDR4_Mem_Mc1_Dq              : inout std_ulogic_vector(71 downto 0);
+    pioDDR4_Mem_Mc1_Dqs_p           : inout std_ulogic_vector( 8 downto 0);
+    pioDDR4_Mem_Mc1_Dqs_n           : inout std_ulogic_vector( 8 downto 0);
+    poDDR4_Mem_Mc1_Act_n            : out   std_ulogic;
+    poDDR4_Mem_Mc1_Adr              : out   std_ulogic_vector(16 downto 0);
+    poDDR4_Mem_Mc1_Ba               : out   std_ulogic_vector( 1 downto 0);
+    poDDR4_Mem_Mc1_Bg               : out   std_ulogic_vector( 1 downto 0);
+    poDDR4_Mem_Mc1_Cke              : out   std_ulogic;
+    poDDR4_Mem_Mc1_Odt              : out   std_ulogic;
+    poDDR4_Mem_Mc1_Cs_n             : out   std_ulogic;
+    poDDR4_Mem_Mc1_Ck_p             : out   std_ulogic;
+    poDDR4_Mem_Mc1_Ck_n             : out   std_ulogic;
+    poDDR4_Mem_Mc1_Reset_n          : out   std_ulogic;
 
     ------------------------------------------------------
     -- ECON / Edge Connector Interface (SPD08-200)
     ------------------------------------------------------
-    piECON_Top_10Ge0_n              : in    std_ulogic;  
-    piECON_Top_10Ge0_p              : in    std_ulogic; 
-    poTOP_Econ_10Ge0_n              : out   std_ulogic; -- [FIXME: Rename into poECON]
-    poTOP_Econ_10Ge0_p              : out   std_ulogic  -- [FIXME: Rename into poECON]
+    piECON_Eth_10Ge0_n              : in    std_ulogic;  
+    piECON_Eth_10Ge0_p              : in    std_ulogic; 
+    poECON_Eth_10Ge0_n              : out   std_ulogic;
+    poECON_Eth_10Ge0_p              : out   std_ulogic
 
   );
   
@@ -182,7 +182,6 @@ architecture structural of topFMKU60 is
   -- Global Reset ----------------------------------------
   signal sTOP_156_25Rst_n                   : std_ulogic;
   signal sTOP_156_25Rst                     : std_ulogic;
-  --OBSOLETE-20190826 signal sTOP_156_25Rst_delayed             : std_ulogic;
     
   -- Global Source Synchronous Clock and Reset -----------
   signal sSHL_156_25Clk                     : std_ulogic;
@@ -305,23 +304,23 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Mem_Mp1_RdCmd_tvalid     : std_ulogic;
   signal ssROL_SHL_Mem_Mp1_RdCmd_tready     : std_ulogic;
   ------ Stream Read Status ----------------
-  signal ssSHL_Rol_Mem_Mp1_RdSts_tdata      : std_ulogic_vector(  7 downto 0);
-  signal ssSHL_Rol_Mem_Mp1_RdSts_tvalid     : std_ulogic;
-  signal ssSHL_Rol_Mem_Mp1_RdSts_tready     : std_ulogic;
+  signal ssSHL_ROL_Mem_Mp1_RdSts_tdata      : std_ulogic_vector(  7 downto 0);
+  signal ssSHL_ROL_Mem_Mp1_RdSts_tvalid     : std_ulogic;
+  signal ssSHL_ROL_Mem_Mp1_RdSts_tready     : std_ulogic;
   ------ Stream Data Output Channel --------
-  signal ssSHL_Rol_Mem_Mp1_Read_tdata       : std_ulogic_vector(511 downto 0);
-  signal ssSHL_Rol_Mem_Mp1_Read_tkeep       : std_ulogic_vector( 63 downto 0);
-  signal ssSHL_Rol_Mem_Mp1_Read_tlast       : std_ulogic;
-  signal ssSHL_Rol_Mem_Mp1_Read_tvalid      : std_ulogic;
-  signal ssSHL_Rol_Mem_Mp1_Read_tready      : std_ulogic; 
+  signal ssSHL_ROL_Mem_Mp1_Read_tdata       : std_ulogic_vector(511 downto 0);
+  signal ssSHL_ROL_Mem_Mp1_Read_tkeep       : std_ulogic_vector( 63 downto 0);
+  signal ssSHL_ROL_Mem_Mp1_Read_tlast       : std_ulogic;
+  signal ssSHL_ROL_Mem_Mp1_Read_tvalid      : std_ulogic;
+  signal ssSHL_ROL_Mem_Mp1_Read_tready      : std_ulogic; 
   ------ Stream Write Command --------------
   signal ssROL_SHL_Mem_Mp1_WrCmd_tdata      : std_ulogic_vector( 79 downto 0);
   signal ssROL_SHL_Mem_Mp1_WrCmd_tvalid     : std_ulogic;
   signal ssROL_SHL_Mem_Mp1_WrCmd_tready     : std_ulogic;
   ------ Stream Write Status ---------------
-  signal ssSHL_Rol_Mem_Mp1_WrSts_tdata      : std_ulogic_vector(  7 downto 0);
-  signal ssSHL_Rol_Mem_Mp1_WrSts_tvalid     : std_ulogic;
-  signal ssSHL_Rol_Mem_Mp1_WrSts_tready     : std_ulogic;
+  signal ssSHL_ROL_Mem_Mp1_WrSts_tdata      : std_ulogic_vector(  7 downto 0);
+  signal ssSHL_ROL_Mem_Mp1_WrSts_tvalid     : std_ulogic;
+  signal ssSHL_ROL_Mem_Mp1_WrSts_tready     : std_ulogic;
   ------ Stream Data Input Channel ---------
   signal ssROL_SHL_Mem_Mp1_Write_tdata      : std_ulogic_vector(511 downto 0);
   signal ssROL_SHL_Mem_Mp1_Write_tkeep      : std_ulogic_vector( 63 downto 0);
@@ -352,11 +351,11 @@ architecture structural of topFMKU60 is
    ---- APP_WRROL[0:1] ---------------------
   signal sSHL_ROL_Mmio_WrReg                : std_ulogic_vector( 15 downto 0);
 
-  --------------------------------------------------------
-  -- SIGNAL DECLARATION : [FMC] <--> [ROLE] 
-  --------------------------------------------------------
-  signal sSHL_ROL_Fmc_Rank                  : std_ulogic_vector( 31 downto 0);
-  signal sSHL_ROL_Fmc_Size                  : std_ulogic_vector( 31 downto 0);
+  --OBSOLETE-20191125 --------------------------------------------------------
+  --OBSOLETE-20191125 -- SIGNAL DECLARATION : [FMC] <--> [ROLE] 
+  --OBSOLETE-20191125 --------------------------------------------------------
+  --OBSOLETE-20191125 signal sSHL_ROL_Fmc_Rank                  : std_ulogic_vector( 31 downto 0);
+  --OBSOLETE-20191125 signal sSHL_ROL_Fmc_Size                  : std_ulogic_vector( 31 downto 0);
   
   -- Delayed reset counter 
   signal sRstDelayCounter                   : std_ulogic_vector(5 downto 0);
@@ -411,7 +410,7 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- LED / Heart Beat Interface (Yellow LED)
       ------------------------------------------------------
-      poTOP_Led_HeartBeat_n             : out   std_ulogic;
+      poLED_HeartBeat_n                 : out   std_ulogic;
        
       ------------------------------------------------------
       -- DDR4 / Memory Channel 0 Interface (Mc0)
@@ -460,7 +459,6 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- ROLE / Output Clock and Reset Interfaces
       ------------------------------------------------------
-      -- OBSOLETE-20190826 piTOP_156_25Rst_delayed           : in    std_ulogic;
       poROL_156_25Clk                   : out   std_ulogic;
       poROL_156_25Rst                   : out   std_ulogic;
 
@@ -641,11 +639,11 @@ architecture structural of topFMKU60 is
       ---- APP_WRROL --------------------
       poROL_Mmio_WrReg                  : out   std_ulogic_vector( 15 downto 0);
            
-      --------------------------------------------------------
-      -- ROLE / Fmc / Management Interface 
-      --------------------------------------------------------
-      poROL_Fmc_Rank                    : out   std_logic_vector(31 downto 0);
-      poROL_Fmc_Size                    : out   std_logic_vector(31 downto 0);
+      --OBSOLETE-20191125 --------------------------------------------------------
+      --OBSOLETE-20191125 -- ROLE / Fmc / Management Interface 
+      --OBSOLETE-20191125 --------------------------------------------------------
+      --OBSOLETE-20191125 poROL_Fmc_Rank                    : out   std_logic_vector(31 downto 0);
+      --OBSOLETE-20191125 poROL_Fmc_Size                    : out   std_logic_vector(31 downto 0);
       
       poVoid                            : out   std_ulogic
  
@@ -910,33 +908,7 @@ begin
       DATA      => sTOP_Timestamp,  -- 32-bit configuration data
       DATAVALID => open             -- Not used in the static mode
     );
-   
-   /*** OBSOLETE-20190826 
-   -- ========================================================================
-   -- == Generation of delayed reset for HLS cores
-   -- ==  [TODO: SUPER-UGGLY!!! Get rid of this reset or move it into SHL]
-   -- ========================================================================
-   process(sSHL_156_25Clk)
-   begin
-     if rising_edge(sSHL_156_25Clk) then 
-       if sSHL_156_25Rst = '1' then
-         sTOP_156_25Rst_delayed <= '0';
-         sRstDelayCounter <= (others => '0');
-       else
-        -- if unsigned(sRstDelayCounter) <= 20 then 
-        --   sSHL_156_25Rst_delayed <= '0';
-        --   sRstDelayCounter <= std_logic_vector(unsigned(sRstDelayCounter) + 1);
-        if unsigned(sRstDelayCounter) <= 20 then 
-           sTOP_156_25Rst_delayed <= '1';
-           sRstDelayCounter <= std_logic_vector(unsigned(sRstDelayCounter) + 1);
-        else
-           sTOP_156_25Rst_delayed <= '0';
-         end if;
-       end if;
-     end if;
-   end process;
-   ***/
-   
+  
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
   --==   This version of the SHELL has the following user interfaces:
@@ -985,56 +957,55 @@ begin
       ------------------------------------------------------
       -- LED / Shl / Heart Beat Interface => Yellow LED)
       ------------------------------------------------------
-      poTOP_Led_HeartBeat_n             => poTOP_Led_HeartBeat_n,
+      poLED_HeartBeat_n                 => poLED_HeartBeat_n,
 
       ------------------------------------------------------
       -- DDR4 / Memory Channel 0 Interface => (Mc0)
       ------------------------------------------------------
-      pioDDR4_Mem_Mc0_DmDbi_n           => pioDDR_Top_Mc0_DmDbi_n,
-      pioDDR4_Mem_Mc0_Dq                => pioDDR_Top_Mc0_Dq,
-      pioDDR4_Mem_Mc0_Dqs_n             => pioDDR_Top_Mc0_Dqs_n,
-      pioDDR4_Mem_Mc0_Dqs_p             => pioDDR_Top_Mc0_Dqs_p,
-      poDDR4_Mem_Mc0_Act_n              => poTOP_Ddr4_Mc0_Act_n,
-      poDDR4_Mem_Mc0_Adr                => poTOP_Ddr4_Mc0_Adr,
-      poDDR4_Mem_Mc0_Ba                 => poTOP_Ddr4_Mc0_Ba,
-      poDDR4_Mem_Mc0_Bg                 => poTOP_Ddr4_Mc0_Bg,
-      poDDR4_Mem_Mc0_Cke                => poTOP_Ddr4_Mc0_Cke,
-      poDDR4_Mem_Mc0_Odt                => poTOP_Ddr4_Mc0_Odt,
-      poDDR4_Mem_Mc0_Cs_n               => poTOP_Ddr4_Mc0_Cs_n,
-      poDDR4_Mem_Mc0_Ck_n               => poTOP_Ddr4_Mc0_Ck_n,
-      poDDR4_Mem_Mc0_Ck_p               => poTOP_Ddr4_Mc0_Ck_p,
-      poDDR4_Mem_Mc0_Reset_n            => poTOP_Ddr4_Mc0_Reset_n,
+      pioDDR4_Mem_Mc0_DmDbi_n           => pioDDR4_Mem_Mc0_DmDbi_n,
+      pioDDR4_Mem_Mc0_Dq                => pioDDR4_Mem_Mc0_Dq,
+      pioDDR4_Mem_Mc0_Dqs_n             => pioDDR4_Mem_Mc0_Dqs_n,
+      pioDDR4_Mem_Mc0_Dqs_p             => pioDDR4_Mem_Mc0_Dqs_p,
+      poDDR4_Mem_Mc0_Act_n              => poDDR4_Mem_Mc0_Act_n,
+      poDDR4_Mem_Mc0_Adr                => poDDR4_Mem_Mc0_Adr,
+      poDDR4_Mem_Mc0_Ba                 => poDDR4_Mem_Mc0_Ba,
+      poDDR4_Mem_Mc0_Bg                 => poDDR4_Mem_Mc0_Bg,
+      poDDR4_Mem_Mc0_Cke                => poDDR4_Mem_Mc0_Cke,
+      poDDR4_Mem_Mc0_Odt                => poDDR4_Mem_Mc0_Odt,
+      poDDR4_Mem_Mc0_Cs_n               => poDDR4_Mem_Mc0_Cs_n,
+      poDDR4_Mem_Mc0_Ck_n               => poDDR4_Mem_Mc0_Ck_n,
+      poDDR4_Mem_Mc0_Ck_p               => poDDR4_Mem_Mc0_Ck_p,
+      poDDR4_Mem_Mc0_Reset_n            => poDDR4_Mem_Mc0_Reset_n,
       
       ------------------------------------------------------
       -- DDR4 / Shl / Memory Channel 1 Interface (Mc1)
       ------------------------------------------------------
-      pioDDR4_Mem_Mc1_DmDbi_n           => pioDDR_Top_Mc1_DmDbi_n,
-      pioDDR4_Mem_Mc1_Dq                => pioDDR_Top_Mc1_Dq,
-      pioDDR4_Mem_Mc1_Dqs_n             => pioDDR_Top_Mc1_Dqs_n,
-      pioDDR4_Mem_Mc1_Dqs_p             => pioDDR_Top_Mc1_Dqs_p,
-      poDDR4_Mem_Mc1_Act_n              => poTOP_Ddr4_Mc1_Act_n,
-      poDDR4_Mem_Mc1_Adr                => poTOP_Ddr4_Mc1_Adr,
-      poDDR4_Mem_Mc1_Ba                 => poTOP_Ddr4_Mc1_Ba,
-      poDDR4_Mem_Mc1_Bg                 => poTOP_Ddr4_Mc1_Bg,
-      poDDR4_Mem_Mc1_Cke                => poTOP_Ddr4_Mc1_Cke,
-      poDDR4_Mem_Mc1_Odt                => poTOP_Ddr4_Mc1_Odt,
-      poDDR4_Mem_Mc1_Cs_n               => poTOP_Ddr4_Mc1_Cs_n,
-      poDDR4_Mem_Mc1_Ck_n               => poTOP_Ddr4_Mc1_Ck_n,
-      poDDR4_Mem_Mc1_Ck_p               => poTOP_Ddr4_Mc1_Ck_p,
-      poDDR4_Mem_Mc1_Reset_n            => poTOP_Ddr4_Mc1_Reset_n,
+      pioDDR4_Mem_Mc1_DmDbi_n           => pioDDR4_Mem_Mc1_DmDbi_n,
+      pioDDR4_Mem_Mc1_Dq                => pioDDR4_Mem_Mc1_Dq,
+      pioDDR4_Mem_Mc1_Dqs_n             => pioDDR4_Mem_Mc1_Dqs_n,
+      pioDDR4_Mem_Mc1_Dqs_p             => pioDDR4_Mem_Mc1_Dqs_p,
+      poDDR4_Mem_Mc1_Act_n              => poDDR4_Mem_Mc1_Act_n,
+      poDDR4_Mem_Mc1_Adr                => poDDR4_Mem_Mc1_Adr,
+      poDDR4_Mem_Mc1_Ba                 => poDDR4_Mem_Mc1_Ba,
+      poDDR4_Mem_Mc1_Bg                 => poDDR4_Mem_Mc1_Bg,
+      poDDR4_Mem_Mc1_Cke                => poDDR4_Mem_Mc1_Cke,
+      poDDR4_Mem_Mc1_Odt                => poDDR4_Mem_Mc1_Odt,
+      poDDR4_Mem_Mc1_Cs_n               => poDDR4_Mem_Mc1_Cs_n,
+      poDDR4_Mem_Mc1_Ck_n               => poDDR4_Mem_Mc1_Ck_n,
+      poDDR4_Mem_Mc1_Ck_p               => poDDR4_Mem_Mc1_Ck_p,
+      poDDR4_Mem_Mc1_Reset_n            => poDDR4_Mem_Mc1_Reset_n,
       
       ------------------------------------------------------
       -- ECON / Edge / Connector Interface (SPD08-200)
       ------------------------------------------------------
-      piECON_Eth_10Ge0_n                => piECON_Top_10Ge0_n,
-      piECON_Eth_10Ge0_p                => piECON_Top_10Ge0_p,
-      poECON_Eth_10Ge0_n                => poTOP_Econ_10Ge0_n, 
-      poECON_Eth_10Ge0_p                => poTOP_Econ_10Ge0_p,
+      piECON_Eth_10Ge0_n                => piECON_Eth_10Ge0_n,
+      piECON_Eth_10Ge0_p                => piECON_Eth_10Ge0_p,
+      poECON_Eth_10Ge0_n                => poECON_Eth_10Ge0_n, 
+      poECON_Eth_10Ge0_p                => poECON_Eth_10Ge0_p,
       
       ------------------------------------------------------
       -- ROLE / Reset and Clock Interfaces
       ------------------------------------------------------
-      -- OBSOLETE-20190826  piTOP_156_25Rst_delayed           => sTOP_156_25Rst_delayed,
       poROL_156_25Clk                   => sSHL_156_25Clk,
       poROL_156_25Rst                   => sSHL_156_25Rst,
 
@@ -1215,16 +1186,15 @@ begin
       ---- [APP_WRROL] -----------------
       poROL_Mmio_WrReg                  => sSHL_ROL_Mmio_WrReg,
             
-      --------------------------------------------------------
-      -- ROLE / Fmc / Management Interface 
-      --------------------------------------------------------
-      poROL_Fmc_Rank                    => sSHL_ROL_Fmc_Rank,
-      poROL_Fmc_Size                    => sSHL_ROL_Fmc_Size,
+      --OBSOLETE-20191125 --------------------------------------------------------
+      --OBSOLETE-20191125 -- ROLE / Fmc / Management Interface 
+      --OBSOLETE-20191125 --------------------------------------------------------
+      --OBSOLETE-20191125 poROL_Fmc_Rank                    => sSHL_ROL_Fmc_Rank,
+      --OBSOLETE-20191125 poROL_Fmc_Size                    => sSHL_ROL_Fmc_Size,
       
       poVoid                            => open
          
   );  -- End of SuperShell instantiation
-
 
   --==========================================================================
   --  INST: ROLE FOR FMKU60
@@ -1237,7 +1207,6 @@ begin
       ------------------------------------------------------
       piSHL_156_25Clk                   => sSHL_156_25Clk,
       piSHL_156_25Rst                   => sSHL_156_25Rst,
-      --OBSOLETE-20190826 piTOP_156_25Rst_delayed           => sTOP_156_25Rst_delayed,
     
       ------------------------------------------------------
       -- SHELL / Nts / Udp Interface
