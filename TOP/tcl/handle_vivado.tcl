@@ -575,13 +575,12 @@ if { ${synth} } {
     #secureSynth
     #guidedSynth
     
-    #we are missing synth logs...
-    ##ensure synth finished successfull
-    #if {[get_property STATUS [get_runs synth_1]] != {synth_design Complete!}} {
-    #  my_err_puts " SYNTHESIS FAILED"
-    #  after 10000
-    #  exit ${KO}
-    #}
+    #ensure synth finished successfull
+    if {[get_property STATUS [get_runs synth_1]] != {synth_design Complete!}} {
+      my_err_puts " SYNTHESIS FAILED"
+      after 10000
+      exit ${KO}
+    }
 
     if { ! $forceWithoutBB } { 
       open_run synth_1 -name synth_1
