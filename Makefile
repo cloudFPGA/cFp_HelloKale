@@ -20,7 +20,7 @@ ROLE2_DIR =$(usedRole2Dir)
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
-.PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify assert_env
+.PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify assert_env testError
 #.PHONY: pr_full_mpi pr_only_mpi pr2_only_mpi monolithic_mpi monolithic_mpi_incr RoleMPItype RoleMPI2type RoleMPItypeSrc
 
 all: pr
@@ -142,6 +142,11 @@ save_mono_incr: ensureMonolithic  ## Saves the current monolithic for use in fur
 
 pr_verify: assert_env
 	$(MAKE) -C ./TOP/tcl/ pr_verify
+
+
+testError: assert_env
+	test 0 -eq 1
+	echo "This line shoud NEVER be reached"
 
 
 ensureNotMonolithic: assert_env | xpr 
