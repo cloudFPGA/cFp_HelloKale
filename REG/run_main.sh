@@ -66,7 +66,8 @@ echo "===     $0"
 echo "================================================================"
 export cFdkRootDir=$cFpFlashRootDir/cFDK
 cd $cFdkRootDir 
-sh $cFdkRootDir/REG/run_cosim_reg.sh
+echo "SKIPPED"
+#sh $cFdkRootDir/REG/run_cosim_reg.sh
 exit_on_error $? 
 echo "================================================================"
 echo "===   REGRESSION - END OF COSIM "

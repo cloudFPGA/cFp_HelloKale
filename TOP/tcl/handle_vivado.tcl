@@ -1006,7 +1006,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 # Close project
 #-------------------------------------------------------------------------------
 catch {close_project}
-
+exit 47
 
 
 
