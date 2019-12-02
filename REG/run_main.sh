@@ -53,6 +53,7 @@ echo "===     $0"
 echo "================================================================"
 cd $cFpFlashRootDir 
 #make testError
+make full_clean #just to be sure...
 make monolithic
 exit_on_error $? 
 echo "================================================================"
@@ -66,8 +67,7 @@ echo "===     $0"
 echo "================================================================"
 export cFdkRootDir=$cFpFlashRootDir/cFDK
 cd $cFdkRootDir 
-echo "SKIPPED"
-#sh $cFdkRootDir/REG/run_cosim_reg.sh
+sh $cFdkRootDir/REG/run_cosim_reg.sh
 exit_on_error $? 
 echo "================================================================"
 echo "===   REGRESSION - END OF COSIM "
