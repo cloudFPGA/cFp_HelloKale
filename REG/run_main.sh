@@ -20,7 +20,7 @@
 # @param[in] $1 the return value of the previous command.
 function exit_on_error {
     if [ $1 -ne 0 ]; then
-        echo "EXIT ON ERROR: Regression \'$0\' FAILED."
+        echo "EXIT ON ERROR: Regression '$0' FAILED."
         echo "  Last return value was $1."
         exit $1
     fi
@@ -33,7 +33,7 @@ export cFpIpDir="$rootDir/ip/"
 export cFpMOD="FMKU60"
 export usedRoleDir="$rootDir/ROLE/"
 export usedRole2Dir="$rootDir/ROLE/"
-export cFpSRAtype="Themisto"
+export cFpSRAtype="x1Udp_x1Tcp_x2Mp_x2Mc"
 export cFpXprDir="$rootDir/xpr/"
 export cFpDcpDir="$rootDir/dcps/"
 export roleName1="default"
@@ -52,7 +52,8 @@ echo "===   REGRESSION - START OF BUILD: 'monolithic' "
 echo "===     $0"
 echo "================================================================"
 cd $cFpFlashRootDir 
-make monolithic
+#make monolithic
+make testError
 exit_on_error $? 
 echo "================================================================"
 echo "===   REGRESSION - END OF BUILD  : 'monolithic' "
