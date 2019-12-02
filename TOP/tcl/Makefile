@@ -45,7 +45,7 @@ basecmd:
 
 finalcmd:
 	@#more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\nretVal=$$?\ndate > end.date\nexit $$retVal" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 

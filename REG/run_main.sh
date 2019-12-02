@@ -52,8 +52,8 @@ echo "===   REGRESSION - START OF BUILD: 'monolithic' "
 echo "===     $0"
 echo "================================================================"
 cd $cFpFlashRootDir 
-#make monolithic
-make testError
+#make testError
+make monolithic
 exit_on_error $? 
 echo "================================================================"
 echo "===   REGRESSION - END OF BUILD  : 'monolithic' "
