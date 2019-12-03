@@ -1,6 +1,6 @@
-cFp_Flash
+cFp_BringUp
 ================
-**cloudFPGA project (cFp) for the Flash**
+**cloudFPGA project (cFp) for the BringUp of the Platform**
 
 
 ## ABOUT
