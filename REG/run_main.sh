@@ -39,6 +39,10 @@ export cFpDcpDir="$rootDir/dcps/"
 export roleName1="default"
 export roleName2="unused"
 
+#also, we need a license:
+export XILINXD_LICENSE_FILE=2100@pokwinlic1.pok.ibm.com:2100@pokwinlic2.pok.ibm.com:2100@pokwinlic3.pok.ibm.com
+
+
 echo "Set cFp environment."
 retval=1
 
