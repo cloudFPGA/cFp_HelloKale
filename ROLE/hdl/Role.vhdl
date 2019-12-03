@@ -59,7 +59,7 @@ use     UNISIM.vcomponents.all;
 --**  ENTITY  **  FMKU60 ROLE
 --******************************************************************************
 
-entity Role_x1Udp_x1Tcp_x2Mp is
+entity Role_Kale is
   port (
 
     --------------------------------------------------------
@@ -256,14 +256,14 @@ entity Role_x1Udp_x1Tcp_x2Mp is
 
   );
   
-end Role_x1Udp_x1Tcp_x2Mp;
+end Role_Kale;
 
 
 -- *****************************************************************************
 -- **  ARCHITECTURE  **  FLASH of ROLE 
 -- *****************************************************************************
 
-architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
+architecture Flash of Role_Kale is
 
   constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;

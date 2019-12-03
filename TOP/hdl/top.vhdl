@@ -367,7 +367,7 @@ architecture structural of topFMKU60 is
   -- [INFO] The SHELL component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-  component Shell_x1Udp_x1Tcp_x2Mp_x2Mc
+  component Shell_Kale
     generic (
       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
       gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
@@ -648,13 +648,13 @@ architecture structural of topFMKU60 is
       poVoid                            : out   std_ulogic
  
     );
-  end component Shell_x1Udp_x1Tcp_x2Mp_x2Mc;
+  end component Shell_Kale;
 
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-  component Role_x1Udp_x1Tcp_x2Mp
+  component Role_Kale
     port (
       
       ------------------------------------------------------
@@ -849,7 +849,7 @@ architecture structural of topFMKU60 is
          
       poVoid                              : out   std_ulogic          
     );
-    end component Role_x1Udp_x1Tcp_x2Mp;
+    end component Role_Kale;
 
 begin
   
@@ -914,7 +914,7 @@ begin
   --==   This version of the SHELL has the following user interfaces:
   --==    - one UDP, one TCP, and two MemoryPort interfaces. 
   --==========================================================================
-  SHELL : Shell_x1Udp_x1Tcp_x2Mp_x2Mc
+  SHELL : Shell_Kale
     generic map (
       gSecurityPriviledges => "super",
       gBitstreamUsage      => "flash",
@@ -1199,7 +1199,7 @@ begin
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
-  ROLE : Role_x1Udp_x1Tcp_x2Mp
+  ROLE : Role_Kale
     port map (
     
       ------------------------------------------------------
