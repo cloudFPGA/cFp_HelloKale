@@ -63,7 +63,6 @@ export roleName1="default"
 export roleName2="unused"
 
 # STEP-2b: Add floating licence servers for the Xilinx tools
-# export XILINXD_LICENSE_FILE=2100@pokwinlic1.pok.ibm.com:2100@pokwinlic2.pok.ibm.com:2100@pokwinlic3.pok.ibm.com
 export XILINXD_LICENSE_FILE=27001@boswil.zurich.ibm.com:27001@uzwil.zurich.ibm.com:27001@inwil.zurich.ibm.com:2100@pokwinlic1.pok.ibm.com:2100@pokwinlic2.pok.ibm.com:2100@pokwinlic3.pok.ibm.com:2100@csslab3.watson.ibm.com
 
 echo "<$0> Done with the setting of the environment."
@@ -78,9 +77,9 @@ echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
 echo "<$0> ================================================================"
 cd $cFpBringUpRootDir
 # make testError
-# make full_clean #just to be sure...
-# make monolithic
-# exit_on_error $? 
+make full_clean # just to be sure...
+make monolithic
+exit_on_error $? 
 echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - END OF BUILD  : 'monolithic' "
 echo "<$0> ================================================================"
