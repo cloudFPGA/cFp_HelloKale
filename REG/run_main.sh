@@ -7,27 +7,50 @@
 #  *     Authors: FAB, WEI, NGL, POL
 #  *
 #  *     Description:
-#  *        Main cFp_Flash regressions script.
+#  *        Main cFp_BringUp regression script.
+#  *
+#  *     Synopsis:
+#  *        run_main <cFpBringUpRootDir>
 #  *
 #  *     Details:
-#  *       - This script is typically called the Jenkins server.
-#  *       - It expects to be executed from the cFDK root directory.
-#  *       - The '$cFpFlashRootDir' variable must be set externally. 
+#  *       - This script is typically called by the Jenkins server.
+#  *       - It expects to be executed from the cFp_BringUp root directory.
+#  *       - The '$cFpBringUpRootDir' variable must be set externally or passed as a parameter. 
 #  *       - All environment variables must be sourced beforehand.
 #  *
 
+
+#-----------------------------------------------------------
 # @brief A function to check if previous step passed.
 # @param[in] $1 the return value of the previous command.
+#-----------------------------------------------------------
 function exit_on_error {
     if [ $1 -ne 0 ]; then
-        echo "EXIT ON ERROR: Regression '$0' FAILED."
-        echo "  Last return value was $1."
+        echo "<$0> EXIT ON ERROR: "
+        echo "<$0>    Regression '$0' FAILED. "
         exit $1
     fi
 }
 
-# STEP-0: We need to set the right environment
-export rootDir=$cFpFlashRootDir 
+
+
+# STEP-1a: Check if '$cFpBringUpRootDir' is passed as a parameter
+if [[  $# -eq 1 ]]; then
+    echo "<$0> The regression root directory is passed as an argument:"
+    echo "<$0>   Regression root directory = '$1' "
+    export cFpBringUpRootDir=$1
+fi
+
+# STEP-1b: Confirm that '$cFpBringUpRootDir' is set
+if [[ -z $cFpBringUpRootDir ]]; then
+    echo "<$0> STOP ON ERROR: "
+    echo "<$0>   You must provide the path of the regression root directory as an argument, "
+    echo "<$0>   or you must set the environment variable '\$cFpBringUpRootDir'."
+    exit_on_error 1
+fi
+
+# STEP-2a: Set the environment variables
+export rootDir=$cFpBringUpRootDir 
 export cFpRootDir="$rootDir/"
 export cFpIpDir="$rootDir/ip/"
 export cFpMOD="FMKU60"
@@ -39,44 +62,39 @@ export cFpDcpDir="$rootDir/dcps/"
 export roleName1="default"
 export roleName2="unused"
 
-#also, we need a license:
-export XILINXD_LICENSE_FILE=2100@pokwinlic1.pok.ibm.com:2100@pokwinlic2.pok.ibm.com:2100@pokwinlic3.pok.ibm.com
+# STEP-2b: Add floating licence servers for the Xilinx tools
+# export XILINXD_LICENSE_FILE=2100@pokwinlic1.pok.ibm.com:2100@pokwinlic2.pok.ibm.com:2100@pokwinlic3.pok.ibm.com
+export XILINXD_LICENSE_FILE=27001@boswil.zurich.ibm.com:27001@uzwil.zurich.ibm.com:27001@inwil.zurich.ibm.com:2100@pokwinlic1.pok.ibm.com:2100@pokwinlic2.pok.ibm.com:2100@pokwinlic3.pok.ibm.com:2100@csslab3.watson.ibm.com
 
-
-echo "Set cFp environment."
+echo "<$0> Done with the setting of the environment."
 retval=1
 
-echo "================================================================"
-echo "===   START OF REGRESSION:" 
-echo "===     $0"
-echo "================================================================"
+echo "<$0> ================================================================"
+echo "<$0> ===   START OF REGRESSION:" 
+echo "<$0> ================================================================"
 
-echo "================================================================"
-echo "===   REGRESSION - START OF BUILD: 'monolithic' "
-echo "===     $0"
-echo "================================================================"
-cd $cFpFlashRootDir 
-#make testError
-make full_clean #just to be sure...
-make monolithic
-exit_on_error $? 
-echo "================================================================"
-echo "===   REGRESSION - END OF BUILD  : 'monolithic' "
-echo "===     $0"
-echo "================================================================"
+echo "<$0> ================================================================"
+echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
+echo "<$0> ================================================================"
+cd $cFpBringUpRootDir
+# make testError
+# make full_clean #just to be sure...
+# make monolithic
+# exit_on_error $? 
+echo "<$0> ================================================================"
+echo "<$0> ===   REGRESSION - END OF BUILD  : 'monolithic' "
+echo "<$0> ================================================================"
 
-echo "================================================================"
-echo "===   REGRESSION - START OF COSIM "
-echo "===     $0"
-echo "================================================================"
-export cFdkRootDir=$cFpFlashRootDir/cFDK
+echo "<$0> ================================================================"
+echo "<$0> ===   REGRESSION - START OF COSIM "
+echo "<$0> ================================================================"
+export cFdkRootDir=$cFpBringUpRootDir/cFDK
 cd $cFdkRootDir 
 sh $cFdkRootDir/REG/run_cosim_reg.sh
 exit_on_error $? 
-echo "================================================================"
-echo "===   REGRESSION - END OF COSIM "
-echo "===     $0"
-echo "================================================================"
+echo "<$0> ================================================================"
+echo "<$0> ===   REGRESSION - END OF COSIM "
+echo "<$0> ================================================================"
 
 exit 0
 
