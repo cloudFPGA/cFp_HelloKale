@@ -77,7 +77,7 @@ echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
 echo "<$0> ================================================================"
 cd $cFpBringUpRootDir
 # make testError
-make full_clean # just to be sure...
+# make full_clean # just to be sure...
 make monolithic
 exit_on_error $? 
 echo "<$0> ================================================================"
