@@ -1,20 +1,42 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
- * @file       : test_tcp_role_if.cpp
- * @brief      : Testbench for the TCP Role Interface.
+ * @file       : test_tcp_shell_if.cpp
+ * @brief      : Testbench for the TCP Shell Interface.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Stack (NTS)
+ * Component   : cFp_BringUp/ROLE/TcpShellInterface (TSIF)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *****************************************************************************/
 
 #include <hls_stream.h>
 #include <iostream>
 
-#include "../src/tcp_role_if.hpp"
+#include "../src/tcp_shell_if.hpp"
 
 using namespace hls;
 using namespace std;
@@ -27,11 +49,11 @@ using namespace std;
 
 #define TRACE_OFF     0x0000
 #define TRACE_TOE    1 <<  1
-#define TRACE_ROLE   1 <<  2
+#define TRACE_TAF    1 <<  2
 #define TRACE_MMIO   1 <<  3
 #define TRACE_ALL     0xFFFF
 
-#define DEBUG_LEVEL (TRACE_TOE | TRACE_ROLE)
+#define DEBUG_LEVEL (TRACE_TOE | TRACE_TAF)
 
 //------------------------------------------------------
 //-- TESTBENCH DEFINITIONS
@@ -64,29 +86,29 @@ unsigned int    gMaxSimCycles = 0x8000 + 200;
 #define DEFAULT_SESSION_LEN     32
 
 /*****************************************************************************
- * @brief Emulate the behavior of the ROLE.
+ * @brief Emulate the behavior of the ROLE/TcpAppFlash (TAF).
  *
- * @param[in]  siTRIF_Data,   Data to TcpRoleInterface (TRIF).
- * @param[in]  siTRIF_SessId, Session ID to [TRIF].
- * @param[out] soROLE_Data,   Data stream to [TRIF].
- * @param[out] soROLE_SessId  SessionID to [TRFI].
+ * @param[in]  siTSIF_Data,   Data to TcpShellInterface (TSIF).
+ * @param[in]  siTSIF_SessId, Session ID to [TSIF].
+ * @param[out] soTSIF_Data,   Data stream to [TSIF].
+ * @param[out] soTSIF_SessId  SessionID to [TSIF].
+
  * @details
  *
- * @ingroup test_tcp_role_if
  ******************************************************************************/
-void pROLE(
-        //-- TRIF / Rx Data Interface
-        stream<AppData>     &siTRIF_Data,
-        stream<AppMetaAxis> &siTRIF_SessId,
-        //-- TRIF / Tx Data Interface
-        stream<AppData>     &soTRIF_Data,
-        stream<AppMetaAxis> &soTRIF_SessId)
+void pTAF(
+        //-- TSIF / Rx Data Interface
+        stream<AppData>     &siTSIF_Data,
+        stream<AppMetaAxis> &siTSIF_SessId,
+        //-- TSIF / Tx Data Interface
+        stream<AppData>     &soTSIF_Data,
+        stream<AppMetaAxis> &soTSIF_SessId)
 {
     AppData         currWord;
     AppMetaAxis     tcpSessId;
 
-    const char *myRxName  = concat3(THIS_NAME, "/", "ROLE-Rx");
-    const char *myTxName  = concat3(THIS_NAME, "/", "ROLE-Tx");
+    const char *myRxName  = concat3(THIS_NAME, "/", "TAF-Rx");
+    const char *myTxName  = concat3(THIS_NAME, "/", "TAF-Tx");
 
     //------------------------------------------------------
     //-- ALWAYS READ INCOMING DATA STREAM AND ECHO IT  BACK
@@ -96,19 +118,19 @@ void pROLE(
 
     switch (rxFsmState ) {
     case RX_WAIT_META:
-        if (!siTRIF_SessId.empty() and !soTRIF_SessId.full()) {
-            siTRIF_SessId.read(tcpSessId);
-            soTRIF_SessId.write(tcpSessId);
+        if (!siTSIF_SessId.empty() and !soTSIF_SessId.full()) {
+            siTSIF_SessId.read(tcpSessId);
+            soTSIF_SessId.write(tcpSessId);
             rxFsmState  = RX_STREAM;
         }
         break;
     case RX_STREAM:
-        if (!siTRIF_Data.empty() && !soTRIF_Data.full()) {
-            siTRIF_Data.read(currWord);
-            if (DEBUG_LEVEL & TRACE_ROLE) {
+        if (!siTSIF_Data.empty() && !soTSIF_Data.full()) {
+            siTSIF_Data.read(currWord);
+            if (DEBUG_LEVEL & TRACE_TAF) {
                  printAxiWord(myRxName, currWord);
             }
-            soTRIF_Data.write(currWord);
+            soTSIF_Data.write(currWord);
             if (currWord.tlast)
                 rxFsmState  = RX_WAIT_META;
         }
@@ -118,67 +140,66 @@ void pROLE(
 }
 
 /*****************************************************************************
- * @brief Emulate the behavior of the MMIO.
+ * @brief Emulate the behavior of the SHELL/MMIO.
  *
- * @param[in]  piTOE_Ready    Ready Signal from [TOE].
- * @param[out] poTRIF_Enable  Enable signal to [TRIF].
+ * @param[in]  pSHL_Ready     Ready Signal from [SHELL].
+ * @param[out] poTSIF_Enable  Enable signal to [TSIF].
  *
  ******************************************************************************/
 void pMMIO(
-        //-- TOE / Ready Signal
-        StsBit      *piTOE_Ready,
+        //-- SHELL / Ready Signal
+        StsBit      *piSHL_Ready,
         //-- MMIO / Enable Layer-7 (.i.e APP alias ROLE)
-        ap_uint<1>  *poTRIF_Enable)
+        CmdBit      *poTSIF_Enable)
 {
     const char *myName  = concat3(THIS_NAME, "/", "MMIO");
 
     static bool printOnce = true;
 
-    if (*piTOE_Ready) {
-        *poTRIF_Enable = 1;
+    if (*piSHL_Ready) {
+        *poTSIF_Enable = 1;
         if (printOnce) {
-            printInfo(myName, "[TOE] is ready -> Enabling operation of the TCP Role Interface [TRIF].\n");
+            printInfo(myName, "[SHELL/NTS/TOE] is ready -> Enabling operation of the TCP Shell Interface [TSIF].\n");
             printOnce = false;
         }
     }
     else {
-        *poTRIF_Enable = 0;
+        *poTSIF_Enable = 0;
     }
 }
 
-
 /*****************************************************************************
- * @brief Emulate the behavior of the TCP Offload Engine (TOE).
+ * @brief Emulate behavior of the SHELL/NTS/TCP Offload Engine (TOE).
  *
  * @param[in]  nrErr,         A ref to the error counter of main.
  * @param[out] poMMIO_Ready,  Ready signal to [MMIO].
- * @param[out] soTRIF_Notif,  Notification to TcpRoleInterface (TRIF).
- * @param[in]  siTRIF_DReq,   Data read request from [TRIF}.
- * @param[out] soTRIF_Data,   Data to [TRIF].
- * @param[out] soTRIF_SessId, Session Id to [TRIF].
- * @param[in]  siTRIF_LsnReq, Listen port request from [TRIF].
- * @param[out] soTRIF_LsnAck, Listen port acknowledge to [TRIF].
+ * @param[out] soTSIF_Notif,  Notification to TcpShellInterface (TSIF).
+ * @param[in]  siTSIF_DReq,   Data read request from [TSIF].
+ * @param[out] soTSIF_Data,   Data to [TSIF].
+ * @param[out] soTSIF_SessId, Session Id to [TSIF].
+ * @param[in]  siTSIF_LsnReq, Listen port request from [TSIF].
+ * @param[out] soTSIF_LsnAck, Listen port acknowledge to [TSIF].
  *
  ******************************************************************************/
 void pTOE(
         int                   &nrErr,
-        //-- TOE / Ready Signal
+        //-- MMIO / Ready Signal
         StsBit                *poMMIO_Ready,
-        //-- TOE / Tx Data Interfaces
-        stream<AppNotif>      &soTRIF_Notif,
-        stream<AppRdReq>      &siTRIF_DReq,
-        stream<AppData>       &soTRIF_Data,
-        stream<AppMetaAxis>   &soTRIF_SessId,
-        //-- TOE / Listen Interfaces
-        stream<AppLsnReqAxis> &siTRIF_LsnReq,
-        stream<AppLsnAckAxis> &soTRIF_LsnAck,
-        //-- TOE / Rx Data Interfaces
-        stream<AppData>       &siTRIF_Data,
-        stream<AppMetaAxis>   &siTRIF_SessId,
-        stream<AppWrSts>      &soTRIF_DSts,
-        //-- TOE / Open Interfaces
-        stream<AppOpnReq>     &siTRIF_OpnReq,
-        stream<AppOpnRep>     &soTRIF_OpnRep)
+        //-- TSIF / Tx Data Interfaces
+        stream<AppNotif>      &soTSIF_Notif,
+        stream<AppRdReq>      &siTSIF_DReq,
+        stream<AppData>       &soTSIF_Data,
+        stream<AppMetaAxis>   &soTSIF_SessId,
+        //-- TSIF / Listen Interfaces
+        stream<AppLsnReqAxis> &siTSIF_LsnReq,
+        stream<AppLsnAckAxis> &soTSIF_LsnAck,
+        //-- TSIF / Rx Data Interfaces
+        stream<AppData>       &siTSIF_Data,
+        stream<AppMetaAxis>   &siTSIF_SessId,
+        stream<AppWrSts>      &soTSIF_DSts,
+        //-- TSIF / Open Interfaces
+        stream<AppOpnReq>     &siTSIF_OpnReq,
+        stream<AppOpnRep>     &soTSIF_OpnRep)
 {
     TcpSegLen  tcpSegLen  = 32;
 
@@ -230,21 +251,21 @@ void pTOE(
 
     switch (lsnState) {
     case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
-        if (!siTRIF_LsnReq.empty()) {
-            siTRIF_LsnReq.read(appLsnPortReq);
-            printInfo(myLsnName, "Received a listen port request #%d from [TRIF].\n",
+        if (!siTSIF_LsnReq.empty()) {
+            siTSIF_LsnReq.read(appLsnPortReq);
+            printInfo(myLsnName, "Received a listen port request #%d from [TSIF].\n",
                       appLsnPortReq.tdata.to_int());
             lsnState = LSN_SEND_ACK;
         }
         break;
-    case LSN_SEND_ACK: // SEND ACK BACK TO [TRIF]
-        if (!soTRIF_LsnAck.full()) {
-            soTRIF_LsnAck.write(AppLsnAckAxis(LSN_ACK));
+    case LSN_SEND_ACK: // SEND ACK BACK TO [TSIF]
+        if (!soTSIF_LsnAck.full()) {
+            soTSIF_LsnAck.write(AppLsnAckAxis(LSN_ACK));
             fpgaLsnPort = appLsnPortReq.tdata.to_int();
             lsnState = LSN_WAIT_REQ;
         }
         else {
-            printWarn(myLsnName, "Cannot send listen reply back to [TRIF] because stream is full.\n");
+            printWarn(myLsnName, "Cannot send listen reply back to [TSIF] because stream is full.\n");
         }
         break;
     }  // End-of: switch (lsnState) {
@@ -257,20 +278,20 @@ void pTOE(
     OpenStatus  opnReply(DEFAULT_SESSION_ID, SESS_IS_OPENED);
     switch(opnState) {
     case OPN_WAIT_REQ:
-        if (!siTRIF_OpnReq.empty()) {
-            siTRIF_OpnReq.read(opnReq);
+        if (!siTSIF_OpnReq.empty()) {
+            siTSIF_OpnReq.read(opnReq);
             printInfo(myOpnName, "Received a request to open the following remote socket address:\n");
             printSockAddr(myOpnName, LE_SockAddr(opnReq.addr, opnReq.port));
             opnState = OPN_SEND_REP;
         }
         break;
     case OPN_SEND_REP:
-        if (!soTRIF_OpnRep.full()) {
-            soTRIF_OpnRep.write(opnReply);
+        if (!soTSIF_OpnRep.full()) {
+            soTSIF_OpnRep.write(opnReply);
             opnState = OPN_WAIT_REQ;
         }
         else {
-            printWarn(myOpnName, "Cannot send open connection reply back to [TRIF] because stream is full.\n");
+            printWarn(myOpnName, "Cannot send open connection reply back to [TSIF] because stream is full.\n");
         }
         break;
     }  // End-of: switch (opnState) {
@@ -290,36 +311,36 @@ void pTOE(
     if (rxpIsReady) {
 
         switch (rxpState) {
-        case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TRIF]
+        case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TSIF]
             sessionId   = DEFAULT_SESSION_ID;
             tcpSegLen   = DEFAULT_SESSION_LEN;
             hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
             hostTcpPort = DEFAULT_HOST_LSN_PORT;
-            if (!soTRIF_Notif.full()) {
-                soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen, hostIp4Addr,
+            if (!soTSIF_Notif.full()) {
+                soTSIF_Notif.write(AppNotif(sessionId,  tcpSegLen, hostIp4Addr,
                                             hostTcpPort, fpgaLsnPort));
-                printInfo(myRxpName, "Sending notification #%d to [TRIF] (sessId=%d, segLen=%d).\n",
+                printInfo(myRxpName, "Sending notification #%d to [TSIF] (sessId=%d, segLen=%d).\n",
                           segCnt, sessionId.to_int(), tcpSegLen.to_int());
                 rxpState = RXP_WAIT_DREQ;
             }
             break;
-        case RXP_WAIT_DREQ: // WAIT FOR A DATA REQUEST FROM [TRIF]
-            if (!siTRIF_DReq.empty()) {
-                siTRIF_DReq.read(appRdReq);
-                printInfo(myRxpName, "Received a data read request from [TRIF] (sessId=%d, segLen=%d).\n",
+        case RXP_WAIT_DREQ: // WAIT FOR A DATA REQUEST FROM [TSIF]
+            if (!siTSIF_DReq.empty()) {
+                siTSIF_DReq.read(appRdReq);
+                printInfo(myRxpName, "Received a data read request from [TSIF] (sessId=%d, segLen=%d).\n",
                           appRdReq.sessionID.to_int(), appRdReq.length.to_int());
                 byteCnt = 0;
                 rxpState = RXP_SEND_DATA;
            }
            break;
-        case RXP_SEND_DATA: // FORWARD DATA AND METADATA TO [TRIF]
+        case RXP_SEND_DATA: // FORWARD DATA AND METADATA TO [TSIF]
             // Note: We always assume 'tcpSegLen' is multiple of 8B.
             keep = 0xFF;
             last = (byteCnt==tcpSegLen) ? 1 : 0;
             if (byteCnt == 0) {
-                if (!soTRIF_SessId.full() && !soTRIF_Data.full()) {
-                    soTRIF_SessId.write(sessionId);
-                    soTRIF_Data.write(AppData(data, keep, last));
+                if (!soTSIF_SessId.full() && !soTSIF_Data.full()) {
+                    soTSIF_SessId.write(sessionId);
+                    soTSIF_Data.write(AppData(data, keep, last));
                     if (DEBUG_LEVEL & TRACE_TOE)
                         printAxiWord(myRxpName, AppData(data, keep, last));
                     byteCnt += 8;
@@ -329,8 +350,8 @@ void pTOE(
                     break;
             }
             else if (byteCnt <= (tcpSegLen)) {
-                if (!soTRIF_Data.full()) {
-                    soTRIF_Data.write(AppData(data, keep, last));
+                if (!soTSIF_Data.full()) {
+                    soTSIF_Data.write(AppData(data, keep, last));
                     if (DEBUG_LEVEL & TRACE_TOE)
                         printAxiWord(myRxpName, AppData(data, keep, last));
                     byteCnt += 8;
@@ -353,16 +374,16 @@ void pTOE(
 
     //------------------------------------------------------
     //-- FSM #4 - TX DATA PATH
-    //--    (Always drain the data coming from [TRIF])
+    //--    (Always drain the data coming from [TSIF])
     //------------------------------------------------------
     if (txpIsReady) {
         switch (txpState) {
         case TXP_WAIT_META:
-            if (!siTRIF_SessId.empty() && !siTRIF_Data.empty()) {
+            if (!siTSIF_SessId.empty() && !siTSIF_Data.empty()) {
                 AppData     appData;
                 AppMetaAxis sessId;
-                siTRIF_SessId.read(sessId);
-                siTRIF_Data.read(appData);
+                siTSIF_SessId.read(sessId);
+                siTSIF_Data.read(appData);
                 if (DEBUG_LEVEL & TRACE_TOE) {
                     printInfo(myTxpName, "Receiving data for session #%d\n", sessId.tdata.to_uint());
                     printAxiWord(myTxpName, appData);
@@ -372,9 +393,9 @@ void pTOE(
             }
             break;
         case TXP_RECV_DATA:
-            if (!siTRIF_Data.empty()) {
+            if (!siTSIF_Data.empty()) {
                 AppData     appData;
-                siTRIF_Data.read(appData);
+                siTSIF_Data.read(appData);
                 if (DEBUG_LEVEL & TRACE_TOE)
                     printAxiWord(myTxpName, appData);
                 if (appData.tlast)
@@ -384,7 +405,6 @@ void pTOE(
         }
     }
 }
-
 
 /*****************************************************************************
  * @brief Main function.
@@ -396,37 +416,41 @@ int main()
     //-- DUT SIGNAL INTERFACES
     //------------------------------------------------------
     //-- SHL / Mmio Interface
-    CmdBit              sMMIO_TRIF_Enable;
+    CmdBit              sMMIO_TSIF_Enable;
     //-- TOE / Ready Signal
     StsBit              sTOE_MMIO_Ready;
-    //-- ROLE / Session Connect Id Interface
-    SessionId           sTRIF_ROLE_SConId;
+    //-- TSIF / Session Connect Id Interface
+    SessionId           sTSIF_TAF_SConId;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
-    //-- ROLE / Rx Data Interface
-    stream<AppData>       ssROLE_TRIF_Data    ("ssROLE_TRIF_Data");
-    stream<AppMetaAxis>   ssROLE_TRIF_SessId  ("ssROLE_TRIF_SessId");
-    //-- ROLE / This / Tx Data Interface
-    stream<AppData>       ssTRIF_ROLE_Data    ("ssTRIF_ROLE_Data");
-    stream<AppMetaAxis>   ssTRIF_ROLE_SessId  ("ssTRIF_ROLE_SessId");
+    //-- TAF / Rx Data Interface
+    stream<AppData>       ssTAF_TSIF_Data     ("ssTAF_TSIF_Data");
+    stream<AppMetaAxis>   ssTAF_TSIF_SessId   ("ssTAF_TSIF_SessId");
+    //-- TSIF / Tx Data Interface
+    stream<AppData>       ssTSIF_TAF_Data     ("ssTSIF_TAF_Data");
+    stream<AppMetaAxis>   ssTSIF_TAF_SessId   ("ssTSIF_TAF_SessId");
     //-- TOE  / Rx Data Interfaces
-    stream<AppNotif>      ssTOE_TRIF_Notif    ("ssTOE_TRIF_Notif");
-    stream<AppData>       ssTOE_TRIF_Data     ("ssTOE_TRIF_Data");
-    stream<AppMetaAxis>   ssTOE_TRIF_SessId   ("ssTOE_TRIF_SessId");
-    stream<AppRdReq>      ssTRIF_TOE_DReq     ("ssTRIF_TOE_DReq");
-    //-- TOE  / Listen Interfaces
-    stream<AppLsnAckAxis> ssTOE_TRIF_LsnAck   ("ssTOE_TRIF_LsnAck");
-    stream<AppLsnReqAxis> ssTRIF_TOE_LsnReq   ("ssTRIF_TOE_LsnReq");
+    stream<AppNotif>      ssTOE_TSIF_Notif    ("ssTOE_TSIF_Notif");
+    stream<AppData>       ssTOE_TSIF_Data     ("ssTOE_TSIF_Data");
+    stream<AppMetaAxis>   ssTOE_TSIF_SessId   ("ssTOE_TSIF_SessId");
+    //-- TSIF / Rx Data Interface
+    stream<AppRdReq>      ssTSIF_TOE_DReq     ("ssTSIF_TOE_DReq");
+    //-- TOE  / Listen Interface
+    stream<AppLsnAckAxis> ssTOE_TSIF_LsnAck   ("ssTOE_TSIF_LsnAck");
+    //-- TSIF / Listen Interface
+    stream<AppLsnReqAxis> ssTSIF_TOE_LsnReq   ("ssTSIF_TOE_LsnReq");
     //-- TOE  / Tx Data Interfaces
-    stream<AppWrSts>      ssTOE_TRIF_DSts     ("ssTOE_TRIF_DSts");
-    stream<AppData>       ssTRIF_TOE_Data     ("ssTRIF_TOE_Data");
-    stream<AppMetaAxis>   ssTRIF_TOE_SessId   ("ssTRIF_TOE_SessId");
+    stream<AppWrSts>      ssTOE_TSIF_DSts     ("ssTOE_TSIF_DSts");
+    //-- TSIF  / Tx Data Interfaces
+    stream<AppData>       ssTSIF_TOE_Data     ("ssTSIF_TOE_Data");
+    stream<AppMetaAxis>   ssTSIF_TOE_SessId   ("ssTSIF_TOE_SessId");
     //-- TOE  / Connect Interfaces
-    stream<AppOpnRep>     ssTOE_TRIF_OpnRep   ("ssTOE_TRIF_OpnRep");
-    stream<AppOpnReq>     ssTRIF_TOE_OpnReq   ("ssTRIF_TOE_OpnReq");
-    stream<AppClsReqAxis> ssTRIF_TOE_ClsReq   ("ssTRIF_TOE_ClsReq");
+    stream<AppOpnRep>     ssTOE_TSIF_OpnRep   ("ssTOE_TSIF_OpnRep");
+    //-- TSIF / Connect Interfaces
+    stream<AppOpnReq>     ssTSIF_TOE_OpnReq   ("ssTSIF_TOE_OpnReq");
+    stream<AppClsReqAxis> ssTSIF_TOE_ClsReq   ("ssTSIF_TOE_ClsReq");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -452,71 +476,71 @@ int main()
             //-- TOE / Ready Signal
             &sTOE_MMIO_Ready,
             //-- TOE / Tx Data Interfaces
-            ssTOE_TRIF_Notif,
-            ssTRIF_TOE_DReq,
-            ssTOE_TRIF_Data,
-            ssTOE_TRIF_SessId,
+            ssTOE_TSIF_Notif,
+            ssTSIF_TOE_DReq,
+            ssTOE_TSIF_Data,
+            ssTOE_TSIF_SessId,
             //-- TOE / Listen Interfaces
-            ssTRIF_TOE_LsnReq,
-            ssTOE_TRIF_LsnAck,
+            ssTSIF_TOE_LsnReq,
+            ssTOE_TSIF_LsnAck,
             //-- TOE / Tx Data Interfaces
-            ssTRIF_TOE_Data,
-            ssTRIF_TOE_SessId,
-            ssTOE_TRIF_DSts,
+            ssTSIF_TOE_Data,
+            ssTSIF_TOE_SessId,
+            ssTOE_TSIF_DSts,
             //-- TOE / Open Interfaces
-            ssTRIF_TOE_OpnReq,
-            ssTOE_TRIF_OpnRep);
+            ssTSIF_TOE_OpnReq,
+            ssTOE_TSIF_OpnRep);
 
         //-------------------------------------------------
-        //-- EMULATE MMIO
+        //-- EMULATE SHELL/MMIO
         //-------------------------------------------------
         pMMIO(
             //-- TOE / Ready Signal
             &sTOE_MMIO_Ready,
             //-- MMIO / Enable Layer-7 (.i.e APP alias ROLE)
-            &sMMIO_TRIF_Enable);
+            &sMMIO_TSIF_Enable);
 
         //-------------------------------------------------
         //-- RUN DUT
         //-------------------------------------------------
-        tcp_role_if(
+        tcp_shell_if(
             //-- SHELL / Mmio Interface
-            &sMMIO_TRIF_Enable,
-            //-- ROLE / Rx & Tx Data Interfaces
-            ssROLE_TRIF_Data,
-            ssROLE_TRIF_SessId,
-            ssTRIF_ROLE_Data,
-            ssTRIF_ROLE_SessId,
+            &sMMIO_TSIF_Enable,
+            //-- TAF / Rx & Tx Data Interfaces
+            ssTAF_TSIF_Data,
+            ssTAF_TSIF_SessId,
+            ssTSIF_TAF_Data,
+            ssTSIF_TAF_SessId,
             //-- TOE / Rx Data Interfaces
-            ssTOE_TRIF_Notif,
-            ssTRIF_TOE_DReq,
-            ssTOE_TRIF_Data,
-            ssTOE_TRIF_SessId,
+            ssTOE_TSIF_Notif,
+            ssTSIF_TOE_DReq,
+            ssTOE_TSIF_Data,
+            ssTOE_TSIF_SessId,
             //-- TOE / Listen Interfaces
-            ssTRIF_TOE_LsnReq,
-            ssTOE_TRIF_LsnAck,
+            ssTSIF_TOE_LsnReq,
+            ssTOE_TSIF_LsnAck,
             //-- TOE / Tx Data Interfaces
-            ssTRIF_TOE_Data,
-            ssTRIF_TOE_SessId,
-            ssTOE_TRIF_DSts,
+            ssTSIF_TOE_Data,
+            ssTSIF_TOE_SessId,
+            ssTOE_TSIF_DSts,
             //-- TOE / Tx Open Interfaces
-            ssTRIF_TOE_OpnReq,
-            ssTOE_TRIF_OpnRep,
+            ssTSIF_TOE_OpnReq,
+            ssTOE_TSIF_OpnRep,
             //-- TOE / Close Interfaces
-            ssTRIF_TOE_ClsReq,
+            ssTSIF_TOE_ClsReq,
             //-- ROLE / Session Connect Id Interface
-            &sTRIF_ROLE_SConId);
+            &sTSIF_TAF_SConId);
 
         //-------------------------------------------------
-        //-- EMULATE APP
+        //-- EMULATE ROLE/TcpApplicationFlash
         //-------------------------------------------------
-        pROLE(
-            //-- TRIF / Rx Data Interface
-            ssTRIF_ROLE_Data,
-            ssTRIF_ROLE_SessId,
-            //-- TRIF / Tx Data Interface
-            ssROLE_TRIF_Data,
-            ssROLE_TRIF_SessId);
+        pTAF(
+            //-- TSIF / Data Interface
+            ssTSIF_TAF_Data,
+            ssTSIF_TAF_SessId,
+            //-- TAF / Data Interface
+            ssTAF_TSIF_Data,
+            ssTAF_TSIF_SessId);
 
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER

@@ -5,9 +5,9 @@
 -- *
 -- *----------------------------------------------------------------------------
 -- *
--- * Title : Flash for the FMKU2595 when equipped with a XCKU060.
+-- * Title : Role for the bring-up of the FMKU2595 when equipped with a XCKU060.
 -- *
--- * File    : roleFlash.vhdl
+-- * File    : Role.vhdl
 -- *
 -- * Created : Feb 2018
 -- * Authors : Francois Abel <fab@zurich.ibm.com>
@@ -267,7 +267,7 @@ architecture Flash of Role_Kale is
 
   constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cTCP_RIF_DEPRECATED_DIRECTIVES  : boolean := true;
+  constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := true;
 
   --============================================================================
   --  SIGNAL DECLARATIONS
@@ -277,32 +277,32 @@ architecture Flash of Role_Kale is
   signal sRstDelayCounter               : std_ulogic_vector(5 downto 0);
 
   --------------------------------------------------------
-  -- SIGNAL DECLARATIONS : TRIF <--> TAF 
+  -- SIGNAL DECLARATIONS : TSIF <--> TAF 
   --------------------------------------------------------
   -- Session Connect Id Interface
-  signal sTRIF_TAF_SessConId            : std_ulogic_vector( 15 downto 0);
-  -- TCP Receive Path (TRIF->TAF) ------
+  signal sTSIF_TAF_SessConId            : std_ulogic_vector( 15 downto 0);
+  -- TCP Receive Path (TSIF->TAF) ------
   ---- Stream TCP Data -------
-  signal ssTRIF_TAF_Data_tdata          : std_ulogic_vector( 63 downto 0);
-  signal ssTRIF_TAF_Data_tkeep          : std_ulogic_vector(  7 downto 0);
-  signal ssTRIF_TAF_Data_tlast          : std_ulogic;
-  signal ssTRIF_TAF_Data_tvalid         : std_ulogic;
-  signal ssTRIF_TAF_Data_tready         : std_ulogic;
+  signal ssTSIF_TAF_Data_tdata          : std_ulogic_vector( 63 downto 0);
+  signal ssTSIF_TAF_Data_tkeep          : std_ulogic_vector(  7 downto 0);
+  signal ssTSIF_TAF_Data_tlast          : std_ulogic;
+  signal ssTSIF_TAF_Data_tvalid         : std_ulogic;
+  signal ssTSIF_TAF_Data_tready         : std_ulogic;
   ---- Stream TCP Metadata ---
-  signal ssTRIF_TAF_Meta_tdata          : std_ulogic_vector( 15 downto 0);
-  signal ssTRIF_TAF_Meta_tvalid         : std_ulogic;
-  signal ssTRIF_TAF_Meta_tready         : std_ulogic;
-  -- TCP Transmit Path (TAF-->TRIF) ----
+  signal ssTSIF_TAF_Meta_tdata          : std_ulogic_vector( 15 downto 0);
+  signal ssTSIF_TAF_Meta_tvalid         : std_ulogic;
+  signal ssTSIF_TAF_Meta_tready         : std_ulogic;
+  -- TCP Transmit Path (TAF-->TSIF) ----
   ---- Stream TCP Data -------
-  signal ssTAF_TRIF_Data_tdata          : std_ulogic_vector( 63 downto 0);
-  signal ssTAF_TRIF_Data_tkeep          : std_ulogic_vector(  7 downto 0);
-  signal ssTAF_TRIF_Data_tlast          : std_ulogic;
-  signal ssTAF_TRIF_Data_tvalid         : std_ulogic;
-  signal ssTAF_TRIF_Data_tready         : std_ulogic;
+  signal ssTAF_TSIF_Data_tdata          : std_ulogic_vector( 63 downto 0);
+  signal ssTAF_TSIF_Data_tkeep          : std_ulogic_vector(  7 downto 0);
+  signal ssTAF_TSIF_Data_tlast          : std_ulogic;
+  signal ssTAF_TSIF_Data_tvalid         : std_ulogic;
+  signal ssTAF_TSIF_Data_tready         : std_ulogic;
   ---- Stream TCP Metadata ---
-  signal ssTAF_TRIF_Meta_tdata          : std_ulogic_vector( 15 downto 0);
-  signal ssTAF_TRIF_Meta_tvalid         : std_ulogic;
-  signal ssTAF_TRIF_Meta_tready         : std_ulogic;
+  signal ssTAF_TSIF_Meta_tdata          : std_ulogic_vector( 15 downto 0);
+  signal ssTAF_TSIF_Meta_tvalid         : std_ulogic;
+  signal ssTAF_TSIF_Meta_tready         : std_ulogic;
   
   signal sSHL_Mem_Mp0_Write_tlast       : std_ulogic_vector(0 downto 0); 
 
@@ -393,7 +393,7 @@ architecture Flash of Role_Kale is
       --[TODO] piSHL_MmioCaptSegEn_V  : in  std_logic;
       
       ------------------------------------------------------
-      -- From TRIF / Session Connect Id Interface
+      -- From TSIF / Session Connect Id Interface
       ------------------------------------------------------
       piTRIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
        
@@ -441,9 +441,9 @@ architecture Flash of Role_Kale is
       --[TODO] piSHL_MmioCaptSegEn  : in  std_logic;
       
       ------------------------------------------------------
-      -- From TRIF / Session Connect Id Interface
+      -- From TSIF / Session Connect Id Interface
       ------------------------------------------------------
-      piTRIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
+      piTSIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
       
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
@@ -482,7 +482,7 @@ architecture Flash of Role_Kale is
     );
   end component TcpApplicationFlashTodo;
  
-  component TcpRoleInterface is
+  component TcpShellInterface is
     port (
       ------------------------------------------------------
       -- SHELL / Clock and Reset
@@ -496,129 +496,129 @@ architecture Flash of Role_Kale is
       piSHL_Mmio_En_V       : in  std_ulogic;
        
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+      -- ROLE / TxP Data Flow Interfaces
       ------------------------------------------------------
       -- FPGA Transmit Path (ROLE-->SHELL) ---------
-      ---- Stream TCP Data -------------
-      siROL_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
-      siROL_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
-      siROL_Data_tlast      : in  std_ulogic;
-      siROL_Data_tvalid     : in  std_ulogic;
-      siROL_Data_tready     : out std_ulogic;
-      ---- Stream TCP Metadata ---------
-      siROL_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siROL_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siROL_SessId_tlast    : in  std_ulogic;
-      siROL_SessId_tvalid   : in  std_ulogic;
-      siROL_SessId_tready   : out std_ulogic; 
+      ---- TCP Data Stream   
+      siTAF_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
+      siTAF_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
+      siTAF_Data_tlast      : in  std_ulogic;
+      siTAF_Data_tvalid     : in  std_ulogic;
+      siTAF_Data_tready     : out std_ulogic;
+      ---- TCP Metadata Stream 
+      siTAF_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
+      siTAF_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
+      siTAF_SessId_tlast    : in  std_ulogic;
+      siTAF_SessId_tvalid   : in  std_ulogic;
+      siTAF_SessId_tready   : out std_ulogic; 
         
       ------------------------------------------------------               
-      -- ROLE / Nts / Tcp / RxP Data Flow Interfaces                      
+      -- TAF /RxP Data Flow Interfaces                      
       ------------------------------------------------------               
-      -- FPGA Transmit Path (SHELL-->ROLE) --------                      
-      ---- Stream TCP Data -------------
-      soROL_Data_tdata      : out std_ulogic_vector( 63 downto 0);
-      soROL_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
-      soROL_Data_tlast      : out std_ulogic;
-      soROL_Data_tvalid     : out std_ulogic;
-      soROL_Data_tready     : in  std_ulogic;
-      ---- Stream TCP Metadata ---------
-      soROL_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soROL_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soROL_SessId_tlast    : out std_ulogic;
-      soROL_SessId_tvalid   : out std_ulogic;
-      soROL_SessId_tready   : in  std_ulogic;
+      -- FPGA Transmit Path (SHELL-->APP) --------                      
+      ---- TCP Data Stream 
+      soTAF_Data_tdata      : out std_ulogic_vector( 63 downto 0);
+      soTAF_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
+      soTAF_Data_tlast      : out std_ulogic;
+      soTAF_Data_tvalid     : out std_ulogic;
+      soTAF_Data_tready     : in  std_ulogic;
+      ---- TCP Metadata Stream 
+      soTAF_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
+      soTAF_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soTAF_SessId_tlast    : out std_ulogic;
+      soTAF_SessId_tvalid   : out std_ulogic;
+      soTAF_SessId_tready   : in  std_ulogic;
          
       ------------------------------------------------------
-      -- TOE / RxP Data Interfaces
+      -- SHELL / RxP Data Interfaces
       ------------------------------------------------------
-      ---- Stream TCP Data Notification 
-      siTOE_Notif_tdata     : in  std_ulogic_vector(7+96 downto 0); -- 8-bits boundary
-      siTOE_Notif_tvalid    : in  std_ulogic;
-      siTOE_Notif_tready    : out std_ulogic;
-      ---- Stream TCP Data Request ---
-      soTOE_DReq_tdata      : out std_ulogic_vector( 31 downto 0);
-      soTOE_DReq_tvalid     : out std_ulogic;
-      soTOE_DReq_tready     : in  std_ulogic;
-      ---- Stream TCP Data -----------
-      siTOE_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
-      siTOE_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
-      siTOE_Data_tlast      : in  std_ulogic;
-      siTOE_Data_tvalid     : in  std_ulogic;
-      siTOE_Data_tready     : out std_ulogic;
-      ---- Stream TCP Metadata -------
-      siTOE_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siTOE_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siTOE_SessId_tlast    : in  std_ulogic;
-      siTOE_SessId_tvalid   : in  std_ulogic;
-      siTOE_SessId_tready   : out std_ulogic;       
+      ---- TCP Data Notification Stream  
+      siSHL_Notif_tdata     : in  std_ulogic_vector(7+96 downto 0); -- 8-bits boundary
+      siSHL_Notif_tvalid    : in  std_ulogic;
+      siSHL_Notif_tready    : out std_ulogic;
+      ---- TCP Data Request Stream 
+      soSHL_DReq_tdata      : out std_ulogic_vector( 31 downto 0);
+      soSHL_DReq_tvalid     : out std_ulogic;
+      soSHL_DReq_tready     : in  std_ulogic;
+      ---- TCP Data Stream 
+      siSHL_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
+      siSHL_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
+      siSHL_Data_tlast      : in  std_ulogic;
+      siSHL_Data_tvalid     : in  std_ulogic;
+      siSHL_Data_tready     : out std_ulogic;
+      ---- TCP Metadata Stream 
+      siSHL_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
+      siSHL_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
+      siSHL_SessId_tlast    : in  std_ulogic;
+      siSHL_SessId_tvalid   : in  std_ulogic;
+      siSHL_SessId_tready   : out std_ulogic;       
       
       ------------------------------------------------------
-      -- TOE / RxP Ctlr Flow Interfaces
+      -- SHELL / RxP Ctlr Flow Interfaces
       ------------------------------------------------------
-      -- FPGA Receive Path (SHELL-->ROLE) -------
-      ---- Stream TCP Listen Request -
-      soTOE_LsnReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTOE_LsnReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTOE_LsnReq_tlast    : out std_ulogic;
-      soTOE_LsnReq_tvalid   : out std_ulogic;
-      soTOE_LsnReq_tready   : in  std_ulogic;
-      ---- Stream TCP Listen Status --
-      siTOE_LsnAck_tdata    : in  std_ulogic_vector(  7 downto 0);
-      siTOE_LsnAck_tkeep    : in  std_ulogic;
-      siTOE_LsnAck_tlast    : in  std_ulogic;
-      siTOE_LsnAck_tvalid   : in  std_ulogic;
-      siTOE_LsnAck_tready   : out std_ulogic;
+      -- FPGA Receive Path (SHELL-->APP) -------
+      ---- TCP Listen Request Stream 
+      soSHL_LsnReq_tdata    : out std_ulogic_vector( 15 downto 0);
+      soSHL_LsnReq_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soSHL_LsnReq_tlast    : out std_ulogic;
+      soSHL_LsnReq_tvalid   : out std_ulogic;
+      soSHL_LsnReq_tready   : in  std_ulogic;
+      ---- TCP Listen Status Stream 
+      siSHL_LsnAck_tdata    : in  std_ulogic_vector(  7 downto 0);
+      siSHL_LsnAck_tkeep    : in  std_ulogic;
+      siSHL_LsnAck_tlast    : in  std_ulogic;
+      siSHL_LsnAck_tvalid   : in  std_ulogic;
+      siSHL_LsnAck_tready   : out std_ulogic;
      
       ------------------------------------------------------
-      -- TOE / TxP Data Interfaces
+      -- SHELL / TxP Data Interfaces
       ------------------------------------------------------
-      ---- Stream TCP Data -----------
-      soTOE_Data_tdata      : out std_ulogic_vector( 63 downto 0);
-      soTOE_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
-      soTOE_Data_tlast      : out std_ulogic;
-      soTOE_Data_tvalid     : out std_ulogic;
-      soTOE_Data_tready     : in  std_ulogic;
-      ---- Stream TCP Metadata -------
-      soTOE_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTOE_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTOE_SessId_tlast    : out std_ulogic;
-      soTOE_SessId_tvalid   : out std_ulogic;
-      soTOE_SessId_tready   : in  std_ulogic;
-      ---- Stream TCP Data Status ----
-      siTOE_DSts_tdata      : in  std_ulogic_vector( 23 downto 0);
-      siTOE_DSts_tvalid     : in  std_ulogic;
-      siTOE_DSts_tready     : out std_ulogic;
+      ---- TCP Data Stream 
+      soSHL_Data_tdata      : out std_ulogic_vector( 63 downto 0);
+      soSHL_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
+      soSHL_Data_tlast      : out std_ulogic;
+      soSHL_Data_tvalid     : out std_ulogic;
+      soSHL_Data_tready     : in  std_ulogic;
+      ---- TCP Metadata Stream 
+      soSHL_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
+      soSHL_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soSHL_SessId_tlast    : out std_ulogic;
+      soSHL_SessId_tvalid   : out std_ulogic;
+      soSHL_SessId_tready   : in  std_ulogic;
+      ---- TCP Data Status Stream 
+      siSHL_DSts_tdata      : in  std_ulogic_vector( 23 downto 0);
+      siSHL_DSts_tvalid     : in  std_ulogic;
+      siSHL_DSts_tready     : out std_ulogic;
            
       ------------------------------------------------------
-      -- TOE / TxP Ctlr Flow Interfaces
+      -- SHELL / TxP Ctlr Flow Interfaces
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ------
-      ---- Stream TCP Open Session Request
-      soTOE_OpnReq_tdata    : out std_ulogic_vector( 47 downto 0);
-      soTOE_OpnReq_tvalid   : out std_ulogic;
-      soTOE_OpnReq_tready   : in  std_ulogic;
-      ---- Stream TCP Open Session Status 
-      siTOE_OpnRep_tdata    : in  std_ulogic_vector( 23 downto 0);
-      siTOE_OpnRep_tvalid   : in  std_ulogic;
-      siTOE_OpnRep_tready   : out std_ulogic;
-      ---- Stream TCP Close Request --
-      soTOE_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTOE_ClsReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTOE_ClsReq_tlast    : out std_ulogic;
-      soTOE_ClsReq_tvalid   : out std_ulogic;
-      soTOE_ClsReq_tready   : in  std_ulogic;
+      -- FPGA Transmit Path (APP-->SHELL) ------
+      ---- TCP Open Session Request Stream 
+      soSHL_OpnReq_tdata    : out std_ulogic_vector( 47 downto 0);
+      soSHL_OpnReq_tvalid   : out std_ulogic;
+      soSHL_OpnReq_tready   : in  std_ulogic;
+      ---- TCP Open Session Status Stream  
+      siSHL_OpnRep_tdata    : in  std_ulogic_vector( 23 downto 0);
+      siSHL_OpnRep_tvalid   : in  std_ulogic;
+      siSHL_OpnRep_tready   : out std_ulogic;
+      ---- TCP Close Request Stream
+      soSHL_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
+      soSHL_ClsReq_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soSHL_ClsReq_tlast    : out std_ulogic;
+      soSHL_ClsReq_tvalid   : out std_ulogic;
+      soSHL_ClsReq_tready   : in  std_ulogic;
       
       ------------------------------------------------------
-      -- ROLE / Session Connect Id Interface
+      -- TAF / Session Connect Id Interface
       ------------------------------------------------------
-      poROL_SConId_V        : out std_ulogic_vector( 15 downto 0);
-      poROL_SConId_V_ap_vld : out std_ulogic
+      poTAF_SConId_V        : out std_ulogic_vector( 15 downto 0);
+      poTAF_SConId_V_ap_vld : out std_ulogic
      
     );
-  end component TcpRoleInterface;
+  end component TcpShellInterface;
  
-  component TcpRoleInterfaceTodo is
+  component TcpShellInterfaceTodo is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
@@ -632,126 +632,126 @@ architecture Flash of Role_Kale is
        piSHL_Mmio_En_V      : in  std_ulogic;
        
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+      -- TAF / TxP Data Flow Interfaces
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ---------
-      ---- Stream TCP Data -------------
-      siROL_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
-      siROL_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
-      siROL_Data_tlast      : in  std_ulogic;
-      siROL_Data_tvalid     : in  std_ulogic;
-      siROL_Data_tready     : out std_ulogic;
-      ---- Stream TCP Metadata ---------
-      siROL_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siROL_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siROL_SessId_tlast    : in  std_ulogic;
-      siROL_SessId_tvalid   : in  std_ulogic;
-      siROL_SessId_tready   : out std_ulogic; 
+      -- FPGA Transmit Path (APP-->SHELL) ---------
+      ---- TCP Data Stream 
+      siTAF_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
+      siTAF_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
+      siTAF_Data_tlast      : in  std_ulogic;
+      siTAF_Data_tvalid     : in  std_ulogic;
+      siTAF_Data_tready     : out std_ulogic;
+      ---- TCP Metadata Stream
+      siTAF_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
+      siTAF_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
+      siTAF_SessId_tlast    : in  std_ulogic;
+      siTAF_SessId_tvalid   : in  std_ulogic;
+      siTAF_SessId_tready   : out std_ulogic; 
         
       ------------------------------------------------------               
-      -- ROLE / Nts / Tcp / RxP Data Flow Interfaces                      
+      -- TAF / RxP Data Flow Interfaces                      
       ------------------------------------------------------               
-      -- FPGA Transmit Path (SHELL-->ROLE) --------                      
-      ---- Stream TCP Data -------------
-      soROL_Data_tdata      : out std_ulogic_vector( 63 downto 0);
-      soROL_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
-      soROL_Data_tlast      : out std_ulogic;
-      soROL_Data_tvalid     : out std_ulogic;
-      soROL_Data_tready     : in  std_ulogic;
-      ---- Stream TCP Metadata ---------
-      soROL_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soROL_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soROL_SessId_tlast    : out std_ulogic;
-      soROL_SessId_tvalid   : out std_ulogic;
-      soROL_SessId_tready   : in  std_ulogic;
+      -- FPGA Transmit Path (SHELL-->APP) --------                      
+      ---- TCP Data Stream 
+      soTAF_Data_tdata      : out std_ulogic_vector( 63 downto 0);
+      soTAF_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
+      soTAF_Data_tlast      : out std_ulogic;
+      soTAF_Data_tvalid     : out std_ulogic;
+      soTAF_Data_tready     : in  std_ulogic;
+      ----  TCP Metadata Stream
+      soTAF_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
+      soTAF_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soTAF_SessId_tlast    : out std_ulogic;
+      soTAF_SessId_tvalid   : out std_ulogic;
+      soTAF_SessId_tready   : in  std_ulogic;
          
       ------------------------------------------------------
-      -- TOE / RxP Data Interfaces
+      -- SHELL / RxP Data Interfaces
       ------------------------------------------------------
-      ---- Stream TCP Data Notification 
-      siTOE_Notif_V_tdata   : in  std_ulogic_vector( 87 downto 0);
-      siTOE_Notif_V_tvalid  : in  std_ulogic;
-      siTOE_Notif_V_tready  : out std_ulogic;
-      ---- Stream TCP Data Request ---
-      soTOE_DReq_V_tdata    : out std_ulogic_vector( 31 downto 0);
-      soTOE_DReq_V_tvalid   : out std_ulogic;
-      soTOE_DReq_V_tready   : in  std_ulogic;
-      ---- Stream TCP Data -----------
-      siTOE_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
-      siTOE_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
-      siTOE_Data_tlast      : in  std_ulogic;
-      siTOE_Data_tvalid     : in  std_ulogic;
-      siTOE_Data_tready     : out std_ulogic;
-      ---- Stream TCP Metadata -------
-      siTOE_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siTOE_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siTOE_SessId_tlast    : in  std_ulogic;
-      siTOE_SessId_tvalid   : in  std_ulogic;
-      siTOE_SessId_tready   : out std_ulogic;       
+      ---- TCP Data Notification Stream  
+      siSHL_Notif_V_tdata   : in  std_ulogic_vector( 87 downto 0);
+      siSHL_Notif_V_tvalid  : in  std_ulogic;
+      siSHL_Notif_V_tready  : out std_ulogic;
+      ---- TCP Data Request Stream 
+      soSHL_DReq_V_tdata    : out std_ulogic_vector( 31 downto 0);
+      soSHL_DReq_V_tvalid   : out std_ulogic;
+      soSHL_DReq_V_tready   : in  std_ulogic;
+      ---- TCP Data Stream 
+      siSHL_Data_tdata      : in  std_ulogic_vector( 63 downto 0);
+      siSHL_Data_tkeep      : in  std_ulogic_vector(  7 downto 0);
+      siSHL_Data_tlast      : in  std_ulogic;
+      siSHL_Data_tvalid     : in  std_ulogic;
+      siSHL_Data_tready     : out std_ulogic;
+      ---- TCP Metadata Stream 
+      siSHL_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
+      siSHL_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
+      siSHL_SessId_tlast    : in  std_ulogic;
+      siSHL_SessId_tvalid   : in  std_ulogic;
+      siSHL_SessId_tready   : out std_ulogic;       
       
       ------------------------------------------------------
-      -- TOE / RxP Ctlr Flow Interfaces
+      -- SHELL / RxP Ctlr Flow Interfaces
       ------------------------------------------------------
-      -- FPGA Receive Path (SHELL-->ROLE) -------
-      ---- Stream TCP Listen Request -
-      soTOE_LsnReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTOE_LsnReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTOE_LsnReq_tlast    : out std_ulogic;
-      soTOE_LsnReq_tvalid   : out std_ulogic;
-      soTOE_LsnReq_tready   : in  std_ulogic;
-      ---- Stream TCP Listen Status --
-      siTOE_LsnAck_tdata    : in  std_ulogic_vector(  7 downto 0);
-      siTOE_LsnAck_tkeep    : in  std_ulogic;
-      siTOE_LsnAck_tlast    : in  std_ulogic;
-      siTOE_LsnAck_tvalid   : in  std_ulogic;
-      siTOE_LsnAck_tready   : out std_ulogic;
+      -- FPGA Receive Path (SHELL-->APP) -------
+      ---- TCP Listen Request Stream 
+      soSHL_LsnReq_tdata    : out std_ulogic_vector( 15 downto 0);
+      soSHL_LsnReq_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soSHL_LsnReq_tlast    : out std_ulogic;
+      soSHL_LsnReq_tvalid   : out std_ulogic;
+      soSHL_LsnReq_tready   : in  std_ulogic;
+      ---- TCP Listen Status Stream 
+      siSHL_LsnAck_tdata    : in  std_ulogic_vector(  7 downto 0);
+      siSHL_LsnAck_tkeep    : in  std_ulogic;
+      siSHL_LsnAck_tlast    : in  std_ulogic;
+      siSHL_LsnAck_tvalid   : in  std_ulogic;
+      siSHL_LsnAck_tready   : out std_ulogic;
      
       ------------------------------------------------------
-      -- TOE / TxP Data Interfaces
+      -- SHELL / TxP Data Interfaces
       ------------------------------------------------------
-      ---- Stream TCP Data -----------
-      soTOE_Data_tdata      : out std_ulogic_vector( 63 downto 0);
-      soTOE_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
-      soTOE_Data_tlast      : out std_ulogic;
-      soTOE_Data_tvalid     : out std_ulogic;
-      soTOE_Data_tready     : in  std_ulogic;
-      ---- Stream TCP Metadata -------
-      soTOE_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTOE_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTOE_SessId_tlast    : out std_ulogic;
-      soTOE_SessId_tvalid   : out std_ulogic;
-      soTOE_SessId_tready   : in  std_ulogic;
-      ---- Stream TCP Data Status ----
-      siTOE_DSts_V_tdata    : in  std_ulogic_vector( 23 downto 0);
-      siTOE_DSts_V_tvalid   : in  std_ulogic;
-      siTOE_DSts_V_tready   : out std_ulogic;
+      ---- TCP Data Stream 
+      soSHL_Data_tdata      : out std_ulogic_vector( 63 downto 0);
+      soSHL_Data_tkeep      : out std_ulogic_vector(  7 downto 0);
+      soSHL_Data_tlast      : out std_ulogic;
+      soSHL_Data_tvalid     : out std_ulogic;
+      soSHL_Data_tready     : in  std_ulogic;
+      ---- TCP Metadata Stream 
+      soSHL_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
+      soSHL_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soSHL_SessId_tlast    : out std_ulogic;
+      soSHL_SessId_tvalid   : out std_ulogic;
+      soSHL_SessId_tready   : in  std_ulogic;
+      ---- TCP Data Status Stream 
+      siSHL_DSts_V_tdata    : in  std_ulogic_vector( 23 downto 0);
+      siSHL_DSts_V_tvalid   : in  std_ulogic;
+      siSHL_DSts_V_tready   : out std_ulogic;
            
       ------------------------------------------------------
-      -- TOE / TxP Ctlr Flow Interfaces
+      -- SHELL / TxP Ctlr Flow Interfaces
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ------
-      ---- Stream TCP Open Session Request
-      soTOE_OpnReq_V_tdata  : out std_ulogic_vector( 47 downto 0);
-      soTOE_OpnReq_V_tvalid : out std_ulogic;
-      soTOE_OpnReq_V_tready : in  std_ulogic;
-      ---- Stream TCP Open Session Status 
-      siTOE_OpnRep_V_tdata  : in  std_ulogic_vector( 23 downto 0);
-      siTOE_OpnRep_V_tvalid : in  std_ulogic;
-      siTOE_OpnRep_V_tready : out std_ulogic;
-      ---- Stream TCP Close Request --
-      soTOE_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTOE_ClsReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTOE_ClsReq_tlast    : out std_ulogic;
-      soTOE_ClsReq_tvalid   : out std_ulogic;
-      soTOE_ClsReq_tready   : in  std_ulogic;
+      -- FPGA Transmit Path (APP-->SHELL) ------
+      ---- TCP Open Session Request Stream 
+      soSHL_OpnReq_V_tdata  : out std_ulogic_vector( 47 downto 0);
+      soSHL_OpnReq_V_tvalid : out std_ulogic;
+      soSHL_OpnReq_V_tready : in  std_ulogic;
+      ---- TCP Open Session Status Stream  
+      siSHL_OpnRep_V_tdata  : in  std_ulogic_vector( 23 downto 0);
+      siSHL_OpnRep_V_tvalid : in  std_ulogic;
+      siSHL_OpnRep_V_tready : out std_ulogic;
+      ---- TCP Close Request Stream 
+      soSHL_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
+      soSHL_ClsReq_tkeep    : out std_ulogic_vector(  1 downto 0);
+      soSHL_ClsReq_tlast    : out std_ulogic;
+      soSHL_ClsReq_tvalid   : out std_ulogic;
+      soSHL_ClsReq_tready   : in  std_ulogic;
       
       ------------------------------------------------------
-      -- ROLE / Session Connect Id Interface
+      -- TAF / Session Connect Id Interface
       ------------------------------------------------------
-      poROL_SConId_V        : out std_ulogic_vector( 15 downto 0);
-      poROL_SConId_V_ap_vld : out std_ulogic
+      poTAF_SConId_V        : out std_ulogic_vector( 15 downto 0);
+      poTAF_SConId_V_ap_vld : out std_ulogic
     );
-  end component TcpRoleInterfaceTodo;
+  end component TcpShellInterfaceTodo;
   
   component MemTestFlash is
     port (
@@ -842,19 +842,19 @@ begin
 
   --################################################################################
   --#                                                                              #
-  --#    #######  #####   ###  #######                                             #
-  --#       #     ##   #   #   #                                                   #
-  --#       #     #    #   #   #                                                   #
-  --#       #     #####    #   ####                                                #
-  --#       #     #   #    #   #                                                   #
-  --#       #     #    #  ###  #                                                   #
+  --#    #######  ######  ###  #######                                             #
+  --#       #     #        #   #                                                   #
+  --#       #     #        #   #                                                   #
+  --#       #     ######   #   ####                                                #
+  --#       #          #   #   #                                                   #
+  --#       #     ######  ###  #                                                   #
   --#                                                                              #
   --################################################################################
   
-  gTcpRoleInterface : if cTCP_RIF_DEPRECATED_DIRECTIVES = true
+  gTcpShellInterface : if cTCP_SIF_DEPRECATED_DIRECTIVES = true
     generate
          
-      TRIF : TcpRoleInterface
+      TSIF : TcpShellInterface
     
         port map (
           ------------------------------------------------------
@@ -869,130 +869,130 @@ begin
           piSHL_Mmio_En_V           => piSHL_Mmio_Ly7En,
           
           ------------------------------------------------------
-          -- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+          -- TAF / TxP Data Flow Interfaces
           ------------------------------------------------------
-          -- FPGA Transmit Path (ROLE-->SHELL) ---------
-          ---- Stream TCP Data -------------
-          siROL_Data_tdata          => ssTAF_TRIF_Data_tdata,
-          siROL_Data_tkeep          => ssTAF_TRIF_Data_tkeep,
-          siROL_Data_tlast          => ssTAF_TRIF_Data_tlast,
-          siROL_Data_tvalid         => ssTAF_TRIF_Data_tvalid,
-          siROL_Data_tready         => ssTAF_TRIF_Data_tready,
-          ---- Stream TCP Metadata ---------
-          siROL_SessId_tdata        => ssTAF_TRIF_Meta_tdata,
-          siROL_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
-          siROL_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-          siROL_SessId_tvalid       => ssTAF_TRIF_Meta_tvalid,
-          siROL_SessId_tready       => ssTAF_TRIF_Meta_tready,
+          -- FPGA Transmit Path (APP-->SHELL) ---------
+          ---- TCP Data Stream -------------
+          siTAF_Data_tdata          => ssTAF_TSIF_Data_tdata,
+          siTAF_Data_tkeep          => ssTAF_TSIF_Data_tkeep,
+          siTAF_Data_tlast          => ssTAF_TSIF_Data_tlast,
+          siTAF_Data_tvalid         => ssTAF_TSIF_Data_tvalid,
+          siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
+          ---- TCP Meta Stream -------------
+          siTAF_SessId_tdata        => ssTAF_TSIF_Meta_tdata,
+          siTAF_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
+          siTAF_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
+          siTAF_SessId_tvalid       => ssTAF_TSIF_Meta_tvalid,
+          siTAF_SessId_tready       => ssTAF_TSIF_Meta_tready,
             
           ------------------------------------------------------               
-          -- ROLE / Nts / Tcp / RxP Data Flow Interfaces                      
+          -- TAF / RxP Data Flow Interfaces                      
           ------------------------------------------------------               
-          -- FPGA Transmit Path (SHELL-->ROLE) --------                      
-          ---- Stream TCP Data -------------
-          soROL_Data_tdata          => ssTRIF_TAF_Data_tdata,
-          soROL_Data_tkeep          => ssTRIF_TAF_Data_tkeep,
-          soROL_Data_tlast          => ssTRIF_TAF_Data_tlast,
-          soROL_Data_tvalid         => ssTRIF_TAF_Data_tvalid,
-          soROL_Data_tready         => ssTRIF_TAF_Data_tready,
-          ---- Stream TCP Metadata ---------
-          soROL_SessId_tdata        => ssTRIF_TAF_Meta_tdata,
-          soROL_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soROL_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soROL_SessId_tvalid       => ssTRIF_TAF_Meta_tvalid,
-          soROL_SessId_tready       => ssTRIF_TAF_Meta_tready,
+          -- FPGA Transmit Path (SHELL-->APP) --------                      
+          ---- TCP Data Stream --------------
+          soTAF_Data_tdata          => ssTSIF_TAF_Data_tdata,
+          soTAF_Data_tkeep          => ssTSIF_TAF_Data_tkeep,
+          soTAF_Data_tlast          => ssTSIF_TAF_Data_tlast,
+          soTAF_Data_tvalid         => ssTSIF_TAF_Data_tvalid,
+          soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
+          ---- TCP Meta Stream --------------
+          soTAF_SessId_tdata        => ssTSIF_TAF_Meta_tdata,
+          soTAF_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soTAF_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soTAF_SessId_tvalid       => ssTSIF_TAF_Meta_tvalid,
+          soTAF_SessId_tready       => ssTSIF_TAF_Meta_tready,
              
           ------------------------------------------------------
-          -- TOE / RxP Data Interfaces
+          -- SHELL / RxP Data Interfaces
           ------------------------------------------------------
-          ---- Stream TCP Data Notification 
-          siTOE_Notif_tdata         => siSHL_Nts_Tcp_Notif_tdata,
-          siTOE_Notif_tvalid        => siSHL_Nts_Tcp_Notif_tvalid,
-          siTOE_Notif_tready        => siSHL_Nts_Tcp_Notif_tready,
-          ---- Stream TCP Data Request -----
-          soTOE_DReq_tdata          => soSHL_Nts_Tcp_DReq_tdata,
-          soTOE_DReq_tvalid         => soSHL_Nts_Tcp_DReq_tvalid,
-          soTOE_DReq_tready         => soSHL_Nts_Tcp_DReq_tready,
-          ---- Stream TCP Data ------------- Nts_Tcp_
-          siTOE_Data_tdata          => siSHL_Nts_Tcp_Data_tdata, 
-          siTOE_Data_tkeep          => siSHL_Nts_Tcp_Data_tkeep, 
-          siTOE_Data_tlast          => siSHL_Nts_Tcp_Data_tlast, 
-          siTOE_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
-          siTOE_Data_tready         => siSHL_Nts_Tcp_Data_tready,
-          ---- Stream TCP Metadata ---------
-          siTOE_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
-          siTOE_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
-          siTOE_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-          siTOE_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
-          siTOE_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
+          ---- TCP Data Stream Notification 
+          siSHL_Notif_tdata         => siSHL_Nts_Tcp_Notif_tdata,
+          siSHL_Notif_tvalid        => siSHL_Nts_Tcp_Notif_tvalid,
+          siSHL_Notif_tready        => siSHL_Nts_Tcp_Notif_tready,
+          ---- TCP Data Request Stream -----
+          soSHL_DReq_tdata          => soSHL_Nts_Tcp_DReq_tdata,
+          soSHL_DReq_tvalid         => soSHL_Nts_Tcp_DReq_tvalid,
+          soSHL_DReq_tready         => soSHL_Nts_Tcp_DReq_tready,
+          ---- TCP Data Stream  ------------
+          siSHL_Data_tdata          => siSHL_Nts_Tcp_Data_tdata, 
+          siSHL_Data_tkeep          => siSHL_Nts_Tcp_Data_tkeep, 
+          siSHL_Data_tlast          => siSHL_Nts_Tcp_Data_tlast, 
+          siSHL_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
+          siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
+          ---- TCP Meta Stream -------------
+          siSHL_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
+          siSHL_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
+          siSHL_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
+          siSHL_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
+          siSHL_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
           
           ------------------------------------------------------
-          -- TOE / RxP Ctlr Flow Interfaces
+          -- SHELL / RxP Ctlr Flow Interfaces
           ------------------------------------------------------
-          -- FPGA Receive Path (SHELL-->ROLE) ------- :
-          ---- Stream TCP Listen Request -----
-          soTOE_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
-          soTOE_LsnReq_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soTOE_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soTOE_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
-          soTOE_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
-          ---- Stream TCP Listen -------------
-          siTOE_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata,
-          siTOE_LsnAck_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
-          siTOE_LsnAck_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-          siTOE_LsnAck_tvalid       => siSHL_Nts_Tcp_LsnAck_tvalid, 
-          siTOE_LsnAck_tready       => siSHL_Nts_Tcp_LsnAck_tready, 
+          -- FPGA Receive Path (SHELL-->APP) --------
+          ---- TCP Listen Request Stream -----
+          soSHL_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
+          soSHL_LsnReq_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soSHL_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
+          soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
+          ---- TCP Listen Ack Stream ---------
+          siSHL_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata,
+          siSHL_LsnAck_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
+          siSHL_LsnAck_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
+          siSHL_LsnAck_tvalid       => siSHL_Nts_Tcp_LsnAck_tvalid, 
+          siSHL_LsnAck_tready       => siSHL_Nts_Tcp_LsnAck_tready, 
            
           ------------------------------------------------------
-          -- TOE / TxP Data Interfaces
+          -- SHELL / TxP Data Interfaces
           ------------------------------------------------------
-          ---- Stream TCP Data ------------ 
-          soTOE_Data_tdata          => soSHL_Nts_Tcp_Data_tdata, 
-          soTOE_Data_tkeep          => soSHL_Nts_Tcp_Data_tkeep, 
-          soTOE_Data_tlast          => soSHL_Nts_Tcp_Data_tlast, 
-          soTOE_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
-          soTOE_Data_tready         => soSHL_Nts_Tcp_Data_tready,
-          ---- Stream TCP Metadata ---------
-          soTOE_SessId_tdata        => soSHL_Nts_Tcp_Meta_tdata,
-          soTOE_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soTOE_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soTOE_SessId_tvalid       => soSHL_Nts_Tcp_Meta_tvalid,
-          soTOE_SessId_tready       => soSHL_Nts_Tcp_Meta_tready,
-          ---- Stream TCP Data Status ------
-          siTOE_DSts_tdata          => siSHL_Nts_Tcp_DSts_tdata,
-          siTOE_DSts_tvalid         => siSHL_Nts_Tcp_DSts_tvalid,
-          siTOE_DSts_tready         => siSHL_Nts_Tcp_DSts_tready,
+          ---- TCP Data Stream ------------- 
+          soSHL_Data_tdata          => soSHL_Nts_Tcp_Data_tdata, 
+          soSHL_Data_tkeep          => soSHL_Nts_Tcp_Data_tkeep, 
+          soSHL_Data_tlast          => soSHL_Nts_Tcp_Data_tlast, 
+          soSHL_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
+          soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
+          ---- TCP Meta Stream -------------
+          soSHL_SessId_tdata        => soSHL_Nts_Tcp_Meta_tdata,
+          soSHL_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soSHL_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
+          soSHL_SessId_tvalid       => soSHL_Nts_Tcp_Meta_tvalid,
+          soSHL_SessId_tready       => soSHL_Nts_Tcp_Meta_tready,
+          ---- TCP Data Status Stream ------
+          siSHL_DSts_tdata          => siSHL_Nts_Tcp_DSts_tdata,
+          siSHL_DSts_tvalid         => siSHL_Nts_Tcp_DSts_tvalid,
+          siSHL_DSts_tready         => siSHL_Nts_Tcp_DSts_tready,
                
           ------------------------------------------------------
-          -- TOE / TxP Ctlr Flow Interfaces
+          -- SHELL / TxP Ctlr Flow Interfaces
           ------------------------------------------------------
-          -- FPGA Transmit Path (ROLE-->SHELL) ------
-          ---- Stream TCP Open Session Request
-          soTOE_OpnReq_tdata        => soSHL_Nts_Tcp_OpnReq_tdata, 
-          soTOE_OpnReq_tvalid       => soSHL_Nts_Tcp_OpnReq_tvalid,
-          soTOE_OpnReq_tready       => soSHL_Nts_Tcp_OpnReq_tready,
-          ---- Stream TCP Open Session Status 
-          siTOE_OpnRep_tdata        => siSHL_Nts_Tcp_OpnRep_tdata,  
-          siTOE_OpnRep_tvalid       => siSHL_Nts_Tcp_OpnRep_tvalid,
-          siTOE_OpnRep_tready       => siSHL_Nts_Tcp_OpnRep_tready,
-          ---- Stream TCP Close Request ------
-          soTOE_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
-          soTOE_ClsReq_tkeep        => open,        -- [TODO: Until SHELL I/F is compliant] 
-          soTOE_ClsReq_tlast        => open,        -- [TODO: Until SHELL I/F is compliant]     
-          soTOE_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
-          soTOE_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
+          -- FPGA Transmit Path (APP-->SHELL) -------
+          ---- TCP Open Session Request Stream 
+          soSHL_OpnReq_tdata        => soSHL_Nts_Tcp_OpnReq_tdata, 
+          soSHL_OpnReq_tvalid       => soSHL_Nts_Tcp_OpnReq_tvalid,
+          soSHL_OpnReq_tready       => soSHL_Nts_Tcp_OpnReq_tready,
+          ---- TCP Open Session Status Stream  
+          siSHL_OpnRep_tdata        => siSHL_Nts_Tcp_OpnRep_tdata,  
+          siSHL_OpnRep_tvalid       => siSHL_Nts_Tcp_OpnRep_tvalid,
+          siSHL_OpnRep_tready       => siSHL_Nts_Tcp_OpnRep_tready,
+          ---- TCP Close Request Stream  ---
+          soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
+          soSHL_ClsReq_tkeep        => open,        -- [TODO: Until SHELL I/F is compliant] 
+          soSHL_ClsReq_tlast        => open,        -- [TODO: Until SHELL I/F is compliant]     
+          soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
+          soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
           
           ------------------------------------------------------
-          -- ROLE / Session Connect Id Interface
+          -- TAF / Session Connect Id Interface
           ------------------------------------------------------
-          poROL_SConId_V           => sTRIF_TAF_SessConId,
-          poROL_SConId_V_ap_vld    => open
+          poTAF_SConId_V           => sTSIF_TAF_SessConId,
+          poTAF_SConId_V_ap_vld    => open
     
-        ); -- End of: TcpRoleInterface
+        ); -- End of: TcpShellInterface
 
   else generate
     
-    TRIF : TcpRoleInterfaceTodo
+    TSIF : TcpShellInterfaceTodo
 
       port map (
         ------------------------------------------------------
@@ -1007,126 +1007,126 @@ begin
         piSHL_Mmio_En_V           => piSHL_Mmio_Ly7En,
         
         ------------------------------------------------------
-        -- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+        -- TAF / TxP Data Flow Interfaces
         ------------------------------------------------------
-        -- FPGA Transmit Path (ROLE-->SHELL) ---------
-        ---- Stream TCP Data -------------
-        siROL_Data_tdata          => ssTAF_TRIF_Data_tdata,
-        siROL_Data_tkeep          => ssTAF_TRIF_Data_tkeep,
-        siROL_Data_tlast          => ssTAF_TRIF_Data_tlast,
-        siROL_Data_tvalid         => ssTAF_TRIF_Data_tvalid,
-        siROL_Data_tready         => ssTAF_TRIF_Data_tready,
-        ---- Stream TCP Metadata ---------
-        siROL_SessId_tdata        => ssTAF_TRIF_Meta_tdata,
-        siROL_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
-        siROL_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-        siROL_SessId_tvalid       => ssTAF_TRIF_Meta_tvalid,
-        siROL_SessId_tready       => ssTAF_TRIF_Meta_tready,
+        -- FPGA Transmit Path (APP-->SHELL) ---------
+        ---- TCP Data Stream 
+        siTAF_Data_tdata          => ssTAF_TSIF_Data_tdata,
+        siTAF_Data_tkeep          => ssTAF_TSIF_Data_tkeep,
+        siTAF_Data_tlast          => ssTAF_TSIF_Data_tlast,
+        siTAF_Data_tvalid         => ssTAF_TSIF_Data_tvalid,
+        siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
+        ---- TCP Metadata Stream 
+        siTAF_SessId_tdata        => ssTAF_TSIF_Meta_tdata,
+        siTAF_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
+        siTAF_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
+        siTAF_SessId_tvalid       => ssTAF_TSIF_Meta_tvalid,
+        siTAF_SessId_tready       => ssTAF_TSIF_Meta_tready,
           
         ------------------------------------------------------               
-        -- ROLE / Nts / Tcp / RxP Data Flow Interfaces                      
+        -- TAF / RxP Data Flow Interfaces                      
         ------------------------------------------------------               
-        -- FPGA Transmit Path (SHELL-->ROLE) --------                      
-        ---- Stream TCP Data -------------
-        soROL_Data_tdata          => ssTRIF_TAF_Data_tdata,
-        soROL_Data_tkeep          => ssTRIF_TAF_Data_tkeep,
-        soROL_Data_tlast          => ssTRIF_TAF_Data_tlast,
-        soROL_Data_tvalid         => ssTRIF_TAF_Data_tvalid,
-        soROL_Data_tready         => ssTRIF_TAF_Data_tready,
-        ---- Stream TCP Metadata ---------
-        soROL_SessId_tdata        => ssTRIF_TAF_Meta_tdata,
-        soROL_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soROL_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soROL_SessId_tvalid       => ssTRIF_TAF_Meta_tvalid,
-        soROL_SessId_tready       => ssTRIF_TAF_Meta_tready,
+        -- FPGA Transmit Path (SHELL-->APP) --------                      
+        ---- TCP Data Stream 
+        soTAF_Data_tdata          => ssTSIF_TAF_Data_tdata,
+        soTAF_Data_tkeep          => ssTSIF_TAF_Data_tkeep,
+        soTAF_Data_tlast          => ssTSIF_TAF_Data_tlast,
+        soTAF_Data_tvalid         => ssTSIF_TAF_Data_tvalid,
+        soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
+        ---- TCP Metadata Stream 
+        soTAF_SessId_tdata        => ssTSIF_TAF_Meta_tdata,
+        soTAF_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+        soTAF_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
+        soTAF_SessId_tvalid       => ssTSIF_TAF_Meta_tvalid,
+        soTAF_SessId_tready       => ssTSIF_TAF_Meta_tready,
            
         ------------------------------------------------------
-        -- TOE / RxP Data Interfaces
+        -- SHELL / RxP Data Interfaces
         ------------------------------------------------------
-        ---- Stream TCP Data Notification 
-        siTOE_Notif_V_tdata       => siSHL_Nts_Tcp_Notif_tdata,
-        siTOE_Notif_V_tvalid      => siSHL_Nts_Tcp_Notif_tvalid,
-        siTOE_Notif_V_tready      => siSHL_Nts_Tcp_Notif_tready,
-        ---- Stream TCP Data Request -----
-        soTOE_DReq_V_tdata        => soSHL_Nts_Tcp_DReq_tdata,
-        soTOE_DReq_V_tvalid       => soSHL_Nts_Tcp_DReq_tvalid,
-        soTOE_DReq_V_tready       => soSHL_Nts_Tcp_DReq_tready,
-        ---- Stream TCP Data -------------
-        siTOE_Data_tdata          => siSHL_Nts_Tcp_Data_tdata, 
-        siTOE_Data_tkeep          => siSHL_Nts_Tcp_Data_tkeep, 
-        siTOE_Data_tlast          => siSHL_Nts_Tcp_Data_tlast, 
-        siTOE_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
-        siTOE_Data_tready         => siSHL_Nts_Tcp_Data_tready,
-        ---- Stream TCP Metadata ---------
-        siTOE_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
-        siTOE_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
-        siTOE_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-        siTOE_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
-        siTOE_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
+        ---- TCP Data Notification Stream  
+        siSHL_Notif_V_tdata       => siSHL_Nts_Tcp_Notif_tdata,
+        siSHL_Notif_V_tvalid      => siSHL_Nts_Tcp_Notif_tvalid,
+        siSHL_Notif_V_tready      => siSHL_Nts_Tcp_Notif_tready,
+        ---- TCP Data Request Stream
+        soSHL_DReq_V_tdata        => soSHL_Nts_Tcp_DReq_tdata,
+        soSHL_DReq_V_tvalid       => soSHL_Nts_Tcp_DReq_tvalid,
+        soSHL_DReq_V_tready       => soSHL_Nts_Tcp_DReq_tready,
+        ---- TCP Data Stream
+        siSHL_Data_tdata          => siSHL_Nts_Tcp_Data_tdata, 
+        siSHL_Data_tkeep          => siSHL_Nts_Tcp_Data_tkeep, 
+        siSHL_Data_tlast          => siSHL_Nts_Tcp_Data_tlast, 
+        siSHL_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
+        siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
+        ---- TCP Metadata Stream 
+        siSHL_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
+        siSHL_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
+        siSHL_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
+        siSHL_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
+        siSHL_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
         
         ------------------------------------------------------
-        -- TOE / RxP Ctlr Flow Interfaces
+        -- SHELL / RxP Ctlr Flow Interfaces
         ------------------------------------------------------
-        -- FPGA Receive Path (SHELL-->ROLE) ------- :
-        ---- Stream TCP Listen Request -----
-        soTOE_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
-        soTOE_LsnReq_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soTOE_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soTOE_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
-        soTOE_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
-        ---- Stream TCP Listen -------------
-        siTOE_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata,
-        siTOE_LsnAck_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
-        siTOE_LsnAck_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]        
-        siTOE_LsnAck_tvalid       => siSHL_Nts_Tcp_LsnAck_tvalid, 
-        siTOE_LsnAck_tready       => siSHL_Nts_Tcp_LsnAck_tready, 
+        -- FPGA Receive Path (SHELL-->APP) ------- :
+        ---- TCP Listen Request Stream 
+        soSHL_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
+        soSHL_LsnReq_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+        soSHL_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
+        soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
+        soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
+        ---- TCP Listen Stream 
+        siSHL_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata,
+        siSHL_LsnAck_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
+        siSHL_LsnAck_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]        
+        siSHL_LsnAck_tvalid       => siSHL_Nts_Tcp_LsnAck_tvalid, 
+        siSHL_LsnAck_tready       => siSHL_Nts_Tcp_LsnAck_tready, 
        
         ------------------------------------------------------
-        -- TOE / TxP Data Interfaces
+        -- SHELL / TxP Data Interfaces
         ------------------------------------------------------
-        ---- Stream TCP Data ------------ 
-        soTOE_Data_tdata          => soSHL_Nts_Tcp_Data_tdata, 
-        soTOE_Data_tkeep          => soSHL_Nts_Tcp_Data_tkeep, 
-        soTOE_Data_tlast          => soSHL_Nts_Tcp_Data_tlast, 
-        soTOE_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
-        soTOE_Data_tready         => soSHL_Nts_Tcp_Data_tready,
-        ---- Stream TCP Metadata ---------
-        soTOE_SessId_tdata        => soSHL_Nts_Tcp_Meta_tdata,
-        soTOE_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soTOE_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]        
-        soTOE_SessId_tvalid       => soSHL_Nts_Tcp_Meta_tvalid,
-        soTOE_SessId_tready       => soSHL_Nts_Tcp_Meta_tready,
-        ---- Stream TCP Data Status ------
-        siTOE_DSts_V_tdata          => siSHL_Nts_Tcp_DSts_tdata,
-        siTOE_DSts_V_tvalid         => siSHL_Nts_Tcp_DSts_tvalid,
-        siTOE_DSts_V_tready         => siSHL_Nts_Tcp_DSts_tready,
+        ---- TCP Data Stream 
+        soSHL_Data_tdata          => soSHL_Nts_Tcp_Data_tdata, 
+        soSHL_Data_tkeep          => soSHL_Nts_Tcp_Data_tkeep, 
+        soSHL_Data_tlast          => soSHL_Nts_Tcp_Data_tlast, 
+        soSHL_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
+        soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
+        ---- TCP Metadata Stream 
+        soSHL_SessId_tdata        => soSHL_Nts_Tcp_Meta_tdata,
+        soSHL_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
+        soSHL_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]        
+        soSHL_SessId_tvalid       => soSHL_Nts_Tcp_Meta_tvalid,
+        soSHL_SessId_tready       => soSHL_Nts_Tcp_Meta_tready,
+        ---- TCP Data Status Stream 
+        siSHL_DSts_V_tdata        => siSHL_Nts_Tcp_DSts_tdata,
+        siSHL_DSts_V_tvalid       => siSHL_Nts_Tcp_DSts_tvalid,
+        siSHL_DSts_V_tready       => siSHL_Nts_Tcp_DSts_tready,
              
         ------------------------------------------------------
-        -- TOE / TxP Ctlr Flow Interfaces
+        -- SHELL / TxP Ctlr Flow Interfaces
         ------------------------------------------------------
-        -- FPGA Transmit Path (ROLE-->SHELL) ------
-        ---- Stream TCP Open Session Request
-        soTOE_OpnReq_V_tdata      => soSHL_Nts_Tcp_OpnReq_tdata,
-        soTOE_OpnReq_V_tvalid     => soSHL_Nts_Tcp_OpnReq_tvalid,
-        soTOE_OpnReq_V_tready     => soSHL_Nts_Tcp_OpnReq_tready,
-        ---- Stream TCP Open Session Status 
-        siTOE_OpnRep_V_tdata      => siSHL_Nts_Tcp_OpnRep_tdata,  
-        siTOE_OpnRep_V_tvalid     => siSHL_Nts_Tcp_OpnRep_tvalid,
-        siTOE_OpnRep_V_tready     => siSHL_Nts_Tcp_OpnRep_tready,
-        ---- Stream TCP Close Request ------
-        soTOE_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
-        soTOE_ClsReq_tkeep        => open,        -- [TODO: Until SHELL I/F is compliant] 
-        soTOE_ClsReq_tlast        => open,        -- [TODO: Until SHELL I/F is compliant]        
-        soTOE_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
-        soTOE_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
+        -- FPGA Transmit Path (APP-->SHELL) ------
+        ---- TCP Open Session Request Stream 
+        soSHL_OpnReq_V_tdata      => soSHL_Nts_Tcp_OpnReq_tdata,
+        soSHL_OpnReq_V_tvalid     => soSHL_Nts_Tcp_OpnReq_tvalid,
+        soSHL_OpnReq_V_tready     => soSHL_Nts_Tcp_OpnReq_tready,
+        ---- TCP Open Session Status Stream  
+        siSHL_OpnRep_V_tdata      => siSHL_Nts_Tcp_OpnRep_tdata,  
+        siSHL_OpnRep_V_tvalid     => siSHL_Nts_Tcp_OpnRep_tvalid,
+        siSHL_OpnRep_V_tready     => siSHL_Nts_Tcp_OpnRep_tready,
+        ---- TCP Close Request Stream 
+        soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
+        soSHL_ClsReq_tkeep        => open,        -- [TODO: Until SHELL I/F is compliant] 
+        soSHL_ClsReq_tlast        => open,        -- [TODO: Until SHELL I/F is compliant]        
+        soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
+        soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
         
         ------------------------------------------------------
-        -- ROLE / Session Connect Id Interface
+        -- TAF / Session Connect Id Interface
         ------------------------------------------------------
-        poROL_SConId_V           => sTRIF_TAF_SessConId,
-        poROL_SConId_V_ap_vld    => open
+        poTAF_SConId_V           => sTSIF_TAF_SessConId,
+        poTAF_SConId_V_ap_vld    => open
   
-      ); -- End of: TcpRoleInterface
+      ); -- End of: TcpShellInterface
   
   end generate;
 
@@ -1261,35 +1261,36 @@ begin
         --[TODO] piSHL_MmioCaptSegEn_V  => piSHL_Mmio_TcpCaptSegEn,
         
         ------------------------------------------------------
-        -- From TRIF / Session Connect Id Interface
+        -- From TSIF / Session Connect Id Interface
         ------------------------------------------------------
-        piTRIF_SConnectId_V      => sTRIF_TAF_SessConId,
+        piTRIF_SConnectId_V      => sTSIF_TAF_SessConId,
 
         --------------------- -----------------------------------
         -- From SHELL / Tcp Data & Session Id Interfaces
         --------------------- -----------------------------------
-        siSHL_Data_tdata      => ssTRIF_TAF_Data_tdata,
-        siSHL_Data_tkeep      => ssTRIF_TAF_Data_tkeep,
-        siSHL_Data_tlast      => ssTRIF_TAF_Data_tlast,
-        siSHL_Data_tvalid     => ssTRIF_TAF_Data_tvalid,
-        siSHL_Data_tready     => ssTRIF_TAF_Data_tready,
+        siSHL_Data_tdata      => ssTSIF_TAF_Data_tdata,
+        siSHL_Data_tkeep      => ssTSIF_TAF_Data_tkeep,
+        siSHL_Data_tlast      => ssTSIF_TAF_Data_tlast,
+        siSHL_Data_tvalid     => ssTSIF_TAF_Data_tvalid,
+        siSHL_Data_tready     => ssTSIF_TAF_Data_tready,
         --
-        siSHL_SessId_tdata    => ssTRIF_TAF_Meta_tdata,
-        siSHL_SessId_tvalid   => ssTRIF_TAF_Meta_tvalid,
-        siSHL_SessId_tready   => ssTRIF_TAF_Meta_tready,
+        siSHL_SessId_tdata    => ssTSIF_TAF_Meta_tdata,
+        siSHL_SessId_tvalid   => ssTSIF_TAF_Meta_tvalid,
+        siSHL_SessId_tready   => ssTSIF_TAF_Meta_tready,
 
         --------------------- -----------------------------------
         -- To SHELL / Tcp Data & Session Id Interfaces
         --------------------- -----------------------------------
-        soSHL_Data_tdata      => ssTAF_TRIF_Data_tdata,
-        soSHL_Data_tkeep      => ssTAF_TRIF_Data_tkeep,
-        soSHL_Data_tlast      => ssTAF_TRIF_Data_tlast,
-        soSHL_Data_tvalid     => ssTAF_TRIF_Data_tvalid,
-        soSHL_Data_tready     => ssTAF_TRIF_Data_tready,
+        soSHL_Data_tdata      => ssTAF_TSIF_Data_tdata,
+        soSHL_Data_tkeep      => ssTAF_TSIF_Data_tkeep,
+        soSHL_Data_tlast      => ssTAF_TSIF_Data_tlast,
+        soSHL_Data_tvalid     => ssTAF_TSIF_Data_tvalid,
+        soSHL_Data_tready     => ssTAF_TSIF_Data_tready,
         --
-        soSHL_SessId_tdata    => ssTAF_TRIF_Meta_tdata,
-        soSHL_SessId_tvalid   => ssTAF_TRIF_Meta_tvalid,
-        soSHL_SessId_tready   => ssTAF_TRIF_Meta_tready
+        soSHL_SessId_tdata    => ssTAF_TSIF_Meta_tdata,
+        soSHL_SessId_tvalid   => ssTAF_TSIF_Meta_tvalid,
+        soSHL_SessId_tready   => ssTAF_TSIF_Meta_tready
+        
       );
     
   else generate
@@ -1318,37 +1319,37 @@ begin
         ------------------------------------------------------
         -- From TRIF / Session Connect Id Interface
         ------------------------------------------------------
-        piTRIF_SConnectId_V      => sTRIF_TAF_SessConId,
+        piTSIF_SConnectId_V      => sTSIF_TAF_SessConId,
         
         --------------------------------------------------------
         -- From SHELL / Tcp Interfaces
         --------------------------------------------------------
-        siSHL_Data_tdata         => ssTRIF_TAF_Data_tdata,
-        siSHL_Data_tkeep         => ssTRIF_TAF_Data_tkeep,
-        siSHL_Data_tlast         => ssTRIF_TAF_Data_tlast,
-        siSHL_Data_tvalid        => ssTRIF_TAF_Data_tvalid,
-        siSHL_Data_tready        => ssTRIF_TAF_Data_tready,
+        siSHL_Data_tdata         => ssTSIF_TAF_Data_tdata,
+        siSHL_Data_tkeep         => ssTSIF_TAF_Data_tkeep,
+        siSHL_Data_tlast         => ssTSIF_TAF_Data_tlast,
+        siSHL_Data_tvalid        => ssTSIF_TAF_Data_tvalid,
+        siSHL_Data_tready        => ssTSIF_TAF_Data_tready,
         --
-        siSHL_SessId_tdata       => ssTRIF_TAF_Meta_tdata,
-        siSHL_SessId_tkeep       => (others=>'1'),             -- [TODO-ssTRIF_TAF_Meta_tkeep]
-        siSHL_SessId_tlast       => '1',                       -- [TODO-ssTRIF_TAF_Meta_tlast]
-        siSHL_SessId_tvalid      => ssTRIF_TAF_Meta_tvalid,
-        siSHL_SessId_tready      => ssTRIF_TAF_Meta_tready,
+        siSHL_SessId_tdata       => ssTSIF_TAF_Meta_tdata,
+        siSHL_SessId_tkeep       => (others=>'1'),             -- [TODO-ssTSIF_TAF_Meta_tkeep]
+        siSHL_SessId_tlast       => '1',                       -- [TODO-ssTSIF_TAF_Meta_tlast]
+        siSHL_SessId_tvalid      => ssTSIF_TAF_Meta_tvalid,
+        siSHL_SessId_tready      => ssTSIF_TAF_Meta_tready,
         
         --------------------------------------------------------
         -- To SHELL / Tcp Data Interfaces
         --------------------------------------------------------
-        soSHL_Data_tdata         => ssTAF_TRIF_Data_tdata,
-        soSHL_Data_tkeep         => ssTAF_TRIF_Data_tkeep,
-        soSHL_Data_tlast         => ssTAF_TRIF_Data_tlast,
-        soSHL_Data_tvalid        => ssTAF_TRIF_Data_tvalid,
-        soSHL_Data_tready        => ssTAF_TRIF_Data_tready,
+        soSHL_Data_tdata         => ssTAF_TSIF_Data_tdata,
+        soSHL_Data_tkeep         => ssTAF_TSIF_Data_tkeep,
+        soSHL_Data_tlast         => ssTAF_TSIF_Data_tlast,
+        soSHL_Data_tvalid        => ssTAF_TSIF_Data_tvalid,
+        soSHL_Data_tready        => ssTAF_TSIF_Data_tready,
         --
-        soSHL_SessId_tdata       => ssTAF_TRIF_Meta_tdata,
-        soSHL_SessId_tkeep       => open,                      -- [TODO-ssTAF_TRIF_Meta_tkeep]
-        soSHL_SessId_tlast       => open,                      -- [TODO-ssTAF_TRIF_Meta_tlast]
-        soSHL_SessId_tvalid      => ssTAF_TRIF_Meta_tvalid,
-        soSHL_SessId_tready      => ssTAF_TRIF_Meta_tready
+        soSHL_SessId_tdata       => ssTAF_TSIF_Meta_tdata,
+        soSHL_SessId_tkeep       => open,                      -- [TODO-ssTAF_TSIF_Meta_tkeep]
+        soSHL_SessId_tlast       => open,                      -- [TODO-ssTAF_TSIF_Meta_tlast]
+        soSHL_SessId_tvalid      => ssTAF_TSIF_Meta_tvalid,
+        soSHL_SessId_tready      => ssTAF_TSIF_Meta_tready
       );
 
   end generate;

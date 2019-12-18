@@ -410,10 +410,10 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : TCP Role Interface 
+# IBM-HSL-IP : TCP Shell Interface 
 #------------------------------------------------------------------------------
-set ipModName "TcpRoleInterface"
-set ipName    "tcp_role_if"
+set ipModName "TcpShellInterface"
+set ipName    "tcp_shell_if"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

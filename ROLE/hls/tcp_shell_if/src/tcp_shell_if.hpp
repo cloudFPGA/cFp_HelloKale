@@ -24,19 +24,17 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*****************************************************************************
- * @file       : tcp_role_if.hpp
- * @brief      : TCP Role Interface (TRIF).
+ * @file       : tcp_shell_if.hpp
+ * @brief      : TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
- * Component   : Interface with Network Transport Stack (NTS) of the SHELL.
+ * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
- *
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the
- *                   TCP-Role interface.
+ *                   TCP shell interface.
  *
  *****************************************************************************/
 
@@ -51,63 +49,64 @@ using namespace hls;
 
 /*************************************************************************
  *
- * ENTITY - TCP ROLE INTERFACE (TRIF)
+ * ENTITY - TCP SHELL INTERFACE (TSIF)
  *
  *************************************************************************/
-void tcp_role_if(
+void tcp_shell_if(
 
         //------------------------------------------------------
         //-- SHELL / Mmio Interface
         //------------------------------------------------------
-        CmdBit                  *piSHL_Mmio_En,
+        CmdBit                *piSHL_Mmio_En,
 
         //------------------------------------------------------
-        //-- ROLE / Rx Data Interface
+        //-- TAF / TxP Data Interface
         //------------------------------------------------------
-        stream<AppData>         &siROL_Data,
-        stream<AppMetaAxis>     &siROL_SessId,
+        stream<AppData>       &siTAF_Data,
+        stream<AppMetaAxis>   &siTAF_SessId,
 
         //------------------------------------------------------
-        //-- ROLE / Tx Data Interface
+        //-- TAF / RxP Data Interface
         //------------------------------------------------------
-        stream<AppData>         &soROL_Data,
-        stream<AppMetaAxis>     &soROL_SessId,
+        stream<AppData>       &soTAF_Data,
+        stream<AppMetaAxis>   &soTAF_SessId,
 
         //------------------------------------------------------
-        //-- TOE / Rx Data Interfaces
+        //-- SHELL / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppNotif>        &siTOE_Notif,
-        stream<AppRdReq>        &soTOE_DReq,
-        stream<AppData>         &siTOE_Data,
-        stream<AppMetaAxis>     &siTOE_SessId,
+        stream<AppNotif>      &siSHL_Notif,
+        stream<AppRdReq>      &soSHL_DReq,
+        stream<AppData>       &siSHL_Data,
+        stream<AppMetaAxis>   &siSHL_SessId,
 
         //------------------------------------------------------
-        //-- TOE / Listen Interfaces
+        //-- SHELL / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReqAxis>   &soTOE_LsnReq,
-        stream<AppLsnAckAxis>   &siTOE_LsnAck,
+        stream<AppLsnReqAxis> &soSHL_LsnReq,
+        stream<AppLsnAckAxis> &siSHL_LsnAck,
 
         //------------------------------------------------------
-        //-- TOE / Tx Data Interfaces
+        //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>         &soTOE_Data,
-        stream<AppMetaAxis>     &soTOE_SessId,
-        stream<AppWrSts>        &siTOE_DSts,
+        stream<AppData>       &soSHL_Data,
+        stream<AppMetaAxis>   &soSHL_SessId,
+        stream<AppWrSts>      &siSHL_DSts,
 
         //------------------------------------------------------
-        //-- TOE / Open Interfaces
+        //-- SHELL / Tx Open Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>       &soTOE_OpnReq,
-        stream<AppOpnRep>       &siTOE_OpnRep,
+        stream<AppOpnReq>     &soSHL_OpnReq,
+        stream<AppOpnRep>     &siSHL_OpnRep,
 
         //------------------------------------------------------
-        //-- TOE / Close Interfaces
+        //-- SHELL / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReqAxis>   &soTOE_ClsReq,
+        stream<AppClsReqAxis> &soSHL_ClsReq,
 
         //------------------------------------------------------
-        //-- ROLE / Session Connect Id Interface
+        //-- TAF / Session Connect Id Interface
         //------------------------------------------------------
-        SessionId               *poROL_SConId
+        SessionId             *poTAF_SConId
+
 );
 

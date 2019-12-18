@@ -19,8 +19,8 @@
 set xprName      "roleFMKU60_Flash"
 set xilPartName  "xcku060-ffva1156-2-i"
 
-set topName      "Role_x1Udp_x1Tcp_x2Mp"
-set topFile      "roleFlash.vhdl"
+set topName      "Role_Kale"
+set topFile      "Role.vhdl"
 
 
 #-------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ set currDir      [pwd]
 set rootDir      [file dirname [pwd]] 
 set hdlDir       ${rootDir}/hdl
 set hlsDir       ${rootDir}/hls
-set ipDir        ${rootDir}/ip
+set ipDir        ${rootDir}/ipx
 set simDir       ${rootDir}/sim
 set tclDir       ${rootDir}/tcl
 set xdcDir       ${rootDir}/xdc
