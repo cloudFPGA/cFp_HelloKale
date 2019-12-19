@@ -25,11 +25,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
  * @file       : test_tcp_app_flash.cpp
- * @brief      : Testbench for TCP Application Flash (TAF).
+ * @brief      : Testbench for TCP Application Flash.
  *
  * System:     : cloudFPGA
- * Component   : RoleFlash
+ * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (TAF)
  * Language    : Vivado HLS
+
  *
  *****************************************************************************/
 
@@ -50,7 +51,7 @@ using namespace std;
 #define THIS_NAME "TB"
 
 #define TRACE_OFF     0x0000
-#define TRACE_TRIF   1 <<  1
+#define TRACE_TSIF   1 <<  1
 #define TRACE_TAF    1 <<  2
 #define TRACE_MMIO   1 <<  3
 #define TRACE_ALL     0xFFFF
@@ -91,7 +92,7 @@ unsigned int    gMaxSimCycles = MAX_SIM_CYCLES;
 
 
 /*****************************************************************************
- * @brief Receiving part of the TRIF process.
+ * @brief Emulate the receiving part of the TSIF process.
  *
  * @param[in/out] nrError,    A reference to the error counter of the [TB].
  * @param[out] siTAF_Data,    the data stream to read.
@@ -102,7 +103,7 @@ unsigned int    gMaxSimCycles = MAX_SIM_CYCLES;
  *
  * @returns OK/KO.
  ******************************************************************************/
-bool pTRIF_Recv(
+bool pTSIF_Recv(
     int                &nrErr,
     stream<AppData>    &siTAF_Data,
     stream<AppMeta>    &siTAF_SessId,
@@ -110,7 +111,7 @@ bool pTRIF_Recv(
     ofstream           &tcpFileStream,
     int                &nrSegments)
 {
-    const char *myName  = concat3(THIS_NAME, "/", "TRIF_Recv");
+    const char *myName  = concat3(THIS_NAME, "/", "TSIF_Recv");
 
     AppData     tcpWord;
     AppMeta     appMeta;
@@ -146,7 +147,7 @@ bool pTRIF_Recv(
 }
 
 /*****************************************************************************
- * @brief Sending part of the TRIF process.
+ * @brief Emulate the sending part of the TSIF process.
  *
  * @param[in/out] nrError,    A reference to the error counter of the [TB].
  * @param[out] soTAF_Data,    the data stream to write.
@@ -156,14 +157,14 @@ bool pTRIF_Recv(
  *
  * @returns OK/KO.
  ******************************************************************************/
-bool pTRIF_Send(
+bool pTSIF_Send(
     int                &nrError,
     stream<AppData>    &soTAF_Data,
     stream<AppMeta>    &soTAF_Meta,
     ifstream           &inpFileStream,
     int                &nrSegments)
 {
-    const char *myName  = concat3(THIS_NAME, "/", "TRIF_Send");
+    const char *myName  = concat3(THIS_NAME, "/", "TSIF_Send");
 
     string      strLine;
     AxiWord     tcpWord;
@@ -175,7 +176,7 @@ bool pTRIF_Send(
     if (!inpFileStream.eof()) {
         getline(inpFileStream, strLine);
         if (!strLine.empty()) {
-            sscanf(strLine.c_str(), "%llx %x %d", &tcpWord.tdata, &tcpWord.tkeep, &tcpWord.tlast);
+            sscanf(strLine.c_str(), "%llx %d %x", &tcpWord.tdata, &tcpWord.tlast, &tcpWord.tkeep);
             // Write to soMetaStream
             if (startOfTcpSeg) {
                 if (!soTAF_Meta.full()) {
@@ -213,7 +214,7 @@ bool pTRIF_Send(
 }
 
 /******************************************************************************
- * @brief Emulate the behavior of the TRIF.
+ * @brief Emulate the behavior of the TSIF.
  *
  * @param[in/out] A reference to   the error counter of the [TB].
  * @param[out]    poTAF_EchoCtrl,  a ptr to set the ECHO mode.
@@ -225,7 +226,7 @@ bool pTRIF_Send(
  * @param[in]     siTAF_SessId     SessionID to [TAF].
  *
  ******************************************************************************/
-void pTRIF(
+void pTSIF(
         int                 &nrErr,
         //-- MMIO/ Configuration Interfaces
         ap_uint<2>          *poTAF_EchoCtrl,
@@ -237,10 +238,10 @@ void pTRIF(
         //-- TAF / TCP Data Interface
         stream<AppData>     &siTAF_Data,
         stream<AppMeta>     &siTAF_SessId,
-        //-- TRIF / Session Connection Id
+        //-- TSIF / Session Connection Id
         SessionId           *poTAF_SessConId)
 {
-    const char *myName  = concat3(THIS_NAME, "/", "TRIF");
+    const char *myName  = concat3(THIS_NAME, "/", "TSIF");
 
     static bool doneWithPassThroughTest1 = false;
     static bool doneWithPostSegmentTest2 = false;
@@ -316,14 +317,14 @@ void pTRIF(
     }
     else if (!doneWithPassThroughTest1) {
         //-- STEP-2.3 : FEED THE TAF
-        rcSend = pTRIF_Send(
+        rcSend = pTSIF_Send(
                 nrErr,
                 soTAF_Data,
                 soTAF_SessId,
                 ifs1,
                 txSegCnt);
         //-- STEP-2.4 : READ FROM THE TAF
-        rcRecv = pTRIF_Recv(
+        rcRecv = pTSIF_Recv(
                 nrErr,
                 siTAF_Data,
                 siTAF_SessId,
@@ -385,7 +386,7 @@ void pTRIF(
     }
     else if (!doneWithPostSegmentTest2) {
         //-- STEP-3.4 : READ FROM THE TAF
-        rcRecv = pTRIF_Recv(
+        rcRecv = pTSIF_Recv(
                 nrErr,
                 siTAF_Data,
                 siTAF_SessId,
@@ -423,21 +424,17 @@ int main() {
     ap_uint<2>          sMMIO_TAF_EchoCtrl;
     CmdBit              sMMIO_TAF_PostSegEn;
     CmdBit              sMMIO_TAF_CaptSegEn;
-    //-- TRIF / Session Connection Id
-    SessionId           sTRIF_TAF_SessConId;
+    //-- TSIF / Session Connection Id
+    SessionId           sTSIF_TAF_SessConId;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
-    //-- TRIF / TCP Data Interfaces
-    stream<AppData>     ssTRIF_TAF_Data   ("ssTRIF_TAF_Data");
-    stream<AppMeta>     ssTRIF_TAF_SessId ("ssTRIF_TAF_SessId");
-    stream<AppData>     ssTAF_TRIF_Data   ("ssTAF_TRIF_Data");
-    stream<AppMeta>     ssTAF_TRIF_SessId ("ssTAF_TRIF_SessId");
-
-    //-- TRIF / Listen Interfaces
-    stream<AppLsnReq>   ssTAF_TRIF_LsnReq ("ssTRIF_TAF_LsnReq");
-    stream<AppLsnAck>   ssTRIF_TAF_LsnAck ("ssTRIF_TAF_LsnAck");
+    //-- TSIF / TCP Data Interfaces
+    stream<AppData>     ssTSIF_TAF_Data   ("ssTSIF_TAF_Data");
+    stream<AppMeta>     ssTSIF_TAF_SessId ("ssTSIF_TAF_SessId");
+    stream<AppData>     ssTAF_TSIF_Data   ("ssTAF_TSIF_Data");
+    stream<AppMeta>     ssTAF_TSIF_SessId ("ssTAF_TSIF_SessId");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -454,22 +451,22 @@ int main() {
     //-----------------------------------------------------
     do {
         //-------------------------------------------------
-        //-- EMULATE TRIF
+        //-- EMULATE TSIF
         //-------------------------------------------------
-        pTRIF(
+        pTSIF(
             nrErr,
             //-- MMIO / Configuration Interfaces
             &sMMIO_TAF_EchoCtrl,
             &sMMIO_TAF_PostSegEn,
             &sMMIO_TAF_CaptSegEn,
             //-- TAF / TCP Data Interfaces
-            ssTRIF_TAF_Data,
-            ssTRIF_TAF_SessId,
+            ssTSIF_TAF_Data,
+            ssTSIF_TAF_SessId,
             //-- TAF / TCP Data Interface
-            ssTAF_TRIF_Data,
-            ssTAF_TRIF_SessId,
-            //-- TRIF / Session Connection Id
-            &sTRIF_TAF_SessConId);
+            ssTAF_TSIF_Data,
+            ssTAF_TSIF_SessId,
+            //-- TSIF / Session Connection Id
+            &sTSIF_TAF_SessConId);
 
         //-------------------------------------------------
         //-- RUN DUT
@@ -479,14 +476,14 @@ int main() {
             &sMMIO_TAF_EchoCtrl,
             &sMMIO_TAF_PostSegEn,
             //[TODO] *piSHL_MmioCaptSegEn,
-            //-- TRIF / Session Connect Id Interface
-            &sTRIF_TAF_SessConId,
-            //-- TRIF / TCP Rx Data Interface
-            ssTRIF_TAF_Data,
-            ssTRIF_TAF_SessId,
-            //-- TRIF / TCP Tx Data Interface
-            ssTAF_TRIF_Data,
-            ssTAF_TRIF_SessId);
+            //-- TSIF / Session Connect Id Interface
+            &sTSIF_TAF_SessConId,
+            //-- TSIF / TCP Rx Data Interface
+            ssTSIF_TAF_Data,
+            ssTSIF_TAF_SessId,
+            //-- TSIF / TCP Tx Data Interface
+            ssTAF_TSIF_Data,
+            ssTAF_TSIF_SessId);
 
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER

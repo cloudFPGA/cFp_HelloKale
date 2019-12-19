@@ -28,13 +28,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @brief      : TCP Application Flash (TAF)
  *
  * System:     : cloudFPGA
- * Component   : RoleFlash
+ * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
  *
  *----------------------------------------------------------------------------
  *
  * @details    : This application implements a set of TCP-oriented tests and
- *  functions which are embedded into the Flash of the cloudFPGA role.
+ *  functions for the bring-up of a cloudFPGA module.
  *
  * @note       : For the time being, we continue designing with the DEPRECATED
  *  directives because the new PRAGMAs do not work for us.
@@ -59,7 +59,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   extern bool gTraceEvent;
 #endif
 
-#define THIS_NAME "TAP"  // TcpAppFlash
+#define THIS_NAME "TAF"  // TcpAppFlash
 
 #define TRACE_OFF  0x0000
 #define TRACE_ESF 1 <<  1  // EchoStoreForward
@@ -94,56 +94,24 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
+    const char *myName  = concat3(THIS_NAME, "/", "ESf");
+
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     AxiWord     axiWord;
     TcpSessId   tcpSessId;
 
     //-- LOCAL STREAMS --------------------------------------------------------
     static stream<AxiWord>      ssDataFifo ("ssDataFifo");
-    #pragma HLS stream     variable=ssDataFifo depth=2048
+    #pragma HLS stream variable=ssDataFifo depth=2048
 
     static stream<TcpSessId>    ssMetaFifo ("ssMetaFifo");
     #pragma HLS stream variable=ssMetaFifo depth=64
-
-    /*** [TODO - Do not use an internal FIFO here because it breaks the II=1]
-    //-- DATA STREAM ----------------------------
-    if ( !siRXp_Data.empty() && !ssDataFifo.full() &&
-         !soTXp_Data.full()  && !ssDataFifo.empty() ) {
-        //-- FiFo Push and Pop ------------
-        ssDataFifo.write(siRXp_Data.read());
-        soTXp_Data.write(ssDataFifo.read());
-    }
-    else if ( !siRXp_Data.empty() && !ssDataFifo.full() ) {
-        //-- FiFo Push only ---------------
-        ssDataFifo.write(siRXp_Data.read());
-    }
-    else if ( !soTXp_Data.full() && !ssDataFifo.empty() ) {
-        //-- FiFo Pop only ----------------
-        soTXp_Data.write(ssDataFifo.read());
-       }
-
-    //-- META STREAM ----------------------------
-    if ( !siRXp_SessId.empty() && !ssMetaFifo.full() &&
-         !soTXp_SessId.full()  && !ssMetaFifo.empty() ) {
-        //-- FiFo Push and Pop ------------
-        ssMetaFifo.write(siRXp_SessId.read());
-        soTXp_SessId.write(ssMetaFifo.read());
-    }
-    else if ( !siRXp_SessId.empty() && !ssMetaFifo.full() ) {
-        //-- FiFo Push only ---------------
-        ssMetaFifo.write(siRXp_SessId.read());
-    }
-    else if ( !soTXp_SessId.full() && !ssMetaFifo.empty() ) {
-        //-- FiFo Pop only ----------------
-        soTXp_SessId.write(ssMetaFifo.read());
-    }
-    ************************************************************************/
 
     //-- DATA STREAM (w/o internal FIFO ---------
     if ( !siRXp_Data.empty() && !soTXp_Data.full() ) {
         soTXp_Data.write(siRXp_Data.read());
     }
-    //-- META STREAM  (w/o internal FIFO ---------
+    //-- META STREAM  (w/o internal FIFO --------
     if ( !siRXp_SessId.empty() && !soTXp_SessId.full() ) {
         soTXp_SessId.write(siRXp_SessId.read());
     }
@@ -156,7 +124,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
  *
  * @param[in]  piSHL_MmioEchoCtrl, configuration of the echo function.
  * @param[in]  piSHL_MmioPostSegEn,enables the posting of TCP segments.
- * @param[in]  piTRIF_SConnectId,  session connect Id from [TRIF].
+ * @param[in]  piTSIF_SConnectId,  session connect Id from [TSIF].
  * @param[in]  siEPt_Data,         data from EchoPassTrough (EPt).
  * @param[in]  siEPt_SessId,       metadata from [EPt].
  * @param[in]  siESf_Data,         data from EchoStoreAndForward (ESf).
@@ -169,7 +137,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
 void pTXPath(
         ap_uint<2>          *piSHL_MmioEchoCtrl,
         CmdBit              *piSHL_MmioPostSegEn,
-        SessionId           *piTRIF_SConnectId,
+        SessionId           *piTSIF_SConnectId,
         stream<AppData>     &siEPt_Data,
         stream<AppMeta>     &siEPt_SessId,
         stream<AppData>     &siESf_Data,
@@ -180,25 +148,27 @@ void pTXPath(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
+    const char *myName  = concat3(THIS_NAME, "/", "TXp");
+
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum TxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
-                               txpFsmState = START_OF_SEGMENT;
-    #pragma HLS reset variable=txpFsmState
-    static enum MsgFsmStates { MSG0=0, MSG1, MSG2, MSG3, MSG_GAP} \
-                               msgFsmState = MSG0;
-    #pragma HLS reset variable=msgFsmState
+    static enum FsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
+                               txp_fsmState = START_OF_SEGMENT;
+    #pragma HLS reset variable=txp_fsmState
+    static enum MsgStates { MSG0=0, MSG1, MSG2, MSG3, MSG_GAP} \
+                               txp_msgState = MSG0;
+    #pragma HLS reset variable=txp_msgState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static AxiWord    prevAxiWord;
-    static bool       wasLastWord;
-    static ap_uint<8> msgGapSize;
+    static AxiWord     txp_prevAxiWord;
+    static bool        txp_wasLastWord;
+    static ap_uint<16> txp_msgGapSize;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     AxiWord        tcpWord;
     AxiWord        currAxiWord;
     TcpSessId      tcpSessId;
 
-    switch (txpFsmState ) {
+    switch (txp_fsmState ) {
 
     case START_OF_SEGMENT:
         switch(*piSHL_MmioEchoCtrl) {
@@ -210,8 +180,8 @@ void pTXPath(
                 siEPt_SessId.read(appMeta);
                 soSHL_SessId.write(appMeta);
                 siEPt_Data.read(currAxiWord);
-                txpFsmState = CONTINUATION_OF_SEGMENT;
-                wasLastWord = false;
+                txp_fsmState = CONTINUATION_OF_SEGMENT;
+                txp_wasLastWord = false;
             }
             break;
         case ECHO_STORE_FWD:
@@ -220,36 +190,40 @@ void pTXPath(
                 AppMeta appMeta;
                 siESf_SessId.read(appMeta);
                 soSHL_SessId.write(appMeta);
-                txpFsmState = CONTINUATION_OF_SEGMENT;
+                txp_fsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
         case ECHO_OFF:
             // Always drain and drop the session Id (if any)
-            if ( !siEPt_SessId.empty() )
+            if ( !siEPt_SessId.empty() ) {
                 siEPt_SessId.read();
-            else if ( !siESf_SessId.empty() )
+            }
+            else if ( !siESf_SessId.empty() ) {
                 siESf_SessId.read();
+            }
 
             if (*piSHL_MmioPostSegEn) {
                 // Prepare for sending a segment to remote host by forwarding
                 // a session-id
                 if (!soSHL_SessId.full()) {
-                    SessionId sessConId = *piTRIF_SConnectId;
+                    SessionId sessConId = *piTSIF_SConnectId;
                     soSHL_SessId.write(AppMeta(sessConId));
-                    txpFsmState = CONTINUATION_OF_SEGMENT;
+                    txp_fsmState = CONTINUATION_OF_SEGMENT;
                 }
             }
             else {
-                txpFsmState = CONTINUATION_OF_SEGMENT;
+                txp_fsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
         default:
             // Always drain and drop the session Id (if any)
-            if ( !siEPt_SessId.empty() )
+            if ( !siEPt_SessId.empty() ) {
                 siEPt_SessId.read();
-            else if ( !siESf_SessId.empty() )
+            }
+            else if ( !siESf_SessId.empty() ) {
                 siESf_SessId.read();
-            txpFsmState = CONTINUATION_OF_SEGMENT;
+            }
+            txp_fsmState = CONTINUATION_OF_SEGMENT;
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
@@ -258,18 +232,19 @@ void pTXPath(
         switch(*piSHL_MmioEchoCtrl) {
         case ECHO_PATH_THRU:
             //-- Read incoming data from pEchoPathThrough and forward to [SHL]
-            if (wasLastWord & !soSHL_Data.full()) {
-                soSHL_Data.write(prevAxiWord);
-                wasLastWord = false;
-                txpFsmState = START_OF_SEGMENT;
+            if (txp_wasLastWord & !soSHL_Data.full()) {
+                soSHL_Data.write(txp_prevAxiWord);
+                txp_wasLastWord = false;
+                txp_fsmState = START_OF_SEGMENT;
             }
             else {
                 if (!siEPt_Data.empty() and !soSHL_Data.full()) {
                     siEPt_Data.read(currAxiWord);
-                    soSHL_Data.write(prevAxiWord);
+                    soSHL_Data.write(txp_prevAxiWord);
                     // Update FSM state
-                   if (currAxiWord.tlast)
-                       wasLastWord = true;
+                   if (currAxiWord.tlast) {
+                       txp_wasLastWord = true;
+                   }
                 }
             }
             break;
@@ -279,67 +254,73 @@ void pTXPath(
                 siESf_Data.read(tcpWord);
                 soSHL_Data.write(tcpWord);
                 // Update FSM state
-                if (tcpWord.tlast)
-                    txpFsmState = START_OF_SEGMENT;
+                if (tcpWord.tlast) {
+                    txp_fsmState = START_OF_SEGMENT;
+                }
             }
             break;
         case ECHO_OFF:
             // Always drain and drop the data segments (if any)
-            if ( !siEPt_Data.empty() )
+            if ( !siEPt_Data.empty() ) {
                 siEPt_Data.read(tcpWord);
-            else if ( !siESf_Data.empty() )
+            }
+            else if ( !siESf_Data.empty() ) {
                 siESf_Data.read(tcpWord);
+            }
 
             if (*piSHL_MmioPostSegEn) {
                 // Always send the same basic message to the remote host
                 if ( !soSHL_Data.full()) {
-                    switch(msgFsmState) {
+                    switch(txp_msgState) {
                     case MSG0: // 'Hello Wo'
                         soSHL_Data.write(AxiWord(0x48656c6c6f20576f, 0xFF, 0));
-                        msgFsmState = MSG1;
+                        txp_msgState = MSG1;
                         break;
                     case MSG1: // 'rld from'
                         soSHL_Data.write(AxiWord(0x726c642066726f6d, 0xFF, 0));
-                        msgFsmState = MSG2;
+                        txp_msgState = MSG2;
                         break;
                     case MSG2: // ' FMKU60 '
                         soSHL_Data.write(AxiWord(0x20464d4b55363020, 0xFF, 0));
-                        msgFsmState = MSG3;
+                        txp_msgState = MSG3;
                         break;
                     case MSG3: // '--------'
                         soSHL_Data.write(AxiWord(0x2d2d2d2d2d2d2d2d, 0xFF, 1));
-                        msgGapSize  = 4;
-                        msgFsmState = MSG_GAP;
+                        txp_msgGapSize  = 0xFFFF; // [TODO - Make this programmable]
+                        txp_msgState = MSG_GAP;
                         break;
                     case MSG_GAP: // Short pause before sending next segment
-                        if (msgGapSize)
-                            msgGapSize--;
+                        if (txp_msgGapSize) {
+                            txp_msgGapSize--;
+                        }
                         else {
-                            msgFsmState = MSG0;
-                            txpFsmState = START_OF_SEGMENT;
+                            txp_msgState = MSG0;
+                            txp_fsmState = START_OF_SEGMENT;
                         }
                     }
                 }
                 else {
-                    txpFsmState = START_OF_SEGMENT;
+                    txp_fsmState = START_OF_SEGMENT;
                 }
             }
             break;
         default:
             // Always drain and drop the data segments (if any)
-            if ( !siEPt_Data.empty() )
+            if ( !siEPt_Data.empty() ) {
                 siEPt_Data.read(tcpWord);
-            else if ( !siESf_Data.empty() )
+            }
+            else if ( !siESf_Data.empty() ) {
                 siESf_Data.read(tcpWord);
+            }
             // Always alternate between START and CONTINUATION to drain all streams
-            txpFsmState = START_OF_SEGMENT;
+            txp_fsmState = START_OF_SEGMENT;
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
-    }  // End-of: switch (txpFsmState ) {
+    }  // End-of: switch (txp_fsmState ) {
 
     //-- Update the one-word internal pipeline
-    prevAxiWord = currAxiWord;
+    txp_prevAxiWord = currAxiWord;
 
 } // End of: pTXPath()
 
@@ -369,20 +350,22 @@ void pRXPath(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
+    const char *myName  = concat3(THIS_NAME, "/", "TXp");
+
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum RxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
-                               rxpFsmState = START_OF_SEGMENT;
-    #pragma HLS reset variable=rxpFsmState
+    static enum FsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \
+                               rxp_fsmState = START_OF_SEGMENT;
+    #pragma HLS reset variable=rxp_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static bool    wasLastWord;
-    static AxiWord prevAxiWord;
+    static bool    rxp_wasLastWord;
+    static AxiWord rxp_prevAxiWord;
 
     //-- LOCAL VARIABLES ------------------------------------------------------
     AxiWord        tcpWord;
     AxiWord        currAxiWord;
 
-    switch (rxpFsmState ) {
+    switch (rxp_fsmState ) {
       case START_OF_SEGMENT:
         switch(*piSHL_MmioEchoCtrl) {
           case ECHO_PATH_THRU:
@@ -391,14 +374,14 @@ void pRXPath(
                  !siSHL_Data.empty() ) {
                 soEPt_SessId.write(siSHL_SessId.read());
                 siSHL_Data.read(currAxiWord);
-                rxpFsmState = CONTINUATION_OF_SEGMENT;
+                rxp_fsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
           case ECHO_STORE_FWD:
             //-- Read incoming session Id and forward to pEchoStoreAndForward
             if ( !siSHL_SessId.empty() and !soESf_SessId.full()) {
                 soESf_SessId.write(siSHL_SessId.read());
-                rxpFsmState = CONTINUATION_OF_SEGMENT;
+                rxp_fsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
           case ECHO_OFF:
@@ -406,29 +389,30 @@ void pRXPath(
             // Drain and drop the segment
             if ( !siSHL_SessId.empty() ) {
                 siSHL_SessId.read();
-                rxpFsmState = CONTINUATION_OF_SEGMENT;
+                rxp_fsmState = CONTINUATION_OF_SEGMENT;
             }
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
-        wasLastWord = false;
+        rxp_wasLastWord = false;
         break;
 
       case CONTINUATION_OF_SEGMENT:
         switch(*piSHL_MmioEchoCtrl) {
           case ECHO_PATH_THRU:
             //-- Read incoming data and forward to pEchoPathThrough
-            if (wasLastWord & !soEPt_Data.full()) {
-                soEPt_Data.write(prevAxiWord);
-                wasLastWord = false;
-                rxpFsmState = START_OF_SEGMENT;
+            if (rxp_wasLastWord & !soEPt_Data.full()) {
+                soEPt_Data.write(rxp_prevAxiWord);
+                rxp_wasLastWord = false;
+                rxp_fsmState = START_OF_SEGMENT;
             }
             else {
                 if (!siSHL_Data.empty() and !soEPt_Data.full()) {
                     siSHL_Data.read(currAxiWord);
-                    soEPt_Data.write(prevAxiWord);
+                    soEPt_Data.write(rxp_prevAxiWord);
                     // Update FSM state
-                   if (currAxiWord.tlast)
-                       wasLastWord = true;
+                   if (currAxiWord.tlast) {
+                       rxp_wasLastWord = true;
+                   }
                 }
             }
             break;
@@ -438,8 +422,9 @@ void pRXPath(
                 siSHL_Data.read(tcpWord);
                 soESf_Data.write(tcpWord);
                 // Update FSM state
-                if (tcpWord.tlast)
-                    rxpFsmState = START_OF_SEGMENT;
+                if (tcpWord.tlast) {
+                    rxp_fsmState = START_OF_SEGMENT;
+                }
             }
             break;
           case ECHO_OFF:
@@ -449,7 +434,7 @@ void pRXPath(
                 siSHL_Data.read(tcpWord);
             }
             // Always alternate between START and CONTINUATION to drain all streams
-            rxpFsmState = START_OF_SEGMENT;
+            rxp_fsmState = START_OF_SEGMENT;
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
@@ -457,7 +442,7 @@ void pRXPath(
     }  // End-of: switch (rxpFsmState ) {
 
     //-- Update the one-word internal pipeline
-    prevAxiWord = currAxiWord;
+    rxp_prevAxiWord = currAxiWord;
 
 } // End of: pRXPath()
 
@@ -467,7 +452,7 @@ void pRXPath(
  *
  * @param[in]  piSHL_MmioEchoCtrl,  configures the echo function.
  * @param[in]  piSHL_MmioPostSegEn, enables posting of TCP segments.
- * @param[in]  piTRIF_SConnectId,   session connect Id from [TRIF].
+ * @param[in]  piTSIF_SConnectId,   session connect Id from [TSIF].
  * @param[in]  piSHL_MmioCaptSegEn, enables capture of a TCP segment by [MMIO].
  * @param[in]  siSHL_Data,          TCP data stream from the SHELL [SHL].
  * @param[in]  siSHL_SessId,        TCP session Id from [SHL].
@@ -485,9 +470,9 @@ void tcp_app_flash (
         //[TODO] ap_uint<1> *piSHL_MmioCaptSegEn,
 
         //------------------------------------------------------
-        //-- TRIF / Session Connect Id Interface
+        //-- TSIF / Session Connect Id Interface
         //------------------------------------------------------
-        SessionId           *piTRIF_SConnectId,
+        SessionId           *piTSIF_SConnectId,
 
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
@@ -516,7 +501,7 @@ void tcp_app_flash (
     #pragma HLS INTERFACE ap_stable    port=piSHL_MmioPostSegEn
     //[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_MmioCaptSegEn
 
-    #pragma HLS INTERFACE ap_stable    port=piTRIF_SConnectId
+    #pragma HLS INTERFACE ap_stable    port=piTSIF_SConnectId
 
     #pragma HLS resource core=AXI4Stream variable=siSHL_Data   metadata="-bus_bundle siSHL_Data"
 
@@ -530,7 +515,7 @@ void tcp_app_flash (
     #pragma HLS INTERFACE ap_stable          port=piSHL_MmioPostSegEn name=piSHL_MmioPostSegEn
     //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_MmioCapSegtEn name=piSHL_MmioCapSegtEn
 
-    #pragma HLS INTERFACE ap_vld       port=piTRIF_SConnectId
+    #pragma HLS INTERFACE ap_vld       port=piTSIF_SConnectId
 
     // [INFO] Always add "register off" because (default value is "both")
     #pragma HLS INTERFACE axis register both port=siSHL_Data
@@ -548,23 +533,23 @@ void tcp_app_flash (
     //-------------------------------------------------------------------------
     //-- Rx Path (RXp)
     //-------------------------------------------------------------------------
-    static stream<AppData>      sRXpToTXp_Data    ("sRXpToTXp_Data");
-    #pragma HLS STREAM variable=sRXpToTXp_Data    depth=2048
-    static stream<AppMeta>      sRXpToTXp_SessId  ("sRXpToTXp_SessId");
-    #pragma HLS STREAM variable=sRXpToTXp_SessId  depth=64
+    static stream<AppData>      ssRXpToTXp_Data   ("ssRXpToTXp_Data");
+    #pragma HLS STREAM variable=ssRXpToTXp_Data   depth=2048
+    static stream<AppMeta>      ssRXpToTXp_SessId ("ssRXpToTXp_SessId");
+    #pragma HLS STREAM variable=ssRXpToTXp_SessId depth=64
 
-    static stream<AppData>      sRXpToESf_Data    ("sRXpToESf_Data");
-    #pragma HLS STREAM variable=sRXpToESf_Data    depth=2
-    static stream<AppMeta>      sRXpToESf_SessId  ("sRXpToESf_SessId");
-    #pragma HLS STREAM variable=sRXpToESf_SessId  depth=2
+    static stream<AppData>      ssRXpToESf_Data   ("ssRXpToESf_Data");
+    #pragma HLS STREAM variable=ssRXpToESf_Data   depth=2
+    static stream<AppMeta>      ssRXpToESf_SessId ("ssRXpToESf_SessId");
+    #pragma HLS STREAM variable=ssRXpToESf_SessId depth=2
 
     //-------------------------------------------------------------------------
     //-- Echo Store and Forward (ESf)
     //-------------------------------------------------------------------------
-    static stream<AppData>      sESfToTXp_Data    ("sESfToTXp_Data");
-    #pragma HLS STREAM variable=sESfToTXp_Data    depth=2
-    static stream<AppMeta>      sESfToTXp_SessId  ("sESfToTXp_SessId");
-    #pragma HLS STREAM variable=sESfToTXp_SessId  depth=2
+    static stream<AppData>      ssESfToTXp_Data   ("ssESfToTXp_Data");
+    #pragma HLS STREAM variable=ssESfToTXp_Data   depth=2
+    static stream<AppMeta>      ssESfToTXp_SessId ("ssESfToTXp_SessId");
+    #pragma HLS STREAM variable=ssESfToTXp_SessId depth=2
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     //
@@ -588,25 +573,25 @@ void tcp_app_flash (
             piSHL_MmioEchoCtrl,
             siSHL_Data,
             siSHL_SessId,
-            sRXpToTXp_Data,
-            sRXpToTXp_SessId,
-            sRXpToESf_Data,
-            sRXpToESf_SessId);
+            ssRXpToTXp_Data,
+            ssRXpToTXp_SessId,
+            ssRXpToESf_Data,
+            ssRXpToESf_SessId);
 
     pEchoStoreAndForward(
-            sRXpToESf_Data,
-            sRXpToESf_SessId,
-            sESfToTXp_Data,
-            sESfToTXp_SessId);
+            ssRXpToESf_Data,
+            ssRXpToESf_SessId,
+            ssESfToTXp_Data,
+            ssESfToTXp_SessId);
 
     pTXPath(
             piSHL_MmioEchoCtrl,
             piSHL_MmioPostSegEn,
-            piTRIF_SConnectId,
-            sRXpToTXp_Data,
-            sRXpToTXp_SessId,
-            sESfToTXp_Data,
-            sESfToTXp_SessId,
+            piTSIF_SConnectId,
+            ssRXpToTXp_Data,
+            ssRXpToTXp_SessId,
+            ssESfToTXp_Data,
+            ssESfToTXp_SessId,
             soSHL_Data,
             soSHL_SessId);
 
