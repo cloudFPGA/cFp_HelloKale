@@ -63,7 +63,7 @@ using namespace std;
 #endif
 
 
-#define THIS_NAME "TRIF"
+#define THIS_NAME "TSIF"  // TcpShellInterface
 
 #define TRACE_OFF  0x0000
 #define TRACE_RDP 1 <<  1
