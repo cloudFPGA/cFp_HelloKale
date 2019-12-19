@@ -33,7 +33,6 @@ function exit_on_error {
 }
 
 
-
 # STEP-1a: Check if '$cFpBringUpRootDir' is passed as a parameter
 if [[  $# -eq 1 ]]; then
     echo "<$0> The regression root directory is passed as an argument:"
@@ -68,32 +67,68 @@ export XILINXD_LICENSE_FILE=27001@boswil.zurich.ibm.com:27001@uzwil.zurich.ibm.c
 echo "<$0> Done with the setting of the environment."
 retval=1
 
-echo "<$0> ================================================================"
-echo "<$0> ===   START OF REGRESSION:" 
-echo "<$0> ================================================================"
+echo "<$0> ################################################################"
+echo "<$0> ###                        " 
+echo "<$0> ###   START OF REGRESSION: " 
+echo "<$0> ###                        " 
+echo "<$0> ################################################################"
+
 
 echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
 echo "<$0> ================================================================"
 cd $cFpBringUpRootDir
-# make testError
-make full_clean # just to be sure...
+# [DEBUG] make testError
+make full_clean
 make monolithic
 exit_on_error $? 
-echo "<$0> ================================================================"
-echo "<$0> ===   REGRESSION - END OF BUILD  : 'monolithic' "
-echo "<$0> ================================================================"
+echo "<$0> ----------------------------------------------------------------"
+echo "<$0> ---   REGRESSION - END OF BUILD  : 'monolithic' "
+echo "<$0> ----------------------------------------------------------------"
+
 
 echo "<$0> ================================================================"
-echo "<$0> ===   REGRESSION - START OF COSIM "
+echo "<$0> ===   REGRESSION - ROLE - START OF CSIM "
+echo "<$0> ================================================================"
+export usedRoleDir=$cFpBringUpRootDir/ROLE
+cd $usedRoleDir
+sh $usedRoleDir/reg/run_csim_reg.sh
+exit_on_error $? 
+echo "<$0> ----------------------------------------------------------------"
+echo "<$0> ---   REGRESSION - ROLE - END OF CSIM "
+echo "<$0> ----------------------------------------------------------------"
+
+
+echo "<$0> ================================================================"
+echo "<$0> ===   REGRESSION - ROLE - START OF COSIM "
+echo "<$0> ================================================================"
+export usedRoleDir=$cFpBringUpRootDir/ROLE
+cd $usedRoleDir
+sh $usedRoleDir/reg/run_cosim_reg.sh
+exit_on_error $? 
+echo "<$0> ----------------------------------------------------------------"
+echo "<$0> ---   REGRESSION - ROLE - END OF COSIM "
+echo "<$0> ----------------------------------------------------------------"
+
+
+echo "<$0> ================================================================"
+echo "<$0> ===   REGRESSION - cFDK - START OF COSIM "
 echo "<$0> ================================================================"
 export cFdkRootDir=$cFpBringUpRootDir/cFDK
 cd $cFdkRootDir 
 sh $cFdkRootDir/REG/run_cosim_reg.sh
 exit_on_error $? 
-echo "<$0> ================================================================"
-echo "<$0> ===   REGRESSION - END OF COSIM "
-echo "<$0> ================================================================"
+echo "<$0> ----------------------------------------------------------------"
+echo "<$0> ---   REGRESSION - cFDK - END OF COSIM "
+echo "<$0> ----------------------------------------------------------------"
+
+
+echo "<$0> ################################################################"
+echo "<$0> ###                      " 
+echo "<$0> ###   END OF REGRESSION: " 
+echo "<$0> ###                      " 
+echo "<$0> ################################################################"
+
 
 exit 0
 
