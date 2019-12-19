@@ -30,7 +30,7 @@ set currDir      [pwd]
 set rootDir      [file dirname [pwd]] 
 set hdlDir       ${rootDir}/hdl
 set hlsDir       ${rootDir}/hls
-set ipDir        ${rootDir}/ipx
+set ipDir        ${rootDir}/ip
 set simDir       ${rootDir}/sim
 set tclDir       ${rootDir}/tcl
 set xdcDir       ${rootDir}/xdc
