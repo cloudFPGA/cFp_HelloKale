@@ -395,7 +395,7 @@ architecture Flash of Role_Kale is
       ------------------------------------------------------
       -- From TSIF / Session Connect Id Interface
       ------------------------------------------------------
-      piTRIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
+      piTSIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
        
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
@@ -1263,7 +1263,7 @@ begin
         ------------------------------------------------------
         -- From TSIF / Session Connect Id Interface
         ------------------------------------------------------
-        piTRIF_SConnectId_V      => sTSIF_TAF_SessConId,
+        piTSIF_SConnectId_V      => sTSIF_TAF_SessConId,
 
         --------------------- -----------------------------------
         -- From SHELL / Tcp Data & Session Id Interfaces
