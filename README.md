@@ -17,7 +17,7 @@ As shown in Figure 1, the toplevel of _cFp_BringUp_ consists of:
   
 
 ![Block diagram of the BringUpTop](https://github.ibm.com/cloudFPGA/cFp_BringUp/blob/master/ROLE/doc/imgs/Fig-TOP-BringUp.png#center)
-<p align="center"><b>Figure-1: Block diagram of the toplevel of cfP_BringUp</b></p>
+<p align="center"><b>Figure-1: Toplevel block diagram of the cfP_BringUp project</b></p>
 <br>
 
 
