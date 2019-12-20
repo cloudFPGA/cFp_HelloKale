@@ -7,20 +7,17 @@ cFp_BringUp
 In cloudFPGA (cF), a user application is referred to as a **_ROLE_** and is integrated along
 with a **_SHELL_** that abstracts the hardware components of the FPGA module. 
 The combination of a specific ROLE and its associated SHELL into a toplevel design is
-referred to as a _Shell-Role-Architecture_. 
+referred to as a _Shell-Role-Architecture (SRA)_. 
 
 ## Toplevel design
-This section describes the toplevel design (**TOP**) of the _cFp_BringUp_ project
-which was developed for the bring-up and the testing of the cF module FMKU2595
-when it is equipped with a XCKU060. As shown in Figure 1, the toplevel of _cFp_BringUp_
-consists of:
-  - a SHELL of type [_**Kale**_](./cFDK/DOC/Kale.md) 
-  - a ROLE of type [_**BringUp**_](./ROLE/BringUpRole.md) which implements a set of TCP-, UDP- and DDR4-oriented tests and functions
-   for the bring-up the cloudFPGA module.
+This section describes the toplevel design (**TOP**) of the _cFp_BringUp_ project which was developed for the bring-up and the testing of the FMKU2595 module when it is equipped with a XCKU060. 
+As shown in Figure 1, the toplevel of _cFp_BringUp_ consists of:
+  - a SHELL of type [_**Kale**_](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md)
+  - a ROLE of type [_**BringUp**_](https://github.ibm.com/cloudFPGA/cFp_BringUp/blob/master/ROLE/doc/BringUpRole.md) which implements a set of TCP-, UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module.
   
 
-![Block diagram of the BringUpTop](./ROLE//imgs/Fig-TOP-BringUp.png#center)
-<p align="center"><b>Figure-1: Block diagram of the toplevel of cfP_BringUp</b></p>
+![Block diagram of the BringUpTop](https://github.ibm.com/cloudFPGA/cFp_BringUp/blob/master/ROLE/doc/imgs/Fig-TOP-BringUp.png#center)
+<p align="center"><b>Figure-1: Toplevel block diagram of the cfP_BringUp project</b></p>
 <br>
 
 
