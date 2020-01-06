@@ -18,7 +18,7 @@ source /tools/Xilinx/Vivado/2017.4/settings64.sh
 echo $PWD
 export cFpFlashRootDir=$PWD
 
-$cFpFlashRootDir/REG/run_main.sh
+$cFpFlashRootDir/reg/run_main.sh
 ```
 
 **About the _run_main_ script**  
