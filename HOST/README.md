@@ -26,13 +26,28 @@ generate a new bitfile for the current cloudFPGA project.
 Follow the procedure described [TBD](TODO) and write down your _**'image_ip'**_ address and 
 your _**'instance_id'**.
  
-##### Step-2: Ping your FPGA instance
+##### Step-2a: Ping your FPGA instance
 It is good practise to ping your FPGA instance before trying to run any further test.
 ```
-ping <image_ip>        (.e.g., ping 10.12.200.21) 
+    $ ping <image_ip>        (.e.g ping 10.12.200.21) 
 ````
+##### Step-2b: Test the establishment of a TCP connection with Netcat
+```
+    $ nc <image_ip> 8803     (.e.g nc 10.12.200.163 8803)
+```
+##### Step-2c: Test the establishment of a UDP connection with Netcat
+```
+    $ nc -u <image_ip> 8803     (.e.g nc -u 10.12.200.163 8803)
+```
 
 ##### Step-3a: Execute a TCP echo test
+```
+    $ cd py
+    $ source venv/bin/activate
+    $ python3 tc_TcpEcho.py --help
+    $ python3 tc_TcpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <1-32> --user_name <xyz> --user_passwd <xyz's_pw>
+```
+
 ##### Step-3b: Execute a TCP transmit test
 ##### Step-3c: Execute a TCP receive test
 
