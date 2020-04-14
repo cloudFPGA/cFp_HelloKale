@@ -102,9 +102,11 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
  * @details
  *  For testing purposes, this connect process opens a single connection to a
  *   'hard-coded' remote HOST IP address (10.12.200.50) and port 8803.
- *   [TODO-Make remote-IP and -PORT should be configurable].
+ *   [FIXME-Make remote-IP and -PORT should be configurable].
  *  The session ID of this single connection is provided to the TCP Application
  *  Flash process (TAF) of the ROLE over the 'poTAF_SConId' port.
+ *
+ * [FIXME - THIS PROCESS IS DISABLED UNTIL WE ADD A SW CONFIG of THE REMOTE SOCKET]
  ******************************************************************************/
 void pConnect(
         CmdBit                *piSHL_Enable,
@@ -140,13 +142,15 @@ void pConnect(
                 soSHL_ClsReq.write(con_newCon.sessionID);
             }
         }
-        else
-            con_fsmState = OPN_REQ;
+        else {
+            // [FIXME - THIS PROCESS IS DISABLED UNTIL WE ADD A SW CONFIG of THE REMOTE SOCKET]
+            con_fsmState = OPN_IDLE;  // FIXME --> Should be OPN_REQ;
+        }
         break;
 
     case OPN_REQ:
         if (!soSHL_OpnReq.full()) {
-            // [TODO - Remove the hard coding of this socket]
+            // [FIXME - Remove the hard coding of this socket]
             SockAddr    hostSockAddr(DEFAULT_HOST_IP4_ADDR, DEFAULT_HOST_LSN_PORT);
             con_leHostSockAddr.addr = byteSwap32(hostSockAddr.addr);
             con_leHostSockAddr.port = byteSwap16(hostSockAddr.port);
