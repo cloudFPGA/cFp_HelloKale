@@ -217,6 +217,10 @@ if {$pr || $link} {
 if {$pr && $impl1 && $synth} {
   set link 1
 }
+if {$only_pr_bitgen} {
+  # to deal with https://www.xilinx.com/support/answers/70708.html
+  set pr_verify 0
+}
 # -----------------------------------------------------
 
 if { ${create} } {
@@ -386,47 +390,88 @@ if { ${create} } {
         my_puts ""
         exit ${KO}
         #TODO: maybe import static netlist here?
-    }
+  }
 
-    if { $forceWithoutBB } {
-        # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
-        #---------------------------------------------------------------------------
-        add_files  ${usedRoleDir}/hdl/
-        set_property file_type {VHDL 2008} [ get_files [ file normalize ${usedRoleDir}/hdl/*.vhd* ] ]
-        update_compile_order -fileset sources_1
-        my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
-    
-        # IP Cores ROLE
-        # Specify the IP Repository Path to make IPs available through the IP Catalog
-        #  (Must do this because IPs are stored outside of the current project) 
-        #----------------------------------------------------------------------------
-        set ipDirRole  ${usedRoleDir}/ip
-        set hlsDirRole ${usedRoleDir}/hls
-        set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
-                                            ${ipDirRole} ${hlsDirRole} ] [current_project]
+  if { $forceWithoutBB } {
 
-        # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
-        #---------------------------------------------------------------------------
-        set ipList [ glob -nocomplain ${ipDirRole}/ip_user_files/ip/* ]
-        if { $ipList ne "" } {
-            foreach ip $ipList {
-                set ipName [file tail ${ip} ]
-                add_files ${ipDirRole}/${ipName}/${ipName}.xci
-                my_dbg_trace "Done with add_files for ROLE: ${ipDir}/${ipName}/${ipName}.xci" 2
-            }
+
+    set MdlHdlFile ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/Middleware.vhdl
+    # we don't know, if this Shell has a Middleware?
+    if { [ file exists ${MdlHdlFile} ] && ${midlwActive} } {
+      # Add HDL Source Files for the MIDDLEWARE and turn VHDL-2008 mode on
+      #---------------------------------------------------------------------------
+      add_files  ${MdlHdlFile}
+      set_property file_type {VHDL 2008} [ get_files  ${MdlHdlFile} ]
+      update_compile_order -fileset sources_1
+      my_dbg_trace "Finished adding the  HDL files of the MIDDLEWARE." ${dbgLvl_1}
+
+      #setting IP and HLS folder
+      #ipDirMidlw comes from xpr_settings!!
+      #general LIB  folder
+      set hlsDirMidlw ${rootDir}/cFDK/SRA/LIB/MIDLW/LIB/hls/
+      set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
+      ${ipDirMidlw} ${hlsDirMidlw} ] [current_project]
+
+      #SRA specific dir
+      set hlsDirMidlw ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/hls/
+      set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
+      ${ipDirMidlw} ${hlsDirMidlw} ] [current_project]
+
+
+      # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the MIDDLEWARE. 
+      #---------------------------------------------------------------------------
+      set ipList [ glob -nocomplain ${ipDirMidlw}/ip_user_files/ip/* ]
+      if { $ipList ne "" } {
+        foreach ip $ipList {
+          set ipName [file tail ${ip} ]
+          add_files ${ipDirMidlw}/${ipName}/${ipName}.xci
+          my_dbg_trace "Done with add_files for MIDDLEWARE: ${ipDir}/${ipName}/${ipName}.xci" 2
         }
+      }
 
-        update_ip_catalog
-        my_dbg_trace "Done with update_ip_catalog for the ROLE" ${dbgLvl_1}
-    
-        # Update Compile Order
-        #---------------------------------------------------------------------------
-        update_compile_order -fileset sources_1
+      update_ip_catalog
+      my_dbg_trace "Done with update_ip_catalog for the MIDDLEWARE" ${dbgLvl_1}
     }
 
 
+    # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
+    #---------------------------------------------------------------------------
+    add_files  ${usedRoleDir}/hdl/
+    set_property file_type {VHDL 2008} [ get_files [ file normalize ${usedRoleDir}/hdl/*.vhd* ] ]
+    update_compile_order -fileset sources_1
+    my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
 
-    #===============================================================================
+    # IP Cores ROLE
+    # Specify the IP Repository Path to make IPs available through the IP Catalog
+    #  (Must do this because IPs are stored outside of the current project) 
+    #----------------------------------------------------------------------------
+    set ipDirRole  ${usedRoleDir}/ip
+    set hlsDirRole ${usedRoleDir}/hls
+    set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
+    ${ipDirRole} ${hlsDirRole} ] [current_project]
+
+    # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
+    #---------------------------------------------------------------------------
+    set ipList [ glob -nocomplain ${ipDirRole}/ip_user_files/ip/* ]
+    if { $ipList ne "" } {
+      foreach ip $ipList {
+        set ipName [file tail ${ip} ]
+        add_files ${ipDirRole}/${ipName}/${ipName}.xci
+        my_dbg_trace "Done with add_files for ROLE: ${ipDir}/${ipName}/${ipName}.xci" 2
+          }
+      }
+
+      update_ip_catalog
+      my_dbg_trace "Done with update_ip_catalog for the ROLE" ${dbgLvl_1}
+
+      # Update Compile Order
+      #---------------------------------------------------------------------------
+      update_compile_order -fileset sources_1
+  }
+
+
+
+  #===============================================================================
     #
     # STEP-3 : Create and Specify CONSTRAINTS Settings
     #
@@ -578,7 +623,6 @@ if { ${synth} } {
     #ensure synth finished successfull
     if {[get_property STATUS [get_runs synth_1]] != {synth_design Complete!}} {
       my_err_puts " SYNTHESIS FAILED"
-      after 10000
       exit ${KO}
     }
 
@@ -620,6 +664,16 @@ if { ${link} } {
 
   set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
 
+  if { $midlwActive } {
+    #TODO: select multiple middlewares
+    set mdlwDcpFile ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/MIDLW_${cFpSRAtype}_OOC.dcp
+    add_files ${mdlwDcpFile}
+    update_compile_order -fileset sources_1
+    my_dbg_trace "Added dcp of MIDDLEWARE ${mdlwDcpFile}." ${dbgLvl_1}
+
+    set_property SCOPED_TO_CELLS {MIDLW} [get_files ${mdlwDcpFile} ]
+  }
+
   open_run synth_1 -name synth_1
   # Link the two dcps together
   #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
@@ -627,6 +681,7 @@ if { ${link} } {
   # to prevent the "out-of-date" message; we just added an alreday synthesized dcp -> not necessary
   set_property needs_refresh false [get_runs synth_1]
   
+
 
   if { $pr } { 
     set constrObj [ get_filesets constrs_1 ]
@@ -641,6 +696,15 @@ if { ${link} } {
     my_puts "################################################################################"
     my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
     my_puts "################################################################################"
+
+    if { $midlwActive } { 
+      set mdlwPrConstrFile "${xdcDir}/topFMKU60_midlw_pr.xdc"
+      add_files -fileset ${constrObj} ${mdlwPrConstrFile} 
+    
+      my_puts "################################################################################"
+      my_puts "## ADDED Partial Reconfiguration Constraint File: ${mdlwPrConstrFile}; PBLOCK CREATED;"
+      my_puts "################################################################################"
+    }
 
     write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
   } else {
@@ -673,7 +737,7 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     if { $insert_ila } { 
      set constrObj [ get_filesets constrs_1 ]
      #add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
-     add_files -fileset ${constrObj} ../debug.xdc 
+     add_files -fileset ${constrObj} ${rootDir}/TOP/xdc/debug.xdc 
      my_info_puts "DEBUG XDC ADDED."
     }
   
@@ -748,6 +812,11 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     if { $pr } { 
       # now, black box 
       update_design -cell ROLE -black_box
+
+      #TODO right now, we support only one MIDLW...so better not
+      #if { $midlwActive } { 
+      #  update_design -cell MIDLW -black_box
+      #}
       
       lock_design -level routing 
       
@@ -848,7 +917,7 @@ if { $pr_grey_impl } {
   
   update_design -cell ROLE -buffer_ports
   
-  source ${tclDir}/fix_things.tcl
+  source ${tclTopDir}/fix_things.tcl 
   
   my_puts "################################################################################"
   my_puts "##"
@@ -944,8 +1013,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         if { $bitGen1 } { 
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
           
-          #source ${tclDir}/fix_things.tcl 
-          source ./fix_things.tcl 
+          source ${tclTopDir}/fix_things.tcl 
+          #source ./fix_things.tcl 
           if { $only_pr_bitgen } {
             write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
             # no file extenstions .bit/.bin here!
@@ -958,8 +1027,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
-        #source ${tclDir}/fix_things.tcl 
-        source ./fix_things.tcl 
+        source ${tclTopDir}/fix_things.tcl 
+        #source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
       }
@@ -969,8 +1038,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
         set curImpl ${usedRole2}
         
-        source ./fix_things.tcl 
-        #source ${tclDir}/fix_things.tcl 
+        #source ./fix_things.tcl 
+        source ${tclTopDir}/fix_things.tcl 
         if { $only_pr_bitgen } {
           write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
           # no file extenstions .bit/.bin here!
@@ -984,8 +1053,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         open_checkpoint ${dcpDir}/3_${topName}_impl_grey_box.dcp 
         set curImpl "grey_box"
         
-        #source ${tclDir}/fix_things.tcl 
-        source ./fix_things.tcl 
+        source ${tclTopDir}/fix_things.tcl 
+        # source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
       } 
