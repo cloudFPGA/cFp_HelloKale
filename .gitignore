@@ -1,5 +1,5 @@
 # Compiled source
-#----------------- 
+#-----------------
 *.com
 *.class
 *.o
@@ -17,22 +17,26 @@ tags
 #--------
 *.log
 *.jou
-*.wcfg
 *_prj/
 *.Xil/
 vivado*.str
+*.wcfg
+
 
 # Vivado_hls
 #------------
 *.pref
 *.dat
 *.dat.*
-*.gold
-*.strm
+*.gold*
+*.strm*
+fsm_encoding.os
 
-# Vim 
-#-----
+
+# Vim
+#----- 
 *.swp
+*.swo
 
 # Emacs
 #-------
@@ -44,19 +48,27 @@ vivado*.str
 *.bak
 *.sav
 
-
 # Folders
 #---------
 build/
 ip/
 xpr/
 workspace/
+hd_visual/
 
 # cFDK specific files
-#--------------------- 
+#---------------------
 .ip_guard
+.synth_guard
 *.date
 *.vivado*
-env/
+*.dat
+#env/
 dcps/
+ip_midlw/
+cfdk_dynamic.hpp
+this_machine_env.sh
+
+*_OOC.dcp
+
 
