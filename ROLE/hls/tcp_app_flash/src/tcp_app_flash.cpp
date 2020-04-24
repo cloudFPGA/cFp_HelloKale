@@ -73,9 +73,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*****************************************************************************
  * @brief Echo loopback with store and forward in DDR4.
  *
- * @param[in]  siRXp_Data,   data from pRXPath (RXp)
+ * @param[in]  siRXp_Data,   data from pTcpRxPath (RXp)
  * @param[in]  siRXp_SessId, session Id from [RXp]
- * @param[out] soTXp_Data,   data to pTXPath (TXp).
+ * @param[out] soTXp_Data,   data to pTcpRxPath (TXp).
  * @param[out] soTXp_SessId, session Id to [TXp].
  *
  * @details
@@ -85,7 +85,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @return Nothing.
  ******************************************************************************/
-void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and-forward]
+void pTcpEchoStoreAndForward( // [TODO - Implement this process as a real store-and-forward]
         stream<AppData>   &siRXp_Data,
         stream<AppMeta>   &siRXp_SessId,
         stream<AppData>   &soTXp_Data,
@@ -116,7 +116,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
         soTXp_SessId.write(siRXp_SessId.read());
     }
 
-} // End of: pEchoStoreAndForward()
+} // End of: pTcpEchoStoreAndForward()
 
 
 /*****************************************************************************
@@ -134,7 +134,7 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
  *
  * @return Nothing.
  *****************************************************************************/
-void pTXPath(
+void pTcpTxPath(
         ap_uint<2>          *piSHL_MmioEchoCtrl,
         CmdBit              *piSHL_MmioPostSegEn,
         SessionId           *piTSIF_SConnectId,
@@ -185,7 +185,7 @@ void pTXPath(
             }
             break;
         case ECHO_STORE_FWD:
-            //-- Read session Id from pEchoStoreAndForward and forward to [SHL]
+            //-- Read session Id from pTcpEchoStoreAndForward and forward to [SHL]
             if ( !siESf_SessId.empty() and !soSHL_SessId.full()) {
                 AppMeta appMeta;
                 siESf_SessId.read(appMeta);
@@ -249,7 +249,7 @@ void pTXPath(
             }
             break;
         case ECHO_STORE_FWD:
-            //-- Read incoming data from pEchoStoreAndForward and forward to [SHL]
+            //-- Read incoming data from pTcpEchoStoreAndForward and forward to [SHL]
             if ( !siESf_Data.empty() and !soSHL_Data.full()) {
                 siESf_Data.read(tcpWord);
                 soSHL_Data.write(tcpWord);
@@ -322,7 +322,7 @@ void pTXPath(
     //-- Update the one-word internal pipeline
     txp_prevAxiWord = currAxiWord;
 
-} // End of: pTXPath()
+} // End of: pTcpTxPath()
 
 
 /*****************************************************************************
@@ -338,7 +338,7 @@ void pTXPath(
  *
  * @return Nothing.
  ******************************************************************************/
-void pRXPath(
+void pTcpRxPath(
         ap_uint<2>           *piSHL_MmioEchoCtrl,
         stream<AppData>      &siSHL_Data,
         stream<AppMeta>      &siSHL_SessId,
@@ -378,7 +378,7 @@ void pRXPath(
             }
             break;
           case ECHO_STORE_FWD:
-            //-- Read incoming session Id and forward to pEchoStoreAndForward
+            //-- Read incoming session Id and forward to pTcpEchoStoreAndForward
             if ( !siSHL_SessId.empty() and !soESf_SessId.full()) {
                 soESf_SessId.write(siSHL_SessId.read());
                 rxp_fsmState = CONTINUATION_OF_SEGMENT;
@@ -417,7 +417,7 @@ void pRXPath(
             }
             break;
           case ECHO_STORE_FWD:
-            //-- Read incoming data and forward to pEchoStoreAndForward
+            //-- Read incoming data and forward to pTcpEchoStoreAndForward
             if ( !siSHL_Data.empty() and !soESf_Data.full()) {
                 siSHL_Data.read(tcpWord);
                 soESf_Data.write(tcpWord);
@@ -444,7 +444,7 @@ void pRXPath(
     //-- Update the one-word internal pipeline
     rxp_prevAxiWord = currAxiWord;
 
-} // End of: pRXPath()
+} // End of: pTcpRxPath()
 
 
 /*****************************************************************************
@@ -569,7 +569,7 @@ void tcp_app_flash (
     //           |                              \|/
     //
     //-------------------------------------------------------------------------
-    pRXPath(
+    pTcpRxPath(
             piSHL_MmioEchoCtrl,
             siSHL_Data,
             siSHL_SessId,
@@ -578,13 +578,13 @@ void tcp_app_flash (
             ssRXpToESf_Data,
             ssRXpToESf_SessId);
 
-    pEchoStoreAndForward(
+    pTcpEchoStoreAndForward(
             ssRXpToESf_Data,
             ssRXpToESf_SessId,
             ssESfToTXp_Data,
             ssESfToTXp_SessId);
 
-    pTXPath(
+    pTcpTxPath(
             piSHL_MmioEchoCtrl,
             piSHL_MmioPostSegEn,
             piTSIF_SConnectId,
