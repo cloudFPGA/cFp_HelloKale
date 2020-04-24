@@ -52,13 +52,21 @@ open_project ${xprDir}/${xprName}.xpr
 set_property SOURCE_SET sources_1 [get_filesets sim_1]
 set_property -name {xsim.simulate.runtime} -value {50us} -objects [get_filesets sim_1]
 
+export_ip_user_files -of_objects  [get_files ${rootDir}/TOP/hdl/top.vhdl] -no_script -reset -force -quiet
 remove_files ${rootDir}/TOP/hdl/top.vhdl
+update_compile_order -fileset sources_1
+update_compile_order -fileset sources_1
+
 
 add_files -norecurse ${rootDir}/Sim/top.vhdl
+update_compile_order -fileset sources_1
+update_compile_order -fileset sources_1
+
+
 set_property file_type {VHDL 2008} [get_files  ${rootDir}/Sim/top.vhdl]
- 
 update_compile_order -fileset sources_1
 update_compile_order -fileset sources_1
+
 
 add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tb_topFMKU60.sv
 update_compile_order -fileset sim_1
