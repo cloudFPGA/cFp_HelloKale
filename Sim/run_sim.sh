@@ -79,6 +79,8 @@ echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
 echo "<$0> ================================================================"
 cd $cFpBringUpRootDir
 # [DEBUG] make testError
+cp ./Sim/Makefile ./
+cp ./Sim/top.handle_vivado.tcl ./TOP/tcl/handle_vivado.tcl
 make full_clean
 make monolithic
 exit_on_error $? 
