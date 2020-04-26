@@ -48,7 +48,7 @@ set dbgLvl_3         3
 #                                                                              #
 ################################################################################
 open_project ${xprDir}/${xprName}.xpr
-create_fileset -simset sim_1
+#create_fileset -simset sim_1
 set_property SOURCE_SET sources_1 [get_filesets sim_1]
 current_fileset -simset [ get_filesets sim_1 ]
 
