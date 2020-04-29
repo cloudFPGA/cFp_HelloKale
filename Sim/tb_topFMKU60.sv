@@ -1262,7 +1262,11 @@ parameter TB_MODE = "DEMO_TB";
   reg [15:0] oldsum;
   reg [15:0] newsum;
   reg [15:0] checksum;
- integer frame7column_index; 
+
+  reg sent_ARPframe = 1'b0;
+  integer placeholderARP = 0;
+
+  integer frame7column_index; 
  integer placeholder;
 
    task sum16;
@@ -2238,6 +2242,29 @@ topFMKU60
       end 
     end // block: p_rx_stimulus
 
+//procedure to check ARP response
+    always @(posedge coreclk_out) begin
+      if(sent_ARPframe == 1'b1) begin
+        if (IDUT.SHELL.ssNTS0_ETH0_Data_tvalid == 1'b1) begin
+        //save what is on  IDUT.SHELL.ssNTS0_ETH0_Data_tdata 
+          $display("NTS data is %h", IDUT.SHELL.ssNTS0_ETH0_Data_tdata[31:0]);
+          $display("NTS data is %h", IDUT.SHELL.ssNTS0_ETH0_Data_tdata[63:32]);
+
+          frameR.data[placeholderARP] = IDUT.SHELL.ssNTS0_ETH0_Data_tdata[31:0];
+
+          frameR.data[placeholderARP+1] = IDUT.SHELL.ssNTS0_ETH0_Data_tdata[63:32];
+          $display("frame data at %d is %h", placeholder, frameR.data[placeholderARP]);
+          $display("frame data at %d is %h", placeholder+1, frameR.data[placeholderARP+1]);
+          if (IDUT.SHELL.ssNTS0_ETH0_Data_tlast == 1'b1) begin
+            checkARPresponse(frameR.tobits(0));
+            placeholderARP = 0; 
+          end
+          else
+            placeholderARP = placeholderARP + 2; 
+
+       end 
+      end
+    end
 
     assign EmifData_dut = EmifData;
     initial
@@ -2340,31 +2367,13 @@ topFMKU60
             rx_stimulus_send_idle;
             rx_stimulus_send_frame(frame6.tobits(0));
 
-            placeholder =0;
+            sent_ARPframe = 1'b1;
             while(1) begin
-              rx_stimulus_send_idle;
-              if (IDUT.SHELL.ssNTS0_ETH0_Data_tvalid == 1'b1) begin
-               //save what is on  IDUT.SHELL.ssNTS0_ETH0_Data_tdata 
-                $display("NTS data is %h", IDUT.SHELL.ssNTS0_ETH0_Data_tdata[31:0]);
-                $display("NTS data is %h", IDUT.SHELL.ssNTS0_ETH0_Data_tdata[63:32]);
-
-                frameR.data[placeholder] = IDUT.SHELL.ssNTS0_ETH0_Data_tdata[31:0];
-
-                frameR.data[placeholder+1] = IDUT.SHELL.ssNTS0_ETH0_Data_tdata[63:32];
-                $display("frame data at %d is %h", placeholder, frameR.data[placeholder]);
-                $display("frame data at %d is %h", placeholder+1, frameR.data[placeholder+1]);
-
-                placeholder = placeholder + 2; 
-                //wait (IDUT.SHELL.ssNTS0_ETH0_Data_tvalid == 1'b0);
-                if (IDUT.SHELL.ssNTS0_ETH0_Data_tlast == 1'b1)
-                  break;
-              end 
+              if (IDUT.SHELL.ssNTS0_ETH0_Data_tlast == 1'b1) begin
+                sent_ARPframe = 1'b0;
+                break;
+              end
             end
-
-//check frameR
-            checkARPresponse(frameR.tobits(0));
-
-
 
             //rx_stimulus_send_idle;
             //rx_stimulus_send_idle;
