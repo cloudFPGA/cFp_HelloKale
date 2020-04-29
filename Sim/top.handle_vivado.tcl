@@ -67,6 +67,7 @@ set use_incr       0
 set save_incr      0
 set only_pr_bitgen 0
 set insert_ila 0
+set RTLsim 0
 
 
 #-------------------------------------------------------------------------------
@@ -103,6 +104,8 @@ if { $argc > 0 } {
         { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
         { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
         { insert_ila "Insert the debug nets according to xdc/debug.xdc"}
+        { RTLsim "RTL simulation"}
+
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -122,6 +125,7 @@ if { $argc > 0 } {
             set pr        0
             set link      1
             set pr_verify 0
+            set RTLsim 1
 
             my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
         } else {
@@ -201,6 +205,11 @@ if { $argc > 0 } {
               set insert_ila 1
               my_info_puts "The argument \'insert_ila\' is set."
             }
+            if { ${key} eq "RTLsim" && ${value} eq 1 } {
+              set RTLsim 1
+              my_info_puts "The argument \'RTLsim\' is set."
+            }
+ 
         } 
     }
 }
@@ -1077,53 +1086,61 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
     my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 }
-#open_project ${xprDir}/${xprName}.xpr
+
+#open_project ${xprDir}/${xprName}.xpr -verbose
+
+if { ${RTLsim} } {
+
+    if { ! ${create} } {
+        open_project ${xprDir}/${xprName}.xpr -verbose
+        # Reset the previous run 'synth_1' before launching a new one
+    }
+ 
 #launch_simulation -verbose
 #run 10ns -verbose
 #stop -verbose
 #close_sim 
 
 #current_fileset -simset [ get_filesets sim_1 ]
-set_property source_mgmt_mode All [current_project]
-update_compile_order -fileset sources_1
+    set_property source_mgmt_mode All [current_project] -verbose
+    update_compile_order -fileset sources_1 -verbose
 
-export_ip_user_files -of_objects  [get_files ${rootDir}/TOP/hdl/top.vhdl] -no_script -reset -force -quiet
-remove_files ${rootDir}/TOP/hdl/top.vhdl -verbose
-update_compile_order -fileset sources_1 -verbose
-update_compile_order -fileset sources_1 -verbose
+    #export_ip_user_files -of_objects  [get_files ${rootDir}/TOP/hdl/top.vhdl] -no_script -reset -force
+    remove_files ${rootDir}/TOP/hdl/top.vhdl -verbose
+    update_compile_order -fileset sources_1 -verbose
+    update_compile_order -fileset sources_1 -verbose
 
-add_files -norecurse ${rootDir}/Sim/top.vhdl -verbose
-set_property file_type {VHDL 2008} [get_files  ${rootDir}/Sim/top.vhdl]
+    add_files -norecurse ${rootDir}/Sim/top.vhdl -verbose
+    set_property file_type {VHDL 2008} [get_files  ${rootDir}/Sim/top.vhdl]
 
-update_compile_order -fileset sources_1 -verbose
-update_compile_order -fileset sources_1 -verbose
+    update_compile_order -fileset sources_1 -verbose
+    update_compile_order -fileset sources_1 -verbose
 
-set_property top topFMKU60 [get_filesets sources_1]
-set_property top_lib xil_defaultlib [get_filesets sources_1]
-set_property top_file          ${rootDir}/Sim/top.vhdl [ get_filesets sources_1] -verbose
-update_ip_catalog
-update_compile_order -fileset sources_1 -verbose
-update_compile_order -fileset sources_1 -verbose
+#    set_property top topFMKU60 [get_filesets sources_1] -verbose
+    set_property top_lib xil_defaultlib [get_filesets sources_1] -verbose
+#    set_property top_file          ${rootDir}/Sim/top.vhdl [ get_filesets sources_1] -verbose
+    update_ip_catalog -verbose
+    update_compile_order -fileset sources_1 -verbose
+    update_compile_order -fileset sources_1 -verbose
 
-set_property SOURCE_SET sources_1 [get_filesets sim_1]
-set_property -name {xsim.simulate.runtime} -value {50us} -objects [get_filesets sim_1]
-
-
-set_property SOURCE_SET sources_1 [get_filesets sim_1]
-
-add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tb_topFMKU60.sv
-set_property top tb_topFMKU60 [get_filesets sim_1]
-set_property top_lib xil_defaultlib [get_filesets sim_1]
-set_property top               tb_topFMKU60           [get_filesets sim_1] -verbose
-set_property top_file          ${rootDir}/Sim/tb_topFMKU60.sv [get_filesets sim_1] -verbose
-
-update_compile_order -fileset sim_1 -verbose
-update_compile_order -fileset sim_1 -verbose
+    set_property SOURCE_SET sources_1 [get_filesets sim_1] -verbose
+    set_property -name {xsim.simulate.runtime} -value {50us} -objects [get_filesets sim_1]
 
 
+    set_property SOURCE_SET sources_1 [get_filesets sim_1] -verbose
 
-launch_simulation
+    add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tb_topFMKU60.sv
+#    set_property top tb_topFMKU60 [get_filesets sim_1] -verbose
+    set_property top_lib xil_defaultlib [get_filesets sim_1] -verbose
+#    set_property top               tb_topFMKU60           [get_filesets sim_1] -verbose
+#    set_property top_file          ${rootDir}/Sim/tb_topFMKU60.sv [get_filesets sim_1] -verbose
 
+    update_compile_order -fileset sim_1 -verbose
+    update_compile_order -fileset sim_1 -verbose
+
+
+    launch_simulation
+}
 # Close project
 #-------------------------------------------------------------------------------
 catch {close_project}

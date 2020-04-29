@@ -110,7 +110,7 @@ $(MONO_LOCK):  $(ROLE_DIR_1)/* $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(XPR_PROJ) $(
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 monobasecmd: basecmd
-	@/bin/echo -e "-forceWithoutBB  -synth \\" >> .vivado_basecmd.sh
+	@/bin/echo -e "-forceWithoutBB  -synth -impl \\" >> .vivado_basecmd.sh
 
 monofinalcmd: 
 	@#more +2 .vivado_basecmd.sh
