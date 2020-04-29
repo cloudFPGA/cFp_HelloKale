@@ -17,7 +17,7 @@ package require cmdline
 # Set the Global Settings used by the SHELL Project
 #-------------------------------------------------------------------------------
 #source xpr_settings.tcl
-source ../../cFDK/SRA/LIB/tcl/xpr_settings.tcl
+source ${rootDir}/cFDK/SRA/LIB/tcl/xpr_settings.tcl
 
 # import environment Variables
 set usedRole $env(roleName1)
