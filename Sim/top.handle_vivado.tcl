@@ -17,7 +17,7 @@ package require cmdline
 # Set the Global Settings used by the SHELL Project
 #-------------------------------------------------------------------------------
 #source xpr_settings.tcl
-source ${rootDir}/cFDK/SRA/LIB/tcl/xpr_settings.tcl
+source ./cFDK/SRA/LIB/tcl/xpr_settings.tcl
 
 # import environment Variables
 set usedRole $env(roleName1)
@@ -1086,8 +1086,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
     my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 }
+catch {close_project}
 
-#open_project ${xprDir}/${xprName}.xpr -verbose
 
 if { ${RTLsim} } {
 
@@ -1140,10 +1140,14 @@ if { ${RTLsim} } {
 
 
     launch_simulation
+    catch {close_project}
+
 }
 # Close project
+
+# Close project
 #-------------------------------------------------------------------------------
-catch {close_project}
 exit ${VERIFY_RETVAL}
+
 
 
