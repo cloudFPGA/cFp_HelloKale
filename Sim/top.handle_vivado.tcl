@@ -1139,7 +1139,7 @@ if { ${RTLsim} } {
     update_compile_order -fileset sim_1 -verbose
 
 
-    launch_simulation
+    launch_simulation -verbose
     catch {close_project}
 
 }
