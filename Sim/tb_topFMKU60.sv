@@ -2355,7 +2355,7 @@ topFMKU60
          //check if TOE is ready
             while(1) begin
               rx_stimulus_send_idle;
-              if (IDUT.SHELL.sNTS0_MMIO_ToeReady == 1'b1)
+              if (IDUT.SHELL.sNTS0_MMIO_NtsReady == 1'b1)
                 break;
             end
 
