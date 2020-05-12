@@ -68,6 +68,10 @@ set save_incr      0
 set only_pr_bitgen 0
 set insert_ila 0
 set RTLsim 0
+set MacLoopback 0
+set ARPping 0
+set ICMPping 0
+set UDPLoopback 0
 
 
 #-------------------------------------------------------------------------------
@@ -105,7 +109,10 @@ if { $argc > 0 } {
         { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
         { insert_ila "Insert the debug nets according to xdc/debug.xdc"}
         { RTLsim "RTL simulation"}
-
+        { MacLoopback "Test MacLoopback when RTLsim is selected"}
+        { ARPping "Test pinging the FPGA through ARP when RTLsim is selected"}
+        { ICMPping "Test pinging the FPGA through ICMP when RTLsim is selected"}
+        { UDPLoopback "Test UDP loopback when RTLsim is selected"}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -125,7 +132,11 @@ if { $argc > 0 } {
             set pr        0
             set link      1
             set pr_verify 0
-            set RTLsim 1
+            set RTLsim 0
+            set MacLoopback 0
+            set ARPping 0
+            set ICMPping 0
+            set UDPLoopback 0
 
             my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
         } else {
@@ -209,6 +220,24 @@ if { $argc > 0 } {
               set RTLsim 1
               my_info_puts "The argument \'RTLsim\' is set."
             }
+
+            if { ${key} eq "MacLoopback" && ${value} eq 1 } {
+              set MacLoopback 1
+              my_info_puts "The argument \'MacLoopback\' is set."
+            }
+            if { ${key} eq "ARPping" && ${value} eq 1 } {
+              set ARPping 1
+              my_info_puts "The argument \'ARPping\' is set."
+            }
+            if { ${key} eq "UDPLoopback" && ${value} eq 1 } {
+              set UDPLoopback 1
+              my_info_puts "The argument \'UDPLoopback\' is set."
+            }
+            if { ${key} eq "ICMPping" && ${value} eq 1 } {
+              set ICMPping 1
+              my_info_puts "The argument \'ICMPping\' is set."
+            }
+ 
  
         } 
     }
@@ -1124,12 +1153,26 @@ if { ${RTLsim} } {
 #    update_compile_order -fileset sources_1 -verbose
 
 #    set_property SOURCE_SET sources_1 [get_filesets sim_1] -verbose
-    set_property -name {xsim.simulate.runtime} -value {50us} -objects [get_filesets sim_1]
+    set_property -name {xsim.simulate.runtime} -value {1ns} -objects [get_filesets sim_1]
 
 
 #    set_property SOURCE_SET sources_1 [get_filesets sim_1] -verbose
+    if { ${MacLoopback} } {
+      add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tbTopFMKU60MAcLoopbackEn.sv
+    }
+    if { ${ARPping } {
+      add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tbTopFMKU60Arp.sv
+    }
 
-    add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tb_topFMKU60.sv
+   if { ${ICMPping} } {
+      add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tbTopFMKU60Arp.sv
+    }
+
+   if { ${UDPLoopback} } {
+      add_files -fileset sim_1 -norecurse ${rootDir}/Sim/tbTopFMKU60UDPLoopback.sv
+    }
+
+
 #    set_property top tb_topFMKU60 [get_filesets sim_1] -verbose
     set_property top_lib xil_defaultlib [get_filesets sim_1] -verbose
 #    set_property top               tb_topFMKU60           [get_filesets sim_1] -verbose
@@ -1210,6 +1253,30 @@ export_ip_user_files -of_objects [get_files ${rootDir}/ip/IpRxHandler/IpRxHandle
 export_simulation -of_objects [get_files ${rootDir}/ip/IpRxHandler/IpRxHandler.xci] -directory ${rootDir}/xpr/topFMKU60.ip_user_files/sim_scripts -ip_user_files_dir ${rootDir}/xpr/topFMKU60.ip_user_files -ipstatic_source_dir ${rootDir}/xpr/topFMKU60.ip_user_files/ipstatic -lib_map_path [list {modelsim=${rootDir}/xpr/topFMKU60.cache/compile_simlib/modelsim} {questa=${rootDir}/xpr/topFMKU60.cache/compile_simlib/questa} {ies=${rootDir}/xpr/topFMKU60.cache/compile_simlib/ies} {vcs=${rootDir}/xpr/topFMKU60.cache/compile_simlib/vcs} {riviera=${rootDir}/xpr/topFMKU60.cache/compile_simlib/riviera}] -use_ip_compiled_libs -force -quiet
 
     launch_simulation -verbose
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/MMIO/piETH0_CoreReady}}
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/MMIO/poETH0_MacLoopbackEn}} 
+    add_wave {{/tb_topFMKU60/write_loopback_reg}} 
+    add_wave {{/tb_topFMKU60/set_mac_ip_address}} 
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/MMIO/piNTS0_NtsReady}} 
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/MMIO/poNTS0_MacAddress}} {{/tb_topFMKU60/IDUT/SHELL/MMIO/poNTS0_IpAddress}} {{/tb_topFMKU60/IDUT/SHELL/MMIO/poNTS0_SubNetMask}} {{/tb_topFMKU60/IDUT/SHELL/MMIO/poNTS0_GatewayAddr}} 
+
+
+    add_wave {{/tb_topFMKU60/coreclk_out}}
+    add_wave {{/tb_topFMKU60/sent_ARPframe}}
+    add_wave {{/tb_topFMKU60/reset}}
+   
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/ssETH0_NTS0_Data_tdata}} {{/tb_topFMKU60/IDUT/SHELL/ssETH0_NTS0_Data_tkeep}} {{/tb_topFMKU60/IDUT/SHELL/ssETH0_NTS0_Data_tvalid}} {{/tb_topFMKU60/IDUT/SHELL/ssETH0_NTS0_Data_tlast}} {{/tb_topFMKU60/IDUT/SHELL/ssETH0_NTS0_Data_tready}} {{/tb_topFMKU60/IDUT/SHELL/ssNTS0_ETH0_Data_tdata}} {{/tb_topFMKU60/IDUT/SHELL/ssNTS0_ETH0_Data_tkeep}} {{/tb_topFMKU60/IDUT/SHELL/ssNTS0_ETH0_Data_tvalid}} {{/tb_topFMKU60/IDUT/SHELL/ssNTS0_ETH0_Data_tlast}} {{/tb_topFMKU60/IDUT/SHELL/ssNTS0_ETH0_Data_tready}} 
+   
+    add_wave {{/tb_topFMKU60/IDUT/ssROL_SHL_Nts_Udp_Data_tdata}} {{/tb_topFMKU60/IDUT/ssSHL_ROL_Nts_Udp_Data_tdata}} {{/tb_topFMKU60/IDUT/ssROL_SHL_Nts_Tcp_Data_tdata}} {{/tb_topFMKU60/IDUT/ssSHL_ROL_Nts_Tcp_Data_tdata}}  
+  
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/\SuperCfg.ETH0 /siLY3_Data_tdata}} {{/tb_topFMKU60/IDUT/SHELL/\SuperCfg.ETH0 /soLY3_Data_tdata}}   
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/NTS0/IPRX/siETH_Data_TDATA}} {{/tb_topFMKU60/IDUT/SHELL/NTS0/IPRX/soARP_Data_TDATA   
+
+    add_wave {{/tb_topFMKU60/IDUT/SHELL/sNTS0_MMIO_NtsReady}}
+
+    #set_property -name {xsim.simulate.runtime} -value {280us} -objects [get_filesets sim_1]
+    run 300 us
+
     catch {close_project}
 
 }
