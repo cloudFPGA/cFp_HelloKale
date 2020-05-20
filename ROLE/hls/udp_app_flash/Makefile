@@ -30,6 +30,10 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 	@touch ../../.ip_guard
 
+.csim_guard: $(SRC_DEPS)
+	$(MAKE) clean
+	@touch $@
+
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
@@ -40,9 +44,10 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
+	@${RM} .csim_guard
 	@${RM} .synth_guard
 
-csim:                     ## Runs the HLS C simulation (always does a clean build)
+csim: .csim_guard        ## Runs the HLS C simulation (always does a clean build)
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=2; vivado_hls -f run_hls.tcl
