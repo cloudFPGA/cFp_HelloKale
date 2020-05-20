@@ -1,94 +1,79 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
-
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /*****************************************************************************
- * @file       : udp_app_flash.hpp
- * @brief      : UDP Application Flash (UAF).
+ * @file       : udp_app_flash.cpp
+ * @brief      : UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : RoleFlash
+ * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the UDP
- *                application embedded in the flash of the cloudFPGA role.
+ *                application embedded in the role of the cFp_BringUp.
  *
+ * \ingroup ROL_UAF
+ * \addtogroup ROL_UAF
+ * \{
  *****************************************************************************/
 
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
-#include <hls_stream.h>
-#include "ap_int.h"
-#include <stdint.h>
-
-using namespace hls;
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
 
 /********************************************
  * SHELL/MMIO/EchoCtrl - Config Register
  ********************************************/
 enum EchoCtrl {
-	ECHO_PATH_THRU	= 0,
-	ECHO_STORE_FWD	= 1,
-	ECHO_OFF		= 2
+    ECHO_PATH_THRU  = 0,
+    ECHO_STORE_FWD  = 1,
+    ECHO_OFF        = 2
 };
 
-/********************************************
- * UDP Specific Streaming Interfaces
- ********************************************/
-
-struct UdpWord {            // UDP Streaming Chunk (i.e. 8 bytes)
-    ap_uint<64>    tdata;
-    ap_uint<8>     tkeep;
-    ap_uint<1>     tlast;
-    UdpWord()      {}
-    UdpWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-                   tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-};
+#define MTU    1500    // Maximum Transmission Unit in bytes [TODO:Move to a common place]
 
 
+/*******************************************************************************
+ *
+ * ENTITY - UDP APPLICATION FLASH (UAF)
+ *
+ *******************************************************************************/
 void udp_app_flash (
 
         //------------------------------------------------------
-        //-- SHELL / This / Mmio / Config Interfaces
+        //-- SHELL / Mmio / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          piSHL_This_MmioEchoCtrl,
-        //[TODO] ap_uint<1> piSHL_This_MmioPostPktEn,
-        //[TODO] ap_uint<1> piSHL_This_MmioCaptPktEn,
+        ap_uint<2>           piSHL_Mmio_EchoCtrl,
+        //[TODO] ap_uint<1>  piSHL_Mmio_PostPktEn,
+        //[TODO] ap_uint<1>  piSHL_Mmio_CaptPktEn,
 
         //------------------------------------------------------
-        //-- SHELL / This / Udp Interfaces
+        //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<UdpWord>     &siSHL_This_Data,
-        stream<UdpWord>     &soTHIS_Shl_Data
+        stream<UdpAppData>  &siUSIF_Data,
+        stream<UdpAppMeta>  &siUSIF_Meta,
+
+        //------------------------------------------------------
+        //-- USIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>  &soUSIF_Data,
+        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppDLen>  &soUSIF_DLen
+
 );
 

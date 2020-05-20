@@ -43,18 +43,16 @@ clean:                    ## Cleans the current project
 	@${RM} .synth_guard
 
 csim:                     ## Runs the HLS C simulation (always does a clean build)
-	$(MAKE) clean
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
-	$(MAKE) clean
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=2; vivado_hls -f run_hls.tcl
 
 csynth: .synth_guard      ## Runs the HLS C synthesis
 
 cosim: .synth_guard       ## Runs the HLS C/RTL cosimulation  (always does a clean build)
-	$(MAKE) clean
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
-	$(MAKE) clean
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=2; vivado_hls -f run_hls.tcl
 
 project:                  ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
@@ -68,6 +66,7 @@ rtlImpl:                  ## Performs both RTL synthesis and implementation incl
 regression: .synth_guard  ## Runs HLS csim, csynth and cosim in sequence
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=2; vivado_hls -f run_hls.tcl
 
 help:                     ## Shows this help message
     # This target is for self documentation of the Makefile. 
@@ -79,8 +78,3 @@ help:                     ## Shows this help message
 	@echo 'Targets:'
 	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
 	@echo
-
-
-
-
-
