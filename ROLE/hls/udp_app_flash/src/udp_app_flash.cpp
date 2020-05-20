@@ -493,7 +493,7 @@ void udp_app_flash (
 
 #else
 
-    #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_EchoCtrl
+    #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_EchoCtrl  name=piSHL_Mmio_EchoCtrl
     //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
     //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
 
