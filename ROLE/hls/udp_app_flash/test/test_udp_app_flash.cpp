@@ -1,43 +1,45 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
-
-/*****************************************************************************
+/*******************************************************************************
  * @file       : test_udp_app_flash.cpp
- * @brief      : Testbench for UDP Application Flash (UAF).
+ * @brief      : Testbench for the UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
- * Component   : RoleFlash
+ * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ *               +-----------------------+
+ *               |  UdpApplicationFlash  |     +--------+
+ *               |        (UAF)          <-----+  MMIO  |
+ *               +-----/|\------+--------+     +--------+
+ *                      |       |
+ *                      |       ||
+ *               +------+------\|/-------+
+ *               |   UdpShellInterface   |
+ *               |       (USIF)          |
+ *               +-----/|\------+--------+
+ *                      |       |
+ *                      |      \|/
+ *
+ *******************************************************************************/
 
-#include <stdio.h>
-#include <hls_stream.h>
+#include "test_udp_app_flash.hpp"
 
-#include "../src/udp_app_flash.hpp"
-
+using namespace hls;
 using namespace std;
 
 //---------------------------------------------------------
@@ -47,272 +49,662 @@ using namespace std;
 #define THIS_NAME "TB"
 
 #define TRACE_OFF     0x0000
-#define TRACE_URIF   1 <<  1
+#define TRACE_USIF   1 <<  1
 #define TRACE_UAF    1 <<  2
-#define TRACE_MMIO   1 <<  3
+#define TRACE_CGTF   1 <<  3
+#define TRACE_DUMTF  1 <<  4
 #define TRACE_ALL     0xFFFF
 
 #define DEBUG_LEVEL (TRACE_ALL)
 
-//------------------------------------------------------
-//-- TESTBENCH DEFINES
-//------------------------------------------------------
-#define MAX_SIM_CYCLES  500
-#define OK          true
-#define KO          false
-#define VALID       true
-#define UNVALID     false
-#define DEBUG_TRACE true
-
-#define ENABLED     (ap_uint<1>)1
-#define DISABLED    (ap_uint<1>)0
-
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
-//--  These variables might be updated/overwritten by the
-//--  content of a test-vector file.
-//---------------------------------------------------------
-unsigned int    gSimCycCnt    = 0;
-bool            gTraceEvent   = false;
-bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = MAX_SIM_CYCLES;
-
-//------------------------------------------------------
-//-- DUT INTERFACES AS GLOBAL VARIABLES
-//------------------------------------------------------
-
-//-- SHELL / MMIO / Configuration Interfaces
-ap_uint<2>          sSHL_UAF_MmioEchoCtrl;
-ap_uint<1>          sSHL_UAF_MmioPostPktEn;
-ap_uint<1>          sSHL_UAF_MmioCaptPktEn;
-
-//-- SHELL / UDP Interfaces
-stream<UdpWord>     ssSHL_UAF_Data      ("ssSHL_UAF_Data");
-stream<UdpWord>     ssUAF_SHL_Data      ("ssUAF_SHL_Data");
-
-//------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
-//------------------------------------------------------
-int         simCnt;
-
-
-/*****************************************************************************
- * @brief Run a single iteration of the DUT model.
- *
- * @return Nothing.
- ******************************************************************************/
-void stepDut() {
-    udp_app_flash(
-            sSHL_UAF_MmioEchoCtrl,
-            //[TODO] sSHL_UAF_MmioPostPktEn,
-            //[TODO] sSHL_UAF_MmioCaptPktEn,
-            ssSHL_UAF_Data,
-            ssUAF_SHL_Data);
-
-    simCnt++;
-    printf("[%4.4d] STEP DUT \n", simCnt);
+/*******************************************************************************
+ * @brief Increment the simulation counter
+ *******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
 }
 
-/*****************************************************************************
- * @brief Initialize an input data stream from a file.
+/*******************************************************************************
+ * @brief Read a datagram from a DAT file.
  *
- * @param[in] sDataStream, the input data stream to set.
- * @param[in] dataStreamName, the name of the data stream.
- * @param[in] inpFileName, the name of the input file to read from.
- * @return OK if successful, otherwise KO.
- ******************************************************************************/
-bool setInputDataStream(stream<UdpWord> &sDataStream, const string dataStreamName, const string inpFileName) {
-    string      strLine;
-    ifstream    inpFileStream;
-    string      datFile = "../../../../test/" + inpFileName;
-    UdpWord     udpWord;
+ * @param[in]  myName       The name of the caller process.
+ * @param[in]  appDatagram  A reference to the datagram to read.
+ * @param[in]  ifsData      The input file stream to read from.
+ * @param[out] udpAppMeta   A ref to the current active socket pair.
+ * @param[out] udpMetaQueue A ref to a container queue which holds the sequence of UDP socket-pairs.
+ * @param[out] inpChunks    A ref to the number of processed chunks.
+ * @param[out] inptDgrms    A ref to the number of processed datagrams.
+ * @param[out] inpBytes     A ref to the number of processed bytes.
+ * @return true if successful, otherwise false.
+ *******************************************************************************/
+bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
+                          ifstream   &ifsData,    UdpAppMeta     &udpAppMeta,
+                          queue<UdpAppMeta> &udpMetaQueue,  int  &inpChunks,
+                          int        &inpDgrms,   int            &inpBytes) {
 
-    //-- STEP-1 : OPEN FILE
-    inpFileStream.open(datFile.c_str());
-    if ( !inpFileStream ) {
-        cout << "### ERROR : Could not open the input data file " << datFile << endl;
-        return(KO);
-    }
+    string          stringBuffer;
+    vector<string>  stringVector;
+    UdpAppData      udpAppData;
+    bool            endOfDgm=false;
+    bool            rc;
 
-    //-- STEP-2 : SET DATA STREAM
-    while (inpFileStream) {
-
-        if (!inpFileStream.eof()) {
-
-            getline(inpFileStream, strLine);
-            if (strLine.empty()) continue;
-            sscanf(strLine.c_str(), "%llx %x %d", &udpWord.tdata, &udpWord.tkeep, &udpWord.tlast);
-
-            // Write to sDataStream
-            if (sDataStream.full()) {
-                printf("### ERROR : Stream is full. Cannot write stream with data from file \"%s\".\n", inpFileName.c_str());
-                return(KO);
-            } else {
-                sDataStream.write(udpWord);
-                // Print Data to console
-                printf("[%4.4d] TB is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-                        simCnt, dataStreamName.c_str(),
-                        udpWord.tdata.to_long(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
+    do {
+        //-- Read one line at a time from the input test DAT file
+        getline(ifsData, stringBuffer);
+        stringVector = myTokenizer(stringBuffer, ' ');
+        //-- Read the Host Socket Address from line (if present)
+        rc = readHostSocketFromLine(udpAppMeta.src, stringBuffer);
+        if (rc) {
+            if (DEBUG_LEVEL & TRACE_CGTF) {
+                printInfo(myName, "Read a new HOST socket address from DAT file:\n");
+                printSockAddr(myName, udpAppMeta.src);
             }
         }
-    }
+        //-- Read the Fpga Socket Address from line (if present)
+        rc = readFpgaSocketFromLine(udpAppMeta.dst, stringBuffer);
+        if (rc) {
+            if (DEBUG_LEVEL & TRACE_CGTF) {
+                printInfo(myName, "Read a new FPGA socket address from DAT file:\n");
+                printSockAddr(myName, udpAppMeta.dst);
+            }
+        }
+        //-- Read an AxiWord from line
+        rc = readAxisRawFromLine(udpAppData, stringBuffer);
+        if (rc) {
+            appDatagram.pushChunk(AxisUdp(udpAppData.getLE_TData(),
+                                          udpAppData.getLE_TKeep(),
+                                          udpAppData.getLE_TLast()));
+            inpChunks++;
+            inpBytes += udpAppData.getLen();
+            if (udpAppData.getLE_TLast() == 1) {
+                inpDgrms++;
+                udpMetaQueue.push(udpAppMeta);
+                endOfDgm = true;
+            }
+        }
+    } while ((ifsData.peek() != EOF) && (!endOfDgm));
 
-    //-- STEP-3: CLOSE FILE
-    inpFileStream.close();
-
-    return(OK);
+    return endOfDgm;
 }
 
 /*****************************************************************************
- * @brief Read data from a stream.
+ * @brief Create the golden UDP Tx files from an input test file.
  *
- * @param[in]  sDataStream,    the output data stream to read.
- * @param[in]  dataStreamName, the name of the data stream.
- * @param[out] udpWord,        a pointer to the storage location of the data
- *                              to read.
- * @return VALID if a data was read, otherwise UNVALID.
- ******************************************************************************/
-bool readDataStream(stream <UdpWord> &sDataStream, UdpWord *udpWord) {
-    // Get the DUT/Data results
-    sDataStream.read(*udpWord);
-    return(VALID);
-}
-
-
-/*****************************************************************************
- * @brief Dump a data word to a file.
+ * @param[in]  tbMode            The testbench mode of operation.
+ * @param[in]  inpData_FileName  The input data file to generate from.
+ * @param[out] udpMetaQueue      A ref to a container queue which holds the
+ *                                sequence of UDP socket-pairs.
+ * @param[in]  outData_GoldName  The output datagram gold file to create.
+ * @param[in]  outMeta_GoldName  The output metadata gold file to create.
+ * @param[in]  outDLen_GoldName  The output data len gold file to create.
  *
- * @param[in] udpWord,      a pointer to the data word to dump.
- * @param[in] outFileStream,the output file stream to write to.
- * @return OK if successful, otherwise KO.
+ * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
-bool dumpDataToFile(UdpWord *udpWord, ofstream &outFileStream) {
-    if (!outFileStream.is_open()) {
-        printf("### ERROR : Output file stream is not open. \n");
-        return(KO);
-    }
-    outFileStream << hex << noshowbase << setfill('0') << setw(16) << udpWord->tdata.to_uint64();
-    outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(2)  << udpWord->tkeep.to_int();
-    outFileStream << " ";
-    outFileStream << setw(1) << udpWord->tlast.to_int() << "\n";
-    return(OK);
-}
-
-/*****************************************************************************
- * @brief Fill an output file with data from an output stream.
- *
- * @param[in] sDataStream,    the output data stream to set.
- * @param[in] dataStreamName, the name of the data stream.
- * @param[in] outFileName,    the name of the output file to write to.
- * @return OK if successful, otherwise KO.
- ******************************************************************************/
-bool getOutputDataStream(stream<UdpWord> &sDataStream,
-                         const string    dataStreamName, const string   outFileName)
+int createGoldenTxFiles(
+        EchoCtrl          tbMode,
+        string            inpData_FileName,
+        queue<UdpAppMeta> &udpMetaQueue,
+        string            outData_GoldName,
+        string            outMeta_GoldName,
+        string            outDLen_GoldName)
 {
-    string      strLine;
-    ofstream    outFileStream;
-    string      datFile = "../../../../test/" + outFileName;
-    UdpWord     udpWord;
-    bool        rc = OK;
+    const char *myName  = concat3(THIS_NAME, "/", "CGTF");
 
-    //-- STEP-1 : OPEN FILE
-    outFileStream.open(datFile.c_str());
-    if ( !outFileStream ) {
-        cout << "### ERROR : Could not open the output data file " << datFile << endl;
-        return(KO);
+    const Ip4Addr hostDefaultIp4Address = 0x0A0CC832;   //  10.012.200.50
+    const Ip4Addr fpgaDefaultIp4Address = 0x0A0CC807;   //  10.012.200.7
+    const UdpPort fpgaDefaultUdpLsnPort = 8803;
+    const UdpPort hostDefaultUdpLsnPort = fpgaDefaultUdpLsnPort;
+    const UdpPort hostDefaultUdpSndPort = 32768+8803;   //  41571
+    const UdpPort fpgaDefaultUdpSndPort = hostDefaultUdpSndPort;
+
+    ifstream    ifsData;
+    ofstream    ofsDataGold;
+    ofstream    ofsMetaGold;
+    ofstream    ofsDLenGold;
+
+    char        currPath[FILENAME_MAX];
+    int         ret=NTS_OK;
+    int         inpChunks=0,  outChunks=0;
+    int         inpDgrms=0,   outDgrms=0;
+    int         inpBytes=0,   outBytes=0;
+
+    //-- STEP-1 : OPEN INPUT TEST FILE ----------------------------------------
+    if (not isDatFile(inpData_FileName)) {
+        printError(myName, "Cannot create golden files from input file \'%s\' because file is not of type \'.dat\'.\n",
+                   inpData_FileName.c_str());
+        return(NTS_KO);
     }
-
-    //-- STEP-2 : EMPTY STREAM AND DUMP DATA TO FILE
-    while (!sDataStream.empty()) {
-        if (readDataStream(sDataStream, &udpWord) == VALID) {
-            // Print DUT/Data to console
-            printf("[%4.4d] TB is draining output stream [%s] - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-                    simCnt, dataStreamName.c_str(),
-                    udpWord.tdata.to_long(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
-            if (!dumpDataToFile(&udpWord, outFileStream)) {
-                rc = KO;
-                break;
-            }
+    else {
+        ifsData.open(inpData_FileName.c_str());
+        if (!ifsData) {
+            getcwd(currPath, sizeof(currPath));
+            printError(myName, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n",
+                       inpData_FileName.c_str(), currPath);
+            return(NTS_KO);
         }
     }
 
-    //-- STEP-3: CLOSE FILE
+    //-- STEP-2 : OPEN THE OUTPUT GOLD FILES ----------------------------------
+    remove(outData_GoldName.c_str());
+    remove(outMeta_GoldName.c_str());
+    remove(outDLen_GoldName.c_str());
+    if (!ofsDataGold.is_open()) {
+        ofsDataGold.open (outData_GoldName.c_str(), ofstream::out);
+        if (!ofsDataGold) {
+            printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
+                       outData_GoldName.c_str());
+        }
+    }
+    if (!ofsMetaGold.is_open()) {
+        ofsMetaGold.open (outMeta_GoldName.c_str(), ofstream::out);
+        if (!ofsMetaGold) {
+            printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
+                       outMeta_GoldName.c_str());
+        }
+    }
+    if (!ofsDLenGold.is_open()) {
+        ofsDLenGold.open (outDLen_GoldName.c_str(), ofstream::out);
+        if (!ofsDLenGold) {
+            printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
+                       outDLen_GoldName.c_str());
+        }
+    }
+
+    //-- STEP-3 : READ AND PARSE THE INPUT TEST FILE --------------------------
+    SockAddr  hostSock = SockAddr(hostDefaultIp4Address, hostDefaultUdpSndPort);
+    SockAddr  fpgaSock = SockAddr(fpgaDefaultIp4Address, fpgaDefaultUdpLsnPort);
+    do {
+        SimUdpDatagram appDatagram(8);
+        UdpAppMeta     udpAppMeta = SocketPair(hostSock, fpgaSock);
+        UdpAppDLen     udpAppDLen = 0;
+        bool           endOfDgm=false;
+        //-- Retrieve one APP datagram from input DAT file (can be up to 2^16-1 bytes)
+        endOfDgm = readDatagramFromFile(myName, appDatagram, ifsData,
+                                        udpAppMeta, udpMetaQueue,
+                                        inpChunks, inpDgrms, inpBytes);
+        if (endOfDgm) {
+            //-- Swap the IP_SA/IP_DA but keep UDP_SP/UDP/DP as is
+            UdpAppMeta udpGldMeta(SockAddr(udpAppMeta.dst.addr, udpAppMeta.src.port),
+                                  SockAddr(udpAppMeta.src.addr, udpAppMeta.dst.port));
+            // Dump the socket pair to file
+            if (tbMode != ECHO_OFF) {
+                writeSocketPairToFile(udpGldMeta, ofsMetaGold);
+                if (DEBUG_LEVEL & TRACE_CGTF) {
+                    printInfo(myName, "Writing new socket-pair to gold file:\n");
+                    printSockPair(myName, udpGldMeta);
+                }
+            }
+
+            // Dump the data len to file
+            if (tbMode != ECHO_OFF) {
+                UdpAppDLen appDLen;
+                if (tbMode == ECHO_PATH_THRU) {
+                    appDLen = 0;
+                }
+                else {
+                    appDLen = appDatagram.length() - UDP_HEADER_LEN;
+                }
+                writeApUintToFile(appDLen, ofsDLenGold);
+                if (DEBUG_LEVEL & TRACE_CGTF) {
+                    printInfo(myName, "Writing new datagram len (%d) to gold file:\n", appDLen.to_int());
+                }
+            }
+
+            // Dump UDP datagram payload to gold file
+            if (tbMode != ECHO_OFF) {
+                if (appDatagram.writePayloadToDatFile(ofsDataGold) == false) {
+                    printError(myName, "Failed to write UDP payload to GOLD file.\n");
+                    ret = NTS_KO;
+                }
+                else {
+                    outDgrms  += 1;
+                    outChunks += appDatagram.size();
+                    outBytes  += appDatagram.length();
+                }
+            }
+        } // End-of:if (endOfDgm) {
+
+    } while(ifsData.peek() != EOF);
+
+    //-- STEP-4: CLOSE FILES
+    ifsData.close();
+    ofsDataGold.close();
+    ofsMetaGold.close();
+    ofsDLenGold.close();
+
+    //-- STEP-5: PRINT RESULTS
+    printInfo(myName, "Done with the creation of the golden file.\n");
+    printInfo(myName, "\tProcessed %5d chunks in %4d datagrams, for a total of %6d bytes.\n",
+              inpChunks, inpDgrms, inpBytes);
+    printInfo(myName, "\tGenerated %5d chunks in %4d datagrams, for a total of %6d bytes.\n",
+              outChunks, outDgrms, outBytes);
+    return NTS_OK;
+}
+
+/*****************************************************************************
+ * @brief Create the UDP Rx traffic as streams from an input test file.
+ *
+ * @param[in/out] ssData      A ref to the data stream to set.
+ * @param[in]     ssDataName  The name of the data stream to set.
+ * @param[in/out] ssMeta      A ref to the metadata stream to set.
+ * @param[in]     ssMetaName  The name of the metadata stream to set.
+ * @param[in]     datFileName The path to the DAT file to read from.
+ * @param[in]     metaQueue   A ref to a queue of metadata.
+ * @param[out]    nrChunks    a ref to the number of feeded chunks.
+ *
+ * @return NTS_ OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+int createUdpRxTraffic(
+        stream<AxisApp>    &ssData, const string      ssDataName,
+        stream<UdpAppMeta> &ssMeta, const string      ssMetaName,
+        string             datFile,
+        queue<UdpAppMeta>  &metaQueue,
+        int                &nrFeededChunks)
+{
+
+    int  nrUSIF_UAF_MetaChunks = 0;
+    int  nrUSIF_UAF_MetaGrams  = 0;
+    int  nrUSIF_UAF_MetaBytes  = 0;
+
+    //-- STEP-1: FEED AXIS DATA STREAM FROM DAT FILE --------------------------
+    int  nrDataChunks=0, nrDataGrams=0, nrDataBytes=0;
+    if (feedAxisFromFile(ssData, ssDataName, datFile,
+                         nrDataChunks, nrDataGrams, nrDataBytes)) {
+        printInfo(THIS_NAME, "Done with the creation of UDP-Data traffic as a stream:\n");
+        printInfo(THIS_NAME, "\tGenerated %d chunks in %d datagrams, for a total of %d bytes.\n\n",
+                  nrDataChunks, nrDataGrams, nrDataBytes);
+        nrFeededChunks = nrDataChunks;
+    }
+    else {
+        printError(THIS_NAME, "Failed to create UDP-Data traffic as input stream. \n");
+        return NTS_KO;
+    }
+
+    //-- STEP-2: FEED METADATA STREAM FROM QUEUE ------------------------------
+    while (!metaQueue.empty()) {
+        ssMeta.write(metaQueue.front());
+        metaQueue.pop();
+    }
+
+    return NTS_OK;
+
+} // End-of: createUdpRxTraffic()
+
+/*****************************************************************************
+ * @brief Empty an UdpMeta stream to a DAT file.
+ *
+ * @param[in/out] ss        A ref to the UDP metadata stream to drain.
+ * @param[in]     ssName    The name of the UDP metadata stream to drain.
+ * @param[in]     fileName  The DAT file to write to.
+ * @param[out     nrChunks  A ref to the number of written chunks.
+ * @param[out]    nrFrames  A ref to the number of written AXI4 streams.
+ * @param[out]    nrBytes   A ref to the number of written bytes.
+  *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
+        string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+    ofstream    outFileStream;
+    char        currPath[FILENAME_MAX];
+    SocketPair  udpMeta;
+
+    const char *myName  = concat3(THIS_NAME, "/", "DUMTF");
+
+    //-- REMOVE PREVIOUS FILE
+    remove(ssName.c_str());
+
+    //-- OPEN FILE
+    if (!outFileStream.is_open()) {
+        outFileStream.open(datFile.c_str(), ofstream::out);
+        if (!outFileStream) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
+            return(NTS_KO);
+        }
+    }
+
+    // Assess that file has ".dat" extension
+    if ( datFile.find_last_of ( '.' ) != string::npos ) {
+        string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+        if (extension != "dat") {
+            printError(THIS_NAME, "Cannot dump SocketPair stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+            outFileStream.close();
+            return(NTS_KO);
+        }
+    }
+
+    //-- READ FROM STREAM AND WRITE TO FILE
+    while (!(ss.empty())) {
+        ss.read(udpMeta);
+        SocketPair socketPair(SockAddr(udpMeta.src.addr,
+                                       udpMeta.src.port),
+                              SockAddr(udpMeta.dst.addr,
+                                       udpMeta.dst.port));
+        writeSocketPairToFile(socketPair, outFileStream);
+        nrChunks++;
+        nrBytes += 12;
+        nrFrames++;
+        if (DEBUG_LEVEL & TRACE_DUMTF) {
+            printInfo(myName, "Writing new socket-pair to file:\n");
+            printSockPair(myName, socketPair);
+        }
+    }
+
+    //-- CLOSE FILE
     outFileStream.close();
 
-    return(rc);
+    return(NTS_OK);
+}
+
+/*******************************************************************************
+ * @brief Empty a UdpDLen stream to a DAT file.
+ *
+ * @param[in/out] ss        A ref to the UDP data len to drain.
+ * @param[in]     ssName    The name of the data len stream to drain.
+ * @param[in]     fileName  The DAT file to write to.
+ * @param[out     nrChunks  A ref to the number of written chunks.
+ * @param[out]    nrFrames  A ref to the number of written AXI4 streams.
+ * @param[out]    nrBytes   A ref to the number of written bytes.
+  *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ *******************************************************************************/
+bool drainUdpDLenStreamToFile(stream<UdpAppDLen> &ss, string ssName,
+        string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+    ofstream    outFileStream;
+    char        currPath[FILENAME_MAX];
+    UdpAppDLen  udpDLen;
+
+    const char *myName  = concat3(THIS_NAME, "/", "DUDTF");
+
+    //-- REMOVE PREVIOUS FILE
+    remove(ssName.c_str());
+
+    //-- OPEN FILE
+    if (!outFileStream.is_open()) {
+        outFileStream.open(datFile.c_str(), ofstream::out);
+        if (!outFileStream) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
+            return(NTS_KO);
+        }
+    }
+
+    // Assess that file has ".dat" extension
+    if ( datFile.find_last_of ( '.' ) != string::npos ) {
+        string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+        if (extension != "dat") {
+            printError(THIS_NAME, "Cannot dump SocketPair stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+            outFileStream.close();
+            return(NTS_KO);
+        }
+    }
+
+    //-- READ FROM STREAM AND WRITE TO FILE
+    while (!(ss.empty())) {
+        ss.read(udpDLen);
+        writeApUintToFile(udpDLen, outFileStream);
+        nrChunks++;
+        nrBytes += 2;
+        nrFrames++;
+        if (DEBUG_LEVEL & TRACE_DUMTF) {
+            printInfo(myName, "Writing new datagram length file. Len=%d.\n", udpDLen.to_int());
+        }
+    }
+
+    //-- CLOSE FILE
+    outFileStream.close();
+
+    return(NTS_OK);
 }
 
 
-int main() {
+/*******************************************************************************
+ * @brief Main function for the test of the UDP Application Flash (UAF).
+ *******************************************************************************/
+int main(int argc, char *argv[]) {
+
+    gSimCycCnt = 0;
 
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
     //------------------------------------------------------
-    int         nrErr = 0;
+    int      nrErr  = 0;
+    EchoCtrl tbMode = ECHO_PATH_THRU; // Indicates TB testing mode.
+
+    //------------------------------------------------------
+    //-- NONE-STREAM-BASED INTERFACES
+    //------------------------------------------------------
+    // INFO - The UAF is specified to use the block-level IO protocol
+    // 'ap_ctrl_none'. This core uses also a few configurations signals
+    // which are not stream-based and which prevent the design from
+    // being verified in C/RTL co-simulation mode. In oder to comply
+    // with the 'Interface Synthesis Requirements' of UG902, the design
+    // is compiled with a preprocessor macro that statically defines the
+    // testbench mode of operation. This avoid the following error issued
+    // when trying to C/RTL co-simulate this component:
+    //   @E [SIM-345] Cosim only supports the following 'ap_ctrl_none'
+    //      designs: (1) combinational designs; (2) pipelined design with
+    //      task interval of 1; (3) designs with array streaming or
+    //      hls_stream ports.
+    //   @E [SIM-4] *** C/RTL co-simulation finished: FAIL **
+   //------------------------------------------------------
+#if TB_MODE == 1
+    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_STORE_FWD;
+    ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
+    ap_uint<1>          sSHL_UAF_Mmio_CaptPktEn = 0;
+#elif TB_MODE == 2
+    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_OFF;
+    ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
+    ap_uint<1>          sSHL_UAF_Mmio_CaptPktEn = 0;
+#else
+    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_PATH_THRU;
+    ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
+    ap_uint<1>          sSHL_UAF_Mmio_CaptPktEn = 0;
+#endif
+
+    //------------------------------------------------------
+    //-- DUT STREAM INTERFACES and RELATED VARIABLEs
+    //------------------------------------------------------
+    stream<UdpAppData>  ssUSIF_UAF_Data  ("ssUSIF_UAF_Data");
+    stream<UdpAppMeta>  ssUSIF_UAF_Meta  ("ssUSIF_UAF_Meta");
+    stream<UdpAppData>  ssUAF_USIF_Data  ("ssUAF_USIF_Data");
+    stream<UdpAppMeta>  ssUAF_USIF_Meta  ("ssUAF_USIF_Meta");
+    stream<UdpAppDLen>  ssUAF_USIF_DLen  ("ssUAF_USIF_DLen");
+
+    //------------------------------------------------------
+    //-- PARSING THE TESBENCH ARGUMENTS
+    //------------------------------------------------------
+    if (argc < 3) {
+        printFatal(THIS_NAME, "Expected a minimum of 2 parameters with the following synopsis:\n \t\t mode(0|1|2)   siUAF_<Filename>.dat\n");
+    }
+    tbMode = EchoCtrl(atoi(argv[1]));
+    if (tbMode != sSHL_UAF_Mmio_EchoCtrl) {
+        printFatal(THIS_NAME, "tbMode (%d) does not match TB_MODE (%d).\n", tbMode, TB_MODE);
+    }
+
+    switch (tbMode) {
+    case ECHO_PATH_THRU:
+    case ECHO_STORE_FWD:
+    case ECHO_OFF:
+        break;
+    default:
+        printFatal(THIS_NAME, "Unknown testing mode '%d' (or not yet implemented). \n");
+    }
 
     printf("#####################################################\n");
     printf("## TESTBENCH STARTS HERE                           ##\n");
     printf("#####################################################\n");
+    printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
+    printInfo(THIS_NAME, "\t==> TB Mode  = %c\n", *argv[1]);
+    for (int i=2; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+    printf("\n");
 
-    simCnt = 0;
-    nrErr  = 0;
+    if ((tbMode == ECHO_PATH_THRU) or (tbMode == ECHO_STORE_FWD) or
+        (tbMode == ECHO_OFF) ) {
 
-    //------------------------------------------------------
-    //-- STEP-1.1 : CREATE TRAFFIC AS INPUT STREAMS
-    //------------------------------------------------------
-    if (nrErr == 0) {
-        if (!setInputDataStream(ssSHL_UAF_Data, "ssSHL_UAF_Data", "ifsSHL_Uaf_Data.dat")) {
-            printf("### ERROR : Failed to set input data stream \"sSHL_Uaf_Data\". \n");
+        //-- DUT OUTPUT TRAFFIC AS STREAMS ------------------------------
+        string  ofsUSIF_Data_FileName = "../../../../test/soUSIF_Data.dat";
+        string  ofsUSIF_Meta_FileName = "../../../../test/soUSIF_Meta.dat";
+        string  ofsUSIF_DLen_FileName = "../../../../test/soUSIF_DLen.dat";
+        string  ofsUSIF_Data_Gold_FileName = "../../../../test/soUSIF_Data_Gold.dat";
+        string  ofsUSIF_Meta_Gold_FileName = "../../../../test/soUSIF_Meta_Gold.dat";
+        string  ofsUSIF_DLen_Gold_FileName = "../../../../test/soUSIF_DLen_Gold.dat";
+
+        vector<string>   ofNames;
+        ofNames.push_back(ofsUSIF_Data_FileName);
+        ofNames.push_back(ofsUSIF_Meta_FileName);
+        ofNames.push_back(ofsUSIF_DLen_FileName);
+        ofstream         ofStreams[ofNames.size()]; // Stored in the same order
+
+        //-- STEP-1: The setting of the ECHO mode is already done via CFLAGS
+        if (tbMode == ECHO_PATH_THRU) {
+            printInfo(THIS_NAME, "### TEST_MODE = ECHO_PATH_THRU #########\n");
+        }
+        else if (tbMode == ECHO_STORE_FWD) {
+            printInfo(THIS_NAME, "### TEST_MODE = ECHO_STORE_FWD #########\n");
+        }
+        else {
+            printInfo(THIS_NAME, "### TEST_MODE = ECHO_OF ################\n");
+        }
+
+        //-- STEP-2: Remove previous old files and open new files
+        for (int i = 0; i < ofNames.size(); i++) {
+            remove(ofNames[i].c_str());
+            if (not isDatFile(ofNames[i])) {
+                printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofNames[i].c_str());
+                nrErr++;
+                continue;
+            }
+            if (!ofStreams[i].is_open()) {
+                ofStreams[i].open(ofNames[i].c_str(), ofstream::out);
+                if (!ofStreams[i]) {
+                    printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofNames[i].c_str());
+                    nrErr++;
+                    continue;
+                }
+            }
+        }
+
+        //-- STEP-3: Create golden Tx files
+        queue<UdpAppMeta>   udpSocketPairs;
+        if (NTS_OK == createGoldenTxFiles(tbMode, string(argv[2]), udpSocketPairs,
+                ofsUSIF_Data_Gold_FileName, ofsUSIF_Meta_Gold_FileName, ofsUSIF_DLen_Gold_FileName) != NTS_OK) {
+            printError(THIS_NAME, "Failed to create golden Tx files. \n");
             nrErr++;
         }
-    }
 
-    //------------------------------------------------------
-    //-- STEP-1.2 : SET THE PASS-THROUGH MODE
-    //------------------------------------------------------
-    sSHL_UAF_MmioEchoCtrl.write(ECHO_PATH_THRU);
-    //[TODO] sSHL_UAF_MmioPostPktEn.write(DISABLED);
-    //[TODO] sSHL_UAF_MmioCaptPktEn.write(DISABLED);
-
-    //------------------------------------------------------
-    //-- STEP-2 : MAIN TRAFFIC LOOP
-    //------------------------------------------------------
-    while (!nrErr) {
-
-        if (simCnt < 25)
-            stepDut();
-        else {
-            printf("## End of simulation at cycle=%3d. \n", simCnt);
-            break;
+        //-- STEP-4: Create the USIF->UAF INPUT {Data,Meta} as streams
+        int nrUSIF_UAF_Chunks=0;
+        if (not createUdpRxTraffic(ssUSIF_UAF_Data, "ssUSIF_UAF_Data",
+                                   ssUSIF_UAF_Meta, "ssUSIF_UAF_Meta",
+                                   string(argv[2]),
+                                   udpSocketPairs,
+                                   nrUSIF_UAF_Chunks)) {
+            printFatal(THIS_NAME, "Failed to create the USIF->UAF traffic as streams.\n");
         }
 
-    }  // End: while()
+        //-- STEP-5: Run simulation
+        int tbRun = (nrErr == 0) ? (nrUSIF_UAF_Chunks + TB_GRACE_TIME) : 0;
+        while (tbRun) {
+            udp_app_flash(
+                    //-- SHELL / Mmio / Configuration Interfaces
+                    sSHL_UAF_Mmio_EchoCtrl,
+                    //[TODO] &sSHL_UAF_Mmio_PostPktEn,
+                    //[TODO] &sSHL_UAF_Mmio_CaptPktEn,
+                    //-- USIF / Rx Data Interfaces
+                    ssUSIF_UAF_Data,
+                    ssUSIF_UAF_Meta,
+                    //-- USIF / Tx Data Interfaces
+                    ssUAF_USIF_Data,
+                    ssUAF_USIF_Meta,
+                    ssUAF_USIF_DLen);
+            tbRun--;
+            stepSim();
+        }
 
-    //-------------------------------------------------------
-    //-- STEP-3 : DRAIN AND WRITE OUTPUT FILE STREAMS
-    //-------------------------------------------------------
-    //---- UAF-->SHELL ----
-    if (!getOutputDataStream(ssUAF_SHL_Data, "ssUAF_SHL_Data", "ofsUAF_Shl_Data.dat"))
-        nrErr++;
+        printInfo(THIS_NAME, "############################################################################\n");
+        printInfo(THIS_NAME, "## TESTBENCH 'test_udp_app_flash' ENDS HERE                               ##\n");
+        printInfo(THIS_NAME, "############################################################################\n");
+        stepSim();
 
-    //------------------------------------------------------
-    //-- STEP-4 : COMPARE INPUT AND OUTPUT FILE STREAMS
-    //------------------------------------------------------
-    int rc1 = system("diff --brief -w -i -y ../../../../test/ofsUAF_Shl_Data.dat \
-                                            ../../../../test/ifsSHL_Uaf_Data.dat");
-    if (rc1)
-        printf("## Error : File \'ofsUAF_Shl_Data.dat\' does not match \'ifsSHL_Uaf_Data.dat\'.\n");
+        //-- STEP-6a: Drain UAF-->USIF DATA OUTPUT STREAM
+        int nrUAF_USIF_DataChunks=0, nrUAF_USIF_DataGrams=0, nrUAF_USIF_DataBytes=0;
+        if (not drainAxisToFile(ssUAF_USIF_Data, "ssUAF_USIF_Data",
+            ofNames[0], nrUAF_USIF_DataChunks, nrUAF_USIF_DataGrams, nrUAF_USIF_DataBytes)) {
+            printError(THIS_NAME, "Failed to drain UAF-to-USIF data traffic from DUT. \n");
+            nrErr++;
+        }
+        else {
+            printInfo(THIS_NAME, "Done with the draining of the UAF-to-USIF data traffic:\n");
+            printInfo(THIS_NAME, "\tReceived %d chunks in %d datagrams, for a total of %d bytes.\n\n",
+                      nrUAF_USIF_DataChunks, nrUAF_USIF_DataGrams, nrUAF_USIF_DataBytes);
+        }
+        //-- STEP-6b: Drain UAF-->USIF META OUTPUT STREAM
+        int nrUAF_USIF_MetaChunks=0, nrUAF_USIF_MetaGrams=0, nrUAF_USIF_MetaBytes=0;
+        if (not drainUdpMetaStreamToFile(ssUAF_USIF_Meta, "ssUAF_USIF_Meta",
+                ofNames[1], nrUAF_USIF_MetaChunks, nrUAF_USIF_MetaGrams, nrUAF_USIF_MetaBytes)) {
+            printError(THIS_NAME, "Failed to drain UAF-to-USIF meta traffic from DUT. \n");
+            nrErr++;
+        }
+        //-- STEP-6c: Drain UAF-->USIF DLEN OUTPUT STREAM
+        int nrUAF_USIF_DLenChunks=0, nrUAF_USIF_DLenGrams=0, nrUAF_USIF_DLenBytes=0;
+        if (not drainUdpDLenStreamToFile(ssUAF_USIF_DLen, "ssUAF_USIF_DLen",
+                ofNames[2], nrUAF_USIF_DLenChunks, nrUAF_USIF_DLenGrams, nrUAF_USIF_DLenBytes)) {
+            printError(THIS_NAME, "Failed to drain UAF-to-USIF dlen traffic from DUT. \n");
+            nrErr++;
+        }
 
-    nrErr += rc1;
+        //-- STEP-7: Compare output DAT vs gold DAT
+        int res = system(("diff --brief -w " + \
+                std::string(ofsUSIF_Data_FileName) + " " + \
+                std::string(ofsUSIF_Data_Gold_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsUSIF_Data_FileName.c_str(), ofsUSIF_Data_Gold_FileName.c_str());
+            nrErr += 1;
+        }
+        res = system(("diff --brief -w " + \
+                std::string(ofsUSIF_DLen_FileName) + " " + \
+                std::string(ofsUSIF_DLen_Gold_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsUSIF_DLen_FileName.c_str(), ofsUSIF_DLen_Gold_FileName.c_str());
+            nrErr += 1;
+        }
 
-    printf("#####################################################\n");
-    if (nrErr)
-        printf("## ERROR - TESTBENCH FAILED (RC=%d) !!!             ##\n", nrErr);
-    else
-        printf("## SUCCESSFULL END OF TESTBENCH (RC=0)             ##\n");
+    }  // End-of: if (tbMode == ECHO_PATH_THRU or ECHO_STORE_FWD) {
 
-    printf("#####################################################\n");
 
-    return(nrErr);
+    //---------------------------------------------------------------
+    //-- PRINT TESTBENCH STATUS
+    //---------------------------------------------------------------
+    printf("\n\n");
+    printInfo(THIS_NAME, "This testbench was executed with the following parameters: \n");
+    printInfo(THIS_NAME, "\t==> TB Mode  = %c\n", *argv[1]);
+    for (int i=2; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+
+    if (nrErr) {
+        printError(THIS_NAME, "###########################################################\n");
+        printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
+        printError(THIS_NAME, "###########################################################\n\n");
+
+        printInfo(THIS_NAME, "FYI - You may want to check for \'ERROR\' and/or \'WARNING\' alarms in the LOG file...\n\n");
+    }
+    else {
+        printInfo(THIS_NAME, "#############################################################\n");
+        printInfo(THIS_NAME, "####               SUCCESSFUL END OF TEST                ####\n");
+        printInfo(THIS_NAME, "#############################################################\n");
+    }
+
+    return nrErr;
+
 }
