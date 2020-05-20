@@ -34,7 +34,7 @@ function exit_on_error {
 
 
 # STEP-1a: Check if '$cFpBringUpRootDir' is passed as a parameter
-if [[  $# -eq 1 ]]; then
+if [[  $# -gt 0 ]]; then
     echo "<$0> The regression root directory is passed as an argument:"
     echo "<$0>   Regression root directory = '$1' "
     export cFpBringUpRootDir=$1
@@ -91,9 +91,20 @@ echo "<$0> ----------------------------------------------------------------"
 echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - ROLE - START OF RTLSIM "
 echo "<$0> ================================================================"
-sh $simDir/run_rtlsim.sh
+if [[  $# -gt 1 ]]; then
+  echo "<$0> ================================================================"
+  echo "<$0> ===   RUNNING $2 "
+  echo "<$0> ================================================================"
+  $simDir/run_rtlsim.sh $2
+else
+  echo "<$0> ================================================================"
+  echo "<$0> ===   RUNNING DEFAULT MacLoopback "
+  echo "<$0> ================================================================"
+
+  $simDir/run_rtlsim.sh MacLoopback
+fi
 exit_on_error $? 
 echo "<$0> ================================================================"
-echo "<$0> ===   REGRESSION - ROLE - START OF RTLSIM "
+echo "<$0> ---   REGRESSION - ROLE - END OF RTLSIM "
 echo "<$0> ================================================================"
 

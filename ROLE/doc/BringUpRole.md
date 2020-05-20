@@ -6,8 +6,8 @@ In cloudFPGA (cF), the user application is referred to as a **_ROLE_** and is in
 with a **_SHELL_** that abstracts the hardware components of the FPGA module.
 
 ## Overview
-A block diagram of the ROLE is depicted in Figure 1. It features a set of functions that were
-developped as IP cores to support the test and the bring-up of the TCP-, UDP- and DDR4 components
+A block diagram of the cFp_BringUp/ROLE is depicted in Figure 1. It features a set of functions that were
+developped as IP cores to support the test and the bring-up of the TCP, UDP and DDR4 components
 of the cF module FMKU2595 when equipped with a XCKU060.
 ![Block diagram of the cFp_BringUp ROLE](./imgs/Fig-ROLE-Structure.png#center)
 <p align="center"><b>Figure-1: Block diagram of cFp_BringUp ROLE</b></p>
