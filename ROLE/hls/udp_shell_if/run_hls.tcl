@@ -1,15 +1,15 @@
+
 # *****************************************************************************
 # *                            cloudFPGA
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
-# * Created : Sep 2018
-# * Authors : Francois Abel  
+# * Created : Dec 2017
+# * Authors : Francois Abel, Burkhaard Ringlein  
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the UDP applica-
-# *   tion embedded into the cFp_BringUp ROLE.
+# * Description : A Tcl script for the HLS batch syhthesis of the UDP interface 
+# *   between the cloudFPGA SHELL and the user application ROLE.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
-# *
 # *
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
@@ -18,67 +18,53 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "udp_app_flash"
+set projectName    "udp_shell_if"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "UDP Application for cFp_BringUp/Role"
-set ipDescription  "A set of tests and bring-up functions for this role."
+set ipDisplayName  "UDP Shell Interface for cFp_BringUp/Role"
+set ipDescription  "An interface between the Role of cFp_BringUp and the UDP offload engine of the shell."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
-set ipRtl          "vhdl"
 
 # Set Project Environment Variables  
 #-------------------------------------------------
-set currDir        [pwd]
-set srcDir         ${currDir}/src
-set testDir        ${currDir}/test
-set implDir        ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir        ${currDir}/../../ip
+set currDir      [pwd]
+set srcDir       ${currDir}/src
+set testDir      ${currDir}/test
+set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+set repoDir      ${currDir}/../../ip
 
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
-set hlsCSim        $::env(hlsCSim)
-set hlsCSynth      $::env(hlsCSynth)
-set hlsCoSim       $::env(hlsCoSim)
-set hlsRtl         $::env(hlsRtl)
-
-#-------------------------------------------------
-# Retrieve the HLS testbench mode from ENV
-#-------------------------------------------------
-# FYI, the UAF is specified to use the block-level IO protocol 'ap_ctrl_none'. It also uses
-# a few configurations signals which are not stream-based and which prevent the design from
-# being verified in C/RTL co-simulation mode. In oder to comply with the 'Interface Synthesis
-# Requirements' of UG902, the design is compiled with a preprocessor macro that statically 
-# defines the testbench mode of operation.
-# This avoid the following error issued when trying to C/RTL co-simulate this component:
-#   @E [SIM-345] Cosim only supports the following 'ap_ctrl_none' designs: (1) combinational
-#                designs; (2) pipelined design with task interval of 1; (3) designs with array
-#                streaming or hls_stream ports.
-#   @E [SIM-4] *** C/RTL co-simulation finished: FAIL ***
-#---------------------------------------------------------------------------------------------
-if { [info exists ::env(hlsTbMode)] } { set hlsTbMode  $::env(hlsTbMode) } else { set hlsTbMode 0 }
+set hlsCSim      $::env(hlsCSim)
+set hlsCSynth    $::env(hlsCSynth)
+set hlsCoSim     $::env(hlsCoSim)
+set hlsRtl       $::env(hlsRtl)
 
 # Open and Setup Project
 #-------------------------------------------------
-open_project       ${projectName}_prj
-set_top            ${projectName}
+open_project  ${projectName}_prj
+set_top       ${projectName}
 
 # Add files
 #-------------------------------------------------
-add_files          ${currDir}/src/${projectName}.cpp
-add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
-add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
-add_files -tb      ${currDir}/test/test_${projectName}.cpp -cflags -DTB_MODE=${hlsTbMode}
+add_files     ${currDir}/src/${projectName}.cpp
+add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
+add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
+
+add_files -tb ${currDir}/test/test_${projectName}.cpp
+
 
 # Create a solution
 #-------------------------------------------------
-open_solution      ${solutionName}
-set_part           ${xilPartName}
-create_clock       -period 6.4 -name default
+open_solution ${solutionName}
+
+set_part      ${xilPartName}
+create_clock -period 6.4 -name default
 
 #--------------------------------------------
 # Controlling the Reset Behavior (see UG902)
@@ -123,8 +109,23 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_OneDatagram.dat"
-    csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_RampDgrmSize.dat"
+    csim_design -argv 1
+    csim_design -argv 2
+    csim_design -argv 3
+    csim_design -argv 4
+    csim_design -argv 5
+    csim_design -argv 6
+    csim_design -argv 7
+    csim_design -argv 8
+    csim_design -argv 129
+    csim_design -argv 258
+    csim_design -argv 515
+    csim_design -argv 1028
+    csim_design -argv 2053
+    csim_design -argv 4010
+    csim_design -argv 8197
+    csim_design -argv 16384
+    csim_design -argv [expr {int(rand()*65536)}]
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -146,8 +147,9 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_OneDatagram.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_RampDgrmSize.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv [expr {int(rand()*65536)}]
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv [expr {int(rand()*65536)}]
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
@@ -210,5 +212,4 @@ if { $hlsRtl } {
 # Exit Vivado HLS
 #--------------------------------------------------
 exit
-
 
