@@ -508,6 +508,11 @@ void udp_shell_if(
             soSHL_LsnReq,
             siSHL_LsnRep);
 
+    pClose(
+            piSHL_Mmio_En,
+            soSHL_ClsReq,
+            siSHL_ClsRep);
+
     pReadPath(
             siSHL_Data,
             siSHL_Meta,
