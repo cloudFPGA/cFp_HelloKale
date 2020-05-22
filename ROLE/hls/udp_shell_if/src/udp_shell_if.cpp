@@ -1,27 +1,18 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
-
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /*******************************************************************************
  * @file       : udp_shell_if.cpp
@@ -33,13 +24,25 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *------------------------------------------------------------------------------
  *
- * @details    : This process handles the control flow interface between the
- *   the SHELL and the ROLE. The main purpose of the USIF is to open one or
- *   multiple listening port(s).
+ * @details This process handles the control flow interface between the SHELL
+ *   and the ROLE. The main purpose of the USIF is to provide a placeholder for
+ *   the opening of one or multiple listening port(s).
+ *   The use of such a dedicated layer is not a prerequisite but it is provided
+ *   here for sake of clarity and simplicity.
  *
+ *          +-------+  +--------------------------------+
+ *          |       |  |  +------+     +-------------+  |
+ *          |       <-----+      <-----+     UDP     |  |
+ *          | SHELL |  |  | USIF |     |             |  |
+ *          |       +----->      +-----> APPLICATION |  |
+ *          |       |  |  +------+     +-------------+  |
+ *          +-------+  +--------------------------------+
  *
  * [TODO] - The DEFAULT_FPGA_LSN_PORT (0x2263=8803) and the DEFAULT_HOST_IP4_ADDR must be made programmable.
  *
+ * \ingroup ROL
+ * \addtogroup ROL_USIF
+ * \{
  *******************************************************************************/
 
 #include "udp_shell_if.hpp"
@@ -63,14 +66,14 @@ using namespace std;
   extern bool gTraceEvent;
 #endif
 
-#define THIS_NAME "TSIF"  // TcpShellInterface
+#define THIS_NAME "USIF"  // UdpShellInterface
 
 #define TRACE_OFF  0x0000
 #define TRACE_RDP 1 <<  1
 #define TRACE_WRP 1 <<  2
 #define TRACE_SAM 1 <<  3
 #define TRACE_LSN 1 <<  4
-#define TRACE_CON 1 <<  5
+#define TRACE_CLS 1 <<  5
 #define TRACE_ALL  0xFFFF
 
 #define DEBUG_LEVEL (TRACE_ALL)
@@ -80,13 +83,12 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
 //--  By default, the following sockets will be used by the
-//--  TCP Role Interface, unless the user specifies new ones
+//--  UDP Role Interface, unless the user specifies new ones
 //--  via TBD.
 //--  FYI --> 8803 is the ZIP code of Ruschlikon ;-)
 //---------------------------------------------------------
 #define DEFAULT_FPGA_LSN_PORT   0x2263      // ROLE   listens on port = 8803
 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
-//OBSOLETE #define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
 
 /*******************************************************************************
@@ -108,17 +110,17 @@ void pListen(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE } \
-	                           lsn_fsmState=LSN_IDLE;
+                               lsn_fsmState=LSN_IDLE;
     #pragma HLS reset variable=lsn_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static ap_uint<8>  lsn_watchDogTimer;
 
     switch (lsn_fsmState) {
-
     case LSN_IDLE:
-        if (*piSHL_Enable != 1)
+        if (*piSHL_Enable != 1) {
             return;
+        }
         else
             lsn_fsmState = LSN_SEND_REQ;
         break;
@@ -128,7 +130,7 @@ void pListen(
             UdpPort  udpListenPort = DEFAULT_FPGA_LSN_PORT;
             soSHL_LsnReq.write(udpListenPort);
             if (DEBUG_LEVEL & TRACE_LSN) {
-                printInfo(myName, "SHELL/NTS/UOE is requested to listen on port #%d (0x%4.4X).\n",
+                printInfo(myName, "SHELL/NTS/USIF is requested to listen on port #%d (0x%4.4X).\n",
                           DEFAULT_FPGA_LSN_PORT, DEFAULT_FPGA_LSN_PORT);
             #ifndef __SYNTHESIS__
                 lsn_watchDogTimer = 10;
@@ -172,10 +174,87 @@ void pListen(
     }
 }  // End-of: pListen()
 
+/*******************************************************************************
+ * @brief Request the SHELL/NTS/UOE to close a previously opened port.
+ *
+ * @param[in]  piSHL_Enable  Enable signal from [SHELL].
+ * @param[out] soSHL_ClsReq  Close port request to [SHELL].
+ * @param[in]  siSHL_ClsRep  Close port reply from [SHELL].
+ *******************************************************************************/
+void pClose(
+        CmdBit              *piSHL_Enable,
+        stream<UdpPort>      &soSHL_ClsReq,
+        stream<StsBool>      &siSHL_ClsRep)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1
+
+    const char *myName = concat3(THIS_NAME, "/", "CLs");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates { CLS_IDLE, CLS_SEND_REQ, CLS_WAIT_REP, CLS_DONE } \
+                               cls_fsmState=CLS_IDLE;
+    #pragma HLS reset variable=cls_fsmState
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    //OBSOLETE_20200522 static ap_uint<8>  cls_watchDogTimer;
+
+    switch (cls_fsmState) {
+    case CLS_IDLE:
+        if (*piSHL_Enable != 1) {
+            if (!siSHL_ClsRep.empty()) {
+                // Drain any potential status data
+                siSHL_ClsRep.read();
+                printWarn(myName, "Draining unexpected residue from the \'ClsRep\' stream.\n");
+            }
+            return;
+        }
+        else {
+            cls_fsmState = CLS_SEND_REQ;
+        }
+        break;
+    case CLS_SEND_REQ:
+        if (!soSHL_ClsReq.full()) {
+            // [FIXME-Must take the port # from a CfgReg] - DEFAULT_FPGA_LSN_PORT;
+            // In the mean time, close a fake port to avoid the logic to be synthesized away.
+            UdpPort  udpClosePort = 0xDEAD;
+            soSHL_ClsReq.write(udpClosePort);
+            if (DEBUG_LEVEL & TRACE_CLS) {
+                printInfo(myName, "SHELL/NTS/USIF is requesting to close port #%d (0x%4.4X).\n",
+                          udpClosePort.to_int(), udpClosePort.to_int());
+            }
+            cls_fsmState = CLS_WAIT_REP;
+        }
+        else {
+            printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
+        }
+        break;
+
+    case CLS_WAIT_REP:
+        if (!siSHL_ClsRep.empty()) {
+            StsBool closedDone;
+            siSHL_ClsRep.read(closedDone);
+            if (closedDone) {
+                printInfo(myName, "Received close acknowledgment from [UOE].\n");
+                cls_fsmState = CLS_DONE;
+            }
+            else {
+                printWarn(myName, "UOE denied closing the port %d (0x%4.4X).\n",
+                          DEFAULT_FPGA_LSN_PORT, DEFAULT_FPGA_LSN_PORT);
+                cls_fsmState = CLS_SEND_REQ;
+            }
+        }
+        break;
+
+    case CLS_DONE:
+        break;
+    }
+}  // End-of: pClose()
+
 
 /*******************************************************************************
  * @brief Read Path (RDp) - From SHELL/UOE to ROLE/UAF.
- *  Process waits for a new data segment to read and forwards it to the UAF.
+ *  Process waits for a new datagram to read and forwards it to the UAF.
  *
  * @param[in]  siSHL_Data   Datagram from [SHELL].
  * @param[in]  siSHL_Meta   Metadata from [SHELL].
@@ -227,7 +306,7 @@ void pReadPath(
 
 /*******************************************************************************
  * @brief Write Path (WRp) - From ROLE/UAF to SHELL/NTS/UOE.
- *  Process waits for a new data segment to write and forwards it to SHELL.
+ *  Process waits for a new datagram to write and forwards it to SHELL.
  *
  * @param[in]  siUAF_Data   UDP datagram from [ROLE/UAF].
  * @param[in]  siUAF_Meta   UDP metadata from [ROLE/UAF].
@@ -298,6 +377,7 @@ void pWritePath(
  * @param[out] soSHL_LsnReq  Listen port request to [SHELL].
  * @param[in]  siSHL_LsnRep  Listen port reply from [SHELL].
  * @param[out] soSHL_ClsReq  Close port request to [SHELL].
+ * @param[in]  siSHL_ClsRep  Close port reply from [SHELL].
  * @param[in]  siSHL_Data    UDP datagram from [SHELL].
  * @param[in]  siSHL_Meta    UDP metadata from [SHELL].
  * @param[out] soSHL_Data    UDP datagram to [SHELL].
@@ -323,6 +403,7 @@ void udp_shell_if(
         stream<UdpPort>     &soSHL_LsnReq,
         stream<StsBool>     &siSHL_LsnRep,
         stream<UdpPort>     &soSHL_ClsReq,
+        stream<StsBool>     &siSHL_ClsRep,
 
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
@@ -365,6 +446,7 @@ void udp_shell_if(
     #pragma HLS resource core=AXI4Stream variable=soSHL_LsnReq  metadata="-bus_bundle soSHL_LsnReq"
     #pragma HLS resource core=AXI4Stream variable=siSHL_LsnRep  metadata="-bus_bundle siSHL_LsnRep"
     #pragma HLS resource core=AXI4Stream variable=soSHL_ClsReq  metadata="-bus_bundle soSHL_ClsReq"
+    #pragma HLS resource core=AXI4Stream variable=siSHL_ClsRep  metadata="-bus_bundle siSHL_ClsRep"
 
     #pragma HLS resource core=AXI4Stream variable=siSHL_Data    metadata="-bus_bundle siSHL_Data"
     #pragma HLS resource core=AXI4Stream variable=siSHL_Meta    metadata="-bus_bundle siSHL_Meta"
@@ -391,6 +473,7 @@ void udp_shell_if(
     #pragma HLS INTERFACE axis register both port=soSHL_LsnReq   name=soSHL_LsnReq
     #pragma HLS INTERFACE axis register both port=siSHL_LsnRep   name=siSHL_LsnRep
     #pragma HLS INTERFACE axis register both port=soSHL_ClsReq   name=soSHL_ClsReq
+    #pragma HLS INTERFACE axis register both port=siSHL_ClsRep   name=siSHL_ClsRep
 
     #pragma HLS INTERFACE axis register both port=siSHL_Data     name=siSHL_Data
     #pragma HLS INTERFACE axis register both port=siSHL_Meta     name=siSHL_Meta
@@ -441,3 +524,4 @@ void udp_shell_if(
 
 }
 
+/*! \} */

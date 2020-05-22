@@ -101,8 +101,8 @@ void pUAF(
             siUSIF_Meta.read(appMeta);
             // Swap IP_SA/IP_DA and update UPD_SP/UDP_DP
             soUSIF_Meta.write(SocketPair(
-                          SockAddr(appMeta.src.addr, DEFAULT_FPGA_SND_PORT),
-                          SockAddr(appMeta.dst.addr, DEFAULT_HOST_LSN_PORT)));
+                          SockAddr(appMeta.dst.addr, DEFAULT_FPGA_SND_PORT),
+                          SockAddr(appMeta.src.addr, DEFAULT_HOST_LSN_PORT)));
             soUSIF_DLen.write(0);
             uaf_rxFsmState  = RX_STREAM;
         }
@@ -345,9 +345,9 @@ void pUOE(
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Main function for the test of the UDP Shell Interface (USIF).
- ******************************************************************************/
+ *******************************************************************************/
 int main(int argc, char *argv[])
 {
     //------------------------------------------------------
@@ -378,6 +378,7 @@ int main(int argc, char *argv[])
     stream<UdpPort>       ssUSIF_UOE_LsnReq   ("ssUSIF_UOE_LsnReq");
     stream<StsBool>       ssUOE_USIF_LsnRep   ("ssUOE_USIF_LsnRep");
     stream<UdpPort>       ssUSIF_UOE_ClsReq   ("ssUSIF_UOE_ClsReq");
+    stream<StsBool>       ssUOE_USIF_ClsRep   ("ssUOE_USIF_ClsRep");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -479,6 +480,7 @@ int main(int argc, char *argv[])
             ssUSIF_UOE_LsnReq,
             ssUOE_USIF_LsnRep,
             ssUSIF_UOE_ClsReq,
+            ssUOE_USIF_ClsRep,
             //-- SHELL / Rx Data Interfaces
             ssUOE_USIF_Data,
             ssUOE_USIF_Meta,
