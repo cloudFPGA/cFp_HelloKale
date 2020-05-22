@@ -350,7 +350,7 @@ void pTcpRxPath(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    const char *myName  = concat3(THIS_NAME, "/", "TXp");
+    const char *myName  = concat3(THIS_NAME, "/", "RXp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } \

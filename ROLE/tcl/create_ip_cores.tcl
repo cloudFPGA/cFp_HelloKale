@@ -381,6 +381,20 @@ set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
 update_ip_catalog
 
 #------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Shell Interface 
+#------------------------------------------------------------------------------
+set ipModName "UdpShellInterface"
+set ipName    "udp_shell_if"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
 # IBM-HSL-IP : UDP Application Flash
 #------------------------------------------------------------------------------
 set ipModName "UdpApplicationFlash"

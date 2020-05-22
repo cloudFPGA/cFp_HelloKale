@@ -23,14 +23,10 @@ CLEAN_TYPES = *.log *.jou *.str *.time
 .PHONY: all clean hls_cores assert_env help project
 
 
-#OBSOLETE all: Role_x1Udp_x1Tcp_x2Mp_OOC.dcp
 all: assert_env Role_$(cFpSRAtype)_OOC.dcp
 
 assert_env:
 	@../cFDK/SRA/LIB/bash/assert_envs.sh
-
-#OBSOLETE Role_x1Udp_x1Tcp_x2Mp_OOC.dcp: ./hdl ./ip ./xdc ./tcl
-#OBSOLETE 	cd ./tcl/; vivado -mode batch -source run_pr.tcl -notrace -log run_pr.log -tclargs -force
 
 Role_$(cFpSRAtype)_OOC.dcp: ./hdl ./ip ./tcl  ## Builds the Out-Of-Contect (OOC) Design-Checkpoint (dcp) for this Role (default)
 	cd ./tcl/; vivado -mode batch -source run_pr.tcl -notrace -log run_pr.log -tclargs -force

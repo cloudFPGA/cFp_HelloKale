@@ -10,23 +10,15 @@
 # *
 # ******************************************************************************
 
-.PHONY: all clean mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash
+.PHONY: all clean mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if
 
-all: mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash
-
-
-#*:
-#	@#echo ---- Building [ $@ ] ---------------------------- 
-#	@$(MAKE) -C $@
-
-#clean:
-#	rm -rf ./*/*_prj
+all: mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if
 
 #-- Targets --------------------------------------------------------------------
 
-csim:  tcp_shell_if tcp_app_flash  ## Runs HLS C simulation on all sub-directories
+csim: tcp_shell_if tcp_app_flash udp_shell_if ## Runs HLS C simulation on all sub-directories
 
-cosim:  tcp_shell_if tcp_app_flash ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim:  tcp_shell_if tcp_app_flash udp_shell_if ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 
