@@ -197,7 +197,6 @@ void pClose(
     #pragma HLS reset variable=cls_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    //OBSOLETE_20200522 static ap_uint<8>  cls_watchDogTimer;
 
     switch (cls_fsmState) {
     case CLS_IDLE:
@@ -229,23 +228,21 @@ void pClose(
             printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
         }
         break;
-
     case CLS_WAIT_REP:
         if (!siSHL_ClsRep.empty()) {
-            StsBool closedDone;
-            siSHL_ClsRep.read(closedDone);
-            if (closedDone) {
+            StsBool isOpened;
+            siSHL_ClsRep.read(isOpened);
+            if (not isOpened) {
                 printInfo(myName, "Received close acknowledgment from [UOE].\n");
                 cls_fsmState = CLS_DONE;
             }
             else {
-                printWarn(myName, "UOE denied closing the port %d (0x%4.4X).\n",
+                printWarn(myName, "UOE denied closing the port %d (0x%4.4X) which is still opened.\n",
                           DEFAULT_FPGA_LSN_PORT, DEFAULT_FPGA_LSN_PORT);
                 cls_fsmState = CLS_SEND_REQ;
             }
         }
         break;
-
     case CLS_DONE:
         break;
     }
