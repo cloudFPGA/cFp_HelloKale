@@ -28,8 +28,8 @@
  *  embedded into the role of the cFp_BringUp.
  *  The UAF connects to the SHELL via a UDP Shell Interface (USIF) block. The
  *  main purpose of the USIF is to provide a placeholder for the opening of one
- *  or multiple listening port(s). Its use a prerequisite, but it is provided
- *  here for sake of clarity and simplicity.
+ *  or multiple listening port(s). Its use is not a prerequisite, but it is
+ *  provided here for sake of clarity and simplicity.
  *
  *          +-------+  +--------------------------------+
  *          |       |  |  +------+     +-------------+  |
@@ -129,10 +129,10 @@ void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and
     //-- Always: MetaFiFo Push
     if ( !siRXp_Meta.empty() && !ssMetaFifo.full() ) {
         UdpAppMeta appMeta = siRXp_Meta.read();
-        // Swap IP_SA/IP_DA and re-use the same UPD_SP/UDP_DP
+        // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
         ssMetaFifo.write(SocketPair(
-                    SockAddr(appMeta.dst.addr, appMeta.src.port),
-                    SockAddr(appMeta.src.addr, appMeta.dst.port)));
+                    SockAddr(appMeta.dst.addr, appMeta.dst.port),
+                    SockAddr(appMeta.src.addr, appMeta.src.port)));
     }
 
     //-- Always: DataFiFo Pop
@@ -215,10 +215,10 @@ void pTxPath(
                 !siEPt_DLen.empty() and !soUSIF_DLen.full()) {
                 UdpAppMeta appMeta = siEPt_Meta.read();
                 UdpAppDLen appDLen = siEPt_DLen.read();
-                // Swap IP_SA/IP_DA and re-use the same UPD_SP/UDP_DP
+                // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
                 soUSIF_Meta.write(SocketPair(
-                            SockAddr(appMeta.dst.addr, appMeta.src.port),
-                            SockAddr(appMeta.src.addr, appMeta.dst.port)));
+                            SockAddr(appMeta.dst.addr, appMeta.dst.port),
+                            SockAddr(appMeta.src.addr, appMeta.src.port)));
                 soUSIF_DLen.write(appDLen);
                 if (appDLen == 0) {
                     txp_dgmMode = STRM_MODE;
