@@ -72,57 +72,64 @@ def str_rand_gen(size):
     return msg.encode()
 
 
-def udp_tx(sock, message, count, verbose=False):
+def udp_tx(sock, message, count, lock, verbose=False):
     """UDP Tx Thread.
     :param sock     The socket to send to.
     :param message  The message string to sent.
     :param count    The number of datagrams to send.
+    :param lock     A semaphore to access the global variable 'gBytesInFlight'.
     :param verbose  Enables verbosity.
     :return         None"""
+    global gBytesInFlight
+
     if verbose:
         print("The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
                                                                 (len(message), count, message.decode()))
-    c = 0
+    loop = 0
     startTime = datetime.datetime.now()
-    while c < count:
-        try:
-            sock.sendall(message)
-        finally:
-            pass
-        c += 1
+    while loop < count:
+        if gBytesInFlight < 4096:
+            # FYI - UDP does not provide any flow-control.
+            #   If we push bytes into the FPGA faster than we drain, some bytes might be dropped.
+            try:
+                sock.sendall(message)
+            except socket.error as exc:
+                # Any exception
+                print("[EXCEPTION] Socket error while receiving :: %s" % exc)
+                exit(1)
+            else:
+                lock.acquire()
+                gBytesInFlight += len(message)
+                # print("TX - %d" % gBytesInFlight)
+                lock.release()
+            loop += 1
     endTime = datetime.datetime.now()
     elapseTime = endTime - startTime;
     bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
-    print("Sent a total of     %d bytes." % (c*len(message)))
+    print("[INFO] Sent a total of     %d bytes." % (count*len(message)))
     print("##################################################")
     print("#### UDP TX DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     print("##################################################")
     print()
 
 
-def udp_rx(sock, message, count, verbose):
+def udp_rx(sock, message, count, lock, verbose=False):
     """UDP Rx Thread.
      :param sock        The socket to receive from.
      :param message     The expected string message to be received.
      :param count       The number of datagrams to receive.
+     :param lock     A semaphore to access the global variable 'gBytesInFlight'.
      :param verbose,    Enables verbosity.
      :return            None"""
+    global gBytesInFlight
+
     loop = 0
-    byteCnt = 0
+    rxBytes = 0
     nrErr = 0
     startTime = datetime.datetime.now()
-    while byteCnt < count*len(message):
+    while rxBytes < count*len(message):
         try:
             data = sock.recv(len(message))
-            byteCnt += len(data)
-            if data == message:
-                if verbose:
-                    print("Loop=%d | RxBytes=%d" % (loop, byteCnt))
-            else:
-                print("Loop=%d | RxBytes=%d" % (loop, byteCnt))
-                print(" KO | Received  Message=%s" % data.decode())
-                print("    | Expecting Message=%s" % message)
-                nrErr += 1
         except IOError as e:
             # On non blocking connections - when there are no incoming data, error is going to be raised
             # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
@@ -136,14 +143,26 @@ def udp_rx(sock, message, count, verbose):
         except socket.error as exc:
             # Any other exception
             print("[EXCEPTION] Socket error while receiving :: %s" % exc)
-            # exit(1)
-        finally:
-            pass
-        loop += 1
+            exit(1)
+        else:
+            lock.acquire()
+            gBytesInFlight -= len(data)
+            # print("RX - %d" % gBytesInFlight)
+            lock.release()
+            rxBytes += len(data)
+            if data == message:
+                if verbose:
+                    print("Loop=%d | RxBytes=%d" % (loop, rxBytes))
+            else:
+                print("Loop=%d | RxBytes=%d" % (loop, rxBytes))
+                print(" KO | Received  Message=%s" % data.decode())
+                print("    | Expecting Message=%s" % message)
+                nrErr += 1
+            loop += 1
     endTime = datetime.datetime.now()
     elapseTime = endTime - startTime;
     bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
-    print("Received a total of %d bytes." % byteCnt)
+    print("[INFO] Received a total of %d bytes." % rxBytes)
     print("##################################################")
     print("#### UDP RX DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     print("##################################################")
@@ -287,6 +306,8 @@ parser.add_argument('-mi', '--mngr_ipv4',   type=str, default='10.12.0.132',
                            help='The IPv4 address of the cloudFPGA Resource Manager (default is 10.12.0.132)')
 parser.add_argument('-mp', '--mngr_port',   type=int, default=8080,
                            help='The TCP port of the cloudFPGA Resource Manager (default is 8080)')
+parser.add_argument('-mt', '--multi_threading',       action="store_true",
+                           help='Enable multi_threading')
 parser.add_argument('-sd', '--seed',        type=int, default=-1,
                            help='The initial number to seed the pseudorandom number generator.')
 parser.add_argument('-un', '--user_name',   type=str, default='',
@@ -394,13 +415,13 @@ else:
 udpSock.setblocking(False)
 udpSock.settimeout(5)
 
-#  STEP-10: Run the test
+#  STEP-10: Setup the test
 # -------------------------------
 seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase will be run with:")
+print("[INFO] This testcase is run with:")
 print("\t\t seed = %d" % seed)
 size = random.randint(1, MAX_DGR_LEN)
 if size > MAX_DGR_LEN:
@@ -409,18 +430,28 @@ if size > MAX_DGR_LEN:
     exit(1)
 print("\t\t size = %d" % size)
 count = args.loop_count
-print("\t\t loop = %d\n" % count)
+print("\t\t loop = %d" % count)
 
 if seed % 1:
     message = str_static_gen(size)
 else:
     message = str_rand_gen(size)
 
-if 0:
+verbose = args.verbose
+
+if args.multi_threading:
+
+    print("[INFO] This run is executed in multi-threading mode.\n")
+
+    # Global variable
+    gBytesInFlight = 0
+    # Creating a lock
+    lock = threading.Lock()
+
     #  STEP-11: Create Rx and Tx threads
-     # ----------------------------------
-    tx_thread = threading.Thread(target=udp_tx, args=(udpSock, message, count, args.verbose))
-    rx_thread = threading.Thread(target=udp_rx, args=(udpSock, message, count, args.verbose))
+    # -----------------------------------
+    tx_thread = threading.Thread(target=udp_tx, args=(udpSock, message, count, lock, args.verbose))
+    rx_thread = threading.Thread(target=udp_rx, args=(udpSock, message, count, lock, args.verbose))
 
     #  STEP-12: Start the threads
     # ---------------------------
@@ -431,10 +462,13 @@ if 0:
     # ----------------------------------------
     tx_thread.join()
     rx_thread.join()
+
 else:
-    verbose = args.verbose
+
+    print("[INFO] The run is executed in single-threading mode.\n")
+
     if verbose:
-        print("The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
+        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
                                                           (len(message), count, message.decode()))
     loop = 0
     rxByteCnt = 0
@@ -480,7 +514,7 @@ else:
     endTime = datetime.datetime.now()
     elapseTime = endTime - startTime;
     bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
-    print("Transferred a total of %d bytes." % rxByteCnt)
+    print("[INFO] Transferred a total of %d bytes." % rxByteCnt)
     print("#####################################################")
     print("#### UDP Tx/Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     print("#####################################################")

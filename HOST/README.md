@@ -15,7 +15,7 @@ remote host.
 
 
 ## How To Python 
-The _py_ directory contains a set of python3 scripts for interacting with the role of the 
+The **_py_** directory contains a set of python3 scripts for interacting with the role of the 
 _cFp_BringUp_ project. 
 
 ##### Step-0: Do you have a valid bitfile?
@@ -45,8 +45,19 @@ It is good practise to ping your FPGA instance before trying to run any further 
     $ cd py
     $ source venv/bin/activate
     $ python3 tc_TcpEcho.py --help
-    $ python3 tc_TcpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <1-32> --user_name <xyz> --user_passwd <xyz's_pw>
+    $ python3 tc_TcpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw>
 ```
+
+##### Step-3b: Execute a UDP echo test
+```
+    $ cd py
+    $ source venv/bin/activate
+    $ python3 tc_UdpEcho.py --help
+    $ python3 tc_UdpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw> --loop_count 250 -v
+ 
+```
+
+
 
 ##### Step-3b: Execute a TCP transmit test
 ##### Step-3c: Execute a TCP receive test

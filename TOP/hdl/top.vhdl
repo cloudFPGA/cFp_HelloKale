@@ -407,12 +407,10 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       piTOP_156_25Rst                   : in    std_ulogic;
       piTOP_156_25Clk                   : in    std_ulogic;
-       
       ------------------------------------------------------
       -- TOP / Bitstream Identification
       ------------------------------------------------------
       piTOP_Timestamp                   : in   std_ulogic_vector( 31 downto 0);
-       
       ------------------------------------------------------
       -- CLKT / Clock Tree Interface 
       ------------------------------------------------------
@@ -422,7 +420,6 @@ architecture structural of topFMKU60 is
       piCLKT_Mem1Clk_p                  : in    std_ulogic;
       piCLKT_10GeClk_n                  : in    std_ulogic;
       piCLKT_10GeClk_p                  : in    std_ulogic;
-       
       ------------------------------------------------------
       -- PSOC / External Memory Interface (Emif)
       ------------------------------------------------------
@@ -433,12 +430,10 @@ architecture structural of topFMKU60 is
       piPSOC_Emif_AdS_n                 : in    std_ulogic;
       piPSOC_Emif_Addr                  : in    std_ulogic_vector(gMmioAddrWidth-1 downto 0);
       pioPSOC_Emif_Data                 : inout std_ulogic_vector(gMmioDataWidth-1 downto 0);
- 
       ------------------------------------------------------
       -- LED / Heart Beat Interface (Yellow LED)
       ------------------------------------------------------
-      poLED_HeartBeat_n                 : out   std_ulogic;
-       
+      poLED_HeartBeat_n                 : out   std_ulogic; 
       ------------------------------------------------------
       -- DDR4 / Memory Channel 0 Interface (Mc0)
       ------------------------------------------------------
@@ -456,7 +451,6 @@ architecture structural of topFMKU60 is
       poDDR4_Mem_Mc0_Ck_n               : out   std_ulogic;
       poDDR4_Mem_Mc0_Ck_p               : out   std_ulogic;
       poDDR4_Mem_Mc0_Reset_n            : out   std_ulogic;
- 
       ------------------------------------------------------
       -- DDR4 / Memory Channel 1 Interface (Mc1)
       ------------------------------------------------------  
@@ -474,7 +468,6 @@ architecture structural of topFMKU60 is
       poDDR4_Mem_Mc1_Ck_n               : out   std_ulogic;
       poDDR4_Mem_Mc1_Ck_p               : out   std_ulogic;
       poDDR4_Mem_Mc1_Reset_n            : out   std_ulogic;
-       
       ------------------------------------------------------
       -- ECON / Edge Connector Interface (SPD08-200)
       ------------------------------------------------------
@@ -482,13 +475,11 @@ architecture structural of topFMKU60 is
       piECON_Eth_10Ge0_p                : in    std_ulogic;
       poECON_Eth_10Ge0_n                : out   std_ulogic;
       poECON_Eth_10Ge0_p                : out   std_ulogic;
-      
       ------------------------------------------------------
       -- ROLE / Output Clock and Reset Interfaces
       ------------------------------------------------------
       poROL_156_25Clk                   : out   std_ulogic;
       poROL_156_25Rst                   : out   std_ulogic;
-
       ------------------------------------------------------
       -- ROLE / Nts / Udp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -506,9 +497,8 @@ architecture structural of topFMKU60 is
       siROL_Nts_Udp_DLen_tdata          : in    std_logic_vector( 15 downto 0);
       siROL_Nts_Udp_DLen_tvalid         : in    std_ulogic;
       siROL_Nts_Udp_DLen_tready         : out   std_ulogic;
-      
       ------------------------------------------------------
-      --ROLE / Nts / Udp / Rx Data Interfaces (.i.e SHELL-->ROLE)
+      -- ROLE / Nts / Udp / Rx Data Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
       ---- Axi4-Stream UDP Data ---------------
       soROL_Nts_Udp_Data_tdata          : out   std_ulogic_vector( 63 downto 0);
@@ -517,12 +507,11 @@ architecture structural of topFMKU60 is
       soROL_Nts_Udp_Data_tvalid         : out   std_ulogic;
       soROL_Nts_Udp_Data_tready         : in    std_ulogic;
       ---- Axi4-Stream UDP Metadata -----------
-      soROL_Nts_Udp_Meta_tdata          : in    std_logic_vector( 95 downto 0);
-      soROL_Nts_Udp_Meta_tvalid         : in    std_ulogic;
-      soROL_Nts_Udp_Meta_tready         : out   std_ulogic;
-      
+      soROL_Nts_Udp_Meta_tdata          : out   std_logic_vector( 95 downto 0);
+      soROL_Nts_Udp_Meta_tvalid         : out   std_ulogic;
+      soROL_Nts_Udp_Meta_tready         : in    std_ulogic;
       ------------------------------------------------------
-      -- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL-->ROLE)
+      -- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL<-->ROLE)
       ------------------------------------------------------
       ---- Axi4-Stream UDP Listen Request -----
       siROL_Nts_Udp_LsnReq_tdata        : in    std_ulogic_vector( 15 downto 0);
@@ -531,7 +520,7 @@ architecture structural of topFMKU60 is
       ---- Axi4-Stream UDP Listen Reply --------
       soROL_Nts_Udp_LsnRep_tdata        : out   std_ulogic_vector(  7 downto 0);
       soROL_Nts_Udp_LsnRep_tvalid       : out   std_ulogic;
-      soROL_Nts_Udp_LsnRep_tready       : out   std_ulogic;
+      soROL_Nts_Udp_LsnRep_tready       : in    std_ulogic;
       ---- Axi4-Stream UDP Close Request ------
       siROL_Nts_Udp_ClsReq_tdata        : in    std_ulogic_vector( 15 downto 0);
       siROL_Nts_Udp_ClsReq_tvalid       : in    std_ulogic;
@@ -539,8 +528,7 @@ architecture structural of topFMKU60 is
       ---- Axi4-Stream UDP Close Reply ---------
       soROL_Nts_Udp_ClsRep_tdata        : out   std_ulogic_vector(  7 downto 0);
       soROL_Nts_Udp_ClsRep_tvalid       : out   std_ulogic;
-      soROL_Nts_Udp_ClsRep_tready       : out   std_ulogic;
-         
+      soROL_Nts_Udp_ClsRep_tready       : in    std_ulogic;
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -558,7 +546,6 @@ architecture structural of topFMKU60 is
       soROL_Nts_Tcp_DSts_tdata          : out   std_ulogic_vector( 23 downto 0);
       soROL_Nts_Tcp_DSts_tvalid         : out   std_ulogic;
       soROL_Nts_Tcp_DSts_tready         : in    std_ulogic;
-      
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -580,7 +567,6 @@ architecture structural of topFMKU60 is
       siROL_Nts_Tcp_DReq_tdata          : in    std_ulogic_vector( 31 downto 0);
       siROL_Nts_Tcp_DReq_tvalid         : in    std_ulogic;
       siROL_Nts_Tcp_DReq_tready         : out   std_ulogic;
-           
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -596,7 +582,6 @@ architecture structural of topFMKU60 is
       siROL_Nts_Tcp_ClsReq_tdata        : in    std_ulogic_vector( 15 downto 0);
       siROL_Nts_Tcp_ClsReq_tvalid       : in    std_ulogic;
       siROL_Nts_Tcp_ClsReq_tready       : out   std_ulogic;
-     
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -608,7 +593,6 @@ architecture structural of topFMKU60 is
       soROL_Nts_Tcp_LsnAck_tdata        : out std_ulogic_vector(  7 downto 0);
       soROL_Nts_Tcp_LsnAck_tvalid       : out std_ulogic;
       soROL_Nts_Tcp_LsnAck_tready       : in  std_ulogic;
-  
       ------------------------------------------------------  
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -641,7 +625,6 @@ architecture structural of topFMKU60 is
       siROL_Mem_Mp0_Write_tlast         : in    std_ulogic;
       siROL_Mem_Mp0_Write_tvalid        : in    std_ulogic;
       siROL_Mem_Mp0_Write_tready        : out   std_ulogic;
-       
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -674,7 +657,6 @@ architecture structural of topFMKU60 is
       siROL_Mem_Mp1_Write_tlast         : in    std_ulogic;
       siROL_Mem_Mp1_Write_tvalid        : in    std_ulogic;
       siROL_Mem_Mp1_Write_tready        : out   std_ulogic;
-         
       --------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       --------------------------------------------------------
@@ -696,26 +678,20 @@ architecture structural of topFMKU60 is
       ---- APP_RDROL --------------------
       piROL_Mmio_RdReg                  : in    std_ulogic_vector( 15 downto 0);
       ---- APP_WRROL --------------------
-      poROL_Mmio_WrReg                  : out   std_ulogic_vector( 15 downto 0);
-      --
-      poVoid                            : out   std_ulogic
- 
+      poROL_Mmio_WrReg                  : out   std_ulogic_vector( 15 downto 0)
     );
   end component Shell_Kale;
-
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
   component Role_Kale
     port (
-      
       ------------------------------------------------------
       -- TOP / Global Input Clock and Reset Interface
       ------------------------------------------------------
       piSHL_156_25Clk                     : in    std_ulogic;
       piSHL_156_25Rst                     : in    std_ulogic;
-      
       ------------------------------------------------------
       --- SHELL / Nts / Udp / Tx Data Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -728,8 +704,7 @@ architecture structural of topFMKU60 is
       ---- Axi4-Stream UDP Metadata ------------
       siSHL_Nts_Udp_Meta_tdata            : in    std_ulogic_vector( 95 downto 0);
       siSHL_Nts_Udp_Meta_tvalid           : in    std_ulogic;
-      siSHL_Nts_Udp_Meta_tready           : out   std_ulogic;
-            
+      siSHL_Nts_Udp_Meta_tready           : out   std_ulogic; 
       ------------------------------------------------------
       -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
       -----------------------------------------------------
@@ -747,9 +722,8 @@ architecture structural of topFMKU60 is
       soSHL_Nts_Udp_DLen_tdata            : out   std_ulogic_vector( 15 downto 0);
       soSHL_Nts_Udp_DLen_tvalid           : out   std_ulogic;
       soSHL_Nts_Udp_DLen_tready           : in    std_ulogic;
-
       ------------------------------------------------------
-      -- SHELL / Nts/ Udp / Rx Ctrl Interfaces (.i.e ROLE-->SHELL)
+      -- SHELL / Nts/ Udp / Rx Ctrl Interfaces (.i.e ROLE<-->SHELL)
       ------------------------------------------------------
       ---- Axi4-Stream UDP Listen Request -----
       soSHL_Nts_Udp_LsnReq_tdata          : out   std_ulogic_vector( 15 downto 0);
@@ -767,7 +741,6 @@ architecture structural of topFMKU60 is
       siSHL_Nts_Udp_ClsRep_tdata          : in    std_ulogic_vector(  7 downto 0);
       siSHL_Nts_Udp_ClsRep_tvalid         : in    std_ulogic;   
       siSHL_Nts_Udp_ClsRep_tready         : out   std_ulogic;
-      
       ------------------------------------------------------
       -- SHELL / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -785,7 +758,6 @@ architecture structural of topFMKU60 is
       siSHL_Nts_Tcp_DSts_tdata            : in    std_ulogic_vector( 23 downto 0);
       siSHL_Nts_Tcp_DSts_tvalid           : in    std_ulogic;
       siSHL_Nts_Tcp_DSts_tready           : out   std_ulogic;
-  
       --------------------------------------------------------
       -- SHELL / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       --------------------------------------------------------
@@ -797,8 +769,8 @@ architecture structural of topFMKU60 is
       siSHL_Nts_Tcp_Data_tready           : out   std_ulogic;
       -----  Axi4-Stream TCP Metadata ------------
       siSHL_Nts_Tcp_Meta_tdata            : in    std_ulogic_vector( 15 downto 0);
-      siSHL_Nts_Tcp_Meta_tkeep            : in    std_ulogic_vector(  1 downto 0);
-      siSHL_Nts_Tcp_Meta_tlast            : in    std_ulogic;
+      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tkeep            : in    std_ulogic_vector(  1 downto 0);
+      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tlast            : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
       ----  Axi4-Stream TCP Data Notification ---
@@ -809,9 +781,8 @@ architecture structural of topFMKU60 is
       soSHL_Nts_Tcp_DReq_tdata            : out   std_ulogic_vector( 31 downto 0); 
       soSHL_Nts_Tcp_DReq_tvalid           : out   std_ulogic;       
       soSHL_Nts_Tcp_DReq_tready           : in    std_ulogic;
-  
       ------------------------------------------------------
-      -- SHELL / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
+      -- SHELL / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE<-->SHELL)
       ------------------------------------------------------
       ---- Axi4-Stream TCP Open Session Request
       soSHL_Nts_Tcp_OpnReq_tdata          : out   std_ulogic_vector( 47 downto 0);  
@@ -825,7 +796,6 @@ architecture structural of topFMKU60 is
       soSHL_Nts_Tcp_ClsReq_tdata          : out    std_ulogic_vector( 15 downto 0);  
       soSHL_Nts_Tcp_ClsReq_tvalid         : out    std_ulogic;
       soSHL_Nts_Tcp_ClsReq_tready         : in     std_ulogic;
-  
       ------------------------------------------------------
       -- SHELL / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -837,7 +807,6 @@ architecture structural of topFMKU60 is
       siSHL_Nts_Tcp_LsnAck_tdata          : in     std_ulogic_vector(  7 downto 0); 
       siSHL_Nts_Tcp_LsnAck_tvalid         : in     std_ulogic;
       siSHL_Nts_Tcp_LsnAck_tready         : out    std_ulogic;
-      
       ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -870,7 +839,6 @@ architecture structural of topFMKU60 is
       soSHL_Mem_Mp0_Write_tlast           : out   std_ulogic;
       soSHL_Mem_Mp0_Write_tvalid          : out   std_ulogic;
       soSHL_Mem_Mp0_Write_tready          : in    std_ulogic; 
-      
       ------------------------------------------------------
       -- SHELL / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -903,7 +871,6 @@ architecture structural of topFMKU60 is
       soSHL_Mem_Mp1_Write_tlast           : out   std_ulogic;
       soSHL_Mem_Mp1_Write_tvalid          : out   std_ulogic;
       soSHL_Mem_Mp1_Write_tready          : in    std_ulogic; 
-
       --------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
       --------------------------------------------------------
@@ -926,13 +893,10 @@ architecture structural of topFMKU60 is
       poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
       --- [APP_WRROL] --------------------
       piSHL_Mmio_WrReg                    : in    std_ulogic_vector( 15 downto 0);
-
       --------------------------------------------------------
       -- TOP : Secondary Clock (Asynchronous)
       --------------------------------------------------------
-      piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
-         
-      poVoid                              : out   std_ulogic          
+      piTOP_250_00Clk                     : in    std_ulogic   -- Freerunning
     );
     end component Role_Kale;
 
@@ -1011,13 +975,11 @@ begin
       -- TOP / Input Clocks and Resets from topFMKU60
       ------------------------------------------------------
       piTOP_156_25Rst               => sTOP_156_25Rst,
-      piTOP_156_25Clk               => sTOP_156_25Clk,
-      
+      piTOP_156_25Clk               => sTOP_156_25Clk,     
       ------------------------------------------------------
       -- TOP / Bitstream Identification
       ------------------------------------------------------
-      piTOP_Timestamp               => sTOP_Timestamp,
-      
+      piTOP_Timestamp               => sTOP_Timestamp, 
       ------------------------------------------------------
       -- CLKT / Clock Tree Interface 
       ------------------------------------------------------
@@ -1027,7 +989,6 @@ begin
       piCLKT_Mem1Clk_p              => piCLKT_Mem1Clk_p,
       piCLKT_10GeClk_n              => piCLKT_10GeClk_n,
       piCLKT_10GeClk_p              => piCLKT_10GeClk_p,
-
       ------------------------------------------------------
       -- PSOC / External Memory Interface => Emif)
       ------------------------------------------------------
@@ -1038,12 +999,10 @@ begin
       piPSOC_Emif_AdS_n             => piPSOC_Emif_AdS_n,
       piPSOC_Emif_Addr              => piPSOC_Emif_Addr,
       pioPSOC_Emif_Data             => pioPSOC_Emif_Data,
-      
       ------------------------------------------------------
       -- LED / Shl / Heart Beat Interface => Yellow LED)
       ------------------------------------------------------
       poLED_HeartBeat_n             => poLED_HeartBeat_n,
-
       ------------------------------------------------------
       -- DDR4 / Memory Channel 0 Interface => (Mc0)
       ------------------------------------------------------
@@ -1061,7 +1020,6 @@ begin
       poDDR4_Mem_Mc0_Ck_n           => poDDR4_Mem_Mc0_Ck_n,
       poDDR4_Mem_Mc0_Ck_p           => poDDR4_Mem_Mc0_Ck_p,
       poDDR4_Mem_Mc0_Reset_n        => poDDR4_Mem_Mc0_Reset_n,
-      
       ------------------------------------------------------
       -- DDR4 / Shl / Memory Channel 1 Interface (Mc1)
       ------------------------------------------------------
@@ -1079,7 +1037,6 @@ begin
       poDDR4_Mem_Mc1_Ck_n           => poDDR4_Mem_Mc1_Ck_n,
       poDDR4_Mem_Mc1_Ck_p           => poDDR4_Mem_Mc1_Ck_p,
       poDDR4_Mem_Mc1_Reset_n        => poDDR4_Mem_Mc1_Reset_n,
-      
       ------------------------------------------------------
       -- ECON / Edge / Connector Interface (SPD08-200)
       ------------------------------------------------------
@@ -1087,13 +1044,11 @@ begin
       piECON_Eth_10Ge0_p            => piECON_Eth_10Ge0_p,
       poECON_Eth_10Ge0_n            => poECON_Eth_10Ge0_n, 
       poECON_Eth_10Ge0_p            => poECON_Eth_10Ge0_p,
-      
       ------------------------------------------------------
       -- ROLE / Reset and Clock Interfaces
       ------------------------------------------------------
       poROL_156_25Clk               => sSHL_156_25Clk,
       poROL_156_25Rst               => sSHL_156_25Rst,
-
       ------------------------------------------------------
       -- ROLE / Nts / Udp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -1111,7 +1066,6 @@ begin
       siROL_Nts_Udp_DLen_tdata      => ssROL_SHL_Nts_Udp_DLen_tdata ,
       siROL_Nts_Udp_DLen_tvalid     => ssROL_SHL_Nts_Udp_DLen_tvalid,
       siROL_Nts_Udp_DLen_tready     => ssROL_SHL_Nts_Udp_DLen_tready,
-      
       ------------------------------------------------------
       --ROLE / Nts / Udp / Rx Data Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1125,7 +1079,6 @@ begin
       soROL_Nts_Udp_Meta_tdata      => ssSHL_ROL_Nts_Udp_Meta_tdata ,
       soROL_Nts_Udp_Meta_tvalid     => ssSHL_ROL_Nts_Udp_Meta_tvalid,
       soROL_Nts_Udp_Meta_tready     => ssSHL_ROL_Nts_Udp_Meta_tready,
-      
       ------------------------------------------------------
       -- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1145,7 +1098,6 @@ begin
       soROL_Nts_Udp_ClsRep_tdata    => ssSHL_ROL_Nts_Udp_ClsRep_tdata ,
       soROL_Nts_Udp_ClsRep_tvalid   => ssSHL_ROL_Nts_Udp_ClsRep_tvalid,
       soROL_Nts_Udp_ClsRep_tready   => ssSHL_ROL_Nts_Udp_ClsRep_tready,
- 
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -1163,7 +1115,6 @@ begin
       soROL_Nts_Tcp_DSts_tdata      => ssSHL_ROL_Nts_Tcp_DSts_tdata,
       soROL_Nts_Tcp_DSts_tvalid     => ssSHL_ROL_Nts_Tcp_DSts_tvalid, 
       soROL_Nts_Tcp_DSts_tready     => ssSHL_ROL_Nts_Tcp_DSts_tready,
-    
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1185,7 +1136,6 @@ begin
       siROL_Nts_Tcp_DReq_tdata      => ssROL_SHL_Nts_Tcp_DReq_tdata,
       siROL_Nts_Tcp_DReq_tvalid     => ssROL_SHL_Nts_Tcp_DReq_tvalid,
       siROL_Nts_Tcp_DReq_tready     => ssROL_SHL_Nts_Tcp_DReq_tready,
-      
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -1201,7 +1151,6 @@ begin
       siROL_Nts_Tcp_ClsReq_tdata    => ssROL_SHL_Nts_Tcp_ClsReq_tdata,
       siROL_Nts_Tcp_ClsReq_tvalid   => ssROL_SHL_Nts_Tcp_ClsReq_tvalid,
       siROL_Nts_Tcp_ClsReq_tready   => ssROL_SHL_Nts_Tcp_ClsReq_tready,   
-      
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1213,7 +1162,6 @@ begin
       soROL_Nts_Tcp_LsnAck_tdata    => ssSHL_ROL_Nts_Tcp_LsnAck_tdata,
       soROL_Nts_Tcp_LsnAck_tvalid   => ssSHL_ROL_Nts_Tcp_LsnAck_tvalid,
       soROL_Nts_Tcp_LsnAck_tready   => ssSHL_ROL_Nts_Tcp_LsnAck_tready,
-
       ------------------------------------------------------  
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -1246,7 +1194,6 @@ begin
       siROL_Mem_Mp0_Write_tlast     => ssROL_SHL_Mem_Mp0_Write_tlast,
       siROL_Mem_Mp0_Write_tvalid    => ssROL_SHL_Mem_Mp0_Write_tvalid,
       siROL_Mem_Mp0_Write_tready    => ssROL_SHL_Mem_Mp0_Write_tready, 
-      
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -1279,7 +1226,6 @@ begin
       siROL_Mem_Mp1_Write_tlast     => ssROL_SHL_Mem_Mp1_Write_tlast,
       siROL_Mem_Mp1_Write_tvalid    => ssROL_SHL_Mem_Mp1_Write_tvalid,
       siROL_Mem_Mp1_Write_tready    => ssROL_SHL_Mem_Mp1_Write_tready,
-
       ------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       ------------------------------------------------------
@@ -1301,30 +1247,19 @@ begin
       ---- [APP_RDROL] -----------------
       piROL_Mmio_RdReg              => sROL_SHL_Mmio_RdReg,
       ---- [APP_WRROL] -----------------
-      poROL_Mmio_WrReg              => sSHL_ROL_Mmio_WrReg,
-            
-      --OBSOLETE-20191125 --------------------------------------------------------
-      --OBSOLETE-20191125 -- ROLE / Fmc / Management Interface 
-      --OBSOLETE-20191125 --------------------------------------------------------
-      --OBSOLETE-20191125 poROL_Fmc_Rank                    => sSHL_ROL_Fmc_Rank,
-      --OBSOLETE-20191125 poROL_Fmc_Size                    => sSHL_ROL_Fmc_Size,
-      
-      poVoid                            => open
-         
-  );  -- End of SuperShell instantiation
+      poROL_Mmio_WrReg              => sSHL_ROL_Mmio_WrReg
+  );  -- End-of:  Shell_Kale instantiation
 
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
   ROLE : Role_Kale
     port map (
-    
       ------------------------------------------------------
       -- SHELL / Global Input Clock and Reset Interface
       ------------------------------------------------------
       piSHL_156_25Clk                   => sSHL_156_25Clk,
       piSHL_156_25Rst                   => sSHL_156_25Rst,
-    
       ------------------------------------------------------
       -- SHELL / Nts / Udp / Tx Data Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1338,7 +1273,6 @@ begin
       siSHL_Nts_Udp_Meta_tdata          => ssSHL_ROL_Nts_Udp_Meta_tdata ,
       siSHL_Nts_Udp_Meta_tvalid         => ssSHL_ROL_Nts_Udp_Meta_tvalid,
       siSHL_Nts_Udp_Meta_tready         => ssSHL_ROL_Nts_Udp_Meta_tready,
-      
       -----------------------------------------------------
       -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -1356,7 +1290,6 @@ begin
       soSHL_Nts_Udp_DLen_tdata          => ssROL_SHL_Nts_Udp_DLen_tdata ,
       soSHL_Nts_Udp_DLen_tvalid         => ssROL_SHL_Nts_Udp_DLen_tvalid,
       soSHL_Nts_Udp_DLen_tready         => ssROL_SHL_Nts_Udp_DLen_tready,
-
       ------------------------------------------------------
       -- SHELL / Nts/ Udp / Rx Ctrl Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -1376,7 +1309,6 @@ begin
       siSHL_Nts_Udp_ClsRep_tdata        => ssSHL_ROL_Nts_Udp_ClsRep_tdata ,
       siSHL_Nts_Udp_ClsRep_tvalid       => ssSHL_ROL_Nts_Udp_ClsRep_tvalid,
       siSHL_Nts_Udp_ClsRep_tready       => ssSHL_ROL_Nts_Udp_ClsRep_tready,
-    
       ------------------------------------------------------
       -- SHELL / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -1394,7 +1326,6 @@ begin
       siSHL_Nts_Tcp_DSts_tdata          => ssSHL_ROL_Nts_Tcp_DSts_tdata ,
       siSHL_Nts_Tcp_DSts_tvalid         => ssSHL_ROL_Nts_Tcp_DSts_tvalid,
       siSHL_Nts_Tcp_DSts_tready         => ssSHL_ROL_Nts_Tcp_DSts_tready,
-      
       --------------------------------------------------------
       -- SHELL / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       --------------------------------------------------------
@@ -1406,8 +1337,8 @@ begin
       siSHL_Nts_Tcp_Data_tready         => ssSHL_ROL_Nts_Tcp_Data_tready,
       ----  Axi4-Stream TCP Metadata ------------
       siSHL_Nts_Tcp_Meta_tdata          => ssSHL_ROL_Nts_Tcp_Meta_tdata,
-      siSHL_Nts_Tcp_Meta_tkeep          => (others => '1'),
-      siSHL_Nts_Tcp_Meta_tlast          => '1',
+      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tkeep          => (others => '1'),
+      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tlast          => '1',
       siSHL_Nts_Tcp_Meta_tvalid         => ssSHL_ROL_Nts_Tcp_Meta_tvalid,
       siSHL_Nts_Tcp_Meta_tready         => ssSHL_ROL_Nts_Tcp_Meta_tready,
       ----  Axi4-Stream TCP Data Notification ---
@@ -1418,7 +1349,6 @@ begin
       soSHL_Nts_Tcp_DReq_tdata          => ssROL_SHL_Nts_Tcp_DReq_tdata,
       soSHL_Nts_Tcp_DReq_tvalid         => ssROL_SHL_Nts_Tcp_DReq_tvalid,  
       soSHL_Nts_Tcp_DReq_tready         => ssROL_SHL_Nts_Tcp_DReq_tready,
-      
       ------------------------------------------------------
       -- SHELL / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
@@ -1435,7 +1365,6 @@ begin
       soSHL_Nts_Tcp_ClsReq_tdata        => ssROL_SHL_Nts_Tcp_ClsReq_tdata,
       soSHL_Nts_Tcp_ClsReq_tvalid       => ssROL_SHL_Nts_Tcp_ClsReq_tvalid,
       soSHL_Nts_Tcp_ClsReq_tready       => ssROL_SHL_Nts_Tcp_ClsReq_tready,
-      
       ------------------------------------------------------
       -- SHELL / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1447,7 +1376,6 @@ begin
       siSHL_Nts_Tcp_LsnAck_tdata        => ssSHL_ROL_Nts_Tcp_LsnAck_tdata,
       siSHL_Nts_Tcp_LsnAck_tvalid       => ssSHL_ROL_Nts_Tcp_LsnAck_tvalid,
       siSHL_Nts_Tcp_LsnAck_tready       => ssSHL_ROL_Nts_Tcp_LsnAck_tready, 
-       
       ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -1480,7 +1408,6 @@ begin
       soSHL_Mem_Mp0_Write_tlast         => ssROL_SHL_Mem_Mp0_Write_tlast,
       soSHL_Mem_Mp0_Write_tvalid        => ssROL_SHL_Mem_Mp0_Write_tvalid,
       soSHL_Mem_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready,
-      
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -1513,7 +1440,6 @@ begin
       soSHL_Mem_Mp1_Write_tlast         => ssROL_SHL_Mem_Mp1_Write_tlast,
       soSHL_Mem_Mp1_Write_tvalid        => ssROL_SHL_Mem_Mp1_Write_tvalid,
       soSHL_Mem_Mp1_Write_tready        => ssROL_SHL_Mem_Mp1_Write_tready,
-      
       ------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
       ------------------------------------------------------
@@ -1536,21 +1462,11 @@ begin
       poSHL_Mmio_RdReg                  => sROL_SHL_Mmio_RdReg,
       --- [APP_WRROL] ------------------
       piSHL_Mmio_WrReg                  => sSHL_ROL_Mmio_WrReg,
-
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
       ------------------------------------------------------
-      piTOP_250_00Clk                   => sTOP_250_00Clk,  -- Freerunning
-      
-      --------------------------------------------------------
-      -- ROLE / Fmc / Management Interface 
-      -------------------------------------------------------- 
-      -- NOT_USED_BY_THIS_ROLE piSMC_ROLE_rank                     => sSMC_ROL_rank,
-      -- NOT_USED_BY_THIS_ROLE piSMC_ROLE_size                     => sSMC_ROL_size,
-      
-      poVoid                            => open  
-  
-  );  -- End of Role instantiation
+      piTOP_250_00Clk                   => sTOP_250_00Clk  -- Freerunning
+  );  -- End-of: Role_Kale instantiation
 
 end structural;
 
