@@ -2,22 +2,20 @@ cFp_BringUp
 ================
 **cloudFPGA project (cFp) for the BringUp of an FPGA module**
 
-
-## ABOUT
+## Toplevel design
 In cloudFPGA (cF), a user application is referred to as a **_ROLE_** and is integrated along
 with a **_SHELL_** that abstracts the hardware components of the FPGA module. 
 The combination of a specific ROLE and its associated SHELL into a toplevel design is
 referred to as a _Shell-Role-Architecture (SRA)_. 
 
-## Toplevel design
 This section describes the toplevel design (**TOP**) of the _cFp_BringUp_ project which was developed for the bring-up and the testing of the FMKU2595 module when it is equipped with a XCKU060. 
-As shown in Figure 1, the toplevel of _cFp_BringUp_ consists of:
-  - a SHELL of type [_**Kale**_](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md)
+As shown in the figure below, the toplevel of _cFp_BringUp_ consists of:
+  - a SHELL of type [_**Kale**_](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md) which is a shell with minmalsit support for accessing the hardware components of the FPGA card. **Warning**, the limited features of this shell preclude the deployment of partial bit streams and require the use of a JTAG interface to download and configure the FPGA with a fully static bit stream.    
   - a ROLE of type [_**BringUp**_](https://github.ibm.com/cloudFPGA/cFp_BringUp/blob/master/ROLE/doc/BringUpRole.md) which implements a set of TCP-, UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module.
-  
+
 
 ![Block diagram of the BringUpTop](https://github.ibm.com/cloudFPGA/cFp_BringUp/blob/master/ROLE/doc/imgs/Fig-TOP-BringUp.png#center)
-<p align="center"><b>Figure-1: Toplevel block diagram of the cfP_BringUp project</b></p>
+<p align="center"><b>Toplevel block diagram of the cfP_BringUp project</b></p>
 <br>
 
 
@@ -30,7 +28,7 @@ the components that must be recreated.
  
 Finally, to further reduce the place-and-route implementation time, an _incremental compile_ options cans be specified.
 
-##### Step-1: Generate a bitfile 
+##### Step-1: Generate a static bitfile 
 ```
 make monolithic
 ```
