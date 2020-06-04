@@ -205,35 +205,35 @@ entity Role_Kale is
     --------------------------------------------------------
     -- SHELL / Mem / Mp1 Interface
     --------------------------------------------------------
-    ---- Memory Port #1 / S2MM-AXIS ------------------   
-    ------ Stream Read Command ---------
-    soSHL_Mem_Mp1_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
-    soSHL_Mem_Mp1_RdCmd_tvalid          : out   std_ulogic;
-    soSHL_Mem_Mp1_RdCmd_tready          : in    std_ulogic;
-    ------ Stream Read Status ----------
-    siSHL_Mem_Mp1_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
-    siSHL_Mem_Mp1_RdSts_tvalid          : in    std_ulogic;
-    siSHL_Mem_Mp1_RdSts_tready          : out   std_ulogic;
-    ------ Stream Data Input Channel ---
-    siSHL_Mem_Mp1_Read_tdata            : in    std_ulogic_vector(511 downto 0);
-    siSHL_Mem_Mp1_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
-    siSHL_Mem_Mp1_Read_tlast            : in    std_ulogic;
-    siSHL_Mem_Mp1_Read_tvalid           : in    std_ulogic;
-    siSHL_Mem_Mp1_Read_tready           : out   std_ulogic;
-    ------ Stream Write Command --------
-    soSHL_Mem_Mp1_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
-    soSHL_Mem_Mp1_WrCmd_tvalid          : out   std_ulogic;
-    soSHL_Mem_Mp1_WrCmd_tready          : in    std_ulogic;
-    ------ Stream Write Status ---------
-    siSHL_Mem_Mp1_WrSts_tvalid          : in    std_ulogic;
-    siSHL_Mem_Mp1_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
-    siSHL_Mem_Mp1_WrSts_tready          : out   std_ulogic;
-    ------ Stream Data Output Channel --
-    soSHL_Mem_Mp1_Write_tdata           : out   std_ulogic_vector(511 downto 0);
-    soSHL_Mem_Mp1_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
-    soSHL_Mem_Mp1_Write_tlast           : out   std_ulogic;
-    soSHL_Mem_Mp1_Write_tvalid          : out   std_ulogic;
-    soSHL_Mem_Mp1_Write_tready          : in    std_ulogic; 
+    moMEM_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
+    moMEM_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
+    moMEM_Mp1_AWSIZE                : out   std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
+    moMEM_Mp1_AWVALID               : out   std_ulogic;
+    moMEM_Mp1_AWREADY               : in    std_ulogic;
+    moMEM_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
+    moMEM_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
+    moMEM_Mp1_WLAST                 : out   std_ulogic;
+    moMEM_Mp1_WVALID                : out   std_ulogic;
+    moMEM_Mp1_WREADY                : in    std_ulogic;
+    moMEM_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
+    moMEM_Mp1_BVALID                : in    std_ulogic;
+    moMEM_Mp1_BREADY                : out   std_ulogic;
+    moMEM_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
+    moMEM_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
+    moMEM_Mp1_ARSIZE                : out   std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
+    moMEM_Mp1_ARVALID               : out   std_ulogic;
+    moMEM_Mp1_ARREADY               : in    std_ulogic;
+    moMEM_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
+    moMEM_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
+    moMEM_Mp1_RLAST                 : in    std_ulogic;
+    moMEM_Mp1_RVALID                : in    std_ulogic;
+    moMEM_Mp1_RREADY                : out   std_ulogic;
     
     --------------------------------------------------------
     -- SHELL / Mmio / AppFlash Interface
@@ -1676,37 +1676,26 @@ begin
     
     soSHL_Mem_Mp0_Write_tlast <= fScalarize(sSHL_Mem_Mp0_Write_tlast);
     
-  --################################################################################
-  --#                                                                              #
-  --#    #    #  ######  #    #  ######                         #####     #        #
-  --#    ##  ##  #       ##  ##    #    ###### ###### ######    #    #   ##        #
-  --#    # ## #  #####   # ## #    #    #      #        #       #####   # #        #
-  --#    #    #  #       #    #    #    ####   ######   #       #         #        #
-  --#    #    #  #       #    #    #    #           #   #       #         #        #
-  --#    #    #  ######  #    #    #    ###### ######   #       #       #####      #
-  --#                                                                              #
-  --################################################################################
-  --------------------------------------------------------
-  -- SHELL / Mem / Mp1 Interface
-  --------------------------------------------------------
-  ---- Memory Port #1 / S2MM-AXIS ------------------   
-  ------ Stream Read Command ---------
-  soSHL_Mem_Mp1_RdCmd_tdata           <= (others => '0');
-  soSHL_Mem_Mp1_RdCmd_tvalid          <= '0';
-  ------ Stream Read Status ----------
-  siSHL_Mem_Mp1_RdSts_tready          <= '0';
-  ------ Stream Data Input Channel ---
-  siSHL_Mem_Mp1_Read_tready           <= '0';
-  ----- Stream Write Command --------
-  soSHL_Mem_Mp1_WrCmd_tdata           <= (others => '0');
-  soSHL_Mem_Mp1_WrCmd_tvalid          <= '0';
-  ------ Stream Write Status ---------
-  siSHL_Mem_Mp1_WrSts_tready          <= '0';
-  ------ Stream Data Output Channel --
-  soSHL_Mem_Mp1_Write_tdata           <= (others => '0');
-  soSHL_Mem_Mp1_Write_tkeep           <= (others => '0');
-  soSHL_Mem_Mp1_Write_tlast           <= '0';
-  soSHL_Mem_Mp1_Write_tvalid          <= '0';
+    --################################################################################
+    --#                                                                              #
+    --#    #    #  ######  #    #  ######                         #####     #        #
+    --#    ##  ##  #       ##  ##    #    ###### ###### ######    #    #   ##        #
+    --#    # ## #  #####   # ## #    #    #      #        #       #####   # #        #
+    --#    #    #  #       #    #    #    ####   ######   #       #         #        #
+    --#    #    #  #       #    #    #    #           #   #       #         #        #
+    --#    #    #  ######  #    #    #    ###### ######   #       #       #####      #
+    --#                                                                              #
+    --################################################################################
+     --------------------------------------------------------
+     -- SHELL / Mem / Mp1 Interface
+     --------------------------------------------------------
+
+    moMEM_Mp1_AWVALID <= '0';
+    moMEM_Mp1_WVALID  <= '0';
+    moMEM_Mp1_BREADY  <= '0';
+    moMEM_Mp1_ARVALID <= '0';
+    moMEM_Mp1_RREADY  <= '0';
+
 
 end architecture Flash;
-  
+
