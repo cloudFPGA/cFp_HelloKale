@@ -165,24 +165,24 @@ def getResourceManagerPort(args):
         exit(1)
     return portMngr
 
-
 def getInstanceId(args):
     """Retrieve the instance Id that was assigned by the cloudFPGA Resource Manager.
-    :param args, the options passed as arguments to the script.
-    :return the instance Id as an integer."""
+    :param args The options passed as arguments to the script.
+    :return     The instance Id as an integer."""
     instId = args.inst_id
     while True:
-        if not 1 <= args.inst_id <= 32:
-            # Take an instance Id from the console
-            print("Enter the instance Id that was assigned by the cloudFPGA Resource Manager (e.g. 1-32)")
+        if not 1 <= args.inst_id:   # Take an instance Id from the console
+            print("Enter the instance Id that was assigned by the cloudFPGA Resource Manager (e.g. 42)")
             instIdStr = input()
             try:
                 instId = int(instIdStr)
             except ValueError:
                 print("ERROR: Bad format for the instance Id.")
-                print("\tEnter a new instance Id in the range 1-32.\n")
+                print("\tEnter a new instance Id > 0.\n")
+            else:
+                break
         else:
-            break
+            break;
     return instId
 
 

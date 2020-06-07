@@ -43,13 +43,11 @@ use     UNISIM.vcomponents.all;
 
 entity Role_Kale is
   port (
-
     --------------------------------------------------------
     -- SHELL / Clock, Reset and Enable Interface
     --------------------------------------------------------
     piSHL_156_25Clk                     : in    std_ulogic;
     piSHL_156_25Rst                     : in    std_ulogic;
-    
     ------------------------------------------------------
     -- SHELL / Nts / Udp / Tx Data Interfaces (.i.e SHELL-->ROLE)
     ------------------------------------------------------
@@ -63,7 +61,6 @@ entity Role_Kale is
     siSHL_Nts_Udp_Meta_tdata            : in    std_ulogic_vector( 95 downto 0);
     siSHL_Nts_Udp_Meta_tvalid           : in    std_ulogic;
     siSHL_Nts_Udp_Meta_tready           : out   std_ulogic;
-        
     ------------------------------------------------------
     -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
     ------------------------------------------------------
@@ -81,7 +78,6 @@ entity Role_Kale is
     soSHL_Nts_Udp_DLen_tdata            : out   std_ulogic_vector( 15 downto 0);
     soSHL_Nts_Udp_DLen_tvalid           : out   std_ulogic;
     soSHL_Nts_Udp_DLen_tready           : in    std_ulogic;
-    
     ------------------------------------------------------
     -- SHELL / Nts/ Udp / Rx Ctrl Interfaces (.i.e ROLE<-->SHELL)
     ------------------------------------------------------
@@ -101,7 +97,6 @@ entity Role_Kale is
     siSHL_Nts_Udp_ClsRep_tdata          : in    std_ulogic_vector(  7 downto 0);
     siSHL_Nts_Udp_ClsRep_tvalid         : in    std_ulogic;   
     siSHL_Nts_Udp_ClsRep_tready         : out   std_ulogic;
-    
     ------------------------------------------------------
     -- SHELL / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
     ------------------------------------------------------
@@ -119,7 +114,6 @@ entity Role_Kale is
     siSHL_Nts_Tcp_DSts_tdata            : in    std_ulogic_vector( 23 downto 0);
     siSHL_Nts_Tcp_DSts_tvalid           : in    std_ulogic;
     siSHL_Nts_Tcp_DSts_tready           : out   std_ulogic;
-
     --------------------------------------------------------
     -- SHELL / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
     --------------------------------------------------------
@@ -141,7 +135,6 @@ entity Role_Kale is
     soSHL_Nts_Tcp_DReq_tdata            : out   std_ulogic_vector( 31 downto 0); 
     soSHL_Nts_Tcp_DReq_tvalid           : out   std_ulogic;       
     soSHL_Nts_Tcp_DReq_tready           : in    std_ulogic;
-
     ------------------------------------------------------
     -- SHELL / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE<-->SHELL)
     ------------------------------------------------------
@@ -157,7 +150,6 @@ entity Role_Kale is
     soSHL_Nts_Tcp_ClsReq_tdata          : out   std_ulogic_vector( 15 downto 0);  
     soSHL_Nts_Tcp_ClsReq_tvalid         : out   std_ulogic;
     soSHL_Nts_Tcp_ClsReq_tready         : in    std_ulogic;
-
     ------------------------------------------------------
     -- SHELL / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
     ------------------------------------------------------
@@ -201,39 +193,43 @@ entity Role_Kale is
     soSHL_Mem_Mp0_Write_tlast           : out   std_ulogic;
     soSHL_Mem_Mp0_Write_tvalid          : out   std_ulogic;
     soSHL_Mem_Mp0_Write_tready          : in    std_ulogic; 
-
     --------------------------------------------------------
     -- SHELL / Mem / Mp1 Interface
     --------------------------------------------------------
-    moMEM_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
-    moMEM_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
-    moMEM_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
-    moMEM_Mp1_AWSIZE                : out   std_ulogic_vector(3 downto 0);
-    moMEM_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
-    moMEM_Mp1_AWVALID               : out   std_ulogic;
-    moMEM_Mp1_AWREADY               : in    std_ulogic;
-    moMEM_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
-    moMEM_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
-    moMEM_Mp1_WLAST                 : out   std_ulogic;
-    moMEM_Mp1_WVALID                : out   std_ulogic;
-    moMEM_Mp1_WREADY                : in    std_ulogic;
-    moMEM_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
-    moMEM_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
-    moMEM_Mp1_BVALID                : in    std_ulogic;
-    moMEM_Mp1_BREADY                : out   std_ulogic;
-    moMEM_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
-    moMEM_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
-    moMEM_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
-    moMEM_Mp1_ARSIZE                : out   std_ulogic_vector(3 downto 0);
-    moMEM_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
-    moMEM_Mp1_ARVALID               : out   std_ulogic;
-    moMEM_Mp1_ARREADY               : in    std_ulogic;
-    moMEM_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
-    moMEM_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
-    moMEM_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
-    moMEM_Mp1_RLAST                 : in    std_ulogic;
-    moMEM_Mp1_RVALID                : in    std_ulogic;
-    moMEM_Mp1_RREADY                : out   std_ulogic;
+    ---- Write Address Channel ---------
+    moSHL_Mem_Mp1_AWID                  : out   std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_AWADDR                : out   std_ulogic_vector( 32 downto 0);
+    moSHL_Mem_Mp1_AWLEN                 : out   std_ulogic_vector(  7 downto 0);
+    moSHL_Mem_Mp1_AWSIZE                : out   std_ulogic_vector(  2 downto 0);
+    moSHL_Mem_Mp1_AWBURST               : out   std_ulogic_vector(  1 downto 0);
+    moSHL_Mem_Mp1_AWVALID               : out   std_ulogic;
+    moSHL_Mem_Mp1_AWREADY               : in    std_ulogic;
+    ---- Write Data Channel ------------
+    moSHL_Mem_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
+    moSHL_Mem_Mp1_WSTRB                 : out   std_ulogic_vector( 63 downto 0);
+    moSHL_Mem_Mp1_WLAST                 : out   std_ulogic;
+    moSHL_Mem_Mp1_WVALID                : out   std_ulogic;
+    moSHL_Mem_Mp1_WREADY                : in    std_ulogic;
+    ---- Write Response Channel --------
+    moSHL_Mem_Mp1_BID                   : in    std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_BRESP                 : in    std_ulogic_vector(  1 downto 0);
+    moSHL_Mem_Mp1_BVALID                : in    std_ulogic;
+    moSHL_Mem_Mp1_BREADY                : out   std_ulogic;
+    ---- Read Address Channel ----------
+    moSHL_Mem_Mp1_ARID                  : out   std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_ARADDR                : out   std_ulogic_vector( 32 downto 0);
+    moSHL_Mem_Mp1_ARLEN                 : out   std_ulogic_vector(  7 downto 0);
+    moSHL_Mem_Mp1_ARSIZE                : out   std_ulogic_vector(  2 downto 0);
+    moSHL_Mem_Mp1_ARBURST               : out   std_ulogic_vector(  1 downto 0);
+    moSHL_Mem_Mp1_ARVALID               : out   std_ulogic;
+    moSHL_Mem_Mp1_ARREADY               : in    std_ulogic;
+    ---- Read Data Channel -------------
+    moSHL_Mem_Mp1_RID                   : in    std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
+    moSHL_Mem_Mp1_RRESP                 : in    std_ulogic_vector(  1 downto 0);
+    moSHL_Mem_Mp1_RLAST                 : in    std_ulogic;
+    moSHL_Mem_Mp1_RVALID                : in    std_ulogic;
+    moSHL_Mem_Mp1_RREADY                : out   std_ulogic;
     
     --------------------------------------------------------
     -- SHELL / Mmio / AppFlash Interface
@@ -257,12 +253,10 @@ entity Role_Kale is
     poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
     --- [APP_WRROL] --------------------
     piSHL_Mmio_WrReg                    : in    std_ulogic_vector( 15 downto 0);
-
     --------------------------------------------------------
     -- TOP : Secondary Clock (Asynchronous)
     --------------------------------------------------------
     piTOP_250_00Clk                     : in    std_ulogic   -- Freerunning
-
   );
   
 end Role_Kale;
@@ -467,13 +461,11 @@ architecture Flash of Role_Kale is
       ------------------------------------------------------       
       piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
       piSHL_MmioPostSegEn_V : in  std_logic;
-      --[TODO] piSHL_MmioCaptSegEn_V  : in  std_logic;
-      
+      --[TODO] piSHL_MmioCaptSegEn_V  : in  std_logic;      
       ------------------------------------------------------
       -- From TSIF / Session Connect Id Interface
       ------------------------------------------------------
       piTSIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
-       
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
       --------------------------------------------------------
@@ -924,29 +916,37 @@ architecture Flash of Role_Kale is
       poMMIO_diag_stat_V_ap_vld  : out std_logic;
       poDebug_V                  : out std_logic_vector( 15 downto 0);
       poDebug_V_ap_vld           : out std_logic;
-      
+      ------------------------------------------------------  
+      -- ROLE / Mem / Mp0 Interface
+      ------------------------------------------------------
+      ---- Axi4-Stream Read Command -----
       soMemRdCmdP0_TDATA         : out std_logic_vector( 79 downto 0);
       soMemRdCmdP0_TVALID        : out std_logic;
       soMemRdCmdP0_TREADY        : in  std_logic;
+      ---- Axi4-Stream Read Status ------
       siMemRdStsP0_TDATA         : in  std_logic_vector(  7 downto 0);
       siMemRdStsP0_TVALID        : in  std_logic;
       siMemRdStsP0_TREADY        : out std_logic;
+      ---- Axi4-Stream Data Output Channel
       siMemReadP0_TDATA          : in  std_logic_vector(511 downto 0);
-      siMemReadP0_TVALID         : in  std_logic;
-      siMemReadP0_TREADY         : out std_logic;
       siMemReadP0_TKEEP          : in  std_logic_vector( 63 downto 0);
       siMemReadP0_TLAST          : in  std_logic_vector(  0 downto 0);
+      siMemReadP0_TVALID         : in  std_logic;
+      siMemReadP0_TREADY         : out std_logic;
+      ---- Axi4-Stream Write Command ----  
       soMemWrCmdP0_TDATA         : out std_logic_vector( 79 downto 0);
       soMemWrCmdP0_TVALID        : out std_logic;
       soMemWrCmdP0_TREADY        : in  std_logic;
+      ---- Axi4-Stream Write Status -----
       siMemWrStsP0_TDATA         : in  std_logic_vector(  7 downto 0);
       siMemWrStsP0_TVALID        : in  std_logic;
       siMemWrStsP0_TREADY        : out std_logic;
+       ---- Axi4-Stream Write Command ----
       soMemWriteP0_TDATA         : out std_logic_vector(511 downto 0);
-      soMemWriteP0_TVALID        : out std_logic;
-      soMemWriteP0_TREADY        : in  std_logic;
       soMemWriteP0_TKEEP         : out std_logic_vector( 63 downto 0);
-      soMemWriteP0_TLAST         : out std_logic_vector(  0 downto 0) 
+      soMemWriteP0_TLAST         : out std_logic_vector(  0 downto 0);
+      soMemWriteP0_TVALID        : out std_logic;
+      soMemWriteP0_TREADY        : in  std_logic
     );
   end component MemTestFlash;
 
@@ -1686,16 +1686,33 @@ begin
     --#    #    #  ######  #    #    #    ###### ######   #       #       #####      #
     --#                                                                              #
     --################################################################################
-     --------------------------------------------------------
-     -- SHELL / Mem / Mp1 Interface
-     --------------------------------------------------------
-
-    moMEM_Mp1_AWVALID <= '0';
-    moMEM_Mp1_WVALID  <= '0';
-    moMEM_Mp1_BREADY  <= '0';
-    moMEM_Mp1_ARVALID <= '0';
-    moMEM_Mp1_RREADY  <= '0';
-
-
+    
+    --------------------------------------------------------
+    -- SHELL / Mem / Mp1 Interface
+    --------------------------------------------------------
+    ---- Write Address Channel -------------
+    moSHL_Mem_Mp1_AWID    <= (others => '0');
+    moSHL_Mem_Mp1_AWADDR  <= (others => '0');
+    moSHL_Mem_Mp1_AWLEN   <= (others => '0');
+    moSHL_Mem_Mp1_AWSIZE  <= (others => '0');
+    moSHL_Mem_Mp1_AWBURST <= (others => '0');
+    moSHL_Mem_Mp1_AWVALID <= '0'            ;
+    ---- Write Data Channel ----------------
+    moSHL_Mem_Mp1_WDATA   <= (others => '0');
+    moSHL_Mem_Mp1_WSTRB   <= (others => '0');
+    moSHL_Mem_Mp1_WLAST   <= '0'            ; 
+    moSHL_Mem_Mp1_WVALID  <= '0'            ;
+    ---- Write Response Channel ------------
+    moSHL_Mem_Mp1_BREADY  <= '0'            ;
+    ---- Read Address Channel --------------
+    moSHL_Mem_Mp1_ARID    <= (others => '0');
+    moSHL_Mem_Mp1_ARADDR  <= (others => '0');
+    moSHL_Mem_Mp1_ARLEN   <= (others => '0');
+    moSHL_Mem_Mp1_ARSIZE  <= (others => '0');
+    moSHL_Mem_Mp1_ARBURST <= (others => '0');
+    moSHL_Mem_Mp1_ARVALID   <= '0'          ;
+    ---- Read Data Channel -----------------
+    moSHL_Mem_Mp1_RREADY    <= '0'          ;
+    
 end architecture Flash;
 

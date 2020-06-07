@@ -336,7 +336,7 @@ architecture structural of topFMKU60 is
   signal smROL_SHL_Mem_Mp1_AWID             : std_ulogic_vector(3 downto 0);
   signal smROL_SHL_Mem_Mp1_AWADDR           : std_ulogic_vector(32 downto 0);
   signal smROL_SHL_Mem_Mp1_AWLEN            : std_ulogic_vector(7 downto 0);
-  signal smROL_SHL_Mem_Mp1_AWSIZE           : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWSIZE           : std_ulogic_vector(2 downto 0);
   signal smROL_SHL_Mem_Mp1_AWBURST          : std_ulogic_vector(1 downto 0);
   signal smROL_SHL_Mem_Mp1_AWVALID          : std_ulogic;
   signal smROL_SHL_Mem_Mp1_AWREADY          : std_ulogic;
@@ -352,7 +352,7 @@ architecture structural of topFMKU60 is
   signal smROL_SHL_Mem_Mp1_ARID             : std_ulogic_vector(3 downto 0);
   signal smROL_SHL_Mem_Mp1_ARADDR           : std_ulogic_vector(32 downto 0);
   signal smROL_SHL_Mem_Mp1_ARLEN            : std_ulogic_vector(7 downto 0);
-  signal smROL_SHL_Mem_Mp1_ARSIZE           : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARSIZE           : std_ulogic_vector(2downto 0);
   signal smROL_SHL_Mem_Mp1_ARBURST          : std_ulogic_vector(1 downto 0);
   signal smROL_SHL_Mem_Mp1_ARVALID          : std_ulogic;
   signal smROL_SHL_Mem_Mp1_ARREADY          : std_ulogic;
@@ -629,32 +629,32 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
-      miROL_Mem_Mp1_AWID                : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_AWADDR              : in    std_ulogic_vector(32 downto 0);
-      miROL_Mem_Mp1_AWLEN               : in    std_ulogic_vector(7 downto 0);
-      miROL_Mem_Mp1_AWSIZE              : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_AWBURST             : in    std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_AWID                : in    std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_AWADDR              : in    std_ulogic_vector( 32 downto 0);
+      miROL_Mem_Mp1_AWLEN               : in    std_ulogic_vector(  7 downto 0);
+      miROL_Mem_Mp1_AWSIZE              : in    std_ulogic_vector(  2 downto 0);
+      miROL_Mem_Mp1_AWBURST             : in    std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_AWVALID             : in    std_ulogic;
       miROL_Mem_Mp1_AWREADY             : out   std_ulogic;
       miROL_Mem_Mp1_WDATA               : in    std_ulogic_vector(511 downto 0);
-      miROL_Mem_Mp1_WSTRB               : in    std_ulogic_vector(63 downto 0);
+      miROL_Mem_Mp1_WSTRB               : in    std_ulogic_vector( 63 downto 0);
       miROL_Mem_Mp1_WLAST               : in    std_ulogic;
       miROL_Mem_Mp1_WVALID              : in    std_ulogic;
       miROL_Mem_Mp1_WREADY              : out   std_ulogic;
-      miROL_Mem_Mp1_BID                 : out   std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_BRESP               : out   std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_BID                 : out   std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_BRESP               : out   std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_BVALID              : out   std_ulogic;
       miROL_Mem_Mp1_BREADY              : in    std_ulogic;
-      miROL_Mem_Mp1_ARID                : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_ARADDR              : in    std_ulogic_vector(32 downto 0);
-      miROL_Mem_Mp1_ARLEN               : in    std_ulogic_vector(7 downto 0);
-      miROL_Mem_Mp1_ARSIZE              : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_ARBURST             : in    std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_ARID                : in    std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_ARADDR              : in    std_ulogic_vector( 32 downto 0);
+      miROL_Mem_Mp1_ARLEN               : in    std_ulogic_vector(  7 downto 0);
+      miROL_Mem_Mp1_ARSIZE              : in    std_ulogic_vector(  2 downto 0);
+      miROL_Mem_Mp1_ARBURST             : in    std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_ARVALID             : in    std_ulogic;
       miROL_Mem_Mp1_ARREADY             : out   std_ulogic;
-      miROL_Mem_Mp1_RID                 : out   std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_RID                 : out   std_ulogic_vector(  3 downto 0);
       miROL_Mem_Mp1_RDATA               : out   std_ulogic_vector(511 downto 0);
-      miROL_Mem_Mp1_RRESP               : out   std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_RRESP               : out   std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_RLAST               : out   std_ulogic;
       miROL_Mem_Mp1_RVALID              : out   std_ulogic;
       miROL_Mem_Mp1_RREADY              : in    std_ulogic;
@@ -843,35 +843,35 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- SHELL / Mem / Mp1 Interface
       ------------------------------------------------------
-      moMEM_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
-      moMEM_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
-      moMEM_Mp1_AWSIZE                : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_AWVALID               : out   std_ulogic;
-      moMEM_Mp1_AWREADY               : in    std_ulogic;
-      moMEM_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
-      moMEM_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
-      moMEM_Mp1_WLAST                 : out   std_ulogic;
-      moMEM_Mp1_WVALID                : out   std_ulogic;
-      moMEM_Mp1_WREADY                : in    std_ulogic;
-      moMEM_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_BVALID                : in    std_ulogic;
-      moMEM_Mp1_BREADY                : out   std_ulogic;
-      moMEM_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
-      moMEM_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
-      moMEM_Mp1_ARSIZE                : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_ARVALID               : out   std_ulogic;
-      moMEM_Mp1_ARREADY               : in    std_ulogic;
-      moMEM_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
-      moMEM_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_RLAST                 : in    std_ulogic;
-      moMEM_Mp1_RVALID                : in    std_ulogic;
-      moMEM_Mp1_RREADY                : out   std_ulogic;
+      moSHL_Mem_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
+      moSHL_Mem_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
+      moSHL_Mem_Mp1_AWSIZE                : out   std_ulogic_vector(2 downto 0);
+      moSHL_Mem_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_AWVALID               : out   std_ulogic;
+      moSHL_Mem_Mp1_AWREADY               : in    std_ulogic;
+      moSHL_Mem_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
+      moSHL_Mem_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
+      moSHL_Mem_Mp1_WLAST                 : out   std_ulogic;
+      moSHL_Mem_Mp1_WVALID                : out   std_ulogic;
+      moSHL_Mem_Mp1_WREADY                : in    std_ulogic;
+      moSHL_Mem_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_BVALID                : in    std_ulogic;
+      moSHL_Mem_Mp1_BREADY                : out   std_ulogic;
+      moSHL_Mem_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
+      moSHL_Mem_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
+      moSHL_Mem_Mp1_ARSIZE                : out   std_ulogic_vector(2 downto 0);
+      moSHL_Mem_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_ARVALID               : out   std_ulogic;
+      moSHL_Mem_Mp1_ARREADY               : in    std_ulogic;
+      moSHL_Mem_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
+      moSHL_Mem_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_RLAST                 : in    std_ulogic;
+      moSHL_Mem_Mp1_RVALID                : in    std_ulogic;
+      moSHL_Mem_Mp1_RREADY                : out   std_ulogic;
       --------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
       --------------------------------------------------------
@@ -1198,35 +1198,35 @@ begin
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
-      miROL_Mem_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
-      miROL_Mem_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
-      miROL_Mem_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
-      miROL_Mem_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
-      miROL_Mem_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
-      miROL_Mem_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
-      miROL_Mem_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
-      miROL_Mem_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
-      miROL_Mem_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
-      miROL_Mem_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
-      miROL_Mem_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
-      miROL_Mem_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
-      miROL_Mem_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
-      miROL_Mem_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
-      miROL_Mem_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
-      miROL_Mem_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
-      miROL_Mem_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
-      miROL_Mem_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
-      miROL_Mem_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
-      miROL_Mem_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
-      miROL_Mem_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
-      miROL_Mem_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
-      miROL_Mem_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
-      miROL_Mem_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
-      miROL_Mem_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
-      miROL_Mem_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
-      miROL_Mem_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
-      miROL_Mem_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
-      miROL_Mem_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
+      miROL_Mem_Mp1_AWID            => smROL_SHL_Mem_Mp1_AWID     ,
+      miROL_Mem_Mp1_AWADDR          => smROL_SHL_Mem_Mp1_AWADDR   ,
+      miROL_Mem_Mp1_AWLEN           => smROL_SHL_Mem_Mp1_AWLEN    ,
+      miROL_Mem_Mp1_AWSIZE          => smROL_SHL_Mem_Mp1_AWSIZE   ,
+      miROL_Mem_Mp1_AWBURST         => smROL_SHL_Mem_Mp1_AWBURST  ,
+      miROL_Mem_Mp1_AWVALID         => smROL_SHL_Mem_Mp1_AWVALID  ,
+      miROL_Mem_Mp1_AWREADY         => smROL_SHL_Mem_Mp1_AWREADY  ,
+      miROL_Mem_Mp1_WDATA           => smROL_SHL_Mem_Mp1_WDATA    ,
+      miROL_Mem_Mp1_WSTRB           => smROL_SHL_Mem_Mp1_WSTRB    ,
+      miROL_Mem_Mp1_WLAST           => smROL_SHL_Mem_Mp1_WLAST    ,
+      miROL_Mem_Mp1_WVALID          => smROL_SHL_Mem_Mp1_WVALID   ,
+      miROL_Mem_Mp1_WREADY          => smROL_SHL_Mem_Mp1_WREADY   ,
+      miROL_Mem_Mp1_BID             => smROL_SHL_Mem_Mp1_BID      ,
+      miROL_Mem_Mp1_BRESP           => smROL_SHL_Mem_Mp1_BRESP    ,
+      miROL_Mem_Mp1_BVALID          => smROL_SHL_Mem_Mp1_BVALID   ,
+      miROL_Mem_Mp1_BREADY          => smROL_SHL_Mem_Mp1_BREADY   ,
+      miROL_Mem_Mp1_ARID            => smROL_SHL_Mem_Mp1_ARID     ,
+      miROL_Mem_Mp1_ARADDR          => smROL_SHL_Mem_Mp1_ARADDR   ,
+      miROL_Mem_Mp1_ARLEN           => smROL_SHL_Mem_Mp1_ARLEN    ,
+      miROL_Mem_Mp1_ARSIZE          => smROL_SHL_Mem_Mp1_ARSIZE   ,
+      miROL_Mem_Mp1_ARBURST         => smROL_SHL_Mem_Mp1_ARBURST  ,
+      miROL_Mem_Mp1_ARVALID         => smROL_SHL_Mem_Mp1_ARVALID  ,
+      miROL_Mem_Mp1_ARREADY         => smROL_SHL_Mem_Mp1_ARREADY  ,
+      miROL_Mem_Mp1_RID             => smROL_SHL_Mem_Mp1_RID      ,
+      miROL_Mem_Mp1_RDATA           => smROL_SHL_Mem_Mp1_RDATA    ,
+      miROL_Mem_Mp1_RRESP           => smROL_SHL_Mem_Mp1_RRESP    ,
+      miROL_Mem_Mp1_RLAST           => smROL_SHL_Mem_Mp1_RLAST    ,
+      miROL_Mem_Mp1_RVALID          => smROL_SHL_Mem_Mp1_RVALID   ,
+      miROL_Mem_Mp1_RREADY          =>  smROL_SHL_Mem_Mp1_RREADY   ,
       ------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       ------------------------------------------------------
@@ -1412,35 +1412,35 @@ begin
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp1 Interface
       ------------------------------------------------------
-      moMEM_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
-      moMEM_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
-      moMEM_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
-      moMEM_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
-      moMEM_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
-      moMEM_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
-      moMEM_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
-      moMEM_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
-      moMEM_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
-      moMEM_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
-      moMEM_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
-      moMEM_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
-      moMEM_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
-      moMEM_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
-      moMEM_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
-      moMEM_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
-      moMEM_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
-      moMEM_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
-      moMEM_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
-      moMEM_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
-      moMEM_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
-      moMEM_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
-      moMEM_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
-      moMEM_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
-      moMEM_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
-      moMEM_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
-      moMEM_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
-      moMEM_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
-      moMEM_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
+      moSHL_Mem_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
+      moSHL_Mem_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
+      moSHL_Mem_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
+      moSHL_Mem_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
+      moSHL_Mem_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
+      moSHL_Mem_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
+      moSHL_Mem_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
+      moSHL_Mem_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
+      moSHL_Mem_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
+      moSHL_Mem_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
+      moSHL_Mem_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
+      moSHL_Mem_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
+      moSHL_Mem_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
+      moSHL_Mem_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
+      moSHL_Mem_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
+      moSHL_Mem_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
+      moSHL_Mem_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
+      moSHL_Mem_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
+      moSHL_Mem_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
+      moSHL_Mem_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
+      moSHL_Mem_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
+      moSHL_Mem_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
+      moSHL_Mem_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
+      moSHL_Mem_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
+      moSHL_Mem_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
+      moSHL_Mem_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
+      moSHL_Mem_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
+      moSHL_Mem_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
+      moSHL_Mem_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
       ------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
       ------------------------------------------------------
