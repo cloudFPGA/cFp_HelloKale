@@ -385,6 +385,13 @@ except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 
+
+# [FIXME - Disable the IP fragmentation via setsockopt()]
+#   See for also: 
+#     https://stackoverflow.com/questions/973439/how-to-set-the-dont-fragment-df-flag-on-a-socket
+#     https://stackoverflow.com/questions/26440761/why-isnt-dont-fragment-flag-getting-disabled
+
+
 # STEP-8b: Bind before connect (optional).
 #  This trick enables us to ask the kernel to select a specific source IP and
 #  source PORT by calling bind() before calling connect().
