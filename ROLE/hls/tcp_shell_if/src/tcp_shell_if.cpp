@@ -126,8 +126,7 @@ void pConnect(
     #pragma HLS reset variable=con_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static LE_SockAddr   con_leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
-                                              // [FIXME - Change to default Big-Endian]
+    static SockAddr      con_hostSockAddr;
     static AppOpnRep     con_newCon;
     static ap_uint< 12>  con_watchDogTimer;
 
@@ -152,12 +151,12 @@ void pConnect(
         if (!soSHL_OpnReq.full()) {
             // [FIXME - Remove the hard coding of this socket]
             SockAddr    hostSockAddr(DEFAULT_HOST_IP4_ADDR, DEFAULT_HOST_LSN_PORT);
-            con_leHostSockAddr.addr = byteSwap32(hostSockAddr.addr);
-            con_leHostSockAddr.port = byteSwap16(hostSockAddr.port);
-            soSHL_OpnReq.write(con_leHostSockAddr);
+            con_hostSockAddr.addr = hostSockAddr.addr;
+            con_hostSockAddr.port = hostSockAddr.port;
+            soSHL_OpnReq.write(con_hostSockAddr);
             if (DEBUG_LEVEL & TRACE_CON) {
                 printInfo(myName, "Client is requesting to connect to remote socket:\n");
-                printSockAddr(myName, con_leHostSockAddr);
+                printSockAddr(myName, con_hostSockAddr);
             }
             #ifndef __SYNTHESIS__
                 con_watchDogTimer = 250;
@@ -176,7 +175,7 @@ void pConnect(
             if (con_newCon.success) {
                 if (DEBUG_LEVEL & TRACE_CON) {
                     printInfo(myName, "Client successfully connected to remote socket:\n");
-                    printSockAddr(myName, con_leHostSockAddr);
+                    printSockAddr(myName, con_hostSockAddr);
                     printInfo(myName, "The Session ID of this connection is: %d\n", con_newCon.sessionID.to_int());
                 }
                 *poTAF_SConId = con_newCon.sessionID;
@@ -184,7 +183,7 @@ void pConnect(
             }
             else {
                  printError(myName, "Client failed to connect to remote socket:\n");
-                 printSockAddr(myName, con_leHostSockAddr);
+                 printSockAddr(myName, con_hostSockAddr);
                  con_fsmState = OPN_DONE;
             }
         }
@@ -192,7 +191,7 @@ void pConnect(
             if (con_watchDogTimer == 0) {
                 if (DEBUG_LEVEL & TRACE_CON) {
                     printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
-                    printSockAddr(myName, con_leHostSockAddr);
+                    printSockAddr(myName, con_hostSockAddr);
                 }
                 #ifndef __SYNTHESIS__
                   con_watchDogTimer = 250;
