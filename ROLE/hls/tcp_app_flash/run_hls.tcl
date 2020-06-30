@@ -6,7 +6,7 @@
 # * Authors : Francois Abel  
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the TCP applica-
-# *   tion embedded into the Flash of the cloudFPGA ROLE.
+# *   tion embedded into the bring-up role of the cloudFPGA module FMKU60.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -22,8 +22,8 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "TCP Application Flash."
-set ipDescription  "A set of tests and functions embedded into the flash of the cloudFPGA role."
+set ipDisplayName  "TCP Application for cFp_BringUp/Role."
+set ipDescription  "A set of tests and functions embedded into the bring-up role of the FMKU60."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -53,6 +53,7 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
+
 add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe_utils.cpp
 add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.cpp
 
@@ -115,24 +116,41 @@ config_compile -name_max_length 128 -pipeline_loops 0
 # [TODO - Check vivado_hls version and only enable this command if >= 2018]
 # config_dataflow -strict_mode  error
 
-
+#-------------------------------------------------
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
     csim_design
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF C SIMULATION             ####"
+    puts "####                                                     ####"
+    puts "#############################################################" 
 }  
 
+#-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} { 
     csynth_design
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF SYNTHESIS                ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
 }
 
+#-------------------------------------------------
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level port
+    cosim_design -tool xsim -rtl verilog -trace_level none
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
 }
 
 #-----------------------------
@@ -144,7 +162,7 @@ if { $hlsCoSim } {
 # -display_name <string>
 #    Provides a display name for the generated IP.
 # -flow (syn|impl)
-#    Obtains more accurate timing  and utilization data for the specified HDL using RTL synthesis.
+#    Obtains more accurate timing and utilization data for the specified HDL using RTL synthesis.
 # -format (ip_catalog|sysgen|syn_dcp)
 #    Specifies the format to package the IP.
 # -ip_name <string>
@@ -158,10 +176,34 @@ if { $hlsCoSim } {
 #    Specifies the vendor string for the generated IP catalog IP.
 # -version <string>
 #    Specifies the version string for the generated IP catalog.
+# -vivado_synth_design_args {args...}
+#    Specifies the value to pass to 'synth_design' within the export_design -evaluate Vivado synthesis run.
+# -vivado_report_level <value>
+#    Specifies the utilization and timing report options.
 #---------------------------------------------------------------------------------------------------
 if { $hlsRtl } {
-    export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    switch $hlsRtl {
+        1 {
+            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        2 {
+            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        3 {
+            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        default { 
+            puts "####  INVALID VALUE ($hlsRtl) ####"
+            exit 1
+        }
+    }
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
 }
+
 
 # Exit Vivado HLS
 #--------------------------------------------------

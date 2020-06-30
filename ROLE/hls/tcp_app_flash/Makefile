@@ -6,7 +6,7 @@
 # * Authors : Francois Abel, Burkhard Ringlein
 # *
 # * Description : A makefile that synthesizes and packages the current HLS core
-# *                 as an IP.
+# *                as an IP.
 # * 
 # * Synopsis:
 # *   make help    : Displays a help message.
@@ -21,35 +21,52 @@ ipName = tcp_app_flash
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean
-
-all: ${ipName}_prj/solution1/impl/ip
+.PHONY: all clean csim cosim csynth export help project regression rtlSyn rtlImpl 
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
+	@touch ../../../ROLE/.ip_guard
 
-clean: ## Cleans the current project
+.synth_guard: $(SRC_DEPS)
+	$(MAKE) clean
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	@touch $@
+
+#-- Targets --------------------------------------------------------------------
+
+all: ${ipName}_prj/solution1/impl/ip
+
+clean:                   ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
+	@${RM} .synth_guard
 
-csim: ## Runs the HLS C simulation
+csim:                    ## Runs the HLS C simulation
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-csynth: ## Runs the HLS C synthesis
-	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+csynth: .synth_guard     ## Runs the HLS C synthesis
 
-cosim: ## Runs the HLS C/RTL cosimulation
+cosim: .synth_guard		 ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-export: ## Exports the RTL as IP
+export:                  ## Exports the RTL as IP
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 
-project: ## Creates the HLS project
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl	
+project:                 ## Creates the HLS project
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-help: ## Shows this help message
+regression: .synth_guard ## Runs HLS csim, csynth and cosim in sequence
+	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
+rtlSyn:                  ## Exports the RTL as IP while executing logic synthesis to obtain more accurate timing and and utilization numbers
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl
+
+rtlImpl: 			    ## Exports the RTL as IP while while performing both RTL synthesis and implementation to include detailed place and route
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl
+
+help: 					## Shows this help message
     # This target is for self documentation of the Makefile. 
     # Every text starting with '##' and placed after a target will be considered as helper text.
 	@echo
@@ -57,5 +74,6 @@ help: ## Shows this help message
 	@echo '    make [target]'
 	@echo	
 	@echo 'Targets:'
-	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /' 
+	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
 	@echo
+

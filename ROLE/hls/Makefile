@@ -12,13 +12,13 @@
 
 .PHONY: all clean mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if
 
-all: mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if
 
 #-- Targets --------------------------------------------------------------------
+all:   mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim: tcp_shell_if tcp_app_flash udp_shell_if ## Runs HLS C simulation on all sub-directories
+csim:                 tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if ## Runs HLS C simulation on all sub-directories
 
-cosim:  tcp_shell_if tcp_app_flash udp_shell_if ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim:                tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

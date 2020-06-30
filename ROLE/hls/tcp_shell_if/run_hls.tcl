@@ -7,7 +7,8 @@
 # * Authors : Francois Abel, Burkhard Ringlein  
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the TCP interface 
-# *   between the cloudFPGA SHELL and the user application ROLE.
+# *   between the cloudFPGA shell 'Kale' and the user application embedded into
+# *   the bring-up role of the cloudFPGA module FMKU60.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -23,8 +24,8 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "TCP Shell Interface for cFp_BringUp/Role"
-set ipDescription  "An interface between the Role of cFp_BringUp and the TCP offload engine of the shell."
+set ipDisplayName  "TCP shell interface"
+set ipDescription  "An interface between the bring-up role of the FMKU60 role and the TCP offload engine of the shell Kale."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -53,6 +54,7 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
+
 add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe_utils.cpp
 add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.cpp
 

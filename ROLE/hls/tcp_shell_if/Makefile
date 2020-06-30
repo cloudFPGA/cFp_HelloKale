@@ -21,15 +21,13 @@ ipName = tcp_shell_if
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean help csim csynth cosim project regression
-
-all: ${ipName}_prj/solution1/impl/ip
+.PHONY: all clean csim csynth cosim export help project regression rtlSyn rtlImpl 
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
-	@touch ../../.ip_guard
+	@touch ../../../ROLE/.ip_guard
 
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
@@ -37,6 +35,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
+all: ${ipName}_prj/solution1/impl/ip
 
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj
@@ -51,17 +51,20 @@ csynth: .synth_guard      ## Runs the HLS C synthesis
 cosim: .synth_guard       ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
+export:                   ## Exports the RTL as IP
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
+
 project:                  ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
+regression: .synth_guard  ## Runs HLS csim, csynth and cosim in sequence
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 rtlSyn:                   ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl
 
 rtlImpl:                  ## Performs both RTL synthesis and implementation including detailed palce and route
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl
-
-regression: .synth_guard  ## Runs HLS csim, csynth and cosim in sequence
-	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 help:                     ## Shows this help message
     # This target is for self documentation of the Makefile. 

@@ -6,10 +6,9 @@
 # * Authors : Francois Abel  
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the UDP applica-
-# *   tion embedded into the cFp_BringUp ROLE.
+# *   tion embedded into the  bring-up role of the cloudFPGA module FMKU60.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
-# *
 # *
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
@@ -24,7 +23,7 @@ set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
 set ipDisplayName  "UDP Application for cFp_BringUp/Role"
-set ipDescription  "A set of tests and bring-up functions for this role."
+set ipDescription  "A set of tests and functions embedded into the bring-up role of the FMKU60."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"

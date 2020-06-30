@@ -7,7 +7,8 @@
 # * Authors : Francois Abel, Burkhaard Ringlein  
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the UDP interface 
-# *   between the cloudFPGA SHELL and the user application ROLE.
+# *   between the cloudFPGA shell 'Kale' and the user application embedded into
+# *   the bring-up role of the cloudFPGA module FMKU60.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -23,8 +24,8 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "UDP Shell Interface for cFp_BringUp/Role"
-set ipDescription  "An interface between the Role of cFp_BringUp and the UDP offload engine of the shell."
+set ipDisplayName  "UDP Shell Interface"
+set ipDescription  "An interface between the bring-up role of the FMKU60 role and the UDP offload engine of the shell Kale."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
