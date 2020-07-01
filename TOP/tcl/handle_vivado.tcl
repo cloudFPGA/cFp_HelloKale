@@ -987,19 +987,15 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       # We are in monolythic flow
       #---------------------------
       catch {open_project ${xprDir}/${xprName}.xpr} 
-      set implObj [ get_runs impl_1 ]
-      #set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
-      #set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
-
-      #catch {open_run impl_1}
-      
+      set implObj [ get_runs impl_1 ]     
       open_run impl_1
       # Request to embed a timestamp into the bitstream
       set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
-
+      # Generate a static bitstream
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
-      #launch_runs impl_1 -to_step write_bitstream -jobs 8
-      #wait_on_run impl_1
+      # Generate the files for programming the Flash (this is for a 28f512p30e as used by FMKU2995v2)
+      write_cfgmem -format mcs -size 64 -interface BPIx16 -loadbit {up 0x00000000  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit } -file  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.mcs
+
     } else {
       #---------------------------
       # We are in PR flow
