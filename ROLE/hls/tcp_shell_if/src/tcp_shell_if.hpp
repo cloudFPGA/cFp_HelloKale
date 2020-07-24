@@ -1,51 +1,62 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
-
-/*****************************************************************************
+/*******************************************************************************
  * @file       : tcp_shell_if.hpp
- * @brief      : TCP Shell Interface (TSIF).
+ * @brief      : TCP Shell Interface (TSIF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_BringUp / ROLE
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *                   TCP shell interface.
- *
- *****************************************************************************/
+ * \ingroup ROLE
+ * \addtogroup ROLE_TSIF
+ * \{
+ *******************************************************************************/
+
+#ifndef _TSIF_H_
+#define _TSIF_H_
 
 #include <hls_stream.h>
 #include "ap_int.h"
 
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/AxisApp.hpp"
 
 using namespace hls;
 
+//-------------------------------------------------------------------
+//-- DEFAULT LOCAL-FPGA AND FOREIGN-HOST SOCKETS
+//--  By default, the following sockets and port numbers will be used
+//--  by the TcpRoleInterface (unless user specifies new ones via TBD).
+//--  Default listen ports:
+//--  --> 5001 : Traffic received on this port is systematically
+//--             dumped. It is used to emulate IPERF V2.
+//--  --> 5201 : Traffic received on this port is systematically
+//--             dumped. It is used to emulate IPREF V3.
+//--  --> 8803 : Traffic received on this port is looped backed and
+//--             echoed to the sender.
+//-------------------------------------------------------------------
+#define ECHO_LSN_PORT           8803        // 0x2263
+#define IPERF_LSN_PORT          5001        // 0x1389
+#define IPREF3_LSN_PORT         5201        // 0x1451
+
+#define FIXME_DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
+#define FIXME_DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
 /*************************************************************************
  *
@@ -60,48 +71,49 @@ void tcp_shell_if(
         CmdBit                *piSHL_Mmio_En,
 
         //------------------------------------------------------
-        //-- TAF / TxP Data Interface
+        //-- TAF / Rx Data Interface
         //------------------------------------------------------
-        stream<AppData>       &siTAF_Data,
-        stream<AppMetaAxis>   &siTAF_SessId,
+        stream<TcpAppData>    &siTAF_Data,
+        stream<TcpAppMeta>    &siTAF_Meta,
 
         //------------------------------------------------------
-        //-- TAF / RxP Data Interface
+        //-- TAF / Tx Data Interface
         //------------------------------------------------------
-        stream<AppData>       &soTAF_Data,
-        stream<AppMetaAxis>   &soTAF_SessId,
+        stream<TcpAppData>    &soTAF_Data,
+        stream<TcpAppMeta>    &soTAF_Meta,
 
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppNotif>      &siSHL_Notif,
-        stream<AppRdReq>      &soSHL_DReq,
-        stream<AppData>       &siSHL_Data,
-        stream<AppMetaAxis>   &siSHL_SessId,
+        stream<TcpAppNotif>   &siSHL_Notif,
+        stream<TcpAppRdReq>   &soSHL_DReq,
+        stream<TcpAppData>    &siSHL_Data,
+        stream<TcpAppMeta>    &siSHL_Meta,
 
         //------------------------------------------------------
         //-- SHELL / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReqAxis> &soSHL_LsnReq,
-        stream<AppLsnAckAxis> &siSHL_LsnAck,
+        stream<TcpAppLsnReq>  &soSHL_LsnReq,
+        stream<TcpAppLsnRep>  &siSHL_LsnRep,
 
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>       &soSHL_Data,
-        stream<AppMetaAxis>   &soSHL_SessId,
-        stream<AppWrSts>      &siSHL_DSts,
+        stream<TcpAppData>    &soSHL_Data,
+        stream<TcpAppMeta>    &soSHL_Meta,
+        stream<TcpAppWrSts>   &siSHL_DSts,
 
         //------------------------------------------------------
-        //-- SHELL / Tx Open Interfaces
+        //-- SHELL / Open Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>     &soSHL_OpnReq,
-        stream<AppOpnRep>     &siSHL_OpnRep,
+        stream<TcpAppOpnReq>  &soSHL_OpnReq,
+        stream<TcpAppOpnRep>  &siSHL_OpnRep,
 
         //------------------------------------------------------
         //-- SHELL / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReqAxis> &soSHL_ClsReq,
+        stream<TcpAppClsReq>  &soSHL_ClsReq,
+        //-- Not Used         &siSHL_ClsSts,
 
         //------------------------------------------------------
         //-- TAF / Session Connect Id Interface
@@ -110,3 +122,6 @@ void tcp_shell_if(
 
 );
 
+#endif
+
+/*! \} */

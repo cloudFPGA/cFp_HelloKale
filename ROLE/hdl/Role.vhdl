@@ -157,10 +157,10 @@ entity Role_Kale is
     soSHL_Nts_Tcp_LsnReq_tdata          : out   std_ulogic_vector( 15 downto 0);  
     soSHL_Nts_Tcp_LsnReq_tvalid         : out   std_ulogic;
     soSHL_Nts_Tcp_LsnReq_tready         : in    std_ulogic;
-    ----  Axi4-Stream TCP Listen Ack --------
-    siSHL_Nts_Tcp_LsnAck_tdata          : in    std_ulogic_vector(  7 downto 0); 
-    siSHL_Nts_Tcp_LsnAck_tvalid         : in    std_ulogic;
-    siSHL_Nts_Tcp_LsnAck_tready         : out   std_ulogic;
+    ----  Axi4-Stream TCP Listen Rep --------
+    siSHL_Nts_Tcp_LsnRep_tdata          : in    std_ulogic_vector(  7 downto 0); 
+    siSHL_Nts_Tcp_LsnRep_tvalid         : in    std_ulogic;
+    siSHL_Nts_Tcp_LsnRep_tready         : out   std_ulogic;
     --------------------------------------------------------
     -- SHELL / Mem / Mp0 Interface
     --------------------------------------------------------
@@ -475,9 +475,9 @@ architecture Flash of Role_Kale is
       siSHL_Data_tvalid     : in  std_logic;
       siSHL_Data_tready     : out std_logic;
       --
-      siSHL_SessId_tdata    : in  std_logic_vector( 15 downto 0);
-      siSHL_SessId_tvalid   : in  std_logic;
-      siSHL_SessId_tready   : out std_logic;
+      siSHL_Meta_tdata      : in  std_logic_vector( 15 downto 0);
+      siSHL_Meta_tvalid     : in  std_logic;
+      siSHL_Meta_tready     : out std_logic;
       
       --------------------------------------------------------
       -- To SHELL / Tcp Data Interfaces
@@ -488,9 +488,9 @@ architecture Flash of Role_Kale is
       soSHL_Data_tvalid     : out std_logic;
       soSHL_Data_tready     : in  std_logic;
       --
-      soSHL_SessId_tdata    : out std_logic_vector( 15 downto 0);
-      soSHL_SessId_tvalid   : out std_logic;
-      soSHL_SessId_tready   : in  std_logic
+      soSHL_Meta_tdata      : out std_logic_vector( 15 downto 0);
+      soSHL_Meta_tvalid     : out std_logic;
+      soSHL_Meta_tready     : in  std_logic
     );
   end component TcpApplicationFlash;
   
@@ -608,11 +608,11 @@ architecture Flash of Role_Kale is
       siSHL_Data_tvalid     : in  std_logic;
       siSHL_Data_tready     : out std_logic;
       --
-      siSHL_SessId_tdata    : in  std_logic_vector( 15 downto 0);
-      siSHL_SessId_tkeep    : in  std_logic_vector(  1 downto 0);
-      siSHL_SessId_tlast    : in  std_logic;
-      siSHL_SessId_tvalid   : in  std_logic;
-      siSHL_SessId_tready   : out std_logic;
+      siSHL_Meta_tdata      : in  std_logic_vector( 15 downto 0);
+      siSHL_Meta_tkeep      : in  std_logic_vector(  1 downto 0);
+      siSHL_Meta_tlast      : in  std_logic;
+      siSHL_Meta_tvalid     : in  std_logic;
+      siSHL_Meta_tready     : out std_logic;
       --------------------------------------------------------
       -- To SHELL / Tcp Data Interfaces
       --------------------------------------------------------
@@ -622,11 +622,11 @@ architecture Flash of Role_Kale is
       soSHL_Data_tvalid     : out std_logic;
       soSHL_Data_tready     : in  std_logic;
       --
-      soSHL_SessId_tdata    : out std_logic_vector( 15 downto 0);
-      soSHL_SessId_tkeep    : out std_logic_vector(  1 downto 0);
-      soSHL_SessId_tlast    : out std_logic;
-      soSHL_SessId_tvalid   : out std_logic;
-      soSHL_SessId_tready   : in  std_logic;
+      soSHL_Meta_tdata      : out std_logic_vector( 15 downto 0);
+      soSHL_Meta_tkeep      : out std_logic_vector(  1 downto 0);
+      soSHL_Meta_tlast      : out std_logic;
+      soSHL_Meta_tvalid     : out std_logic;
+      soSHL_Meta_tready     : in  std_logic;
       ------------------------------------------------------
       -- ROLE / Session Connect Id Interface
       ------------------------------------------------------
@@ -656,11 +656,11 @@ architecture Flash of Role_Kale is
       siTAF_Data_tvalid     : in  std_ulogic;
       siTAF_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream 
-      siTAF_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siTAF_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siTAF_SessId_tlast    : in  std_ulogic;
-      siTAF_SessId_tvalid   : in  std_ulogic;
-      siTAF_SessId_tready   : out std_ulogic; 
+      siTAF_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
+      siTAF_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
+      siTAF_Meta_tlast      : in  std_ulogic;
+      siTAF_Meta_tvalid     : in  std_ulogic;
+      siTAF_Meta_tready     : out std_ulogic; 
       ------------------------------------------------------               
       -- TAF /RxP Data Flow Interfaces                      
       ------------------------------------------------------               
@@ -672,11 +672,11 @@ architecture Flash of Role_Kale is
       soTAF_Data_tvalid     : out std_ulogic;
       soTAF_Data_tready     : in  std_ulogic;
       ---- TCP Metadata Stream 
-      soTAF_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTAF_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTAF_SessId_tlast    : out std_ulogic;
-      soTAF_SessId_tvalid   : out std_ulogic;
-      soTAF_SessId_tready   : in  std_ulogic;
+      soTAF_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
+      soTAF_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
+      soTAF_Meta_tlast      : out std_ulogic;
+      soTAF_Meta_tvalid     : out std_ulogic;
+      soTAF_Meta_tready     : in  std_ulogic;
       ------------------------------------------------------
       -- SHELL / RxP Data Interfaces
       ------------------------------------------------------
@@ -695,11 +695,11 @@ architecture Flash of Role_Kale is
       siSHL_Data_tvalid     : in  std_ulogic;
       siSHL_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream 
-      siSHL_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siSHL_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siSHL_SessId_tlast    : in  std_ulogic;
-      siSHL_SessId_tvalid   : in  std_ulogic;
-      siSHL_SessId_tready   : out std_ulogic;
+      siSHL_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
+      siSHL_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
+      siSHL_Meta_tlast      : in  std_ulogic;
+      siSHL_Meta_tvalid     : in  std_ulogic;
+      siSHL_Meta_tready     : out std_ulogic;
       ------------------------------------------------------
       -- SHELL / RxP Ctlr Flow Interfaces
       ------------------------------------------------------
@@ -711,11 +711,11 @@ architecture Flash of Role_Kale is
       soSHL_LsnReq_tvalid   : out std_ulogic;
       soSHL_LsnReq_tready   : in  std_ulogic;
       ---- TCP Listen Status Stream 
-      siSHL_LsnAck_tdata    : in  std_ulogic_vector(  7 downto 0);
-      siSHL_LsnAck_tkeep    : in  std_ulogic;
-      siSHL_LsnAck_tlast    : in  std_ulogic;
-      siSHL_LsnAck_tvalid   : in  std_ulogic;
-      siSHL_LsnAck_tready   : out std_ulogic;
+      siSHL_LsnRep_tdata    : in  std_ulogic_vector(  7 downto 0);
+      siSHL_LsnRep_tkeep    : in  std_ulogic;
+      siSHL_LsnRep_tlast    : in  std_ulogic;
+      siSHL_LsnRep_tvalid   : in  std_ulogic;
+      siSHL_LsnRep_tready   : out std_ulogic;
       ------------------------------------------------------
       -- SHELL / TxP Data Interfaces
       ------------------------------------------------------
@@ -726,11 +726,11 @@ architecture Flash of Role_Kale is
       soSHL_Data_tvalid     : out std_ulogic;
       soSHL_Data_tready     : in  std_ulogic;
       ---- TCP Metadata Stream 
-      soSHL_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soSHL_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soSHL_SessId_tlast    : out std_ulogic;
-      soSHL_SessId_tvalid   : out std_ulogic;
-      soSHL_SessId_tready   : in  std_ulogic;
+      soSHL_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
+      soSHL_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
+      soSHL_Meta_tlast      : out std_ulogic;
+      soSHL_Meta_tvalid     : out std_ulogic;
+      soSHL_Meta_tready     : in  std_ulogic;
       ---- TCP Data Status Stream 
       siSHL_DSts_tdata      : in  std_ulogic_vector( 23 downto 0);
       siSHL_DSts_tvalid     : in  std_ulogic;
@@ -783,11 +783,11 @@ architecture Flash of Role_Kale is
       siTAF_Data_tvalid     : in  std_ulogic;
       siTAF_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream
-      siTAF_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siTAF_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siTAF_SessId_tlast    : in  std_ulogic;
-      siTAF_SessId_tvalid   : in  std_ulogic;
-      siTAF_SessId_tready   : out std_ulogic; 
+      siTAF_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
+      siTAF_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
+      siTAF_Meta_tlast      : in  std_ulogic;
+      siTAF_Meta_tvalid     : in  std_ulogic;
+      siTAF_Meta_tready     : out std_ulogic; 
       ------------------------------------------------------               
       -- TAF / RxP Data Flow Interfaces                      
       ------------------------------------------------------               
@@ -799,11 +799,11 @@ architecture Flash of Role_Kale is
       soTAF_Data_tvalid     : out std_ulogic;
       soTAF_Data_tready     : in  std_ulogic;
       ----  TCP Metadata Stream
-      soTAF_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soTAF_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soTAF_SessId_tlast    : out std_ulogic;
-      soTAF_SessId_tvalid   : out std_ulogic;
-      soTAF_SessId_tready   : in  std_ulogic;
+      soTAF_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
+      soTAF_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
+      soTAF_Meta_tlast      : out std_ulogic;
+      soTAF_Meta_tvalid     : out std_ulogic;
+      soTAF_Meta_tready     : in  std_ulogic;
       ------------------------------------------------------
       -- SHELL / RxP Data Interfaces
       ------------------------------------------------------
@@ -822,11 +822,11 @@ architecture Flash of Role_Kale is
       siSHL_Data_tvalid     : in  std_ulogic;
       siSHL_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream 
-      siSHL_SessId_tdata    : in  std_ulogic_vector( 15 downto 0);
-      siSHL_SessId_tkeep    : in  std_ulogic_vector(  1 downto 0);
-      siSHL_SessId_tlast    : in  std_ulogic;
-      siSHL_SessId_tvalid   : in  std_ulogic;
-      siSHL_SessId_tready   : out std_ulogic;
+      siSHL_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
+      siSHL_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
+      siSHL_Meta_tlast      : in  std_ulogic;
+      siSHL_Meta_tvalid     : in  std_ulogic;
+      siSHL_Meta_tready     : out std_ulogic;
       ------------------------------------------------------
       -- SHELL / RxP Ctlr Flow Interfaces
       ------------------------------------------------------
@@ -838,11 +838,11 @@ architecture Flash of Role_Kale is
       soSHL_LsnReq_tvalid   : out std_ulogic;
       soSHL_LsnReq_tready   : in  std_ulogic;
       ---- TCP Listen Status Stream 
-      siSHL_LsnAck_tdata    : in  std_ulogic_vector(  7 downto 0);
-      siSHL_LsnAck_tkeep    : in  std_ulogic;
-      siSHL_LsnAck_tlast    : in  std_ulogic;
-      siSHL_LsnAck_tvalid   : in  std_ulogic;
-      siSHL_LsnAck_tready   : out std_ulogic;
+      siSHL_LsnRep_tdata    : in  std_ulogic_vector(  7 downto 0);
+      siSHL_LsnRep_tkeep    : in  std_ulogic;
+      siSHL_LsnRep_tlast    : in  std_ulogic;
+      siSHL_LsnRep_tvalid   : in  std_ulogic;
+      siSHL_LsnRep_tready   : out std_ulogic;
       ------------------------------------------------------
       -- SHELL / TxP Data Interfaces
       ------------------------------------------------------
@@ -853,11 +853,11 @@ architecture Flash of Role_Kale is
       soSHL_Data_tvalid     : out std_ulogic;
       soSHL_Data_tready     : in  std_ulogic;
       ---- TCP Metadata Stream 
-      soSHL_SessId_tdata    : out std_ulogic_vector( 15 downto 0);
-      soSHL_SessId_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soSHL_SessId_tlast    : out std_ulogic;
-      soSHL_SessId_tvalid   : out std_ulogic;
-      soSHL_SessId_tready   : in  std_ulogic;
+      soSHL_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
+      soSHL_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
+      soSHL_Meta_tlast      : out std_ulogic;
+      soSHL_Meta_tvalid     : out std_ulogic;
+      soSHL_Meta_tready     : in  std_ulogic;
       ---- TCP Data Status Stream 
       siSHL_DSts_V_tdata    : in  std_ulogic_vector( 23 downto 0);
       siSHL_DSts_V_tvalid   : in  std_ulogic;
@@ -1018,11 +1018,11 @@ begin
           siTAF_Data_tvalid         => ssTAF_TSIF_Data_tvalid,
           siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
           ---- TCP Meta Stream -------------
-          siTAF_SessId_tdata        => ssTAF_TSIF_Meta_tdata,
-          siTAF_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
-          siTAF_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-          siTAF_SessId_tvalid       => ssTAF_TSIF_Meta_tvalid,
-          siTAF_SessId_tready       => ssTAF_TSIF_Meta_tready,
+          siTAF_Meta_tdata          => ssTAF_TSIF_Meta_tdata,
+          siTAF_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
+          siTAF_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
+          siTAF_Meta_tvalid         => ssTAF_TSIF_Meta_tvalid,
+          siTAF_Meta_tready         => ssTAF_TSIF_Meta_tready,
           ------------------------------------------------------               
           -- TAF / RxP Data Flow Interfaces                      
           ------------------------------------------------------               
@@ -1034,11 +1034,11 @@ begin
           soTAF_Data_tvalid         => ssTSIF_TAF_Data_tvalid,
           soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
           ---- TCP Meta Stream --------------
-          soTAF_SessId_tdata        => ssTSIF_TAF_Meta_tdata,
-          soTAF_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soTAF_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soTAF_SessId_tvalid       => ssTSIF_TAF_Meta_tvalid,
-          soTAF_SessId_tready       => ssTSIF_TAF_Meta_tready,
+          soTAF_Meta_tdata          => ssTSIF_TAF_Meta_tdata,
+          soTAF_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
+          soTAF_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]
+          soTAF_Meta_tvalid         => ssTSIF_TAF_Meta_tvalid,
+          soTAF_Meta_tready         => ssTSIF_TAF_Meta_tready,
           ------------------------------------------------------
           -- SHELL / RxP Data Interfaces
           ------------------------------------------------------
@@ -1057,11 +1057,11 @@ begin
           siSHL_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
           siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
           ---- TCP Meta Stream -------------
-          siSHL_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
-          siSHL_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
-          siSHL_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-          siSHL_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
-          siSHL_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
+          siSHL_Meta_tdata          => siSHL_Nts_Tcp_Meta_tdata,
+          siSHL_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
+          siSHL_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
+          siSHL_Meta_tvalid         => siSHL_Nts_Tcp_Meta_tvalid,
+          siSHL_Meta_tready         => siSHL_Nts_Tcp_Meta_tready,
           ------------------------------------------------------
           -- SHELL / RxP Ctlr Flow Interfaces
           ------------------------------------------------------
@@ -1072,12 +1072,12 @@ begin
           soSHL_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
           soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
           soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
-          ---- TCP Listen Ack Stream ---------
-          siSHL_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata,
-          siSHL_LsnAck_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
-          siSHL_LsnAck_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-          siSHL_LsnAck_tvalid       => siSHL_Nts_Tcp_LsnAck_tvalid, 
-          siSHL_LsnAck_tready       => siSHL_Nts_Tcp_LsnAck_tready, 
+          ---- TCP Listen Rep Stream ---------
+          siSHL_LsnRep_tdata        => siSHL_Nts_Tcp_LsnRep_tdata,
+          siSHL_LsnRep_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
+          siSHL_LsnRep_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
+          siSHL_LsnRep_tvalid       => siSHL_Nts_Tcp_LsnRep_tvalid, 
+          siSHL_LsnRep_tready       => siSHL_Nts_Tcp_LsnRep_tready, 
           ------------------------------------------------------
           -- SHELL / TxP Data Interfaces
           ------------------------------------------------------
@@ -1088,11 +1088,11 @@ begin
           soSHL_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
           soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
           ---- TCP Meta Stream -------------
-          soSHL_SessId_tdata        => soSHL_Nts_Tcp_Meta_tdata,
-          soSHL_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soSHL_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soSHL_SessId_tvalid       => soSHL_Nts_Tcp_Meta_tvalid,
-          soSHL_SessId_tready       => soSHL_Nts_Tcp_Meta_tready,
+          soSHL_Meta_tdata          => soSHL_Nts_Tcp_Meta_tdata,
+          soSHL_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
+          soSHL_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]
+          soSHL_Meta_tvalid         => soSHL_Nts_Tcp_Meta_tvalid,
+          soSHL_Meta_tready         => soSHL_Nts_Tcp_Meta_tready,
           ---- TCP Data Status Stream ------
           siSHL_DSts_tdata          => siSHL_Nts_Tcp_DSts_tdata,
           siSHL_DSts_tvalid         => siSHL_Nts_Tcp_DSts_tvalid,
@@ -1144,11 +1144,11 @@ begin
         siTAF_Data_tvalid         => ssTAF_TSIF_Data_tvalid,
         siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
         ---- TCP Metadata Stream 
-        siTAF_SessId_tdata        => ssTAF_TSIF_Meta_tdata,
-        siTAF_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
-        siTAF_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-        siTAF_SessId_tvalid       => ssTAF_TSIF_Meta_tvalid,
-        siTAF_SessId_tready       => ssTAF_TSIF_Meta_tready,
+        siTAF_Meta_tdata          => ssTAF_TSIF_Meta_tdata,
+        siTAF_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
+        siTAF_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
+        siTAF_Meta_tvalid         => ssTAF_TSIF_Meta_tvalid,
+        siTAF_Meta_tready         => ssTAF_TSIF_Meta_tready,
         ------------------------------------------------------               
         -- TAF / RxP Data Flow Interfaces                      
         ------------------------------------------------------               
@@ -1160,11 +1160,11 @@ begin
         soTAF_Data_tvalid         => ssTSIF_TAF_Data_tvalid,
         soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
         ---- TCP Metadata Stream 
-        soTAF_SessId_tdata        => ssTSIF_TAF_Meta_tdata,
-        soTAF_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soTAF_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soTAF_SessId_tvalid       => ssTSIF_TAF_Meta_tvalid,
-        soTAF_SessId_tready       => ssTSIF_TAF_Meta_tready,
+        soTAF_Meta_tdata          => ssTSIF_TAF_Meta_tdata,
+        soTAF_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
+        soTAF_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]
+        soTAF_Meta_tvalid         => ssTSIF_TAF_Meta_tvalid,
+        soTAF_Meta_tready         => ssTSIF_TAF_Meta_tready,
         ------------------------------------------------------
         -- SHELL / RxP Data Interfaces
         ------------------------------------------------------
@@ -1183,11 +1183,11 @@ begin
         siSHL_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
         siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
         ---- TCP Metadata Stream 
-        siSHL_SessId_tdata        => siSHL_Nts_Tcp_Meta_tdata,
-        siSHL_SessId_tkeep        => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
-        siSHL_SessId_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
-        siSHL_SessId_tvalid       => siSHL_Nts_Tcp_Meta_tvalid,
-        siSHL_SessId_tready       => siSHL_Nts_Tcp_Meta_tready,
+        siSHL_Meta_tdata          => siSHL_Nts_Tcp_Meta_tdata,
+        siSHL_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
+        siSHL_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
+        siSHL_Meta_tvalid         => siSHL_Nts_Tcp_Meta_tvalid,
+        siSHL_Meta_tready         => siSHL_Nts_Tcp_Meta_tready,
         ------------------------------------------------------
         -- SHELL / RxP Ctlr Flow Interfaces
         ------------------------------------------------------
@@ -1199,11 +1199,11 @@ begin
         soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
         soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
         ---- TCP Listen Stream 
-        siSHL_LsnAck_tdata        => siSHL_Nts_Tcp_LsnAck_tdata,
-        siSHL_LsnAck_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
-        siSHL_LsnAck_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]        
-        siSHL_LsnAck_tvalid       => siSHL_Nts_Tcp_LsnAck_tvalid, 
-        siSHL_LsnAck_tready       => siSHL_Nts_Tcp_LsnAck_tready,
+        siSHL_LsnRep_tdata        => siSHL_Nts_Tcp_LsnRep_tdata,
+        siSHL_LsnRep_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
+        siSHL_LsnRep_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]        
+        siSHL_LsnRep_tvalid       => siSHL_Nts_Tcp_LsnRep_tvalid, 
+        siSHL_LsnRep_tready       => siSHL_Nts_Tcp_LsnRep_tready,
         ------------------------------------------------------
         -- SHELL / TxP Data Interfaces
         ------------------------------------------------------
@@ -1214,11 +1214,11 @@ begin
         soSHL_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
         soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
         ---- TCP Metadata Stream 
-        soSHL_SessId_tdata        => soSHL_Nts_Tcp_Meta_tdata,
-        soSHL_SessId_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soSHL_SessId_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]        
-        soSHL_SessId_tvalid       => soSHL_Nts_Tcp_Meta_tvalid,
-        soSHL_SessId_tready       => soSHL_Nts_Tcp_Meta_tready,
+        soSHL_Meta_tdata          => soSHL_Nts_Tcp_Meta_tdata,
+        soSHL_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
+        soSHL_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]        
+        soSHL_Meta_tvalid         => soSHL_Nts_Tcp_Meta_tvalid,
+        soSHL_Meta_tready         => soSHL_Nts_Tcp_Meta_tready,
         ---- TCP Data Status Stream 
         siSHL_DSts_V_tdata        => siSHL_Nts_Tcp_DSts_tdata,
         siSHL_DSts_V_tvalid       => siSHL_Nts_Tcp_DSts_tvalid,
@@ -1509,9 +1509,9 @@ begin
         siSHL_Data_tvalid     => ssTSIF_TAF_Data_tvalid,
         siSHL_Data_tready     => ssTSIF_TAF_Data_tready,
         --
-        siSHL_SessId_tdata    => ssTSIF_TAF_Meta_tdata,
-        siSHL_SessId_tvalid   => ssTSIF_TAF_Meta_tvalid,
-        siSHL_SessId_tready   => ssTSIF_TAF_Meta_tready,
+        siSHL_Meta_tdata      => ssTSIF_TAF_Meta_tdata,
+        siSHL_Meta_tvalid     => ssTSIF_TAF_Meta_tvalid,
+        siSHL_Meta_tready     => ssTSIF_TAF_Meta_tready,
         --------------------- -----------------------------------
         -- To SHELL / Tcp Data & Session Id Interfaces
         --------------------- -----------------------------------
@@ -1521,9 +1521,9 @@ begin
         soSHL_Data_tvalid     => ssTAF_TSIF_Data_tvalid,
         soSHL_Data_tready     => ssTAF_TSIF_Data_tready,
         --
-        soSHL_SessId_tdata    => ssTAF_TSIF_Meta_tdata,
-        soSHL_SessId_tvalid   => ssTAF_TSIF_Meta_tvalid,
-        soSHL_SessId_tready   => ssTAF_TSIF_Meta_tready
+        soSHL_Meta_tdata      => ssTAF_TSIF_Meta_tdata,
+        soSHL_Meta_tvalid     => ssTAF_TSIF_Meta_tvalid,
+        soSHL_Meta_tready     => ssTAF_TSIF_Meta_tready
       );
     
   else generate
@@ -1559,11 +1559,11 @@ begin
         siSHL_Data_tvalid        => ssTSIF_TAF_Data_tvalid,
         siSHL_Data_tready        => ssTSIF_TAF_Data_tready,
         --
-        siSHL_SessId_tdata       => ssTSIF_TAF_Meta_tdata,
-        siSHL_SessId_tkeep       => (others=>'1'),             -- [TODO-ssTSIF_TAF_Meta_tkeep]
-        siSHL_SessId_tlast       => '1',                       -- [TODO-ssTSIF_TAF_Meta_tlast]
-        siSHL_SessId_tvalid      => ssTSIF_TAF_Meta_tvalid,
-        siSHL_SessId_tready      => ssTSIF_TAF_Meta_tready,
+        siSHL_Meta_tdata         => ssTSIF_TAF_Meta_tdata,
+        siSHL_Meta_tkeep         => (others=>'1'),             -- [TODO-ssTSIF_TAF_Meta_tkeep]
+        siSHL_Meta_tlast         => '1',                       -- [TODO-ssTSIF_TAF_Meta_tlast]
+        siSHL_Meta_tvalid        => ssTSIF_TAF_Meta_tvalid,
+        siSHL_Meta_tready        => ssTSIF_TAF_Meta_tready,
         --------------------------------------------------------
         -- To SHELL / Tcp Data Interfaces
         --------------------------------------------------------
@@ -1573,11 +1573,11 @@ begin
         soSHL_Data_tvalid        => ssTAF_TSIF_Data_tvalid,
         soSHL_Data_tready        => ssTAF_TSIF_Data_tready,
         --
-        soSHL_SessId_tdata       => ssTAF_TSIF_Meta_tdata,
-        soSHL_SessId_tkeep       => open,                      -- [TODO-ssTAF_TSIF_Meta_tkeep]
-        soSHL_SessId_tlast       => open,                      -- [TODO-ssTAF_TSIF_Meta_tlast]
-        soSHL_SessId_tvalid      => ssTAF_TSIF_Meta_tvalid,
-        soSHL_SessId_tready      => ssTAF_TSIF_Meta_tready
+        soSHL_Meta_tdata         => ssTAF_TSIF_Meta_tdata,
+        soSHL_Meta_tkeep         => open,                      -- [TODO-ssTAF_TSIF_Meta_tkeep]
+        soSHL_Meta_tlast         => open,                      -- [TODO-ssTAF_TSIF_Meta_tlast]
+        soSHL_Meta_tvalid        => ssTAF_TSIF_Meta_tvalid,
+        soSHL_Meta_tready        => ssTAF_TSIF_Meta_tready
       );
 
   end generate;

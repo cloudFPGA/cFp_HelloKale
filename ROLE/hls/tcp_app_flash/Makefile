@@ -23,6 +23,8 @@ SRC_DEPS := $(shell find ./src/ -type f)
 
 .PHONY: all clean csim cosim csynth export help project regression rtlSyn rtlImpl 
 
+all: this
+
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
@@ -36,7 +38,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 
 #-- Targets --------------------------------------------------------------------
 
-all: ${ipName}_prj/solution1/impl/ip
+this: ${ipName}_prj/solution1/impl/ip
 
 clean:                   ## Cleans the current project
 	${RM} -rf ${ipName}_prj

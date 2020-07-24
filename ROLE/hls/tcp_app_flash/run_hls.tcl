@@ -54,8 +54,8 @@ set_top       ${projectName}
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
 
-add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/src/toe_utils.cpp
-add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/toe/test/test_toe_utils.cpp
+add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
+#add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
 
