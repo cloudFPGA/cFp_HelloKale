@@ -51,7 +51,10 @@ using namespace hls;
 //--  --> 8803 : Traffic received on this port is looped backed and
 //--             echoed to the sender.
 //-------------------------------------------------------------------
-#define ECHO_LSN_PORT           8803        // 0x2263
+#define RECV_MODE_LSN_PORT      8800        // 0x2260
+#define XMIT_MODE_LSN_PORT      8801        // 0x2261
+#define BIDIR_MODE_LSN_PORT     8802        // 0x2262
+#define ECHO_MODE_LSN_PORT      8803        // 0x2263
 #define IPERF_LSN_PORT          5001        // 0x1389
 #define IPREF3_LSN_PORT         5201        // 0x1451
 

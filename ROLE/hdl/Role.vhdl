@@ -18,17 +18,17 @@
 -- * Tools   : Vivado v2016.4, 2017.4 (64-bit)
 -- * Depends : None
 -- *
--- * Description : In cloudFPGA, the user application is referred to as a 'ROLE'    
--- *    and is integrated along with a 'SHELL' that abstracts the HW components
+-- * Description : In cloudFPGA, the user application is referred to as a 'role'    
+-- *    and is integrated along with a 'shell' that abstracts the HW components
 -- *    of the FPGA module. 
--- *    The current ROLE implements a set of TCP, UDP and DDR4 tests for the  
--- *    bring-up of the FPGA module FMKU60. This ROLE is typically paired with
--- *    SHELL 'Kale' by the cloudFPGA project 'cFp_BringUp'.
+-- *    The current role implements a set of TCP, UDP and DDR4 tests for the  
+-- *    bring-up of the FPGA module FMKU60. This role is typically paired with
+-- *    the shell 'Kale' by the cloudFPGA project 'cFp_BringUp'.
 -- *
 -- *****************************************************************************
 
 --******************************************************************************
---**  CONTEXT CLAUSE  **  FMKU60 ROLE(Flash)
+--**  CONTEXT CLAUSE  **  FMKU60 ROLE(BringUp)
 --******************************************************************************
 library IEEE;
 use     IEEE.std_logic_1164.all;
@@ -41,7 +41,7 @@ use     UNISIM.vcomponents.all;
 --**  ENTITY  **  FMKU60 ROLE
 --******************************************************************************
 
-entity Role_Kale is
+entity Role_BringUp is
   port (
     --------------------------------------------------------
     -- SHELL / Clock, Reset and Enable Interface
@@ -259,14 +259,14 @@ entity Role_Kale is
     piTOP_250_00Clk                     : in    std_ulogic   -- Freerunning
   );
   
-end Role_Kale;
+end Role_BringUp;
 
 
 -- *****************************************************************************
--- **  ARCHITECTURE  **  FLASH of ROLE 
+-- **  ARCHITECTURE  **  BRING_UP of ROLE 
 -- *****************************************************************************
 
-architecture Flash of Role_Kale is
+architecture BringUp of Role is
 
   constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
@@ -313,22 +313,6 @@ architecture Flash of Role_Kale is
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : USIF <--> UAF 
   --------------------------------------------------------
-  -- UAF<->USIF / UDP Control Port Interfaces
-  --signal ssUAF_USIF_LsnReq_tdata    : std_logic_vector(15 downto 0);
-  --signal ssUAF_USIF_LsnReq_tvalid   : std_logic;
-  --signal ssUAF_USIF_LsnReq_tready   : std_logic;
-  --
-  --signal ssUSIF_UAF_LsnRep_tdata    : std_logic_vector( 7 downto 0);
-  --signal ssUSIF_UAF_LsnRep_tvalid   : std_logic;
-  --signal ssUSIF_UAF_LsnRep_tready   : std_logic;
-  --
-  --signal ssUAF_USIF_ClsReq_tdata    : std_logic_vector(15 downto 0);
-  --signal ssUAF_USIF_ClsReq_tvalid   : std_logic;
-  --signal ssUAF_USIF_ClsReq_tready   : std_logic;
-  --
-  --signal ssUSIF_UAF_ClsRep_tdata    : std_logic_vector( 7 downto 0);
-  --signal ssUSIF_UAF_ClsRep_tvalid   : std_logic;
-  --signal ssUSIF_UAF_ClsRep_tready   : std_logic;
   -- UAF->USIF / UDP Tx Data Interfaces
   signal ssUAF_USIF_Data_tdata      : std_logic_vector(63 downto 0);
   signal ssUAF_USIF_Data_tkeep      : std_logic_vector( 7 downto 0);
@@ -1111,8 +1095,6 @@ begin
           siSHL_OpnRep_tready       => siSHL_Nts_Tcp_OpnRep_tready,
           ---- TCP Close Request Stream  ---
           soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
-          soSHL_ClsReq_tkeep        => open,        -- [TODO: Until SHELL I/F is compliant] 
-          soSHL_ClsReq_tlast        => open,        -- [TODO: Until SHELL I/F is compliant]     
           soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
           soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
           ------------------------------------------------------
@@ -1714,5 +1696,5 @@ begin
     ---- Read Data Channel -----------------
     moSHL_Mem_Mp1_RREADY    <= '0'          ;
     
-end architecture Flash;
+end architecture BringUp;
 

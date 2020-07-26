@@ -43,7 +43,7 @@ using namespace std;
 #define TRACE_TAF    1 <<  2
 #define TRACE_MMIO   1 <<  3
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_TOE | TRACE_MMIO)
 
 /******************************************************************************
  * @brief Increment the simulation counter

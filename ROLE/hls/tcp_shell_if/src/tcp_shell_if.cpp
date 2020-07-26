@@ -64,7 +64,7 @@ using namespace std;
 #define TRACE_LSN 1 <<  4
 #define TRACE_CON 1 <<  5
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_LSN | TRACE_CON)
 
 
 /*******************************************************************************
@@ -193,8 +193,8 @@ void pConnect(
  * @warning
  *  This process requests the SHELL/NTS/TOE to start listening for incoming
  *   connections on a specific port (.i.e, open connection in server mode).
- *  By default, the port numbers 5001, 5201 and 8803 will always be opened in
- *   listen mode at startup. Later on, we should be able to open more port if
+ *  By default, the port numbers 5001, 5201, 8800 and 8803 will always be opened
+ *   in listen mode at startup. Later on, we should be able to open more port if
  *   we provide some configuration register for the user to specify new ones.
  *  FYI - The Port Table (PRt) of SHELL/NTS/TOE supports two port ranges; one
  *   for static ports (0 to 32,767) which are used for listening ports, and one
@@ -213,7 +213,7 @@ void pListen(
     const char *myName = concat3(THIS_NAME, "/", "LSn");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { LSN_IDLE, LSN_LOAD_NXT, LSN_SEND_REQ,
+    static enum FsmStates { LSN_IDLE, LSN_SEND_REQ,
                             LSN_WAIT_REP, LSN_DONE } \
                                lsn_fsmState=LSN_IDLE;
     #pragma HLS reset variable=lsn_fsmState
@@ -221,8 +221,9 @@ void pListen(
     #pragma HLS reset variable=lsn_i
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static const TcpPort            LSN_PORT_TABLE[4] = { 8803, 5001, 5201, 80 };
-    #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=FIFO
+    static const TcpPort LSN_PORT_TABLE[4] = { RECV_MODE_LSN_PORT, ECHO_MODE_LSN_PORT,
+                                               IPERF_LSN_PORT, IPREF3_LSN_PORT };
+    #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=ROM_1P
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ap_uint<8>  lsn_watchDogTimer;
@@ -235,7 +236,7 @@ void pListen(
         }
         else {
             if (lsn_i == 0) {
-                lsn_fsmState = LSN_LOAD_NXT;
+                lsn_fsmState = LSN_SEND_REQ;
             }
             else {
                 //-- Port are already opened
@@ -243,15 +244,22 @@ void pListen(
             }
         }
         break;
-    case LSN_LOAD_NXT:
-        lsn_tcpPort = LSN_PORT_TABLE[lsn_i];
-        lsn_fsmState = LSN_SEND_REQ;
-        break;
     case LSN_SEND_REQ:
         if (!soSHL_LsnReq.full()) {
-            soSHL_LsnReq.write(lsn_tcpPort);
-            //TcpPort tcpListenPort = ECHO_LSN_PORT;
-            //soSHL_LsnReq.write(tcpListenPort);
+            switch (lsn_i) {
+            case 0:
+                soSHL_LsnReq.write(RECV_MODE_LSN_PORT);
+                break;
+            case 1:
+                soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
+                break;
+            case 2:
+                soSHL_LsnReq.write(IPERF_LSN_PORT);
+                break;
+            case 3:
+                soSHL_LsnReq.write(IPREF3_LSN_PORT);
+                break;
+            }
             if (DEBUG_LEVEL & TRACE_LSN) {
                 printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
                           LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
@@ -274,13 +282,13 @@ void pListen(
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
                 printInfo(myName, "Received listen acknowledgment from [TOE].\n");
-                lsn_i += 1;
                 if (lsn_i == 3) {
                     lsn_fsmState = LSN_DONE;
                 }
                 else {
-                    //-- Load next port number
-                    lsn_fsmState = LSN_LOAD_NXT;
+                    //-- Set next listen port number
+                    lsn_i += 1;
+                    lsn_fsmState = LSN_SEND_REQ;
                 }
             }
             else {
@@ -292,7 +300,7 @@ void pListen(
         else {
             if (lsn_watchDogTimer == 0) {
                 printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
-                           ECHO_LSN_PORT, ECHO_LSN_PORT);
+                        LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
                 lsn_fsmState = LSN_SEND_REQ;
             }
         }

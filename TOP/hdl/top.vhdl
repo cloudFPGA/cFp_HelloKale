@@ -295,10 +295,10 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Nts_Tcp_LsnReq_tdata     : std_ulogic_vector( 15 downto 0);   
   signal ssROL_SHL_Nts_Tcp_LsnReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_LsnReq_tready    : std_ulogic;
-  ----  Axi4-Stream TCP Listen Ack --------
-  signal ssSHL_ROL_Nts_Tcp_LsnAck_tdata     : std_ulogic_vector(  7 downto 0);
-  signal ssSHL_ROL_Nts_Tcp_LsnAck_tvalid    : std_ulogic;
-  signal ssSHL_ROL_Nts_Tcp_LsnAck_tready    : std_ulogic;
+  ----  Axi4-Stream TCP Listen Rep --------
+  signal ssSHL_ROL_Nts_Tcp_LsnRep_tdata     : std_ulogic_vector(  7 downto 0);
+  signal ssSHL_ROL_Nts_Tcp_LsnRep_tvalid    : std_ulogic;
+  signal ssSHL_ROL_Nts_Tcp_LsnRep_tready    : std_ulogic;
  
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : [SHELL/Mem] <--> [ROLE/Mem] 
@@ -590,10 +590,10 @@ architecture structural of topFMKU60 is
       siROL_Nts_Tcp_LsnReq_tdata        : in  std_ulogic_vector( 15 downto 0);   
       siROL_Nts_Tcp_LsnReq_tvalid       : in  std_ulogic;
       siROL_Nts_Tcp_LsnReq_tready       : out std_ulogic;
-      ----  Axi4-Stream TCP Listen Ack --------
-      soROL_Nts_Tcp_LsnAck_tdata        : out std_ulogic_vector(  7 downto 0);
-      soROL_Nts_Tcp_LsnAck_tvalid       : out std_ulogic;
-      soROL_Nts_Tcp_LsnAck_tready       : in  std_ulogic;
+      ----  Axi4-Stream TCP Listen Rep --------
+      soROL_Nts_Tcp_LsnRep_tdata        : out std_ulogic_vector(  7 downto 0);
+      soROL_Nts_Tcp_LsnRep_tvalid       : out std_ulogic;
+      soROL_Nts_Tcp_LsnRep_tready       : in  std_ulogic;
       ------------------------------------------------------  
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -686,7 +686,7 @@ architecture structural of topFMKU60 is
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-  component Role_Kale
+  component Role_BringUp
     port (
       ------------------------------------------------------
       -- TOP / Global Input Clock and Reset Interface
@@ -770,8 +770,6 @@ architecture structural of topFMKU60 is
       siSHL_Nts_Tcp_Data_tready           : out   std_ulogic;
       -----  Axi4-Stream TCP Metadata ------------
       siSHL_Nts_Tcp_Meta_tdata            : in    std_ulogic_vector( 15 downto 0);
-      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tkeep            : in    std_ulogic_vector(  1 downto 0);
-      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tlast            : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
       ----  Axi4-Stream TCP Data Notification ---
@@ -805,9 +803,9 @@ architecture structural of topFMKU60 is
       soSHL_Nts_Tcp_LsnReq_tvalid         : out    std_ulogic;
       soSHL_Nts_Tcp_LsnReq_tready         : in     std_ulogic;
       ---- Stream TCP Listen Status ----
-      siSHL_Nts_Tcp_LsnAck_tdata          : in     std_ulogic_vector(  7 downto 0); 
-      siSHL_Nts_Tcp_LsnAck_tvalid         : in     std_ulogic;
-      siSHL_Nts_Tcp_LsnAck_tready         : out    std_ulogic;
+      siSHL_Nts_Tcp_LsnRep_tdata          : in     std_ulogic_vector(  7 downto 0); 
+      siSHL_Nts_Tcp_LsnRep_tvalid         : in     std_ulogic;
+      siSHL_Nts_Tcp_LsnRep_tready         : out    std_ulogic;
       ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -899,7 +897,7 @@ architecture structural of topFMKU60 is
       --------------------------------------------------------
       piTOP_250_00Clk                     : in    std_ulogic   -- Freerunning
     );
-    end component Role_Kale;
+    end component Role_BringUp;
 
 begin
   
@@ -1159,10 +1157,10 @@ begin
       siROL_Nts_Tcp_LsnReq_tdata    => ssROL_SHL_Nts_Tcp_LsnReq_tdata,
       siROL_Nts_Tcp_LsnReq_tvalid   => ssROL_SHL_Nts_Tcp_LsnReq_tvalid,
       siROL_Nts_Tcp_LsnReq_tready   => ssROL_SHL_Nts_Tcp_LsnReq_tready,
-      ----  Axi4-Stream TCP Listen Ack --------
-      soROL_Nts_Tcp_LsnAck_tdata    => ssSHL_ROL_Nts_Tcp_LsnAck_tdata,
-      soROL_Nts_Tcp_LsnAck_tvalid   => ssSHL_ROL_Nts_Tcp_LsnAck_tvalid,
-      soROL_Nts_Tcp_LsnAck_tready   => ssSHL_ROL_Nts_Tcp_LsnAck_tready,
+      ----  Axi4-Stream TCP Listen Rep --------
+      soROL_Nts_Tcp_LsnRep_tdata    => ssSHL_ROL_Nts_Tcp_LsnRep_tdata,
+      soROL_Nts_Tcp_LsnRep_tvalid   => ssSHL_ROL_Nts_Tcp_LsnRep_tvalid,
+      soROL_Nts_Tcp_LsnRep_tready   => ssSHL_ROL_Nts_Tcp_LsnRep_tready,
       ------------------------------------------------------  
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -1254,7 +1252,7 @@ begin
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
-  ROLE : Role_Kale
+  ROLE : Role_BringUp
     port map (
       ------------------------------------------------------
       -- SHELL / Global Input Clock and Reset Interface
@@ -1338,8 +1336,6 @@ begin
       siSHL_Nts_Tcp_Data_tready         => ssSHL_ROL_Nts_Tcp_Data_tready,
       ----  Axi4-Stream TCP Metadata ------------
       siSHL_Nts_Tcp_Meta_tdata          => ssSHL_ROL_Nts_Tcp_Meta_tdata,
-      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tkeep          => (others => '1'),
-      --OBSOLETE-20200528 siSHL_Nts_Tcp_Meta_tlast          => '1',
       siSHL_Nts_Tcp_Meta_tvalid         => ssSHL_ROL_Nts_Tcp_Meta_tvalid,
       siSHL_Nts_Tcp_Meta_tready         => ssSHL_ROL_Nts_Tcp_Meta_tready,
       ----  Axi4-Stream TCP Data Notification ---
@@ -1373,10 +1369,10 @@ begin
       soSHL_Nts_Tcp_LsnReq_tdata        => ssROL_SHL_Nts_Tcp_LsnReq_tdata,
       soSHL_Nts_Tcp_LsnReq_tvalid       => ssROL_SHL_Nts_Tcp_LsnReq_tvalid,
       soSHL_Nts_Tcp_LsnReq_tready       => ssROL_SHL_Nts_Tcp_LsnReq_tready,
-      -----  Axi4-Stream TCP Listen Ack --------
-      siSHL_Nts_Tcp_LsnAck_tdata        => ssSHL_ROL_Nts_Tcp_LsnAck_tdata,
-      siSHL_Nts_Tcp_LsnAck_tvalid       => ssSHL_ROL_Nts_Tcp_LsnAck_tvalid,
-      siSHL_Nts_Tcp_LsnAck_tready       => ssSHL_ROL_Nts_Tcp_LsnAck_tready, 
+      -----  Axi4-Stream TCP Listen Rep --------
+      siSHL_Nts_Tcp_LsnRep_tdata        => ssSHL_ROL_Nts_Tcp_LsnRep_tdata,
+      siSHL_Nts_Tcp_LsnRep_tvalid       => ssSHL_ROL_Nts_Tcp_LsnRep_tvalid,
+      siSHL_Nts_Tcp_LsnRep_tready       => ssSHL_ROL_Nts_Tcp_LsnRep_tready, 
       ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -1467,7 +1463,7 @@ begin
       ---- TOP : Secondary Clock (Asynchronous)
       ------------------------------------------------------
       piTOP_250_00Clk                   => sTOP_250_00Clk  -- Freerunning
-  );  -- End-of: Role_Kale instantiation
+  );  -- End-of: Role instantiation
 
 end structural;
 
