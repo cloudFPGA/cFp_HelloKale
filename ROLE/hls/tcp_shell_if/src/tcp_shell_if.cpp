@@ -25,9 +25,18 @@
  *------------------------------------------------------------------------------
  *
  * @details    : This entity handles the control flow interface between the
- *  the SHELL and the ROLE. The main purpose of the TCP Shell Interface (TSIF)
- *  is to open a predefined set of ports in listening and/or to actively connect
- *  to remote host(s).
+ *  the SHELL and the ROLE. The main purpose of the TSIF is to open a predefined
+ *  set of ports in listening and/or to actively connect to remote host(s).
+ *   The use of a dedicated layer is not a prerequisite but it is provided here
+ *   for sake of simplicity.
+ *
+ *          +-------+  +--------------------------------+
+ *          |       |  |  +------+     +-------------+  |
+ *          |       <-----+      <-----+     TCP     |  |
+ *          | SHELL |  |  | TSIF |     |             |  |
+ *          |       +----->      +-----> APPLICATION |  |
+ *          |       |  |  +------+     +-------------+  |
+ *          +-------+  +--------------------------------+
  *
  * \ingroup ROLE
  * \addtogroup ROLE_TSIF

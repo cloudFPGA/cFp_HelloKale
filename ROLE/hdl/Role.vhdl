@@ -263,10 +263,10 @@ end Role_BringUp;
 
 
 -- *****************************************************************************
--- **  ARCHITECTURE  **  BRING_UP of ROLE 
+-- **  ARCHITECTURE  **  BRING_UP of ROLE_BRING_UP
 -- *****************************************************************************
 
-architecture BringUp of Role is
+architecture BringUp of Role_BringUp is
 
   constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
@@ -593,8 +593,6 @@ architecture BringUp of Role is
       siSHL_Data_tready     : out std_logic;
       --
       siSHL_Meta_tdata      : in  std_logic_vector( 15 downto 0);
-      siSHL_Meta_tkeep      : in  std_logic_vector(  1 downto 0);
-      siSHL_Meta_tlast      : in  std_logic;
       siSHL_Meta_tvalid     : in  std_logic;
       siSHL_Meta_tready     : out std_logic;
       --------------------------------------------------------
@@ -607,8 +605,6 @@ architecture BringUp of Role is
       soSHL_Data_tready     : in  std_logic;
       --
       soSHL_Meta_tdata      : out std_logic_vector( 15 downto 0);
-      soSHL_Meta_tkeep      : out std_logic_vector(  1 downto 0);
-      soSHL_Meta_tlast      : out std_logic;
       soSHL_Meta_tvalid     : out std_logic;
       soSHL_Meta_tready     : in  std_logic;
       ------------------------------------------------------
@@ -641,8 +637,6 @@ architecture BringUp of Role is
       siTAF_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream 
       siTAF_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
-      siTAF_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
-      siTAF_Meta_tlast      : in  std_ulogic;
       siTAF_Meta_tvalid     : in  std_ulogic;
       siTAF_Meta_tready     : out std_ulogic; 
       ------------------------------------------------------               
@@ -657,8 +651,6 @@ architecture BringUp of Role is
       soTAF_Data_tready     : in  std_ulogic;
       ---- TCP Metadata Stream 
       soTAF_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
-      soTAF_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
-      soTAF_Meta_tlast      : out std_ulogic;
       soTAF_Meta_tvalid     : out std_ulogic;
       soTAF_Meta_tready     : in  std_ulogic;
       ------------------------------------------------------
@@ -680,8 +672,6 @@ architecture BringUp of Role is
       siSHL_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream 
       siSHL_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
-      siSHL_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
-      siSHL_Meta_tlast      : in  std_ulogic;
       siSHL_Meta_tvalid     : in  std_ulogic;
       siSHL_Meta_tready     : out std_ulogic;
       ------------------------------------------------------
@@ -690,14 +680,10 @@ architecture BringUp of Role is
       -- FPGA Receive Path (SHELL-->APP) -------
       ---- TCP Listen Request Stream 
       soSHL_LsnReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soSHL_LsnReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soSHL_LsnReq_tlast    : out std_ulogic;
       soSHL_LsnReq_tvalid   : out std_ulogic;
       soSHL_LsnReq_tready   : in  std_ulogic;
       ---- TCP Listen Status Stream 
       siSHL_LsnRep_tdata    : in  std_ulogic_vector(  7 downto 0);
-      siSHL_LsnRep_tkeep    : in  std_ulogic;
-      siSHL_LsnRep_tlast    : in  std_ulogic;
       siSHL_LsnRep_tvalid   : in  std_ulogic;
       siSHL_LsnRep_tready   : out std_ulogic;
       ------------------------------------------------------
@@ -711,8 +697,6 @@ architecture BringUp of Role is
       soSHL_Data_tready     : in  std_ulogic;
       ---- TCP Metadata Stream 
       soSHL_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
-      soSHL_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
-      soSHL_Meta_tlast      : out std_ulogic;
       soSHL_Meta_tvalid     : out std_ulogic;
       soSHL_Meta_tready     : in  std_ulogic;
       ---- TCP Data Status Stream 
@@ -733,8 +717,6 @@ architecture BringUp of Role is
       siSHL_OpnRep_tready   : out std_ulogic;
       ---- TCP Close Request Stream
       soSHL_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soSHL_ClsReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soSHL_ClsReq_tlast    : out std_ulogic;
       soSHL_ClsReq_tvalid   : out std_ulogic;
       soSHL_ClsReq_tready   : in  std_ulogic;
       ------------------------------------------------------
@@ -768,8 +750,6 @@ architecture BringUp of Role is
       siTAF_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream
       siTAF_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
-      siTAF_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
-      siTAF_Meta_tlast      : in  std_ulogic;
       siTAF_Meta_tvalid     : in  std_ulogic;
       siTAF_Meta_tready     : out std_ulogic; 
       ------------------------------------------------------               
@@ -784,8 +764,6 @@ architecture BringUp of Role is
       soTAF_Data_tready     : in  std_ulogic;
       ----  TCP Metadata Stream
       soTAF_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
-      soTAF_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
-      soTAF_Meta_tlast      : out std_ulogic;
       soTAF_Meta_tvalid     : out std_ulogic;
       soTAF_Meta_tready     : in  std_ulogic;
       ------------------------------------------------------
@@ -807,8 +785,6 @@ architecture BringUp of Role is
       siSHL_Data_tready     : out std_ulogic;
       ---- TCP Metadata Stream 
       siSHL_Meta_tdata      : in  std_ulogic_vector( 15 downto 0);
-      siSHL_Meta_tkeep      : in  std_ulogic_vector(  1 downto 0);
-      siSHL_Meta_tlast      : in  std_ulogic;
       siSHL_Meta_tvalid     : in  std_ulogic;
       siSHL_Meta_tready     : out std_ulogic;
       ------------------------------------------------------
@@ -817,14 +793,10 @@ architecture BringUp of Role is
       -- FPGA Receive Path (SHELL-->APP) -------
       ---- TCP Listen Request Stream 
       soSHL_LsnReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soSHL_LsnReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soSHL_LsnReq_tlast    : out std_ulogic;
       soSHL_LsnReq_tvalid   : out std_ulogic;
       soSHL_LsnReq_tready   : in  std_ulogic;
       ---- TCP Listen Status Stream 
       siSHL_LsnRep_tdata    : in  std_ulogic_vector(  7 downto 0);
-      siSHL_LsnRep_tkeep    : in  std_ulogic;
-      siSHL_LsnRep_tlast    : in  std_ulogic;
       siSHL_LsnRep_tvalid   : in  std_ulogic;
       siSHL_LsnRep_tready   : out std_ulogic;
       ------------------------------------------------------
@@ -838,8 +810,6 @@ architecture BringUp of Role is
       soSHL_Data_tready     : in  std_ulogic;
       ---- TCP Metadata Stream 
       soSHL_Meta_tdata      : out std_ulogic_vector( 15 downto 0);
-      soSHL_Meta_tkeep      : out std_ulogic_vector(  1 downto 0);
-      soSHL_Meta_tlast      : out std_ulogic;
       soSHL_Meta_tvalid     : out std_ulogic;
       soSHL_Meta_tready     : in  std_ulogic;
       ---- TCP Data Status Stream 
@@ -860,8 +830,6 @@ architecture BringUp of Role is
       siSHL_OpnRep_V_tready : out std_ulogic;
       ---- TCP Close Request Stream 
       soSHL_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
-      soSHL_ClsReq_tkeep    : out std_ulogic_vector(  1 downto 0);
-      soSHL_ClsReq_tlast    : out std_ulogic;
       soSHL_ClsReq_tvalid   : out std_ulogic;
       soSHL_ClsReq_tready   : in  std_ulogic;
       ------------------------------------------------------
@@ -1003,8 +971,6 @@ begin
           siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
           ---- TCP Meta Stream -------------
           siTAF_Meta_tdata          => ssTAF_TSIF_Meta_tdata,
-          siTAF_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
-          siTAF_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
           siTAF_Meta_tvalid         => ssTAF_TSIF_Meta_tvalid,
           siTAF_Meta_tready         => ssTAF_TSIF_Meta_tready,
           ------------------------------------------------------               
@@ -1019,8 +985,6 @@ begin
           soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
           ---- TCP Meta Stream --------------
           soTAF_Meta_tdata          => ssTSIF_TAF_Meta_tdata,
-          soTAF_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
-          soTAF_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]
           soTAF_Meta_tvalid         => ssTSIF_TAF_Meta_tvalid,
           soTAF_Meta_tready         => ssTSIF_TAF_Meta_tready,
           ------------------------------------------------------
@@ -1042,8 +1006,6 @@ begin
           siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
           ---- TCP Meta Stream -------------
           siSHL_Meta_tdata          => siSHL_Nts_Tcp_Meta_tdata,
-          siSHL_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
-          siSHL_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
           siSHL_Meta_tvalid         => siSHL_Nts_Tcp_Meta_tvalid,
           siSHL_Meta_tready         => siSHL_Nts_Tcp_Meta_tready,
           ------------------------------------------------------
@@ -1052,14 +1014,10 @@ begin
           -- FPGA Receive Path (SHELL-->APP) --------
           ---- TCP Listen Request Stream -----
           soSHL_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
-          soSHL_LsnReq_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-          soSHL_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
           soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
           soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
           ---- TCP Listen Rep Stream ---------
           siSHL_LsnRep_tdata        => siSHL_Nts_Tcp_LsnRep_tdata,
-          siSHL_LsnRep_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
-          siSHL_LsnRep_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]
           siSHL_LsnRep_tvalid       => siSHL_Nts_Tcp_LsnRep_tvalid, 
           siSHL_LsnRep_tready       => siSHL_Nts_Tcp_LsnRep_tready, 
           ------------------------------------------------------
@@ -1073,8 +1031,6 @@ begin
           soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
           ---- TCP Meta Stream -------------
           soSHL_Meta_tdata          => soSHL_Nts_Tcp_Meta_tdata,
-          soSHL_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
-          soSHL_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]
           soSHL_Meta_tvalid         => soSHL_Nts_Tcp_Meta_tvalid,
           soSHL_Meta_tready         => soSHL_Nts_Tcp_Meta_tready,
           ---- TCP Data Status Stream ------
@@ -1103,8 +1059,9 @@ begin
           poTAF_SConId_V           => sTSIF_TAF_SessConId,
           poTAF_SConId_V_ap_vld    => open
         ); -- End of: TcpShellInterface
-  else generate
-    TSIF : TcpShellInterfaceTodo
+  else
+    generate
+      TSIF : TcpShellInterfaceTodo
       port map (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
@@ -1127,8 +1084,6 @@ begin
         siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
         ---- TCP Metadata Stream 
         siTAF_Meta_tdata          => ssTAF_TSIF_Meta_tdata,
-        siTAF_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant]
-        siTAF_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
         siTAF_Meta_tvalid         => ssTAF_TSIF_Meta_tvalid,
         siTAF_Meta_tready         => ssTAF_TSIF_Meta_tready,
         ------------------------------------------------------               
@@ -1143,8 +1098,6 @@ begin
         soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
         ---- TCP Metadata Stream 
         soTAF_Meta_tdata          => ssTSIF_TAF_Meta_tdata,
-        soTAF_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
-        soTAF_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]
         soTAF_Meta_tvalid         => ssTSIF_TAF_Meta_tvalid,
         soTAF_Meta_tready         => ssTSIF_TAF_Meta_tready,
         ------------------------------------------------------
@@ -1166,8 +1119,6 @@ begin
         siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
         ---- TCP Metadata Stream 
         siSHL_Meta_tdata          => siSHL_Nts_Tcp_Meta_tdata,
-        siSHL_Meta_tkeep          => (others=>'1'), -- [TODO: Until SHELL I/F is compliant] 
-        siSHL_Meta_tlast          => '1',           -- [TODO: Until SHELL I/F is compliant]
         siSHL_Meta_tvalid         => siSHL_Nts_Tcp_Meta_tvalid,
         siSHL_Meta_tready         => siSHL_Nts_Tcp_Meta_tready,
         ------------------------------------------------------
@@ -1176,14 +1127,10 @@ begin
         -- FPGA Receive Path (SHELL-->APP) ------- :
         ---- TCP Listen Request Stream 
         soSHL_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
-        soSHL_LsnReq_tkeep        => open,          -- [TODO: Until SHELL I/F is compliant]
-        soSHL_LsnReq_tlast        => open,          -- [TODO: Until SHELL I/F is compliant]
         soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
         soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
         ---- TCP Listen Stream 
-        siSHL_LsnRep_tdata        => siSHL_Nts_Tcp_LsnRep_tdata,
-        siSHL_LsnRep_tkeep        => '1',           -- [TODO: Until SHELL I/F is compliant] 
-        siSHL_LsnRep_tlast        => '1',           -- [TODO: Until SHELL I/F is compliant]        
+        siSHL_LsnRep_tdata        => siSHL_Nts_Tcp_LsnRep_tdata,     
         siSHL_LsnRep_tvalid       => siSHL_Nts_Tcp_LsnRep_tvalid, 
         siSHL_LsnRep_tready       => siSHL_Nts_Tcp_LsnRep_tready,
         ------------------------------------------------------
@@ -1196,9 +1143,7 @@ begin
         soSHL_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
         soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
         ---- TCP Metadata Stream 
-        soSHL_Meta_tdata          => soSHL_Nts_Tcp_Meta_tdata,
-        soSHL_Meta_tkeep          => open,          -- [TODO: Until SHELL I/F is compliant]
-        soSHL_Meta_tlast          => open,          -- [TODO: Until SHELL I/F is compliant]        
+        soSHL_Meta_tdata          => soSHL_Nts_Tcp_Meta_tdata,  
         soSHL_Meta_tvalid         => soSHL_Nts_Tcp_Meta_tvalid,
         soSHL_Meta_tready         => soSHL_Nts_Tcp_Meta_tready,
         ---- TCP Data Status Stream 
@@ -1219,8 +1164,6 @@ begin
         siSHL_OpnRep_V_tready     => siSHL_Nts_Tcp_OpnRep_tready,
         ---- TCP Close Request Stream 
         soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
-        soSHL_ClsReq_tkeep        => open,        -- [TODO: Until SHELL I/F is compliant] 
-        soSHL_ClsReq_tlast        => open,        -- [TODO: Until SHELL I/F is compliant]        
         soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
         soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
         ------------------------------------------------------
@@ -1542,8 +1485,6 @@ begin
         siSHL_Data_tready        => ssTSIF_TAF_Data_tready,
         --
         siSHL_Meta_tdata         => ssTSIF_TAF_Meta_tdata,
-        siSHL_Meta_tkeep         => (others=>'1'),             -- [TODO-ssTSIF_TAF_Meta_tkeep]
-        siSHL_Meta_tlast         => '1',                       -- [TODO-ssTSIF_TAF_Meta_tlast]
         siSHL_Meta_tvalid        => ssTSIF_TAF_Meta_tvalid,
         siSHL_Meta_tready        => ssTSIF_TAF_Meta_tready,
         --------------------------------------------------------
@@ -1556,8 +1497,6 @@ begin
         soSHL_Data_tready        => ssTAF_TSIF_Data_tready,
         --
         soSHL_Meta_tdata         => ssTAF_TSIF_Meta_tdata,
-        soSHL_Meta_tkeep         => open,                      -- [TODO-ssTAF_TSIF_Meta_tkeep]
-        soSHL_Meta_tlast         => open,                      -- [TODO-ssTAF_TSIF_Meta_tlast]
         soSHL_Meta_tvalid        => ssTAF_TSIF_Meta_tvalid,
         soSHL_Meta_tready        => ssTAF_TSIF_Meta_tready
       );
