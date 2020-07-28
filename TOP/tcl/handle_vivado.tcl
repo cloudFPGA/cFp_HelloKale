@@ -994,7 +994,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       # Generate a static bitstream
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
       # Generate the files for programming the Flash (this is for a 28f512p30e as used by FMKU2995v2)
-      write_cfgmem -format mcs -size 64 -interface BPIx16 -loadbit {up 0x00000000  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit } -file  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.mcs
+      write_cfgmem -force -format mcs -size 64 -interface BPIx16 -loadbit "up 0x00000000  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit" -file  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.mcs
 
     } else {
       #---------------------------
