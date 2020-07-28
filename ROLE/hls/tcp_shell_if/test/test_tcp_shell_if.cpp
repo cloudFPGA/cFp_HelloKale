@@ -38,12 +38,16 @@ using namespace std;
 //---------------------------------------------------------
 #define THIS_NAME "TB"
 
-#define TRACE_OFF     0x0000
-#define TRACE_TOE    1 <<  1
-#define TRACE_TAF    1 <<  2
-#define TRACE_MMIO   1 <<  3
+#define TRACE_OFF      0x0000
+#define TRACE_TOE     1 <<  1
+#define TRACE_TOE_LSN 1 <<  2
+#define TRACE_TOE_OPN 1 <<  3
+#define TRACE_TOE_RXP 1 <<  4
+#define TRACE_TOE_TXP 1 <<  5
+#define TRACE_TAF     1 <<  6
+#define TRACE_MMIO    1 <<  7
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_TOE | TRACE_MMIO)
+#define DEBUG_LEVEL (TRACE_TOE_LSN | TRACE_TOE_RXP | TRACE_MMIO)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -62,12 +66,14 @@ void stepSim() {
 /*******************************************************************************
  * @brief Emulate the behavior of the TcpAppFlash (TAF).
  *
+ * @param[in]  ofTAF_Data   A ref to the output TxApp file to write to.
  * @param[in]  siTSIF_Data  Data stream from TcpShellInterface (TSIF).
  * @param[in]  siTSIF_Meta  Session ID to [TSIF].
  * @param[out] soTSIF_Data  Data stream to [TSIF].
  * @param[out] soTSIF_Meta  SessionID to [TSIF].
  *******************************************************************************/
 void pTAF(
+        ofstream            &ofTAF_Data,
         stream<TcpAppData>  &siTSIF_Data,
         stream<TcpAppMeta>  &siTSIF_Meta,
         stream<TcpAppData>  &soTSIF_Data,
@@ -94,6 +100,7 @@ void pTAF(
     case RX_STREAM:
         if (!siTSIF_Data.empty() && !soTSIF_Data.full()) {
             siTSIF_Data.read(currChunk);
+            int bytes = writeAxisAppToFile(currChunk, ofTAF_Data);
             soTSIF_Data.write(currChunk);
             if (DEBUG_LEVEL & TRACE_TAF) { printAxisRaw(myName, "soTSIF_Data =", currChunk); }
             if (currChunk.getTLast()) {
@@ -135,6 +142,7 @@ void pMMIO(
  * @brief Emulate behavior of the SHELL/NTS/TCP Offload Engine (TOE).
  *
  * @param[in]  nrErr         A ref to the error counter of main.
+ * @param[in]  ofTAF_Gold    A ref to the TAF gold file to write.
  * @param[out] poMMIO_Ready  Ready signal to [MMIO].
  * @param[out] soTSIF_Notif  Notification to TcpShellInterface (TSIF).
  * @param[in]  siTSIF_DReq   Data read request from [TSIF].
@@ -145,6 +153,7 @@ void pMMIO(
  *******************************************************************************/
 void pTOE(
         int                   &nrErr,
+       ofstream               &ofTAF_Gold,
         //-- MMIO / Ready Signal
         StsBit                *poMMIO_Ready,
         //-- TSIF / Tx Data Interfaces
@@ -173,12 +182,15 @@ void pTOE(
 
     static Ip4Addr toe_hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
     static TcpPort toe_fpgaLsnPort = -1;
-    static TcpPort toe_hostTcpPort = DEFAULT_HOST_LSN_PORT;
+    static TcpPort toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
+    static TcpPort toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
     static int     toe_loop        = 1;
 
     static enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_REP}  lsnState = LSN_WAIT_REQ;
     static enum OpnStates { OPN_WAIT_REQ,   OPN_SEND_REP}  opnState = OPN_WAIT_REQ;
-    static enum RxpStates { RXP_SEND_NOTIF, RXP_WAIT_DREQ, RXP_SEND_DATA, RXP_DONE} rxpState = RXP_SEND_NOTIF;
+    static enum RxpStates { RXP_SEND_NOTIF, RXP_WAIT_DREQ,
+                            RXP_SEND_DATA,  RXP_NEXT_SESS,
+                                            RXP_DONE}      rxpState = RXP_SEND_NOTIF;
     static enum TxpStates { TXP_WAIT_META,  TXP_RECV_DATA} txpState = TXP_WAIT_META;
 
     static int  toe_startupDelay = 0x8000;
@@ -210,21 +222,22 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #1 - LISTENING
     //------------------------------------------------------
-    static TcpAppLsnReq appLsnPortReq;
-
+    static TcpAppLsnReq toe_appLsnPortReq;
     switch (lsnState) {
     case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
         if (!siTSIF_LsnReq.empty()) {
-            siTSIF_LsnReq.read(appLsnPortReq);
-            printInfo(myLsnName, "Received a listen port request #%d from [TSIF].\n",
-                      appLsnPortReq.to_int());
+            siTSIF_LsnReq.read(toe_appLsnPortReq);
+            if (DEBUG_LEVEL & TRACE_TOE_LSN) {
+                printInfo(myLsnName, "Received a listen port request #%d from [TSIF].\n",
+                          toe_appLsnPortReq.to_int());
+            }
             lsnState = LSN_SEND_REP;
         }
         break;
     case LSN_SEND_REP: // SEND REPLY BACK TO [TSIF]
         if (!soTSIF_LsnRep.full()) {
             soTSIF_LsnRep.write(TcpAppLsnRep(NTS_OK));
-            toe_fpgaLsnPort = appLsnPortReq.to_int();
+            toe_fpgaLsnPort = toe_appLsnPortReq.to_int();
             lsnState = LSN_WAIT_REQ;
         }
         else {
@@ -236,15 +249,16 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #2 - OPEN CONNECTION
     //------------------------------------------------------
-    TcpAppOpnReq  opnReq;
-
+    TcpAppOpnReq  toe_opnReq;
     TcpAppOpnRep  opnReply(DEFAULT_SESSION_ID, ESTABLISHED);
     switch(opnState) {
     case OPN_WAIT_REQ:
         if (!siTSIF_OpnReq.empty()) {
-            siTSIF_OpnReq.read(opnReq);
-            printInfo(myOpnName, "Received a request to open the following remote socket address:\n");
-            printSockAddr(myOpnName, LE_SockAddr(opnReq.addr, opnReq.port));
+            siTSIF_OpnReq.read(toe_opnReq);
+            if (DEBUG_LEVEL & TRACE_TOE_OPN) {
+                printInfo(myOpnName, "Received a request to open the following remote socket address:\n");
+                printSockAddr(myOpnName, LE_SockAddr(toe_opnReq.addr, toe_opnReq.port));
+            }
             opnState = OPN_SEND_REP;
         }
         break;
@@ -262,73 +276,105 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #3 - RX DATA PATH
     //------------------------------------------------------
-    static TcpAppRdReq appRdReq;
-    static SessionId   sessionId;
-    static int         byteCnt = 0;
-    static int         segCnt  = 0;
-    const  int         nrSegToSend = 3;
-    static ap_uint<64> data=0;
+    static TcpAppRdReq toe_appRdReq;
+    static SessionId   toe_sessId;
+    static int         toe_appRxBytCnt=0;
+    static int         toe_appRxSegCnt=0;
+    static ap_uint<64> toe_appRxData=0;
+    static int         toe_sessCnt=0;
+    const  int         nrSegToSend=3;
+    const  int         nrSessToSend=3;
     ap_uint< 8>        keep;
     ap_uint< 1>        last;
 
     if (toe_rxpIsReady) {
         switch (rxpState) {
         case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TSIF]
-            sessionId   = DEFAULT_SESSION_ID;
+            switch (toe_sessCnt) {
+            case 1:
+                toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
+                break;
+            default:
+                toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
+                break;
+            }
+            toe_sessId  = DEFAULT_SESSION_ID + toe_sessCnt;
             tcpSegLen   = DEFAULT_SESSION_LEN;
             toe_hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
-            toe_hostTcpPort = DEFAULT_HOST_LSN_PORT;
+            toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
             if (!soTSIF_Notif.full()) {
-                soTSIF_Notif.write(TcpAppNotif(sessionId,  tcpSegLen, toe_hostIp4Addr,
-                                            toe_hostTcpPort, toe_fpgaLsnPort));
-                printInfo(myRxpName, "Sending notification #%d to [TSIF] (sessId=%d, segLen=%d).\n",
-                          segCnt, sessionId.to_int(), tcpSegLen.to_int());
+                soTSIF_Notif.write(TcpAppNotif(toe_sessId,  tcpSegLen, toe_hostIp4Addr,
+                                            toe_hostTcpSrcPort, toe_hostTcpDstPort));
+                if (DEBUG_LEVEL & TRACE_TOE_RXP) {
+                    printInfo(myRxpName, "Sending notification #%d to [TSIF] (sessId=%d, segLen=%d, dstPort=%d).\n",
+                              toe_appRxSegCnt, toe_sessId.to_int(), tcpSegLen.to_int(), toe_hostTcpDstPort.to_uint());
+                }
                 rxpState = RXP_WAIT_DREQ;
             }
             break;
         case RXP_WAIT_DREQ: // WAIT FOR A DATA REQUEST FROM [TSIF]
             if (!siTSIF_DReq.empty()) {
-                siTSIF_DReq.read(appRdReq);
-                printInfo(myRxpName, "Received a data read request from [TSIF] (sessId=%d, segLen=%d).\n",
-                          appRdReq.sessionID.to_int(), appRdReq.length.to_int());
-                byteCnt = 0;
+                siTSIF_DReq.read(toe_appRdReq);
+                if (DEBUG_LEVEL & TRACE_TOE_RXP) {
+                    printInfo(myRxpName, "Received a data read request from [TSIF] (sessId=%d, segLen=%d).\n",
+                              toe_appRdReq.sessionID.to_int(), toe_appRdReq.length.to_int());
+                }
+                toe_appRxBytCnt = 0;
                 rxpState = RXP_SEND_DATA;
            }
            break;
         case RXP_SEND_DATA: // FORWARD DATA AND METADATA TO [TSIF]
             // Note: We always assume 'tcpSegLen' is multiple of 8B.
             keep = 0xFF;
-            last = (byteCnt==tcpSegLen) ? 1 : 0;
-            if (byteCnt == 0) {
+            last = (toe_appRxBytCnt==tcpSegLen) ? 1 : 0;
+            if (toe_appRxBytCnt == 0) {
                 if (!soTSIF_Meta.full() && !soTSIF_Data.full()) {
-                    soTSIF_Meta.write(sessionId);
-                    soTSIF_Data.write(TcpAppData(data, keep, last));
-                    if (DEBUG_LEVEL & TRACE_TOE) {
-                        printAxisRaw(myRxpName, "soTSIF_Data =", TcpAppData(data, keep, last));
+                    soTSIF_Meta.write(toe_sessId);
+                    TcpAppData currChunk(toe_appRxData, keep, last);
+                    soTSIF_Data.write(currChunk);
+                    if (toe_hostTcpDstPort != RECV_MODE_LSN_PORT) {
+                        int bytes = writeAxisAppToFile(currChunk, ofTAF_Gold);
                     }
-                    byteCnt += 8;
-                    data += 8;
+                    if (DEBUG_LEVEL & TRACE_TOE_RXP) {
+                        printAxisRaw(myRxpName, "soTSIF_Data =", TcpAppData(toe_appRxData, keep, last));
+                    }
+                    toe_appRxBytCnt += 8;
+                    toe_appRxData += 8;
                 }
                 else
                     break;
             }
-            else if (byteCnt <= (tcpSegLen)) {
+            else if (toe_appRxBytCnt <= (tcpSegLen)) {
                 if (!soTSIF_Data.full()) {
-                    soTSIF_Data.write(TcpAppData(data, keep, last));
-                    if (DEBUG_LEVEL & TRACE_TOE) {
-                        printAxisRaw(myRxpName, "soTSIF_Data =", TcpAppData(data, keep, last));
+                    TcpAppData currChunk(toe_appRxData, keep, last);
+                    soTSIF_Data.write(currChunk);
+                    if (toe_hostTcpDstPort != RECV_MODE_LSN_PORT) {
+                        int bytes = writeAxisAppToFile(currChunk, ofTAF_Gold);
                     }
-                    byteCnt += 8;
-                    data += 8;
+                    if (DEBUG_LEVEL & TRACE_TOE_RXP) {
+                        printAxisRaw(myRxpName, "soTSIF_Data =", TcpAppData(toe_appRxData, keep, last));
+                    }
+                    toe_appRxBytCnt += 8;
+                    toe_appRxData += 8;
                 }
             }
             else {
-                segCnt++;
-                if (segCnt == nrSegToSend)
-                    rxpState = RXP_DONE;
-                else
+                toe_appRxSegCnt++;
+                if (toe_appRxSegCnt == nrSegToSend) {
+                    rxpState = RXP_NEXT_SESS;
+                }
+                else {
                     rxpState = RXP_SEND_NOTIF;
+                }
             }
+            break;
+        case RXP_NEXT_SESS:
+            toe_appRxSegCnt = 0;
+            toe_sessCnt += 1;
+            if (toe_sessCnt == nrSessToSend)
+                rxpState = RXP_DONE;
+            else
+                rxpState = RXP_SEND_NOTIF;
             break;
         case RXP_DONE: // END OF THE RX PATH SEQUENCE
             // ALL SEGMENTS HAVE BEEN SENT
@@ -338,17 +384,17 @@ void pTOE(
 
     //------------------------------------------------------
     //-- FSM #4 - TX DATA PATH
-    //--    (Always drain the data coming from [TSIF])
+    //--    (Always drain the toe_appRxData coming from [TSIF])
     //------------------------------------------------------
     if (toe_txpIsReady) {
         switch (txpState) {
         case TXP_WAIT_META:
             if (!siTSIF_Meta.empty() && !siTSIF_Data.empty()) {
-                TcpAppData     appData;
+                TcpAppData      appData;
                 TcpAppMeta      sessId;
                 siTSIF_Meta.read(sessId);
                 siTSIF_Data.read(appData);
-                if (DEBUG_LEVEL & TRACE_TOE) {
+                if (DEBUG_LEVEL & TRACE_TOE_TXP) {
                     printInfo(myTxpName, "Receiving data for session #%d\n", sessId.to_uint());
                     printAxisRaw(myTxpName, "siTSIF_Data =", appData);
                 }
@@ -360,7 +406,7 @@ void pTOE(
             if (!siTSIF_Data.empty()) {
                 TcpAppData     appData;
                 siTSIF_Data.read(appData);
-                if (DEBUG_LEVEL & TRACE_TOE) {
+                if (DEBUG_LEVEL & TRACE_TOE_TXP) {
                     printAxisRaw(myTxpName, "siTSIF_Data =", appData);
                 }
                 if (appData.getTLast())
@@ -417,11 +463,35 @@ int main(int argc, char *argv[]) {
     stream<TcpAppOpnReq>  ssTSIF_TOE_OpnReq   ("ssTSIF_TOE_OpnReq");
     stream<TcpAppClsReq>  ssTSIF_TOE_ClsReq   ("ssTSIF_TOE_ClsReq");
 
+    //-----------------------------------------------------
+    //-- TESTBENCH INPUT & OUTPUT FILE STREAMS
+    //-----------------------------------------------------
+    ofstream ofTAF_Data;  // APP byte streams delivered to TAF
+    ofstream ofTAF_Gold;  // Gold reference file for 'ofTAF_Data'
+    const char  *ofTAF_DataName  = "../../../../test/simOutFiles/soTAF.dat";
+    const char  *ofTAF_GoldName  = "../../../../test/simOutFiles/soTAF.gold";
+
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
     //------------------------------------------------------
     int  nrErr = 0;  // Total number of testbench errors
     gSimCycCnt = 0; // Simulation cycle counter as a global variable
+
+    //------------------------------------------------------
+    //-- REMOVE PREVIOUS OLD SIM FILES and OPEN NEW ONES
+    //------------------------------------------------------
+    remove(ofTAF_DataName);
+    ofTAF_Data.open(ofTAF_DataName);
+    if (!ofTAF_Data) {
+        printError(THIS_NAME, "Cannot open the Application Tx file:  \n\t %s \n", ofTAF_DataName);
+        return -1;
+    }
+    remove(ofTAF_GoldName);
+    ofTAF_Gold.open(ofTAF_GoldName);
+    if (!ofTAF_Gold) {
+        printInfo(THIS_NAME, "Cannot open the Application Tx gold file:  \n\t %s \n", ofTAF_GoldName);
+        return -1;
+    }
 
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_uoe' STARTS HERE                                       ##\n");
@@ -438,6 +508,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         pTOE(
             nrErr,
+            ofTAF_Gold,
             //-- TOE / Ready Signal
             &sTOE_MMIO_Ready,
             //-- TOE / Tx Data Interfaces
@@ -500,6 +571,7 @@ int main(int argc, char *argv[]) {
         //-- EMULATE ROLE/TcpApplicationFlash
         //-------------------------------------------------
         pTAF(
+            ofTAF_Data,
             //-- TSIF / Data Interface
             ssTSIF_TAF_Data,
             ssTSIF_TAF_Meta,
@@ -516,10 +588,25 @@ int main(int argc, char *argv[]) {
               gFatalError or
               (nrErr > 10) );
 
-    printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-    printf("############################################################################\n");
-    printf("## TESTBENCH ENDS HERE                                                    ##\n");
-    printf("############################################################################\n\n");
+    //---------------------------------
+    //-- CLOSING OPEN FILES
+    //---------------------------------
+    ofTAF_Data.close();
+    ofTAF_Gold.close();
+
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_tcpshell_if' ENDS HERE                                 ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
+
+    //---------------------------------------------------------------
+    //-- COMPARE RESULT DATA FILE WITH GOLDEN FILE
+    //---------------------------------------------------------------
+    int res = system(("diff --brief -w " + std::string(ofTAF_DataName) + " " + std::string(ofTAF_GoldName) + " ").c_str());
+    if (res != 0) {
+    printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAF_DataName, ofTAF_GoldName);
+        nrErr++;
+    }
 
     if (nrErr) {
          printError(THIS_NAME, "###########################################################\n");

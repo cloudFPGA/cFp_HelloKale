@@ -324,16 +324,24 @@ void pListen(
  *
  * @param[in]  siSHL_Notif  A new Rx data notification from [SHELL].
  * @param[out] soSHL_DReq   An Rx data request to [SHELL].
+ * @param[out] soRDp_FwdCmd A command to keep/drop a stream to ReadPath (RDp).
  *
  * @details
  *  This process waits for a notification from [TOE] indicating the availability
  *   of new data for the TcpApplication Flash (TAF) process of the [ROLE].
  *  If the TCP segment length of the notification message is greater than 0, the
  *   data segment is valid and the notification is accepted.
+ *  For testing purposes, the TCP destination port is evaluated here and one of
+ *   the following actions is taken upon its value:
+ *     - 8800 : The Rx path process is requested to dump/sink this segment. This
+ *               is an indirect way to for a client to run iPerf on that port.
+ *     - 5001 : [TBD]
+ *     - 5201 : [TBD]
  *******************************************************************************/
 void pReadRequestHandler(
         stream<TcpAppNotif>    &siSHL_Notif,
-        stream<TcpAppRdReq>    &soSHL_DReq)
+        stream<TcpAppRdReq>    &soSHL_DReq,
+        stream<ForwardCmd>     &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -355,6 +363,12 @@ void pReadRequestHandler(
             if (rrh_notif.tcpSegLen != 0) {
                 // Always request the data segment to be received
                 rrh_fsmState = RRH_SEND_DREQ;
+                if (rrh_notif.tcpDstPort == 8800) {
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_DROP));
+                }
+                else {
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_KEEP));
+                }
             }
             else {
                 printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n.");
@@ -373,10 +387,11 @@ void pReadRequestHandler(
 /*******************************************************************************
  * @brief Read Path (RDp)
  *
- * @param[in]  siSHL_Data  Data stream from [SHELL].
- * @param[in]  siSHL_Meta  Session Id from [SHELL].
- * @param[out] soTAF_Data  Data stream to [TAF].
- * @param[out] soTAF_Meta  Session Id to [TAF].
+ * @param[in]  siSHL_Data   Data stream from [SHELL].
+ * @param[in]  siSHL_Meta   Session Id from [SHELL].
+ * @param[in]  siRRh_FwdCmd A command to keep/drop a stream from ReadRequestHandler (RRh).
+ * @param[out] soTAF_Data   Data stream to [TAF].
+ * @param[out] soTAF_Meta   Session Id to [TAF].
  *
  * @details
  *  This process waits for a new data segment to read and forwards it to the
@@ -386,6 +401,7 @@ void pReadRequestHandler(
 void pReadPath(
         stream<TcpAppData>  &siSHL_Data,
         stream<TcpAppMeta>  &siSHL_Meta,
+        stream<ForwardCmd>  &siRRh_FwdCmd,
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpAppMeta>  &soTAF_Meta)
 {
@@ -396,28 +412,41 @@ void pReadPath(
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { RDP_WAIT_META=0, RDP_STREAM } \
-	                           rdp_fsmState = RDP_WAIT_META;
+                               rdp_fsmState=RDP_WAIT_META;
     #pragma HLS reset variable=rdp_fsmState
+    static FlagBool            rdp_keepFlag=true;
+    #pragma HLS reset variable=rdp_keepFlag
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpAppData  currChunk;
     TcpAppMeta  sessId;
+    ForwardCmd  fwdCmd;
 
     switch (rdp_fsmState ) {
     case RDP_WAIT_META:
-        if (!siSHL_Meta.empty() and !soTAF_Meta.full()) {
+        if (!siSHL_Meta.empty() and !siRRh_FwdCmd.empty() and !soTAF_Meta.full()) {
             siSHL_Meta.read(sessId);
-            soTAF_Meta.write(sessId);
+            siRRh_FwdCmd.read(fwdCmd);
+            if (fwdCmd.action == CMD_KEEP) {
+                rdp_keepFlag = true;
+                soTAF_Meta.write(sessId);
+            }
+            else {
+                rdp_keepFlag = false;
+            }
             rdp_fsmState  = RDP_STREAM;
         }
         break;
     case RDP_STREAM:
         if (!siSHL_Data.empty() && !soTAF_Data.full()) {
             siSHL_Data.read(currChunk);
-            soTAF_Data.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", currChunk); }
-            if (currChunk.getTLast())
+            if (rdp_keepFlag) {
+                soTAF_Data.write(currChunk);
+                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", currChunk); }
+            }
+            if (currChunk.getTLast()) {
                 rdp_fsmState  = RDP_WAIT_META;
+            }
         }
         break;
     }
@@ -647,6 +676,9 @@ void tcp_shell_if(
     #pragma HLS DATAFLOW interval=1
 
     //-- LOCAL STREAMS ---------------------------------------------------------
+    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd  ("ssRRhToRDp_FwdCmd");
+    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd  depth=8
+    #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
 
     //-- PROCESS FUNCTIONS -----------------------------------------------------
     pConnect(
@@ -663,11 +695,13 @@ void tcp_shell_if(
 
     pReadRequestHandler(
             siSHL_Notif,
-            soSHL_DReq);
+            soSHL_DReq,
+            ssRRhToRDp_FwdCmd);
 
     pReadPath(
             siSHL_Data,
             siSHL_Meta,
+            ssRRhToRDp_FwdCmd,
             soTAF_Data,
             soTAF_Meta);
 

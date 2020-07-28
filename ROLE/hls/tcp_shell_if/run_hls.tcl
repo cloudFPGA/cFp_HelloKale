@@ -54,11 +54,10 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
-
 add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
 
-
 add_files -tb ${currDir}/test/test_${projectName}.cpp
+add_files -tb ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
 
 # Create a solution
 #-------------------------------------------------

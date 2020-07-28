@@ -60,6 +60,27 @@ using namespace hls;
 #define FIXME_DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
 #define FIXME_DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
+/******************************************************************************
+ * LOCAL DEFINITIONS USED BY TSIF
+ ******************************************************************************/
+//#define CMD_DROP    1
+//#define CMD_KEEP    0
+
+/*******************************************************************************
+ * Forward Command
+ *  Indicates if a received stream with session Id 'sessId' must be forwarded
+ *  or dropped.
+ *******************************************************************************/
+class ForwardCmd {
+  public:
+    SessionId   sessId;
+    CmdBit      action;
+    ForwardCmd() {}
+    ForwardCmd(SessionId  sessId, CmdBit action) :
+            sessId(sessId), action(action) {}
+};
+
+
 /*************************************************************************
  *
  * ENTITY - TCP SHELL INTERFACE (TSIF)

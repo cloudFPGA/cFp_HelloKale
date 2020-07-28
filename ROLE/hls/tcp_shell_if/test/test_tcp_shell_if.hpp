@@ -36,6 +36,7 @@
 #include "../src/tcp_shell_if.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 
 using namespace hls;
 
@@ -43,7 +44,6 @@ using namespace hls;
 //-- TESTBENCH DEFINITIONS
 //------------------------------------------------------
 #define MAX_SIM_CYCLES   500
-//OBSOLETE_20200724 #define LSN_ACK            1
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -64,7 +64,7 @@ unsigned int    gMaxSimCycles = 0x8000 + 200;
 #define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
 #define DEFAULT_FPGA_LSN_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
-#define DEFAULT_HOST_LSN_PORT   0x80        // TB listens on port      = 128
+#define DEFAULT_HOST_TCP_SRC_PORT 0x80        // TB listens on port      = 128
 
 #define DEFAULT_SESSION_ID      42
 #define DEFAULT_SESSION_LEN     32
