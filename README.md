@@ -11,10 +11,10 @@ referred to as a _Shell-Role-Architecture (SRA)_.
 This section describes the toplevel design (**TOP**) of the _cFp_BringUp_ project which was developed for the bring-up and the testing of the FMKU2595 module when it is equipped with a XCKU060. 
 As shown in the figure below, the toplevel of _cFp_BringUp_ consists of:
   - a SHELL of type [_**Kale**_](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md) which is a shell with minimalist support for accessing the hardware components of the FPGA card. **Warning**, the limited features of this shell preclude the deployment of partial bit streams and requires the use of a JTAG interface to download and configure the FPGA with a fully static bit stream.    
-  - a ROLE of type [_**BringUp**_](./ROLE/Doc/BringUpRole.md) which implements a set of TCP-, UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module.
+  - a ROLE of type [_**BringUp**_](./DOC/BringUpRole.md) which implements a set of TCP-, UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module.
 
 
-![Block diagram of the BringUpTop](./ROLE/DOC/imgs/Fig-TOP-BringUp.png#center)
+![Block diagram of the BringUpTop](./DOC/imgs/Fig-TOP-BringUp.png#center)
 <p align="center"><b>Toplevel block diagram of the cfP_BringUp project</b></p>
 <br>
 
