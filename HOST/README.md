@@ -57,13 +57,27 @@ It is good practise to ping your FPGA instance before trying to run any further 
  
 ```
 
-
-
 ##### Step-3b: Execute a TCP transmit test
+The _**iperf**_ network performance measurement tool can be used in client mode to create data streams between the host and the port **8800** of the FPGA instance. 
+```
+    $ iperf --help
+    $ iperf -c <11.22.33.44> -p 8800
+    ------------------------------------------------------------
+    Client connecting to 10.12.200.11, TCP port 8800
+    TCP window size:  117 KByte (default)
+    ------------------------------------------------------------
+    [  3] local 10.2.0.10 port 52074 connected with 10.12.200.11 port 8800
+    [ ID] Interval       Transfer     Bandwidth
+    [  3]  0.0-30.0 sec  1.20 GBytes   345 Mbits/sec
+```
+
+
 ##### Step-3c: Execute a TCP receive test
 
 ##### Step-4a: Execute a TCP echo test
+
 ##### Step-4b: Execute a TCP transmit test
+
 ##### Step-4c: Execute a TCP receive test
 
 
