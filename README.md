@@ -48,9 +48,6 @@ make monolithic_incr
 Note: If ```make monolithic_incr``` gets invoked in the absence of a saved checkpoint, the build will execute the default
 default monolithic flow of step-1. 
 
-### How to download the static bitfile
+### How to test the features of the static bitfile
 
-TODO - Refer to section 'How to cloudFPGA on ZYC2'
-
-### How to testtest the features of the static bitfile
 TODO - Refer to section [_**HOST**_](./HOST/README.md) of the _cFp_BringUp_ project.
