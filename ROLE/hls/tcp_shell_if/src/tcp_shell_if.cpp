@@ -290,7 +290,7 @@ void pListen(
             TcpAppLsnRep  listenDone;
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
-                printInfo(myName, "Received listen acknowledgment from [TOE].\n");
+                printInfo(myName, "Received OK listen reply from [TOE].\n");
                 if (lsn_i == 3) {
                     lsn_fsmState = LSN_DONE;
                 }
@@ -317,7 +317,7 @@ void pListen(
     case LSN_DONE:
         break;
     }  // End-of: switch()
-}
+}  // End-of: pListen()
 
 /*******************************************************************************
  * @brief Read Request Handler (RRh)
@@ -363,7 +363,7 @@ void pReadRequestHandler(
             if (rrh_notif.tcpSegLen != 0) {
                 // Always request the data segment to be received
                 rrh_fsmState = RRH_SEND_DREQ;
-                if (rrh_notif.tcpDstPort == 8800) {
+                if (rrh_notif.tcpDstPort == RECV_MODE_LSN_PORT) { // 8800
                     soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_DROP));
                 }
                 else {

@@ -92,11 +92,20 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
 
 /*******************************************************************************
- * @brief Request the SHELL/NTS/UOE to start listening on a specific port.
+ * @brief Listen(LSn)
  *
  * @param[in]  piSHL_Enable  Enable signal from [SHELL].
- * @param[out] soSHL_LsnReq  Request to listen on a port to [SHELL].
+ * @param[out] soSHL_LsnReq  Listen port request to [SHELL].
  * @param[in]  siSHL_LsnRep  Listen reply from [SHELL].
+ *
+ * @details
+ *  This process requests the SHELL/NTS/UOE to start listening for incoming
+ *   connections on a specific port (.i.e, open connection in server mode).
+ *  By default, the port numbers 5001, 5201, 8800 and 8803 will always be opened
+ *   in listen mode at startup. Later on, we should be able to open more port if
+ *   we provide some configuration register for the user to specify new ones.
+ *  As opposed to the TCP Offload engine (TOE), the UOE supports a total of
+ *   65,535 (0xFFFF) connections in listening mode.
  *******************************************************************************/
 void pListen(
         CmdBit              *piSHL_Enable,
@@ -109,9 +118,16 @@ void pListen(
     const char *myName = concat3(THIS_NAME, "/", "LSn");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE } \
+    static enum FsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_REP, LSN_DONE } \
                                lsn_fsmState=LSN_IDLE;
     #pragma HLS reset variable=lsn_fsmState
+    static ap_uint<2>          lsn_i = 0;
+    #pragma HLS reset variable=lsn_i
+
+    //-- STATIC ARRAYS --------------------------------------------------------
+    static const TcpPort LSN_PORT_TABLE[4] = { RECV_MODE_LSN_PORT, ECHO_MODE_LSN_PORT,
+                                               IPERF_LSN_PORT, IPREF3_LSN_PORT };
+    #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=ROM_1P
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static ap_uint<8>  lsn_watchDogTimer;
@@ -121,38 +137,62 @@ void pListen(
         if (*piSHL_Enable != 1) {
             return;
         }
-        else
-            lsn_fsmState = LSN_SEND_REQ;
+        else {
+            if (lsn_i == 0) {
+                lsn_fsmState = LSN_SEND_REQ;
+            }
+            else {
+                //-- Port are already opened
+                lsn_fsmState = LSN_DONE;
+            }
+        }
         break;
-
     case LSN_SEND_REQ:
         if (!soSHL_LsnReq.full()) {
-            UdpPort  udpListenPort = DEFAULT_FPGA_LSN_PORT;
-            soSHL_LsnReq.write(udpListenPort);
+            switch (lsn_i) {
+            case 0:
+                soSHL_LsnReq.write(RECV_MODE_LSN_PORT);
+                break;
+            case 1:
+                soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
+                break;
+            case 2:
+                soSHL_LsnReq.write(IPERF_LSN_PORT);
+                break;
+            case 3:
+                soSHL_LsnReq.write(IPREF3_LSN_PORT);
+                break;
+            }
             if (DEBUG_LEVEL & TRACE_LSN) {
-                printInfo(myName, "SHELL/NTS/USIF is requested to listen on port #%d (0x%4.4X).\n",
-                          DEFAULT_FPGA_LSN_PORT, DEFAULT_FPGA_LSN_PORT);
+                printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
+                          LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
             #ifndef __SYNTHESIS__
                 lsn_watchDogTimer = 10;
             #else
                 lsn_watchDogTimer = 100;
             #endif
-            lsn_fsmState = LSN_WAIT_ACK;
+            lsn_fsmState = LSN_WAIT_REP;
             }
         }
         else {
             printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
         }
         break;
-
-    case LSN_WAIT_ACK:
+    case LSN_WAIT_REP:
         lsn_watchDogTimer--;
         if (!siSHL_LsnRep.empty()) {
-            StsBool listenDone;
+            UdpAppLsnRep listenDone;
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
-                printInfo(myName, "Received listen acknowledgment from [UOE].\n");
-                lsn_fsmState = LSN_DONE;
+                printInfo(myName, "Received OK listen reply from [UOE].\n");
+                if (lsn_i == 3) {
+                    lsn_fsmState = LSN_DONE;
+                }
+                else {
+                    //-- Set next listen port number
+                    lsn_i += 1;
+                    lsn_fsmState = LSN_SEND_REQ;
+                }
             }
             else {
                 printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
@@ -168,10 +208,9 @@ void pListen(
             }
         }
         break;
-
     case LSN_DONE:
         break;
-    }
+    }  // End-of: switch()
 }  // End-of: pListen()
 
 /*******************************************************************************
@@ -274,6 +313,8 @@ void pReadPath(
     static enum FsmStates { RDP_WAIT_META=0, RDP_STREAM } \
 	                           rdp_fsmState = RDP_WAIT_META;
     #pragma HLS reset variable=rdp_fsmState
+    static FlagBool            rdp_keepFlag=true;
+    #pragma HLS reset variable=rdp_keepFlag
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     UdpAppData  appData;
@@ -283,19 +324,31 @@ void pReadPath(
     case RDP_WAIT_META:
         if (!siSHL_Meta.empty() and !soUAF_Meta.full()) {
             siSHL_Meta.read(appMeta);
-            soUAF_Meta.write(appMeta);
+            if (appMeta.dst.port == RECV_MODE_LSN_PORT) {
+                // Dump this traffic stream (DstPort == 8800)
+                rdp_keepFlag = false;
+                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Dropping metadata of the incoming stream (DstPort=%4.4d)\n", appMeta.dst.port.to_uint()); }
+            }
+            else {
+                rdp_keepFlag = true;
+                soUAF_Meta.write(appMeta);
+            }
             rdp_fsmState  = RDP_STREAM;
         }
         break;
     case RDP_STREAM:
         if (!siSHL_Data.empty() && !soUAF_Data.full()) {
             siSHL_Data.read(appData);
-            if (DEBUG_LEVEL & TRACE_RDP) {
-                 printAxisRaw(myName, "Received data chunk from SHELL: ", appData);
+            if (rdp_keepFlag) {
+                soUAF_Data.write(appData);
+                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soUAF_Data =", appData); }
             }
-            soUAF_Data.write(appData);
-            if (appData.getLE_TLast())
+            else {
+                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Dropping siSHL_Data =", appData); }
+            }
+            if (appData.getLE_TLast()) {
                 rdp_fsmState  = RDP_WAIT_META;
+            }
         }
         break;
     }

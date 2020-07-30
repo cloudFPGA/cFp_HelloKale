@@ -32,6 +32,9 @@
  * \{
  *******************************************************************************/
 
+#ifndef _USIF_H_
+#define _USIF_H_
+
 #include <hls_stream.h>
 #include "ap_int.h"
 
@@ -39,6 +42,27 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
 using namespace hls;
+
+//-------------------------------------------------------------------
+//-- DEFAULT LISTENING PORTS
+//--  By default, the following port numbers will be used by the
+//--  UdpShellInterface (unless user specifies new ones via TBD).
+//--  Default listen ports:
+//--  --> 5001 : Traffic received on this port is [TODO-TBD].
+//--             It is used to emulate IPERF V2.
+//--  --> 5201 : Traffic received on this port is [TODO-TBD].
+//--             It is used to emulate IPREF V3.
+//--  --> 8800 : Traffic received on this port is systematically
+//--             dumped. It is used to test the Rx part of TOE.
+//--  --> 8803 : Traffic received on this port is looped backed and
+//--             echoed to the sender.
+//-------------------------------------------------------------------
+#define RECV_MODE_LSN_PORT      8800        // 0x2260
+#define XMIT_MODE_LSN_PORT      8801        // 0x2261
+#define BIDIR_MODE_LSN_PORT     8802        // 0x2262
+#define ECHO_MODE_LSN_PORT      8803        // 0x2263
+#define IPERF_LSN_PORT          5001        // 0x1389
+#define IPREF3_LSN_PORT         5201        // 0x1451
 
 
 /*******************************************************************************
@@ -56,10 +80,10 @@ void udp_shell_if(
         //------------------------------------------------------
         //-- SHELL / Control Port Interfaces
         //------------------------------------------------------
-        stream<UdpPort>         &soSHL_LsnReq,
-        stream<StsBool>         &siSHL_LsnRep,
-        stream<UdpPort>         &soSHL_ClsReq,
-        stream<StsBool>         &siSHL_ClsRep,
+        stream<UdpAppLsnReq>    &soSHL_LsnReq,
+        stream<UdpAppLsnRep>    &siSHL_LsnRep,
+        stream<UdpAppClsReq>    &soSHL_ClsReq,
+        stream<UdpAppClsRep>    &siSHL_ClsRep,
 
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
@@ -88,5 +112,7 @@ void udp_shell_if(
         stream<UdpAppMeta>      &soUAF_Meta
 
 );
+
+#endif
 
 /*! \} */

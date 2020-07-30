@@ -39,6 +39,9 @@
  *               |        (UOE)          +---------+
  *               +-----------------------+
  *
+ * \ingroup ROLE
+ * \addtogroup ROLE_USIF
+ * \{
  *****************************************************************************/
 
 #include "test_udp_shell_if.hpp"
@@ -60,6 +63,19 @@ using namespace std;
 
 #define DEBUG_LEVEL (TRACE_OFF)
 
+/*******************************************************************************
+ * @brief Increment the simulation counter
+ *******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
+}
 
 /*****************************************************************************
  * @brief Emulate the behavior of the ROLE/UdpAppFlash (UAF).
@@ -254,6 +270,9 @@ void pUOE(
     UdpAppData         appData;
     static UdpAppMeta  uoe_rxMeta;
     static int         uoe_rxByteCnt;
+    static int         uoe_dgmCnt=0;
+    const  int         nrDgmToSend=3;
+
     if (uoe_rxpIsReady) {
         switch (uoe_rxpState) {
         case RXP_SEND_META: // SEND METADATA TO [USIF]
@@ -261,11 +280,20 @@ void pUOE(
             uoe_rxMeta.src.addr = DEFAULT_HOST_IP4_ADDR;
             uoe_rxMeta.src.port = DEFAULT_HOST_SND_PORT;
             uoe_rxMeta.dst.addr = DEFAULT_FPGA_IP4_ADDR;
-            uoe_rxMeta.dst.port = DEFAULT_FPGA_LSN_PORT;
+            switch (uoe_dgmCnt) {
+            case 1:
+                uoe_rxMeta.dst.port = RECV_MODE_LSN_PORT;
+                break;
+            default:
+                uoe_rxMeta.dst.port = ECHO_MODE_LSN_PORT;
+                break;
+            }
             if (!soUSIF_Meta.full()) {
                 soUSIF_Meta.write(uoe_rxMeta);
-                printInfo(myRxpName, "Sending metadata to [USIF].\n");
-                printSockPair(myRxpName, uoe_rxMeta);
+                if (DEBUG_LEVEL & TRACE_UOE) {
+                    printInfo(myRxpName, "Sending metadata to [USIF].\n");
+                    printSockPair(myRxpName, uoe_rxMeta);
+                }
                 uoe_rxpState = RXP_SEND_DATA;
             }
             break;
@@ -279,13 +307,21 @@ void pUOE(
             else {
                 appData.setTKeep(lenTotKeep(uoe_rxByteCnt));
                 appData.setTLast(TLAST);
-                uoe_rxpState = RXP_DONE;
+                if (uoe_dgmCnt == nrDgmToSend) {
+                    uoe_rxpState = RXP_DONE;
+                }
+                else {
+                    uoe_dgmCnt += 1;
+                    uoe_rxpState = RXP_SEND_META;
+                }
             }
             if (!soUSIF_Data.full()) {
                 soUSIF_Data.write(appData);
-                writeAxisRawToFile(appData, goldFile);
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myRxpName, "Sending data chunk to [USIF]: ", appData);
+                }
+                if (uoe_rxMeta.dst.port != RECV_MODE_LSN_PORT) {
+                    writeAxisRawToFile(appData, goldFile);
                 }
             }
             break;
@@ -328,7 +364,7 @@ void pUOE(
                 siUSIF_Data.read(appData);
                 writeAxisRawToFile(appData, dataFile);
                 if (uoe_txByteCnt != 0) {
-                    uoe_txByteCnt -= keepToLen(appData.getTKeep());
+                    uoe_txByteCnt -= appData.getLen();
                 }
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myTxpName, "Received data chunk from [USIF] ", appData);
@@ -350,6 +386,12 @@ void pUOE(
  *******************************************************************************/
 int main(int argc, char *argv[])
 {
+
+    //------------------------------------------------------
+    //-- TESTBENCH GLOBAL VARIABLES
+    //------------------------------------------------------
+    gSimCycCnt = 0;  // Simulation cycle counter as a global variable
+
     //------------------------------------------------------
     //-- DUT SIGNAL INTERFACES
     //------------------------------------------------------
@@ -383,11 +425,12 @@ int main(int argc, char *argv[])
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
     //------------------------------------------------------
-    int         nrErr;
-    ofstream    ofsData;
-    ofstream    ofsGold;
-    string      ofsGold_FileName = "../../../../test/ssUOE_USIF_Gold.dat";
-    string      ofsData_FileName = "../../../../test/ssUSIF_UOE_Data.dat";
+    int         nrErr = 0;   // Total number of testbench errors
+    ofstream    ofUOE_Data;  // Data streams delivered to UOE
+    string      ofUOE_DataName = "../../../../test/simOutFiles/soUOE_Data.dat";
+    ofstream    ofUOE_Gold;  // Gold streams to compare with
+    string      ofUOE_GoldName = "../../../../test/simOutFiles/soUOE_Gold.dat";
+
     int         lenOfDatagramTest;
 
     //------------------------------------------------------
@@ -409,26 +452,30 @@ int main(int argc, char *argv[])
     }
     gMaxSimCycles += lenOfDatagramTest;
 
-    printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
-    printf("#####################################################\n");
-    gSimCycCnt = 0; // Simulation cycle counter as a global variable
-    nrErr      = 0; // Total number of testbench errors
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_udp_shell' STARTS HERE                                 ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
+    for (int i=1; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
 
-    //-- REMOVE PREVIOUS FILES AND OPEN NEW ONES
-    remove(ofsData_FileName.c_str());
-    if (!ofsData.is_open()) {
-        ofsData.open(ofsData_FileName.c_str(), ofstream::out);
-        if (!ofsData) {
-            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsData_FileName.c_str());
+    //------------------------------------------------------
+    //-- REMOVE PREVIOUS OLD SIM FILES and OPEN NEW ONES
+    //------------------------------------------------------
+    remove(ofUOE_DataName.c_str());
+    if (!ofUOE_Data.is_open()) {
+        ofUOE_Data.open(ofUOE_DataName.c_str(), ofstream::out);
+        if (!ofUOE_Data) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofUOE_DataName.c_str());
             return(NTS_KO);
         }
     }
-    remove(ofsGold_FileName.c_str());
-    if (!ofsGold.is_open()) {
-        ofsGold.open(ofsGold_FileName.c_str(), ofstream::out);
-        if (!ofsGold) {
-            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsGold_FileName.c_str());
+    remove(ofUOE_GoldName.c_str());
+    if (!ofUOE_Gold.is_open()) {
+        ofUOE_Gold.open(ofUOE_GoldName.c_str(), ofstream::out);
+        if (!ofUOE_Gold) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofUOE_GoldName.c_str());
             return(NTS_KO);
         }
     }
@@ -437,14 +484,13 @@ int main(int argc, char *argv[])
     //-- MAIN LOOP
     //-----------------------------------------------------
     do {
-
         //-------------------------------------------------
         //-- EMULATE SHELL/NTS/UOE
         //-------------------------------------------------
         pUOE(
             nrErr,
-            ofsGold,
-            ofsData,
+            ofUOE_Gold,
+            ofUOE_Data,
             lenOfDatagramTest,
             //-- UOE / Ready Signal
             &sUOE_MMIO_Ready,
@@ -511,46 +557,48 @@ int main(int argc, char *argv[])
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
+        stepSim();
 
     } while ( (gSimCycCnt < gMaxSimCycles) or gFatalError or (nrErr > 10) );
 
-    //-- CLOSE FILES
-    ofsGold.close();
-    ofsData.close();
+    //---------------------------------
+    //-- CLOSING OPEN FILES
+    //---------------------------------
+    ofUOE_Gold.close();
+    ofUOE_Data.close();
 
     printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
-    printf("## TESTBENCH ENDS HERE                                                    ##\n");
+    printf("## TESTBENCH 'test_udp_shell_if' ENDS HERE                                ##\n");
     printf("############################################################################\n\n");
 
-    //-- COMPARE DATA and GOLD STREAMS
+    //---------------------------------------------------------------
+    //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
+    //---------------------------------------------------------------
     int res = system(("diff --brief -w " + \
-                       std::string(ofsData_FileName) + " " + \
-                       std::string(ofsGold_FileName) + " ").c_str());
+                       std::string(ofUOE_DataName) + " " + \
+                       std::string(ofUOE_GoldName) + " ").c_str());
     if (res) {
         printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-                   ofsData_FileName.c_str(), ofsGold_FileName.c_str());
+                   ofUOE_DataName.c_str(), ofUOE_GoldName.c_str());
         nrErr += 1;
     }
 
     if (nrErr) {
-         printError(THIS_NAME, "###########################################################\n");
-         printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
-         printError(THIS_NAME, "###########################################################\n");
+         printError(THIS_NAME, "###############################################################################\n");
+         printError(THIS_NAME, "#### TESTBENCH 'test_udp_shell_if' FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
+         printError(THIS_NAME, "###############################################################################\n");
 
          printInfo(THIS_NAME, "FYI - You may want to check for \'ERROR\' and/or \'WARNING\' alarms in the LOG file...\n\n");
     }
          else {
          printInfo(THIS_NAME, "#############################################################\n");
-         printInfo(THIS_NAME, "####               SUCCESSFUL END OF TEST                ####\n");
+         printInfo(THIS_NAME, "####        SUCCESSFUL END OF 'test_udp_shell_if'        ####\n");
          printInfo(THIS_NAME, "#############################################################\n");
      }
 
     return(nrErr);
 
 }
+
+/*! \} */

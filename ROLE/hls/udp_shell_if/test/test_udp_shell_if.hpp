@@ -22,7 +22,13 @@
  * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
  *
+ * \ingroup ROLE
+ * \addtogroup ROLE_USIF
+ * \{
  *******************************************************************************/
+
+#ifndef _TEST_USIF_H_
+#define _TEST_USIF_H_
 
 #include <cstdlib>
 #include <hls_stream.h>
@@ -64,7 +70,9 @@ unsigned int    gMaxSimCycles = UOE_INIT_CYCLES + GRACE_TIME;
 
 #define DEFAULT_DATAGRAM_LEN    32
 
+#endif
 
+/*! \} */
 
 
 

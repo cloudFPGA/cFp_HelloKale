@@ -41,12 +41,14 @@ using namespace hls;
 //-------------------------------------------------------------------
 //-- DEFAULT LOCAL-FPGA AND FOREIGN-HOST SOCKETS
 //--  By default, the following sockets and port numbers will be used
-//--  by the TcpRoleInterface (unless user specifies new ones via TBD).
+//--  by the TcpShellInterface (unless user specifies new ones via TBD).
 //--  Default listen ports:
-//--  --> 5001 : Traffic received on this port is systematically
-//--             dumped. It is used to emulate IPERF V2.
-//--  --> 5201 : Traffic received on this port is systematically
-//--             dumped. It is used to emulate IPREF V3.
+//--  --> 5001 : Traffic received on this port is [TODO-TBD].
+//--             It is used to emulate IPERF V2.
+//--  --> 5201 : Traffic received on this port is [TODO-TBD].
+//--             It is used to emulate IPREF V3.
+//--  --> 8800 : Traffic received on this port is systematically
+//--             dumped. It is used to test the Rx part of TOE.
 //--  --> 8803 : Traffic received on this port is looped backed and
 //--             echoed to the sender.
 //-------------------------------------------------------------------
@@ -59,12 +61,6 @@ using namespace hls;
 
 #define FIXME_DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
 #define FIXME_DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
-
-/******************************************************************************
- * LOCAL DEFINITIONS USED BY TSIF
- ******************************************************************************/
-//#define CMD_DROP    1
-//#define CMD_KEEP    0
 
 /*******************************************************************************
  * Forward Command
