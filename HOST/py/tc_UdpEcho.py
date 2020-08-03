@@ -169,6 +169,134 @@ def udp_rx(sock, message, count, lock, verbose=False):
     print()
 
 
+def udp_txrx_loop(sock, message, count, verbose=False):
+    """UDP Tx-Rx Single-Thread Loop.
+     :param sock     The socket to send/receive to/from.
+     :param message  The message string to sent.
+     :param count    The number of datagrams to send.
+     :param verbose  Enables verbosity.
+     :return         None"""
+    if verbose:
+        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
+              (len(message), count, message.decode()))
+    nrErr = 0
+    loop = 0
+    rxByteCnt = 0
+    startTime = datetime.datetime.now()
+    while loop < count:
+        #  Send datagram
+        # -------------------
+        try:
+            udpSock.sendall(message)
+        finally:
+            pass
+        #  Receive datagram
+        # -------------------
+        try:
+            data = udpSock.recv(len(message))
+            rxByteCnt += len(data)
+            if data == message:
+                if verbose:
+                    print("Loop=%d | RxBytes=%d" % (loop, rxByteCnt))
+            else:
+                print("Loop=%d | RxBytes=%d" % (loop, rxByteCnt))
+                print(" KO | Received  Message=%s" % data.decode())
+                print("    | Expecting Message=%s" % message)
+                nrErr += 1
+        except IOError as e:
+            # On non blocking connections - when there are no incoming data, error is going to be raised
+            # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+            # We are going to check for both - if one of them - that's expected, means no incoming data,
+            # continue as normal. If we got different error code - something happened
+            if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                print('[ERROR] Socket reading error: {}'.format(str(e)))
+                exit(1)
+            # We just did not receive anything
+            continue
+        except socket.error as exc:
+            # Any other exception
+            print("[EXCEPTION] Socket error while receiving :: %s" % exc)
+            # exit(1)
+        finally:
+            pass
+        loop += 1
+    endTime = datetime.datetime.now()
+    elapseTime = endTime - startTime;
+    bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
+    print("[INFO] Transferred a total of %d bytes." % rxByteCnt)
+    print("#####################################################")
+    print("#### UDP Tx/Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+    print("#####################################################")
+    print()
+
+
+def udp_txrx_ramp(sock, message, count, verbose=False):
+    """UDP Tx-Rx Single-Thread Ramp.
+     :param sock     The socket to send/receive to/from.
+     :param message  The message string to sent.
+     :param count    The number of datagrams to send.
+     :param verbose  Enables verbosity.
+     :return         None"""
+    if verbose:
+        print("[INFO] The following message of %d bytes will be sent out incrementally %d times:\n  Message=%s\n" %
+              (len(message), count, message.decode()))
+    nrErr = 0
+    loop = 0
+    rxByteCnt = 0
+    startTime = datetime.datetime.now()
+    while loop < count:
+        i = 1
+        while i <= len(message):
+            subMsg = message[0:i]
+
+            #  Send datagram
+            # -------------------
+            try:
+                udpSock.sendall(subMsg)
+            finally:
+                pass
+            #  Receive datagram
+            # -------------------
+            try:
+                data = udpSock.recv(len(subMsg))
+                rxByteCnt += len(data)
+                if data == subMsg:
+                    if verbose:
+                        print("Loop=%d | RxBytes=%d" % (loop, len(data)))
+                else:
+                    print("Loop=%d | RxBytes=%d" % (loop, len(data)))
+                    print(" KO | Received  Message=%s" % data.decode())
+                    print("    | Expecting Message=%s" % subMsg)
+                    nrErr += 1
+            except IOError as e:
+                # On non blocking connections - when there are no incoming data, error is going to be raised
+                # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+                # We are going to check for both - if one of them - that's expected, means no incoming data,
+                # continue as normal. If we got different error code - something happened
+                if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                    print('[ERROR] Socket reading error: {}'.format(str(e)))
+                    exit(1)
+                # We just did not receive anything
+                continue
+            except socket.error as exc:
+                # Any other exception
+                print("[EXCEPTION] Socket error while receiving :: %s" % exc)
+                # exit(1)
+            finally:
+                pass
+            i += 1
+        loop += 1
+    endTime = datetime.datetime.now()
+    elapseTime = endTime - startTime;
+    bandwidth  = (rxByteCnt * 8 * count * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+    megaBytes  = (rxByteCnt * 1.0) / (1024 * 1024 * 1.0)
+    print("[INFO] Transferred a total of %.1f MB." % megaBytes)
+    print("#####################################################")
+    print("#### UDP Tx/Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+    print("#####################################################")
+    print()
+
+
 def getFpgaIpv4(args):
     """Retrieve the IPv4 address of the FPGA module.
     :param args  The options passed as arguments to the script.
@@ -310,6 +438,8 @@ parser.add_argument('-mt', '--multi_threading',       action="store_true",
                            help='Enable multi_threading')
 parser.add_argument('-sd', '--seed',        type=int, default=-1,
                            help='The initial number to seed the pseudorandom number generator.')
+parser.add_argument('-sz', '--size',        type=int, default=-1,
+                           help='The size of the datagram to generate.')
 parser.add_argument('-un', '--user_name',   type=str, default='',
                            help='A user-name as used to log in ZYC2 (.e.g \'fab\')')
 parser.add_argument('-up', '--user_passwd', type=str, default='',
@@ -373,10 +503,6 @@ if 0:
     udpSP = udpDP + 49152  # 8803 + 0xC000
     hostAssociation = (ipSaStr, udpSP)
 
-#OBSOLETE_20200601 #  STEP-7: Wait until the current socket can be reused
-#OBSOLETE_20200601 # -----------------------------------------------------------------------------
-#OBSOLETE_20200601 waitUntilSocketPairCanBeReused(ipFpga, portFpga)
-
 #  STEP-8a: Create a UDP/IP socket
 # -----------------------------------------------------------------------------
 try:
@@ -430,12 +556,16 @@ if seed == -1:
 random.seed(seed)
 print("[INFO] This testcase is run with:")
 print("\t\t seed = %d" % seed)
-size = random.randint(1, MAX_DGR_LEN)
-if size > MAX_DGR_LEN:
+
+size = args.size
+if size == -1:
+    size = random.randint(1, MAX_DGR_LEN)
+elif size > MAX_DGR_LEN:
     print('\nERROR: ')
-    print("[ERROR] The UDP stack does not support the reception of datagrams larger than %d bytes.\n" % MAX_DGM_SIZE)
+    print("[ERROR] The UDP stack does not support the reception of datagrams larger than %d bytes.\n" % MAX_DGR_LEN)
     exit(1)
 print("\t\t size = %d" % size)
+
 count = args.loop_count
 print("\t\t loop = %d" % count)
 
@@ -447,85 +577,29 @@ else:
 verbose = args.verbose
 
 if args.multi_threading:
-
     print("[INFO] This run is executed in multi-threading mode.\n")
-
     # Global variable
     gBytesInFlight = 0
     # Creating a lock
     lock = threading.Lock()
-
     #  STEP-11: Create Rx and Tx threads
     # -----------------------------------
     tx_thread = threading.Thread(target=udp_tx, args=(udpSock, message, count, lock, args.verbose))
     rx_thread = threading.Thread(target=udp_rx, args=(udpSock, message, count, lock, args.verbose))
-
     #  STEP-12: Start the threads
     # ---------------------------
     tx_thread.start()
     rx_thread.start()
-
     #  STEP-13: Wait for threads to terminate
     # ----------------------------------------
     tx_thread.join()
     rx_thread.join()
-
 else:
-
     print("[INFO] The run is executed in single-threading mode.\n")
-
-    if verbose:
-        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
-                                                          (len(message), count, message.decode()))
-    loop = 0
-    rxByteCnt = 0
-    startTime = datetime.datetime.now()
-    while loop < count:
-        #  Send datagram
-        # -------------------
-        try:
-            udpSock.sendall(message)
-        finally:
-            pass
-        #  Receive datagram
-        # -------------------
-        try:
-            data = udpSock.recv(len(message))
-            rxByteCnt += len(data)
-            if data == message:
-                if verbose:
-                    print("Loop=%d | RxBytes=%d" % (loop, rxByteCnt))
-            else:
-                print("Loop=%d | RxBytes=%d" % (loop, rxByteCnt))
-                print(" KO | Received  Message=%s" % data.decode())
-                print("    | Expecting Message=%s" % message)
-                nrErr += 1
-        except IOError as e:
-            # On non blocking connections - when there are no incoming data, error is going to be raised
-            # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
-            # We are going to check for both - if one of them - that's expected, means no incoming data,
-            # continue as normal. If we got different error code - something happened
-            if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                print('[ERROR] Socket reading error: {}'.format(str(e)))
-                exit(1)
-            # We just did not receive anything
-            continue
-        except socket.error as exc:
-            # Any other exception
-            print("[EXCEPTION] Socket error while receiving :: %s" % exc)
-            # exit(1)
-        finally:
-            pass
-        loop += 1
-
-    endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime;
-    bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
-    print("[INFO] Transferred a total of %d bytes." % rxByteCnt)
-    print("#####################################################")
-    print("#### UDP Tx/Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
-    print("#####################################################")
-    print()
+    if seed == 0:
+        udp_txrx_ramp(udpSock, message, count, args.verbose)
+    else:
+        udp_txrx_loop(udpSock, message, count, args.verbose)
 
 #  STEP-14: Close socket
 # -----------------------
