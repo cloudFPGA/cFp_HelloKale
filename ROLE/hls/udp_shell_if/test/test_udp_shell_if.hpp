@@ -42,8 +42,7 @@
 //-- TESTBENCH DEFINITIONS
 //------------------------------------------------------
 #define UOE_INIT_CYCLES  100  // FYI - It takes 0xFFFF cycles to initialize UOE.
-#define LSN_ACK          true
-#define GRACE_TIME       250  // Give the TB some time to finish
+#define GRACE_TIME       500  // Give the TB some time to finish
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES

@@ -206,12 +206,13 @@ void pUOE(
         stream<UdpPort>       &siUSIF_ClsReq)
 {
 
-    static enum LsnStates { LSN_WAIT_REQ,  LSN_SEND_REP}  uoe_lsnState = LSN_WAIT_REQ;
-    static enum RxpStates { RXP_SEND_META, RXP_SEND_DATA, RXP_DONE} uoe_rxpState = RXP_SEND_META;
-    static enum TxpStates { TXP_WAIT_META, TXP_RECV_DATA} uoe_txpState = TXP_WAIT_META;
+    static enum LsnStates { LSN_WAIT_REQ,  LSN_SEND_REP }  uoe_lsnState = LSN_WAIT_REQ;
+    static enum RxpStates { RXP_SEND_META, RXP_SEND_DATA, \
+                            RXP_SEND_DLEN, RXP_DONE }      uoe_rxpState = RXP_SEND_META;
+    static enum TxpStates { TXP_WAIT_META, TXP_RECV_DATA } uoe_txpState = TXP_WAIT_META;
 
     static int  uoe_startupDelay = UOE_INIT_CYCLES;
-    static int  uoe_rxpStartupDelay = 10;  // Wait a few more cycles until the listen port is opened
+    static int  uoe_rxpStartupDelay = 50;  // Wait until all the listen port are opened
     static int  uoe_txpStartupDelay = 0;
     static bool uoe_isReady = false;
     static bool uoe_rxpIsReady = false;
@@ -255,7 +256,7 @@ void pUOE(
         break;
     case LSN_SEND_REP: // SEND REPLY BACK TO [USIF]
         if (!soUSIF_LsnRep.full()) {
-            soUSIF_LsnRep.write(LSN_ACK);
+            soUSIF_LsnRep.write(OK);
             uoe_lsnState = LSN_WAIT_REQ;
         }
         else {
@@ -270,31 +271,42 @@ void pUOE(
     UdpAppData         appData;
     static UdpAppMeta  uoe_rxMeta;
     static int         uoe_rxByteCnt;
+    static int         uoe_txByteCnt;
     static int         uoe_dgmCnt=0;
-    const  int         nrDgmToSend=3;
-
+    const  int         nrDgmToSend=5;
     if (uoe_rxpIsReady) {
         switch (uoe_rxpState) {
         case RXP_SEND_META: // SEND METADATA TO [USIF]
-            uoe_rxByteCnt = dgrmLen;
             uoe_rxMeta.src.addr = DEFAULT_HOST_IP4_ADDR;
             uoe_rxMeta.src.port = DEFAULT_HOST_SND_PORT;
             uoe_rxMeta.dst.addr = DEFAULT_FPGA_IP4_ADDR;
             switch (uoe_dgmCnt) {
             case 1:
                 uoe_rxMeta.dst.port = RECV_MODE_LSN_PORT;
+                uoe_rxByteCnt = dgrmLen;
+                gMaxSimCycles += (dgrmLen / 8);
+                uoe_rxpState = RXP_SEND_DATA;
+                break;
+            case nrDgmToSend:
+                uoe_rxMeta.dst.port = XMIT_MODE_LSN_PORT;
+                uoe_txByteCnt = dgrmLen;
+                gMaxSimCycles += (dgrmLen / 8);
+                uoe_rxpState = RXP_SEND_DLEN;
                 break;
             default:
                 uoe_rxMeta.dst.port = ECHO_MODE_LSN_PORT;
+                uoe_rxByteCnt = dgrmLen;
+                gMaxSimCycles += (dgrmLen / 8);
+                uoe_rxpState = RXP_SEND_DATA;
                 break;
             }
+            uoe_dgmCnt += 1;
             if (!soUSIF_Meta.full()) {
                 soUSIF_Meta.write(uoe_rxMeta);
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printInfo(myRxpName, "Sending metadata to [USIF].\n");
                     printSockPair(myRxpName, uoe_rxMeta);
                 }
-                uoe_rxpState = RXP_SEND_DATA;
             }
             break;
         case RXP_SEND_DATA: // FORWARD DATA TO [USIF]
@@ -307,13 +319,7 @@ void pUOE(
             else {
                 appData.setTKeep(lenTotKeep(uoe_rxByteCnt));
                 appData.setTLast(TLAST);
-                if (uoe_dgmCnt == nrDgmToSend) {
-                    uoe_rxpState = RXP_DONE;
-                }
-                else {
-                    uoe_dgmCnt += 1;
-                    uoe_rxpState = RXP_SEND_META;
-                }
+                uoe_rxpState = RXP_SEND_META;
             }
             if (!soUSIF_Data.full()) {
                 soUSIF_Data.write(appData);
@@ -323,6 +329,48 @@ void pUOE(
                 if (uoe_rxMeta.dst.port != RECV_MODE_LSN_PORT) {
                     writeAxisRawToFile(appData, goldFile);
                 }
+            }
+            break;
+        case RXP_SEND_DLEN: // FORWARD TX DATA LENGTH REQUEST TO [USIF]
+            printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d.\n", uoe_txByteCnt);
+            appData.setLE_TData(byteSwap16(uoe_txByteCnt));
+            appData.setLE_TKeep(0x03);
+            appData.setLE_TLast(TLAST);
+            if (!soUSIF_Data.full()) {
+                soUSIF_Data.write(appData);
+                if (DEBUG_LEVEL & TRACE_UOE) {
+                    printAxisRaw(myRxpName, "Sending Tx data length request to [USIF]: ", appData);
+                }
+                bool firstChunk=true;
+                while (uoe_txByteCnt) {
+                    UdpAppData goldChunk(0,0,0);
+                    if (firstChunk) {
+                        for (int i=0; i<8; i++) {
+                            if (uoe_txByteCnt) {
+                                goldChunk.setLE_TData(i, (i*8)+7, (i*8)+0);
+                                goldChunk.setLE_TKeep(1, i, i);
+                                uoe_txByteCnt--;
+                            }
+                        }
+                        firstChunk = !firstChunk;
+                    }
+                    else {  // Second Chunk
+                        for (int i=0; i<8; i++) {
+                            if (uoe_txByteCnt) {
+                                goldChunk.setLE_TData(i+8, (i*8)+7, (i*8)+0);
+                                goldChunk.setLE_TKeep(1, i, i);
+                                uoe_txByteCnt--;
+                            }
+                        }
+                        firstChunk = !firstChunk;
+                    }
+                    if (uoe_txByteCnt == 0) {
+                        goldChunk.setLE_TLast(TLAST);
+                    }
+                    writeAxisRawToFile(goldChunk, goldFile);
+                }
+                uoe_dgmCnt += 1;
+                uoe_rxpState = RXP_DONE;
             }
             break;
         case RXP_DONE: // END OF THE RX PATH SEQUENCE
@@ -336,7 +384,7 @@ void pUOE(
     //-- FSM #3 - TX DATA PATH
     //--    (Always drain the data coming from [USIF])
     //------------------------------------------------------
-    static int  uoe_txByteCnt;
+    int  rcvdBytes;
     if (uoe_txpIsReady) {
         switch (uoe_txpState) {
         case TXP_WAIT_META:
@@ -345,7 +393,7 @@ void pUOE(
                 UdpAppDLen  appDLen;
                 siUSIF_Meta.read(appMeta);
                 siUSIF_DLen.read(appDLen);
-                uoe_txByteCnt = appDLen;
+                rcvdBytes = appDLen;
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     if (uoe_txByteCnt == 0) {
                         printInfo(myTxpName, "This UDP Tx datagram is forwarded in streaming mode (DLen=0).\n");
@@ -450,7 +498,6 @@ int main(int argc, char *argv[])
         printFatal(THIS_NAME, "Expected an argument specifying the length of the data stream to generate.\n");
         return NTS_KO;
     }
-    gMaxSimCycles += lenOfDatagramTest;
 
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_udp_shell' STARTS HERE                                 ##\n");

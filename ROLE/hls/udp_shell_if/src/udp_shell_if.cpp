@@ -76,7 +76,7 @@ using namespace std;
 #define TRACE_CLS 1 <<  5
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_WRP | TRACE_LSN)
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
@@ -99,11 +99,15 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
  * @param[in]  siSHL_LsnRep  Listen reply from [SHELL].
  *
  * @details
- *  This process requests the SHELL/NTS/UOE to start listening for incoming
- *   connections on a specific port (.i.e, open connection in server mode).
- *  By default, the port numbers 5001, 5201, 8800 and 8803 will always be opened
- *   in listen mode at startup. Later on, we should be able to open more port if
- *   we provide some configuration register for the user to specify new ones.
+ *  This process requests the SHELL/NTS/UOE to open a specific port in receive
+ *   mode. Although the notion of 'listening' does not exist for unconnected UDP
+ *   mode, we keep that name for this process because it puts an FPGA receive
+ *   port on hold and ready accept incoming traffic (.i.e, it opens a connection
+ *   in server mode).
+ *  By default, the port numbers 5001, 5201, 8800, 8801 and 8803 will always be
+ *   opened in listen mode at startup. Later on, we should be able to open more
+ *   port if we provide some configuration register for the user to specify new
+ *   ones.
  *  As opposed to the TCP Offload engine (TOE), the UOE supports a total of
  *   65,535 (0xFFFF) connections in listening mode.
  *******************************************************************************/
@@ -121,11 +125,11 @@ void pListen(
     static enum FsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_REP, LSN_DONE } \
                                lsn_fsmState=LSN_IDLE;
     #pragma HLS reset variable=lsn_fsmState
-    static ap_uint<2>          lsn_i = 0;
+    static ap_uint<3>          lsn_i = 0;
     #pragma HLS reset variable=lsn_i
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static const TcpPort LSN_PORT_TABLE[4] = { RECV_MODE_LSN_PORT, ECHO_MODE_LSN_PORT,
+    static const TcpPort LSN_PORT_TABLE[5] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT, ECHO_MODE_LSN_PORT,
                                                IPERF_LSN_PORT, IPREF3_LSN_PORT };
     #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=ROM_1P
 
@@ -154,12 +158,15 @@ void pListen(
                 soSHL_LsnReq.write(RECV_MODE_LSN_PORT);
                 break;
             case 1:
-                soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
+                soSHL_LsnReq.write(XMIT_MODE_LSN_PORT);
                 break;
             case 2:
-                soSHL_LsnReq.write(IPERF_LSN_PORT);
+                soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
                 break;
             case 3:
+                soSHL_LsnReq.write(IPERF_LSN_PORT);
+                break;
+            case 4:
                 soSHL_LsnReq.write(IPREF3_LSN_PORT);
                 break;
             }
@@ -185,7 +192,7 @@ void pListen(
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
                 printInfo(myName, "Received OK listen reply from [UOE].\n");
-                if (lsn_i == 3) {
+                if (lsn_i == sizeof(LSN_PORT_TABLE)/sizeof(LSN_PORT_TABLE[0])-1) {
                     lsn_fsmState = LSN_DONE;
                 }
                 else {
@@ -290,49 +297,78 @@ void pClose(
 
 /*******************************************************************************
  * @brief Read Path (RDp) - From SHELL/UOE to ROLE/UAF.
- *  Process waits for a new datagram to read and forwards it to the UAF.
  *
  * @param[in]  siSHL_Data   Datagram from [SHELL].
  * @param[in]  siSHL_Meta   Metadata from [SHELL].
  * @param[out] soUAF_Data   Datagram to [UAF].
  * @param[out] soUAF_Meta   Metadata to [UAF].
+ * @param[out] soWRp_Meta   Metadata to WritePath (WRp).
+ * @param[out] soWRp_DReq   Data length request to [WRp].
  *
+ * @details
+ *  This process waits for a new metadata to read and performs 3 possibles tasks
+ *  depending on the value of the UDP destination port.
+ *  1) If DstPort==8800, the incoming datagram is dumped. This mode is used to
+ *     the UOE in receive mode.
+ *  2) If DstPort==8801, it retrieves the first 16-bit word of the data payload
+ *     and triggers the TxWritePath (WRp) to start sending this amount of bytes
+ *     to the socket address corresponding to the producer of this request.
+ *  3) Otherwise, incoming metadata and data are forwarded to the UAF.
  *******************************************************************************/
 void pReadPath(
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMeta>  &soUAF_Meta)
+        stream<UdpAppMeta>  &soUAF_Meta,
+        stream<UdpAppMeta>  &soWRp_Meta,
+        stream<UdpAppDLen>  &soWRp_DReq)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates { RDP_WAIT_META=0, RDP_STREAM } \
-	                           rdp_fsmState = RDP_WAIT_META;
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { RDP_READ_META=0, RDP_FWD_META, RDP_STREAM, RDP_TRIG_TX } \
+	                           rdp_fsmState = RDP_READ_META;
     #pragma HLS reset variable=rdp_fsmState
     static FlagBool            rdp_keepFlag=true;
     #pragma HLS reset variable=rdp_keepFlag
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    UdpAppMeta  rdp_appMeta;
+
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
     UdpAppData  appData;
-    UdpAppMeta  appMeta;
 
     switch (rdp_fsmState ) {
-    case RDP_WAIT_META:
-        if (!siSHL_Meta.empty() and !soUAF_Meta.full()) {
-            siSHL_Meta.read(appMeta);
-            if (appMeta.dst.port == RECV_MODE_LSN_PORT) {
-                // Dump this traffic stream (DstPort == 8800)
+    case RDP_READ_META:
+        if (!siSHL_Meta.empty()) {
+            siSHL_Meta.read(rdp_appMeta);
+            switch (rdp_appMeta.dst.port) {
+            case RECV_MODE_LSN_PORT:
+                // (DstPort == 8800) Dump this traffic stream
+                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Rx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
                 rdp_keepFlag = false;
-                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Dropping metadata of the incoming stream (DstPort=%4.4d)\n", appMeta.dst.port.to_uint()); }
-            }
-            else {
+                rdp_fsmState  = RDP_STREAM;
+                break;
+            case XMIT_MODE_LSN_PORT:
+                // (DstPort == 8801) Retrieve the size of the requested Tx datagram
+                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Tx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
+                rdp_keepFlag = false;
+                rdp_fsmState  = RDP_TRIG_TX;
+                break;
+            default:
+                // Business as usual
                 rdp_keepFlag = true;
-                soUAF_Meta.write(appMeta);
+                rdp_fsmState  = RDP_FWD_META;
+                break;
             }
+        }
+        break;
+    case RDP_FWD_META:
+        if (!soUAF_Meta.full()) {
+            soUAF_Meta.write(rdp_appMeta);
             rdp_fsmState  = RDP_STREAM;
         }
         break;
@@ -347,44 +383,74 @@ void pReadPath(
                 if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Dropping siSHL_Data =", appData); }
             }
             if (appData.getLE_TLast()) {
-                rdp_fsmState  = RDP_WAIT_META;
+                rdp_fsmState  = RDP_READ_META;
             }
         }
         break;
+    case RDP_TRIG_TX:
+        if (!soWRp_Meta.full() and !soWRp_DReq.full()) {
+            // Swap source and destination sockets
+            soWRp_Meta.write(SocketPair(rdp_appMeta.dst, rdp_appMeta.src));
+            // Extract the requested Tx datagram length
+            appData = siSHL_Data.read();
+            soWRp_DReq.write(byteSwap16(appData.getLE_TData(15, 0)));
+            if (appData.getLE_TLast()) {
+                rdp_fsmState  = RDP_READ_META;
+            }
+            else {
+                rdp_fsmState = RDP_STREAM;
+            }
+        }
     }
 }  // End-of: pReadPath()
 
+
 /*******************************************************************************
  * @brief Write Path (WRp) - From ROLE/UAF to SHELL/NTS/UOE.
- *  Process waits for a new datagram to write and forwards it to SHELL.
  *
  * @param[in]  siUAF_Data   UDP datagram from [ROLE/UAF].
  * @param[in]  siUAF_Meta   UDP metadata from [ROLE/UAF].
  * @Param[in]  siUAF_DLen   UDP data len from [ROLE/UAF].
+ * @param[out] siRDp_Meta   Metadata from ReadPath (RDp).
+ * @param[out] siRDp_DReq   Data length request from [RDp].
  * @param[out] soSHL_Data   UDP datagram to [SHELL].
  * @param[out] soSHL_Meta   UDP metadata to [SHELL].
  * @param[in]  soSHL_DLen   UDP data len to [SHELL].
  *
+ * @details
+ *  This process waits for a new datagram to arrive from the UadpAppFlash (UAF)
+ *   and forwards it to SHELL.
+ *  Alternatively, if a TX test trigger by the ReadPath (RDp), this process will
+ *   generate a datagram of the specified length and forward it to the producer
+ *   of this request. This mode is used to test the UOE in transmit mode.
  *******************************************************************************/
 void pWritePath(
         stream<UdpAppData>   &siUAF_Data,
         stream<UdpAppMeta>   &siUAF_Meta,
         stream<UdpAppDLen>   &siUAF_DLen,
+        stream<UdpAppMeta>   &siRDp_Meta,
+        stream<UdpAppDLen>   &siRDp_DReq,
         stream<UdpAppData>   &soSHL_Data,
         stream<UdpAppMeta>   &soSHL_Meta,
         stream<UdpAppDLen>   &soSHL_DLen)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "WRp");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates { WRP_WAIT_META=0, WRP_STREAM } \
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { WRP_WAIT_META=0, WRP_STREAM, WRP_TXGEN } \
                                wrp_fsmState = WRP_WAIT_META;
     #pragma HLS reset variable=wrp_fsmState
+    static enum GenChunks { CHK0=0, CHK1, } \
+                               wrp_genChunk = CHK0;
+    #pragma HLS reset variable=wrp_genChunk
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static UdpAppDLen wrp_appDReq;
+
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
     UdpAppMeta    appMeta;
     UdpAppDLen    appDLen;
     UdpAppData    appData;
@@ -399,10 +465,23 @@ void pWritePath(
             soSHL_Meta.write(appMeta);
             soSHL_DLen.write(appDLen);
             if (DEBUG_LEVEL & TRACE_WRP) {
-                printInfo(myName, "Received a new datagram of length %d from ROLE.\n", appDLen.to_uint());
+                printInfo(myName, "Received a datagram of length %d from ROLE.\n", appDLen.to_uint());
                 printSockPair(myName, appMeta);
             }
             wrp_fsmState = WRP_STREAM;
+        }
+        else if (!siRDp_Meta.empty() and !siRDp_DReq.empty() and
+                 !soSHL_Meta.full()  and !soSHL_DLen.full()) {
+            siRDp_Meta.read(appMeta);
+            siRDp_DReq.read(wrp_appDReq);
+            soSHL_Meta.write(appMeta);
+            soSHL_DLen.write(wrp_appDReq);
+            if (DEBUG_LEVEL & TRACE_WRP) {
+                printInfo(myName, "Received a Tx test request of length %d from RDp.\n", wrp_appDReq.to_uint());
+                printSockPair(myName, appMeta);
+            }
+            wrp_fsmState = WRP_TXGEN;
+            wrp_genChunk = CHK0;
         }
         break;
     case WRP_STREAM:
@@ -414,6 +493,32 @@ void pWritePath(
             soSHL_Data.write(appData);
             if(appData.getTLast())
                 wrp_fsmState = WRP_WAIT_META;
+        }
+        break;
+    case WRP_TXGEN:
+        if (!soSHL_Data.full()) {
+            UdpAppData currChunk(0,0,0);
+            if (wrp_appDReq > 8) {
+                currChunk.setLE_TKeep(0xFF);
+                wrp_appDReq -= 8;
+            }
+            else {
+                currChunk.setLE_TKeep(lenToLE_tKeep(wrp_appDReq));
+                currChunk.setLE_TLast(TLAST);
+                wrp_fsmState = WRP_WAIT_META;
+            }
+            switch (wrp_genChunk) {
+            case CHK0:
+                currChunk.setLE_TData(0x0706050403020100);
+                wrp_genChunk = CHK1;
+                break;
+            case CHK1:
+                currChunk.setLE_TData(0x0f0e0d0c0b0a0908);
+                wrp_genChunk = CHK0;
+                break;
+            }
+            currChunk.clearUnusedBytes();
+            soSHL_Data.write(currChunk);
         }
         break;
     }
@@ -552,6 +657,12 @@ void udp_shell_if(
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
     //-------------------------------------------------------------------------
 
+    //-- Read Path (RDp)
+    static stream <UdpAppMeta>     ssRDpToWRp_Meta    ("ssRDpToWRp_Meta");
+    #pragma HLS STREAM    variable=ssRDpToWRp_Meta    depth=2
+    static stream <UdpAppDLen>     ssRDpToWRp_DReq    ("ssRDpToWRp_DReq");
+    #pragma HLS STREAM    variable=ssRDpToWRp_DReq    depth=2
+
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pListen(
             piSHL_Mmio_En,
@@ -567,12 +678,16 @@ void udp_shell_if(
             siSHL_Data,
             siSHL_Meta,
             soUAF_Data,
-            soUAF_Meta);
+            soUAF_Meta,
+            ssRDpToWRp_Meta,
+            ssRDpToWRp_DReq);
 
     pWritePath(
             siUAF_Data,
             siUAF_Meta,
             siUAF_DLen,
+            ssRDpToWRp_Meta,
+            ssRDpToWRp_DReq,
             soSHL_Data,
             soSHL_Meta,
             soSHL_DLen);

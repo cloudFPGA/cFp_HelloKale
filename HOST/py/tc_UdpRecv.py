@@ -15,8 +15,8 @@
 # */
 
 # *****************************************************************************
-# * @file       : tc_UdpSend.py
-# * @brief      : A single-threaded script to send traffic on the UDP
+# * @file       : tc_UdpRecv.py
+# * @brief      : A single-threaded script to receive traffic on the UDP
 # *               connection of an FPGA module.
 # *
 # * System:     : cloudFPGA
@@ -28,115 +28,84 @@
 # ### REQUIRED PYTHON PACKAGES ################################################
 import argparse
 import datetime
+import errno
 import socket
 
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
 
-def udp_tx_loop(sock, message, count, verbose=False):
-    """UDP Tx Single-Thread Loop.
-     :param sock     The socket to send/receive to/from.
-     :param message  The message string to sent.
-     :param count    The number of datagrams to send.
+def udp_rx_loop(udpSock, size, count, verbose=False):
+    """UDP Rx Single-Thread Ramp.
+     Expects to receive 'count' datagrams of 'size' bytes. Each datagram is made
+     of the following repetitive pattern '000102030405060708090A0B0C0D0E0F'.
+     :param sock     The socket to receive from.
+     :param size     The size of the expected datagram.
+     :param count    The number of datagrams to receive.
      :param verbose  Enables verbosity.
      :return         None"""
     if verbose:
-        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
-              (len(message), count, message.decode()))
+        print("[INFO] Requesting the FPGA to send %d datagrams of %d bytes.\n", (count, size))
     nrErr = 0
     loop = 0
-    txByteCnt = 0
+    rxByteCnt = 0
+    requestMsg = '{:04X}'.format(size)
+
     startTime = datetime.datetime.now()
     while loop < count:
-        #  Send datagram
-        # -------------------
-        try:
-            udpSock.sendall(message)
-        except socket.error as exc:
-            # Any exception
-            print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
-            exit(1)
-        finally:
-            pass
-        txByteCnt += len(message)
-        if verbose:
-            print("Loop=%d | TxBytes=%d" % (loop, txByteCnt))
-        loop += 1
-    endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime
-
-    if txByteCnt < 1000000:
-        print("[INFO] Transferred a total of %d bytes." % txByteCnt)
-    elif txByteCnt < 1000000000:
-        megaBytes = (txByteCnt * 1.0) / (1024 * 1024 * 1.0)
-        print("[INFO] Transferred a total of %.1f MB." % megaBytes)
-    else:
-        gigaBytes = (txByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
-        print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
-
-    bandwidth = (txByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
-    print("#####################################################")
-    if bandwidth < 1000:
-        print("#### UDP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
-    else:
-        bandwidth = bandwidth / 1000
-        print("#### UDP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
-    print("#####################################################")
-    print()
-
-
-def udp_tx_ramp(sock, message, count, verbose=False):
-    """UDP Tx Single-Thread Ramp.
-     :param sock     The socket to send/receive to/from.
-     :param message  The message string to sent.
-     :param count    The number of datagrams to send.
-     :param verbose  Enables verbosity.
-     :return         None"""
-    if verbose:
-        print("[INFO] The following message of %d bytes will be sent out incrementally %d times:\n  Message=%s\n" %
-              (len(message), count, message.decode()))
-    nrErr = 0
-    loop = 0
-    txByteCnt = 0
-    startTime = datetime.datetime.now()
-    while loop < count:
-        i = 1
-        while i <= len(message):
-            subMsg = message[0:i]
-            #  Send datagram
-            # -------------------
+            # SEND message length request to FPGA
+            # ------------------------------------
             try:
-                udpSock.sendall(subMsg)
+                udpSock.sendall(requestMsg)
             except socket.error as exc:
                 # Any exception
                 print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
                 exit(1)
             finally:
                 pass
-            txByteCnt += len(subMsg)
-            if verbose:
-                print("Loop=%d | TxBytes=%d | Msg=%s" % (loop, len(subMsg), subMsg))
-            i += 1
-        loop += 1
+            # RECEIVE message length bytes from FPGA
+            # ---------------------------------------
+            try:
+                data = udpSock.recv(size)
+                rxByteCnt += len(data)
+                if verbose:
+                    print("Loop=%d | RxBytes=%d | RxData=%s" % (loop, rxByteCnt, data))
+                    # [FIXME-TODO: assess the stream of received bytes]
+            except IOError as e:
+                # On non blocking connections - when there are no incoming data, error is going to be raised
+                # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+                # We are going to check for both - if one of them - that's expected, means no incoming data,
+                # continue as normal. If we got different error code - something happened
+                if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                    print('[ERROR] Socket reading error: {}'.format(str(e)))
+                    exit(1)
+                # We just did not receive anything
+                continue
+            except socket.error as exc:
+                # Any other exception
+                print("[EXCEPTION] Socket error while receiving :: %s" % exc)
+                # exit(1)
+            finally:
+                pass
+            loop += 1
     endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime
+    elapseTime = endTime - startTime;
 
-    if txByteCnt < 1000000:
-        print("[INFO] Transferred a total of %d bytes." % txByteCnt)
-    elif txByteCnt < 1000000000:
-        megaBytes = (txByteCnt * 1.0) / (1024 * 1024 * 1.0)
-        print("[INFO] Transferred a total of %.1f MB." % megaBytes)
+    if rxByteCnt < 1000000:
+        print("[INFO] Received a total of %d bytes." % rxByteCnt)
+    elif rxByteCnt < 1000000000:
+        megaBytes = (rxByteCnt * 1.0) / (1024 * 1024 * 1.0)
+        print("[INFO] Received a total of %.1f MB." % megaBytes)
     else:
-        gigaBytes = (txByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
+        gigaBytes = (rxByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
         print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
 
-    bandwidth = (txByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+    bandwidth = (rxByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
     print("#####################################################")
     if bandwidth < 1000:
-        print("#### UDP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+        print("#### UDP Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     else:
         bandwidth = bandwidth / 1000
-        print("#### UDP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+        print("#### UDP Rx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
     print("#####################################################")
     print()
 
@@ -149,7 +118,7 @@ def udp_tx_ramp(sock, message, count, verbose=False):
 
 #  STEP-1: Parse the command line strings into Python objects
 # -----------------------------------------------------------------------------
-parser = argparse.ArgumentParser(description='A script to send UDP data to an FPGA module.')
+parser = argparse.ArgumentParser(description='A script to receive UDP data from an FPGA module.')
 parser.add_argument('-fi', '--fpga_ipv4',   type=str, default='',
                            help='The IPv4 address of the FPGA (a.k.a image_ip / e.g. 10.12.200.163)')
 parser.add_argument('-ii', '--inst_id',     type=int, default=0,
@@ -163,7 +132,7 @@ parser.add_argument('-mp', '--mngr_port',   type=int, default=8080,
 parser.add_argument('-sd', '--seed',        type=int, default=-1,
                            help='The initial number to seed the pseudorandom number generator.')
 parser.add_argument('-sz', '--size',        type=int, default=-1,
-                           help='The size of the datagram to generate.')
+                           help='The size of the datagram to receive.')
 parser.add_argument('-un', '--user_name',   type=str, default='',
                            help='A user-name as used to log in ZYC2 (.e.g \'fab\')')
 parser.add_argument('-up', '--user_passwd', type=str, default='',
@@ -191,7 +160,7 @@ ipResMngr = getResourceManagerIpv4(args)
 
 #  STEP-3a: Set the UDP listen port of the FPGA server (this one is static)
 # -----------------------------------------------------------------------------
-portFpga = RECV_MODE_LSN_PORT # 8800
+portFpga = XMIT_MODE_LSN_PORT  # 8801
 
 #  STEP-3b: Retrieve the TCP port of the cloudFPGA Resource Manager
 # -----------------------------------------------------------------------------
@@ -228,11 +197,6 @@ try:
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
-
-# [FIXME - Disable the IP fragmentation via setsockopt()]
-#   See for also: 
-#     https://stackoverflow.com/questions/973439/how-to-set-the-dont-fragment-df-flag-on-a-socket
-#     https://stackoverflow.com/questions/26440761/why-isnt-dont-fragment-flag-getting-disabled
 
 # STEP-8b: Bind before connect (optional).
 #  This trick enables us to ask the kernel to select a specific source IP and
@@ -285,18 +249,12 @@ print("\t\t size = %d" % size)
 count = args.loop_count
 print("\t\t loop = %d" % count)
 
-if seed % 1:
-    message = str_static_gen(size)
-else:
-    message = str_rand_gen(size)
-
 verbose = args.verbose
 
+#  STEP-11: Run the test
+# -------------------------------
 print("[INFO] This run is executed in single-threading mode.\n")
-if seed == 0:
-    udp_tx_ramp(udpSock, message, count, args.verbose)
-else:
-    udp_tx_loop(udpSock, message, count, args.verbose)
+udp_rx_ramp(udpSock, size, count, args.verbose)
 
 #  STEP-14: Close socket
 # -----------------------

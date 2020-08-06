@@ -53,7 +53,10 @@ using namespace hls;
 //--  --> 5201 : Traffic received on this port is [TODO-TBD].
 //--             It is used to emulate IPREF V3.
 //--  --> 8800 : Traffic received on this port is systematically
-//--             dumped. It is used to test the Rx part of TOE.
+//--             dumped. It is used to test the Rx part of UOE.
+//--  --> 8801 : A message received on this port triggers the
+//--             transmission of 'nr' bytes from the FPGA to the host.
+//--             It is used to test the Tx part of UOE.
 //--  --> 8803 : Traffic received on this port is looped backed and
 //--             echoed to the sender.
 //-------------------------------------------------------------------
