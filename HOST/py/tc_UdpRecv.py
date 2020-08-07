@@ -34,6 +34,7 @@ import socket
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
 
+
 def udp_rx_loop(udpSock, size, count, verbose=False):
     """UDP Rx Single-Thread Ramp.
      Expects to receive 'count' datagrams of 'size' bytes. Each datagram is made
@@ -44,11 +45,11 @@ def udp_rx_loop(udpSock, size, count, verbose=False):
      :param verbose  Enables verbosity.
      :return         None"""
     if verbose:
-        print("[INFO] Requesting the FPGA to send %d datagrams of %d bytes.\n", (count, size))
+        print("[INFO] Requesting the FPGA to send %d datagrams of %d bytes.\n" % (count, size))
     nrErr = 0
     loop = 0
     rxByteCnt = 0
-    requestMsg = '{:04X}'.format(size)
+    requestMsg = '{:04X}'.format(size).encode()
 
     startTime = datetime.datetime.now()
     while loop < count:
@@ -254,7 +255,7 @@ verbose = args.verbose
 #  STEP-11: Run the test
 # -------------------------------
 print("[INFO] This run is executed in single-threading mode.\n")
-udp_rx_ramp(udpSock, size, count, args.verbose)
+udp_rx_loop(udpSock, size, count, args.verbose)
 
 #  STEP-14: Close socket
 # -----------------------
