@@ -13,7 +13,6 @@ remote host.
 
 ## Toplevel design
 
-
 ## How To Python 
 The **_py_** directory contains a set of python3 scripts for interacting with the role of the 
 _cFp_BringUp_ project. 
@@ -45,7 +44,7 @@ It is good practise to ping your FPGA instance before trying to run any further 
     $ cd py
     $ source venv/bin/activate
     $ python3 tc_TcpEcho.py --help
-    $ python3 tc_TcpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw>
+    $ python3 tc_TcpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw> -lc 250 -v 
 ```
 
 ##### Step-3b: Execute a UDP echo test
@@ -53,12 +52,19 @@ It is good practise to ping your FPGA instance before trying to run any further 
     $ cd py
     $ source venv/bin/activate
     $ python3 tc_UdpEcho.py --help
-    $ python3 tc_UdpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw> --loop_count 250 -v
+    $ python3 tc_UdpEcho.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw> -lc 250 -v
  
 ```
 
-##### Step-3b: Execute a TCP transmit test
-The _**iperf**_ network performance measurement tool can be used in client mode to create data streams between the host and the port **8800** of the FPGA instance. 
+##### Step-4a: Execute a TCP transmit test
+```
+    $ cd py
+    $ source venv/bin/activate
+    $ python3 tc_TcpSend.py --help
+    $ python3 tc_TcpSend.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw> -lc 250
+ 
+```
+or use the _**iperf**_ network performance measurement tool in client mode to create data streams between the host and the port **8800** of the FPGA instance. 
 ```
     $ iperf --help
     $ iperf -c <11.22.33.44> -p 8800
@@ -71,14 +77,29 @@ The _**iperf**_ network performance measurement tool can be used in client mode 
     [  3]  0.0-30.0 sec  1.20 GBytes   345 Mbits/sec
 ```
 
-
-##### Step-3c: Execute a TCP receive test
-
-##### Step-4a: Execute a TCP echo test
-
-##### Step-4b: Execute a TCP transmit test
-
-##### Step-4c: Execute a TCP receive test
+##### Step-4b: Execute a UDP transmit test
+```
+    $ cd py
+    $ source venv/bin/activate
+    $ python3 tc_UdpSend.py --help
+    $ python3 tc_UdpSend.py --fpga_ipv4 <11.22.33.44> --inst_id <42> --user_name <xyz> --user_passwd <xyz's_pw> -lc 1000 -sz=1472
+ 
+```
+or use the _**iperf**_ network performance measurement tool in client mode to create data streams between the host and the port **8800** of the FPGA instance. 
+```
+    $ iperf --help
+    $ iperf -c <11.22.33.44> -p 8800 -u
+    ------------------------------------------------------------
+    Client connecting to 10.12.200.11, UDP port 8800
+    Sending 1470 byte datagrams, IPG target: 11215.21 us (kalman adjust)
+    UDP buffer size:  208 KByte (default)
+    ------------------------------------------------------------
+    [  3] local 10.2.0.10 port 37878 connected with 10.12.200.11 port 8800
+    [  3] WARNING: did not receive ack of last datagram after 10 tries.
+    [ ID] Interval       Transfer     Bandwidth
+    [  3]  0.0-10.0 sec  1.25 MBytes  1.05 Mbits/sec
+    [  3] Sent 892 datagrams
+```
 
 
 
