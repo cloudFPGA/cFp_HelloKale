@@ -102,12 +102,12 @@ void pEchoStoreAndForward(
     #pragma HLS PIPELINE
 
     //-- LOCAL STREAMS ---------------------------------------------------------
-    static stream<UdpAppData>   ssDataFifo ("ssDataFifo");
-    #pragma HLS stream variable=ssDataFifo depth=2048
-    static stream<UdpAppMeta>   ssMetaFifo ("ssMetaFifo");
-    #pragma HLS stream variable=ssMetaFifo depth=64
-    static stream<UdpAppDLen>   ssDLenFifo ("ssDLenFifo");
-    #pragma HLS stream variable=ssDLenFifo depth=64
+    //OBSOLETE_20200811 static stream<UdpAppData>   ssDataFifo ("ssDataFifo");
+    //OBSOLETE_20200811 #pragma HLS stream variable=ssDataFifo depth=2048
+    //OBSOLETE_20200811 static stream<UdpAppMeta>   ssMetaFifo ("ssMetaFifo");
+    //OBSOLETE_20200811 #pragma HLS stream variable=ssMetaFifo depth=64
+    //OBSOLETE_20200811 static stream<UdpAppDLen>   ssDLenFifo ("ssDLenFifo");
+    //OBSOLETE_20200811 #pragma HLS stream variable=ssDLenFifo depth=64
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ESF_META=0, ESF_STREAM } \
@@ -116,41 +116,22 @@ void pEchoStoreAndForward(
     static UdpAppDLen          esf_byteCnt;
     #pragma HLS reset variable=esf_byteCnt
 
-    switch (esf_fsmState) {
-    case ESF_META:
-    //-- Always: DataFiFo Push
-    if ( !siRXp_Data.empty() and !ssDataFifo.full() ) {
+    if ( !siRXp_Data.empty() and !soTXp_Data.full() ) {
         UdpAppData appData = siRXp_Data.read();
-        ssDataFifo.write(appData);
+        soTXp_Data.write(appData);
         esf_byteCnt += appData.getLen();
         if (appData.getTLast()) {
-            ssDLenFifo.write(esf_byteCnt);
+            soTXp_DLen.write(esf_byteCnt);
             esf_byteCnt = 0;
         }
     }
-    //-- Always: MetaFiFo Push
-    if ( !siRXp_Meta.empty() and !ssMetaFifo.full() ) {
+
+    if ( !siRXp_Meta.empty() and !soTXp_Meta.full() ) {
         UdpAppMeta appMeta = siRXp_Meta.read();
         // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-        ssMetaFifo.write(SocketPair(
-                    SockAddr(appMeta.dst.addr, appMeta.dst.port),
-                    SockAddr(appMeta.src.addr, appMeta.src.port)));
-    }
-    break;
-    case ESF_STREAM:
-    //-- Always: DataFiFo Pop
-    if ( !ssDataFifo.empty() and !soTXp_Data.full() ) {
-        soTXp_Data.write(ssDataFifo.read());
-    }
-    //-- Always: MetaFiFo Pop
-    if ( !ssMetaFifo.empty() and !soTXp_Meta.full() ) {
-        soTXp_Meta.write(ssMetaFifo.read());
-    }
-    //-- Always: DLenFiFo Pop
-    if ( !ssDLenFifo.empty() and !soTXp_DLen.full() ) {
-        soTXp_DLen.write(ssDLenFifo.read());
-    }
-    break;
+        soTXp_Meta.write(SocketPair(
+                         SockAddr(appMeta.dst.addr, appMeta.dst.port),
+                         SockAddr(appMeta.src.addr, appMeta.src.port)));
     }
 }    // End-of: pEchoStoreAndForward()
 
@@ -681,17 +662,17 @@ void udp_app_flash (
     #pragma HLS STREAM   variable=ssRXpToTXp_DLen    depth=64
 
     static stream<UdpAppData>     ssRXpToESf_Data    ("ssRXpToESf_Data");
-    #pragma HLS STREAM   variable=ssRXpToESf_Data    depth=16
+    #pragma HLS STREAM   variable=ssRXpToESf_Data    depth=1024
     static stream<UdpAppMeta>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
-    #pragma HLS STREAM   variable=ssRXpToESf_Meta    depth=2
+    #pragma HLS STREAM   variable=ssRXpToESf_Meta    depth=32
 
     //-- Echo Store and Forward (ESf) ------------------------------------------
     static stream<UdpAppData>     ssESfToTXp_Data    ("ssESfToTXp_Data");
-    #pragma HLS STREAM   variable=ssESfToTXp_Data    depth=16
+    #pragma HLS STREAM   variable=ssESfToTXp_Data    depth=1024
     static stream<UdpAppMeta>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
-    #pragma HLS STREAM   variable=ssESfToTXp_Meta    depth=2
+    #pragma HLS STREAM   variable=ssESfToTXp_Meta    depth=32
     static stream<UdpAppDLen>     ssESfToTXp_DLen    ("ssESfToTXp_DLen");
-    #pragma HLS STREAM   variable=ssESfToTXp_DLen    depth=2
+    #pragma HLS STREAM   variable=ssESfToTXp_DLen    depth=32
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     //
