@@ -123,6 +123,7 @@ config_compile -name_max_length 128 -pipeline_loops 0
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
     csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_OneDatagram.dat"
+    csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_TwoDatagrams.dat"
     csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_RampDgrmSize.dat"
     puts "#############################################################"
     puts "####                                                     ####"
@@ -146,6 +147,7 @@ if { $hlsCSynth} {
 #-------------------------------------------------
 if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_OneDatagram.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_TwoDatagrams.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_RampDgrmSize.dat"
     puts "#############################################################"
     puts "####                                                     ####"

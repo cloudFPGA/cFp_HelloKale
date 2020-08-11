@@ -57,12 +57,16 @@ using namespace hls;
 //--  --> 8801 : A message received on this port triggers the
 //--             transmission of 'nr' bytes from the FPGA to the host.
 //--             It is used to test the Tx part of UOE.
-//--  --> 8803 : Traffic received on this port is looped backed and
-//--             echoed to the sender.
+//--  --> 8802 : Traffic received on this port is forwarded to the UDP
+//--             test application which will loop and echo it back to
+//--             the sender in store-and-forward mode.
+//--  --> 8803 : Traffic received on this port is forwarded to the UDP
+//--             test application which will loop and echo it back to
+//--             the sender in path-through mode.
 //-------------------------------------------------------------------
 #define RECV_MODE_LSN_PORT      8800        // 0x2260
 #define XMIT_MODE_LSN_PORT      8801        // 0x2261
-#define BIDIR_MODE_LSN_PORT     8802        // 0x2262
+#define ECHO_MOD2_LSN_PORT      8802        // 0x2262
 #define ECHO_MODE_LSN_PORT      8803        // 0x2263
 #define IPERF_LSN_PORT          5001        // 0x1389
 #define IPREF3_LSN_PORT         5201        // 0x1451

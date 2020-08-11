@@ -159,9 +159,9 @@ int createGoldenTxFiles(
 
     const Ip4Addr hostDefaultIp4Address = 0x0A0CC832;   //  10.012.200.50
     const Ip4Addr fpgaDefaultIp4Address = 0x0A0CC807;   //  10.012.200.7
-    const UdpPort fpgaDefaultUdpLsnPort = 8803;
+    const UdpPort fpgaDefaultUdpLsnPort = ECHO_PATH_THRU_PORT;
     const UdpPort hostDefaultUdpLsnPort = fpgaDefaultUdpLsnPort;
-    const UdpPort hostDefaultUdpSndPort = 32768+8803;   //  41571
+    const UdpPort hostDefaultUdpSndPort = 32768+ECHO_PATH_THRU_PORT; // 41571
     const UdpPort fpgaDefaultUdpSndPort = hostDefaultUdpSndPort;
 
     ifstream    ifsData;
@@ -222,6 +222,7 @@ int createGoldenTxFiles(
     SockAddr  fpgaSock = SockAddr(fpgaDefaultIp4Address, fpgaDefaultUdpLsnPort);
     do {
         SimUdpDatagram appDatagram(8);
+
         UdpAppMeta     udpAppMeta = SocketPair(hostSock, fpgaSock);
         UdpAppDLen     udpAppDLen = 0;
         bool           endOfDgm=false;
@@ -245,12 +246,22 @@ int createGoldenTxFiles(
             // Dump the data len to file
             if (tbMode != ECHO_OFF) {
                 UdpAppDLen appDLen;
+                if (udpAppMeta.dst.port == ECHO_PATH_THRU_PORT) {
+                    //-- The traffic will be forwarded in 'ECHO-CUT-THRU' mode
+                    //--  and in 'STREAMING-MODE' by setting 'DLen' to zero.
+                    appDLen = 0;
+                }
+                else {
+                    appDLen = appDatagram.length() - UDP_HEADER_LEN;
+                }
+                /*** UNUSED_VERSION_BASED_ON_MMIO_ECHO_CTRL_BITS *****
                 if (tbMode == ECHO_PATH_THRU) {
                     appDLen = 0;
                 }
                 else {
                     appDLen = appDatagram.length() - UDP_HEADER_LEN;
                 }
+                ******************************************************/
                 writeApUintToFile(appDLen, ofsDLenGold);
                 if (DEBUG_LEVEL & TRACE_CGTF) {
                     printInfo(myName, "Writing new datagram len (%d) to gold file:\n", appDLen.to_int());
@@ -530,7 +541,9 @@ int main(int argc, char *argv[]) {
     switch (tbMode) {
     case ECHO_PATH_THRU:
     case ECHO_STORE_FWD:
+        break;
     case ECHO_OFF:
+        printFatal(THIS_NAME, "The 'ECHO_OFF' mode is no longer supported since the removal of the MMIO EchoCtrl bits. \n");
         break;
     default:
         printFatal(THIS_NAME, "Unknown testing mode '%d' (or not yet implemented). \n");
@@ -546,16 +559,15 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
-    if ((tbMode == ECHO_PATH_THRU) or (tbMode == ECHO_STORE_FWD) or
-        (tbMode == ECHO_OFF) ) {
+    if ((tbMode == ECHO_PATH_THRU) or (tbMode == ECHO_STORE_FWD)) {
 
         //-- DUT OUTPUT TRAFFIC AS STREAMS ------------------------------
-        string  ofsUSIF_Data_FileName = "../../../../test/soUSIF_Data.dat";
-        string  ofsUSIF_Meta_FileName = "../../../../test/soUSIF_Meta.dat";
-        string  ofsUSIF_DLen_FileName = "../../../../test/soUSIF_DLen.dat";
-        string  ofsUSIF_Data_Gold_FileName = "../../../../test/soUSIF_Data_Gold.dat";
-        string  ofsUSIF_Meta_Gold_FileName = "../../../../test/soUSIF_Meta_Gold.dat";
-        string  ofsUSIF_DLen_Gold_FileName = "../../../../test/soUSIF_DLen_Gold.dat";
+        string  ofsUSIF_Data_FileName      = "../../../../test/simOutFiles/soUSIF_Data.dat";
+        string  ofsUSIF_Meta_FileName      = "../../../../test/simOutFiles/soUSIF_Meta.dat";
+        string  ofsUSIF_DLen_FileName      = "../../../../test/simOutFiles/soUSIF_DLen.dat";
+        string  ofsUSIF_Data_Gold_FileName = "../../../../test/simOutFiles/soUSIF_Data_Gold.dat";
+        string  ofsUSIF_Meta_Gold_FileName = "../../../../test/simOutFiles/soUSIF_Meta_Gold.dat";
+        string  ofsUSIF_DLen_Gold_FileName = "../../../../test/simOutFiles/soUSIF_DLen_Gold.dat";
 
         vector<string>   ofNames;
         ofNames.push_back(ofsUSIF_Data_FileName);
@@ -569,9 +581,6 @@ int main(int argc, char *argv[]) {
         }
         else if (tbMode == ECHO_STORE_FWD) {
             printInfo(THIS_NAME, "### TEST_MODE = ECHO_STORE_FWD #########\n");
-        }
-        else {
-            printInfo(THIS_NAME, "### TEST_MODE = ECHO_OF ################\n");
         }
 
         //-- STEP-2: Remove previous old files and open new files
@@ -615,9 +624,9 @@ int main(int argc, char *argv[]) {
         while (tbRun) {
             udp_app_flash(
                     //-- SHELL / Mmio / Configuration Interfaces
-                    sSHL_UAF_Mmio_EchoCtrl,
-                    //[TODO] &sSHL_UAF_Mmio_PostPktEn,
-                    //[TODO] &sSHL_UAF_Mmio_CaptPktEn,
+                    //[NOT_USED] sSHL_UAF_Mmio_EchoCtrl,
+                    //[NOT_USED] sSHL_UAF_Mmio_PostPktEn,
+                    //[NOT_USED] sSHL_UAF_Mmio_CaptPktEn,
                     //-- USIF / Rx Data Interfaces
                     ssUSIF_UAF_Data,
                     ssUSIF_UAF_Meta,
@@ -662,17 +671,18 @@ int main(int argc, char *argv[]) {
         }
 
         //-- STEP-7: Compare output DAT vs gold DAT
-        int res = system(("diff --brief -w " + \
-                std::string(ofsUSIF_Data_FileName) + " " + \
-                std::string(ofsUSIF_Data_Gold_FileName) + " ").c_str());
+        //OBSOLETE_20200810 int res = system(("diff --brief -w " +  \
+        //OBSOLETE_20200810 std::string(ofsUSIF_Data_FileName) + " " + \
+        //OBSOLETE_20200810 std::string(ofsUSIF_Data_Gold_FileName) + " ").c_str());
+        int res = myDiffTwoFiles(std::string(ofsUSIF_Data_FileName),
+                                 std::string(ofsUSIF_Data_Gold_FileName));
         if (res) {
             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
                        ofsUSIF_Data_FileName.c_str(), ofsUSIF_Data_Gold_FileName.c_str());
             nrErr += 1;
         }
-        res = system(("diff --brief -w " + \
-                std::string(ofsUSIF_DLen_FileName) + " " + \
-                std::string(ofsUSIF_DLen_Gold_FileName) + " ").c_str());
+        res = myDiffTwoFiles(std::string(ofsUSIF_DLen_FileName),
+                             std::string(ofsUSIF_DLen_Gold_FileName));
         if (res) {
             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
                        ofsUSIF_DLen_FileName.c_str(), ofsUSIF_DLen_Gold_FileName.c_str());

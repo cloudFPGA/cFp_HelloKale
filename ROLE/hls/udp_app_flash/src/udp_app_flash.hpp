@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : udp_app_flash.cpp
  * @brief      : UDP Application Flash (UAF)
  *
@@ -22,7 +22,7 @@
  * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
+ *------------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the UDP
  *                application embedded in the role of the cFp_BringUp.
@@ -30,7 +30,7 @@
  * \ingroup ROL_UAF
  * \addtogroup ROL_UAF
  * \{
- *****************************************************************************/
+ *******************************************************************************/
 
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
@@ -47,6 +47,18 @@ enum EchoCtrl {
 
 #define MTU    1500    // Maximum Transmission Unit in bytes [TODO:Move to a common place]
 
+//-------------------------------------------------------------------
+//-- DEFAULT TESTING PORTS
+//--  By default, the following port numbers will be used by the
+//--  UdpApplicationFlash (unless user specifies new ones via TBD).
+//--  Default testing ports:
+//--  --> 8803  : Traffic received on this port is looped back and
+//--              echoed to the sender in path-through mode.
+//--  --> Others: Traffic received on any port != 8803 is looped back
+//--              and echo to the sender in store-and-forward mode.
+//-------------------------------------------------------------------
+#define ECHO_PATH_THRU_PORT  8803   // 0x2263
+
 
 /*******************************************************************************
  *
@@ -58,9 +70,9 @@ void udp_app_flash (
         //------------------------------------------------------
         //-- SHELL / Mmio / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>           piSHL_Mmio_EchoCtrl,
-        //[TODO] ap_uint<1>  piSHL_Mmio_PostPktEn,
-        //[TODO] ap_uint<1>  piSHL_Mmio_CaptPktEn,
+        //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
+        //[NOT_USED] ap_uint<1>  piSHL_Mmio_PostPktEn,
+        //[NOT_USED] ap_uint<1>  piSHL_Mmio_CaptPktEn,
 
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces

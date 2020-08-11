@@ -129,7 +129,8 @@ void pListen(
     #pragma HLS reset variable=lsn_i
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static const TcpPort LSN_PORT_TABLE[5] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT, ECHO_MODE_LSN_PORT,
+    static const TcpPort LSN_PORT_TABLE[5] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT,
+                                               ECHO_MOD2_LSN_PORT, ECHO_MODE_LSN_PORT
                                                IPERF_LSN_PORT, IPREF3_LSN_PORT };
     #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=ROM_1P
 
@@ -161,6 +162,9 @@ void pListen(
                 soSHL_LsnReq.write(XMIT_MODE_LSN_PORT);
                 break;
             case 2:
+                soSHL_LsnReq.write(ECHO_MOD2_LSN_PORT);
+                break;
+            case 3:
                 soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
                 break;
             case 3:
@@ -336,7 +340,7 @@ void pReadPath(
     #pragma HLS reset variable=rdp_keepFlag
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    UdpAppMeta  rdp_appMeta;
+    static UdpAppMeta  rdp_appMeta;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     UdpAppData  appData;
@@ -388,7 +392,7 @@ void pReadPath(
         }
         break;
     case RDP_TRIG_TX:
-        if (!soWRp_Meta.full() and !soWRp_DReq.full()) {
+        if (!siSHL_Data.empty() and !soWRp_Meta.full() and !soWRp_DReq.full()) {
             // Swap source and destination sockets
             soWRp_Meta.write(SocketPair(rdp_appMeta.dst, rdp_appMeta.src));
             // Extract the requested Tx datagram length
@@ -398,6 +402,7 @@ void pReadPath(
                 rdp_fsmState  = RDP_READ_META;
             }
             else {
+                rdp_keepFlag = false;
                 rdp_fsmState = RDP_STREAM;
             }
         }

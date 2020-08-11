@@ -51,14 +51,12 @@ clean:                    ## Cleans the current project
 csim: .csim_guard        ## Runs the HLS C simulation (always does a clean build)
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
-	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=2; vivado_hls -f run_hls.tcl
 
 csynth: .synth_guard      ## Runs the HLS C synthesis
 
 cosim: .synth_guard       ## Runs the HLS C/RTL cosimulation  (always does a clean build)
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
-	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=2; vivado_hls -f run_hls.tcl
 
 export:                  ## Exports the RTL as IP
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
@@ -69,7 +67,6 @@ project:                  ## Creates the HLS project
 regression: .synth_guard  ## Runs HLS csim, csynth and cosim in sequence
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=1; vivado_hls -f run_hls.tcl
-	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; export hlsTbMode=2; vivado_hls -f run_hls.tcl
 
 rtlSyn:                   ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl

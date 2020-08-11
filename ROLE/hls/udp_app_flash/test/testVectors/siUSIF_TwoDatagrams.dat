@@ -1,6 +1,8 @@
 # ########################################################################################
-#  @file  : siUSIF_OneDatagram.dat
-#  @brief : A unique UDP datagram from UOE via the UDP Shell Interface (USIF).
+#  @file  : siUSIF_TwoDatagrams.dat
+#  @brief : Two UDP datagram from UOE via the UDP Shell Interface (USIF). One with
+#           UDP_DP = 8803 for 'Echo-Cut-Through' mode, and one with UDP_DP = 8802 for
+#           'Store-Annd-Forward' mode. 
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.
@@ -25,12 +27,40 @@
 # 
 # ######################################################################################## 
 
-# [1] UDP DATAGRAM - Length=40
+# [1] UDP DATAGRAM - Length=154
 
 > SET FpgaSocket 10.12.200.8   8803
-> SET HostSocket 10.12.200.50 50374
+> SET HostSocket 10.12.200.50 58803
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0807060504030201 0 FF
+0000000000000201 1 03
+
+# [2] UDP DATAGRAM - Length=53
+
+> SET FpgaSocket 10.12.200.8   8802
+> SET HostSocket 10.12.200.50 58802
 0101010101010101 0 FF
 0202020202020202 0 FF
 0303030303030303 0 FF
 0404040404040404 0 FF
-0505050505050505 1 FF
+0505050505050505 0 FF
+0606060606060606 0 FF
+0000000707070707 1 1F
+
