@@ -116,6 +116,8 @@ void pEchoStoreAndForward(
     static UdpAppDLen          esf_byteCnt;
     #pragma HLS reset variable=esf_byteCnt
 
+    switch (esf_fsmState) {
+    case ESF_META:
     //-- Always: DataFiFo Push
     if ( !siRXp_Data.empty() and !ssDataFifo.full() ) {
         UdpAppData appData = siRXp_Data.read();
@@ -134,7 +136,8 @@ void pEchoStoreAndForward(
                     SockAddr(appMeta.dst.addr, appMeta.dst.port),
                     SockAddr(appMeta.src.addr, appMeta.src.port)));
     }
-
+    break;
+    case ESF_STREAM:
     //-- Always: DataFiFo Pop
     if ( !ssDataFifo.empty() and !soTXp_Data.full() ) {
         soTXp_Data.write(ssDataFifo.read());
@@ -146,6 +149,8 @@ void pEchoStoreAndForward(
     //-- Always: DLenFiFo Pop
     if ( !ssDLenFifo.empty() and !soTXp_DLen.full() ) {
         soTXp_DLen.write(ssDLenFifo.read());
+    }
+    break;
     }
 }    // End-of: pEchoStoreAndForward()
 
