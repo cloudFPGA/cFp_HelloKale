@@ -129,9 +129,9 @@ void pListen(
     #pragma HLS reset variable=lsn_i
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static const TcpPort LSN_PORT_TABLE[5] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT,
-                                               ECHO_MOD2_LSN_PORT, ECHO_MODE_LSN_PORT
-                                               IPERF_LSN_PORT, IPREF3_LSN_PORT };
+    static const TcpPort LSN_PORT_TABLE[6] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT,
+                                               ECHO_MOD2_LSN_PORT, ECHO_MODE_LSN_PORT,
+                                               IPERF_LSN_PORT,     IPREF3_LSN_PORT };
     #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=ROM_1P
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
@@ -167,10 +167,10 @@ void pListen(
             case 3:
                 soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
                 break;
-            case 3:
+            case 4:
                 soSHL_LsnReq.write(IPERF_LSN_PORT);
                 break;
-            case 4:
+            case 5:
                 soSHL_LsnReq.write(IPREF3_LSN_PORT);
                 break;
             }
