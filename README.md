@@ -1,6 +1,9 @@
-## cFp_BringUp
-================
-**cloudFPGA project (cFp) for the BringUp of an FPGA module**
+## cFp_Monolithic
+
+**A cloudFPGA project (cFp) to generate a static bitstream (.i.e without Partial Reconfiguration). 
+Such a project is typically used for the bring-up of a new FPGA module or a static implementation of an application.**
+
+**Warning**: the static nature of the bitstream precludes its deployment over the datacenter network and requires the use of a JTAG interface to download and configure the FPGA.    
 
 ### Toplevel design
 In cloudFPGA (cF), a user application is referred to as a **_ROLE_** and is integrated along
@@ -8,9 +11,9 @@ with a **_SHELL_** that abstracts the hardware components of the FPGA module.
 The combination of a specific ROLE and its associated SHELL into a toplevel design is
 referred to as a _Shell-Role-Architecture (SRA)_. 
 
-This section describes the toplevel design (**TOP**) of the _cFp_BringUp_ project which was developed for the bring-up and the testing of the FMKU2595 module when it is equipped with a XCKU060. 
-As shown in the figure below, the toplevel of _cFp_BringUp_ consists of:
-  - a SHELL of type [_**Kale**_](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md) which is a shell with minimalist support for accessing the hardware components of the FPGA card. **Warning**, the limited features of this shell preclude the deployment of partial bit streams and requires the use of a JTAG interface to download and configure the FPGA with a fully static bit stream.    
+This section describes the toplevel design (**TOP**) of the _cFp_Monolithic_ project which was developed for the bring-up and the testing of the FMKU2595 module when it is equipped with a XCKU060. 
+As shown in the figure below, the toplevel of _cFp_Monolithic_ consists of:
+  - a SHELL of type [_**Kale**_](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md) which is a shell with minimalist support for accessing the hardware components of the FPGA card. 
   - a ROLE of type [_**BringUp**_](./DOC/BringUpRole.md) which implements a set of TCP-, UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module.
 
 
@@ -50,4 +53,4 @@ default monolithic flow of step-1.
 
 ### How to test the features of the static bitfile
 
-TODO - Refer to section [_**HOST**_](./HOST/README.md) of the _cFp_BringUp_ project.
+TODO - Refer to section [_**HOST**_](./HOST/README.md) of the _cFp_Monolithic_ project.
