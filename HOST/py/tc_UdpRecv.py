@@ -30,6 +30,7 @@ import argparse
 import datetime
 import errno
 import socket
+import struct
 
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
@@ -48,59 +49,65 @@ def udp_rx_loop(udpSock, size, count, verbose=False):
         print("[INFO] Requesting the FPGA to send %d datagrams of %d bytes.\n" % (count, size))
     nrErr = 0
     loop = 0
-    rxByteCnt = 0
-    requestMsg = '{:04X}'.format(size).encode()
+    totalReceivedBytes = 0
+    # Turn the size into an unsigned short binary data for transmission
+    reqMsgAsBytes = struct.pack(">H", size)
 
     startTime = datetime.datetime.now()
     while loop < count:
             # SEND message length request to FPGA
             # ------------------------------------
             try:
-                udpSock.sendall(requestMsg)
+                udpSock.sendall(reqMsgAsBytes)
             except socket.error as exc:
                 # Any exception
                 print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
                 exit(1)
             finally:
                 pass
+
             # RECEIVE message length bytes from FPGA
             # ---------------------------------------
-            try:
-                data = udpSock.recv(size)
-                rxByteCnt += len(data)
-                if verbose:
-                    print("Loop=%d | RxBytes=%d | RxData=%s" % (loop, rxByteCnt, data))
-                    # [FIXME-TODO: assess the stream of received bytes]
-            except IOError as e:
-                # On non blocking connections - when there are no incoming data, error is going to be raised
-                # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
-                # We are going to check for both - if one of them - that's expected, means no incoming data,
-                # continue as normal. If we got different error code - something happened
-                if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                    print('[ERROR] Socket reading error: {}'.format(str(e)))
+            currRxByteCnt = 0
+            while currRxByteCnt < size:
+                try:
+                    data = udpSock.recv(MTU)
+                except IOError as e:
+                    # On non blocking connections - when there are no incoming data, error is going to be raised
+                    # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+                    # We are going to check for both - if one of them - that's expected, means no incoming data,
+                    # continue as normal. If we got different error code - something happened
+                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                        print('[ERROR] Socket reading error: {}'.format(str(e)))
+                        exit(1)
+                    # We just did not receive anything
+                    continue
+                except socket.error as exc:
+                    # Any other exception
+                    print("[EXCEPTION] Socket error while receiving :: %s" % exc)
                     exit(1)
-                # We just did not receive anything
-                continue
-            except socket.error as exc:
-                # Any other exception
-                print("[EXCEPTION] Socket error while receiving :: %s" % exc)
-                # exit(1)
-            finally:
-                pass
+                else:
+                    currRxByteCnt += len(data)
+                    if verbose:
+                        print("Loop=%d | RxBytes=%d | RxData=%s\n" % (loop, len(data), data))
+                        # [FIXME-TODO: assess the stream of received bytes]
+                finally:
+                    pass
+            totalReceivedBytes += currRxByteCnt;
             loop += 1
     endTime = datetime.datetime.now()
     elapseTime = endTime - startTime;
 
-    if rxByteCnt < 1000000:
-        print("[INFO] Received a total of %d bytes." % rxByteCnt)
-    elif rxByteCnt < 1000000000:
-        megaBytes = (rxByteCnt * 1.0) / (1024 * 1024 * 1.0)
+    if totalReceivedBytes < 1000000:
+        print("[INFO] Received a total of %d bytes." % totalReceivedBytes)
+    elif totalReceivedBytes < 1000000000:
+        megaBytes = (totalReceivedBytes * 1.0) / (1024 * 1024 * 1.0)
         print("[INFO] Received a total of %.1f MB." % megaBytes)
     else:
-        gigaBytes = (rxByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
+        gigaBytes = (totalReceivedBytes * 1.0) / (1024 * 1024 * 1024 * 1.0)
         print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
 
-    bandwidth = (rxByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+    bandwidth = (totalReceivedBytes * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
     print("#####################################################")
     if bandwidth < 1000:
         print("#### UDP Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
@@ -240,10 +247,10 @@ print("\t\t seed = %d" % seed)
 
 size = args.size
 if size == -1:
-    size = random.randint(1, MAX_DGR_LEN)
-elif size > MAX_DGR_LEN:
+    size = random.randint(1, 0xFFFF)
+elif size > 0xFFFF:
     print('\nERROR: ')
-    print("[ERROR] The UDP stack does not support the reception of datagrams larger than %d bytes.\n" % MAX_DGR_LEN)
+    print("[ERROR] This test limits the size of the received datagram to %d bytes.\n" % 0xFFFF)
     exit(1)
 print("\t\t size = %d" % size)
 
