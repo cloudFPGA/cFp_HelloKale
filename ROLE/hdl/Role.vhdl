@@ -243,9 +243,9 @@ entity Role_BringUp is
     ---- [DIAG_STAT_1] -----------------
     poSHL_Mmio_Mc1_MemTestStat          : out   std_ulogic_vector(  1 downto 0);
     ---- [DIAG_CTRL_2] -----------------
-    piSHL_Mmio_UdpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Mmio_UdpPostDgmEn             : in    std_ulogic;
-    piSHL_Mmio_UdpCaptDgmEn             : in    std_ulogic;
+    --[NOT_USED] piSHL_Mmio_UdpEchoCtrl         : in    std_ulogic_vector(  1 downto 0);
+    --[NOT_USED] piSHL_Mmio_UdpPostDgmEn        : in    std_ulogic;
+    --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn        : in    std_ulogic;
     piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
     piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
     piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
@@ -355,9 +355,9 @@ architecture BringUp of Role_BringUp is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------
-      piSHL_Mmio_EchoCtrl_V  : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_MmioPostDgmEn_V  : in  std_logic;
-      --[TODO] piSHL_MmioCaptDgmEn_V  : in  std_logic;
+      --[NOT_USED] piSHL_Mmio_EchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_MmioPostDgmEn_V  : in  std_logic;
+      --[NOT_USED] piSHL_MmioCaptDgmEn_V  : in  std_logic;
       --------------------------------------------------------
       -- From USIF / UDP Rx Data Interfaces
       --------------------------------------------------------
@@ -399,9 +399,9 @@ architecture BringUp of Role_BringUp is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      piSHL_Mmio_EchoCtrl_V     : in  std_logic_vector(  1 downto 0);
-      --[TODO] piSHL_Mmio_PostDgmEn_V : in  std_logic;
-      --[TODO] piSHL_Mmio_CaptDgmEn_V : in  std_logic;
+      --[NOT_USED] piSHL_Mmio_EchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_Mmio_PostDgmEn_V : in  std_logic;
+      --[NOT_USED] piSHL_Mmio_CaptDgmEn_V : in  std_logic;
       --------------------------------------------------------
       -- From USIF / UDP Rx Data Interfaces
       --------------------------------------------------------
@@ -1196,7 +1196,7 @@ begin
           --------------------------------------------------------
           -- SHELL / Mmio Interface
           --------------------------------------------------------
-          piSHL_Mmio_En_V         => piSHL_Mmio_Ly7En,
+          piSHL_Mmio_En_V        => piSHL_Mmio_Ly7En,
           --------------------------------------------------------
           -- SHELL / UDP Control Port Interfaces
           --------------------------------------------------------
@@ -1285,7 +1285,7 @@ begin
   --#                                                                              #
   --################################################################################
 
-  gUdpAppFlashDepre : if cUDP_APP_DEPRECATED_DIRECTIVES = true generate
+  gUdpAppFlash : if cUDP_APP_DEPRECATED_DIRECTIVES = true generate
    
     --==========================================================================
     --==  INST: UDP-APPLICATION_FLASH (UAF) for cFp_BringUp
@@ -1305,9 +1305,9 @@ begin
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------      
-        piSHL_Mmio_EchoCtrl_V => piSHL_Mmio_UdpEchoCtrl,
-        --[TODO] piSHL_Mmio_PostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
-        --[TODO] piSHL_Mmio_CaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
+        --[NOT_USED] piSHL_Mmio_EchoCtrl_V   => piSHL_Mmio_UdpEchoCtrl,
+        --[NOT_USED] piSHL_Mmio_PostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
+        --[NOT_USED] piSHL_Mmio_CaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
         --------------------------------------------------------
         -- From USIF / UDP Rx Data Interfaces
         --------------------------------------------------------
@@ -1350,14 +1350,14 @@ begin
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
-        ap_clk                    => piSHL_156_25Clk,
-        ap_rst_n                  => not piSHL_Mmio_Ly7Rst,
+        ap_clk                => piSHL_156_25Clk,
+        ap_rst_n              => not piSHL_Mmio_Ly7Rst,
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------      
-        piSHL_Mmio_EchoCtrl_V => piSHL_Mmio_UdpEchoCtrl,
-        --[TODO] piSHL_Mmio_PostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
-        --[TODO] piSHL_Mmio_CaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
+        --[NOT_USED] piSHL_Mmio_EchoCtrl_V   => piSHL_Mmio_UdpEchoCtrl,
+        --[NOT_USED] piSHL_Mmio_PostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
+        --[NOT_USED] piSHL_Mmio_CaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
         --------------------------------------------------------
         -- From USIF / UDP Rx Data Interfaces
         --------------------------------------------------------

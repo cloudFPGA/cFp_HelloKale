@@ -1,6 +1,7 @@
 ### UDP Shell Interface (USIF)
-This page describes the UDP front-end interface process to the _**Network Transport Stack (NTS)**_ 
-of the SHELL used by the _cloudFPGA_ platform. 
+
+This page describes the UDP front-end process of the _cFp_Monolithic/_[_Role_BrinUp_](../BringUpRole.md)
+ to the _cFp_Monolithic/_[_Shell_Kale_](../../cFDK/DOC/Kale.md). 
 
 #### Overview
 The _**UDP Shell Interface (USIF)**_ handles the control flow interface between the SHELL and 
@@ -10,7 +11,9 @@ provided here for sake of clarity and simplicity.
 
 A block diagram of the _UDP Shell Interface_ is depicted in Figure 1. It features:
 - a _**Listen (LSn)**_ process to request the SHELL/NTS/UOE to start listening for incoming 
-connections on a specific port (.i.e open connection for reception mode).
+connections on a specific port. Although the notion of 'listening' does not exist for the 
+unconnected UDP mode, we keep that name for this process because it puts an FPGA receive
+port on hold and ready to accept incoming traffic (.i.e, it opens a connection in server mode).
 - a _**Close (CLs)**_ process to request the SHELL/NTS/UOE to close a previously opened port.
 - a _**Read Path (RDp)**_ process that waits for new data segments from SHELL/NTS/UOE and forwards
 them to the _**UDP Application Flash (UAF)**_ core.
@@ -18,7 +21,7 @@ them to the _**UDP Application Flash (UAF)**_ core.
 them to SHELL/NTS/UOE.
 
 
-![Block diagram of cFp_BringUp/ROLE/USIF](./imgs/Fig-USIF-Structure.png#center)
+![Block diagram of cFp_Monolithic/ROLE/USIF](./imgs/Fig-USIF-Structure.png#center)
 
 <p align="center"><b>Figure-1: Block diagram of the UDP Shell Interface</b></p>
 <br>
@@ -27,7 +30,7 @@ them to SHELL/NTS/UOE.
 
 | Acronym                             | Description                                | File
 |:------------------------------------|:-------------------------------------------|:--------------
-| **[SHELL](../../cFDK/DOC/Kale.md)** | UDP application interface to shell _Kale_  | [Shell](../../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
+| **[SHELL](../../cFDK/DOC/Kale.md)** | UDP application interface to _Shell_Kale_  | [Shell](../../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
 | **[UAF](./UAF.md)**                 | UDP Application Flash interface            | [udp_app_flash](../hls/udp_app_flash/src/udp_app_flash.hpp)
 
 <br>
