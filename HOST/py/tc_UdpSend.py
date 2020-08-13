@@ -275,10 +275,10 @@ print("\t\t seed = %d" % seed)
 
 size = args.size
 if size == -1:
-    size = random.randint(1, MAX_DGR_LEN)
-elif size > MAX_DGR_LEN:
+    size = random.randint(1, UDP_MDS)
+elif size > UDP_MDS:
     print('\nERROR: ')
-    print("[ERROR] The UDP stack does not support the reception of datagrams larger than %d bytes.\n" % MAX_DGR_LEN)
+    print("[ERROR] The UDP stack does not support the reception of datagrams larger than %d bytes.\n" % UDP_MDS)
     exit(1)
 print("\t\t size = %d" % size)
 

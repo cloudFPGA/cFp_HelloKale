@@ -38,7 +38,7 @@ ACM_KO = 1
 MTU         = 1500  # Maximum Transfer Unit
 IP4_HDR_LEN =   20  # IPv4 Header Length
 UDP_HDR_LEN =    8  # UDP Header Length
-MAX_DGR_LEN = (MTU-IP4_HDR_LEN-UDP_HDR_LEN)
+UDP_MDS = (MTU - IP4_HDR_LEN - UDP_HDR_LEN)  # Maximum Datagram Size
 
 # -------------------------------------------------------------------
 # -- DEFAULT LISTENING PORTS
@@ -57,7 +57,7 @@ MAX_DGR_LEN = (MTU-IP4_HDR_LEN-UDP_HDR_LEN)
 # --  --> 8803 : Traffic received on this port is looped backed and
 # --             echoed to the sender.
 # -------------------------------------------------------------------
-RECV_MODE_LSN_PORT  = 8800   # 0x2260
+RECV_MODE_LSN_PORT  = 8800    # 0x2260
 XMIT_MODE_LSN_PORT  = 8801    # 0x2261
 BIDIR_MODE_LSN_PORT = 8802    # 0x2262
 ECHO_MODE_LSN_PORT  = 8803    # 0x2263
