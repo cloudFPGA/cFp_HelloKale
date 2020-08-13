@@ -513,12 +513,14 @@ void pWritePath(
                 wrp_fsmState = WRP_WAIT_META;
             }
             switch (wrp_genChunk) {
-            case CHK0:
-                currChunk.setLE_TData(0x0706050403020100);
+            case CHK0: // Send 'Hi from '
+                //OBSOLETE_20200813 currChunk.setLE_TData(0x0706050403020100);
+                currChunk.setTData(GEN_CHK0);
                 wrp_genChunk = CHK1;
                 break;
-            case CHK1:
-                currChunk.setLE_TData(0x0f0e0d0c0b0a0908);
+            case CHK1: // Send 'FMKU60!\n'
+                //OBSOLETE_20200813 currChunk.setLE_TData(0x0f0e0d0c0b0a0908);
+                currChunk.setTData(GEN_CHK1);
                 wrp_genChunk = CHK0;
                 break;
             }

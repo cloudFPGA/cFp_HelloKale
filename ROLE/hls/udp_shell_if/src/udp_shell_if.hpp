@@ -71,6 +71,15 @@ using namespace hls;
 #define IPERF_LSN_PORT          5001        // 0x1389
 #define IPREF3_LSN_PORT         5201        // 0x1451
 
+//-------------------------------------------------------------------
+//-- DEFAULT XMIT STRING
+//--  By default, the string 'Hi from FMKU60\n' is sent out as two
+//--  alternating chunks during the transmission test, which turns
+//--  into the two following chunks:
+//-------------------------------------------------------------------
+#define GEN_CHK0    0x48692066726f6d20  // 'Hi from '
+#define GEN_CHK1    0x464d4b553630210a  // 'FMKU60\n'
+
 
 /*******************************************************************************
  *

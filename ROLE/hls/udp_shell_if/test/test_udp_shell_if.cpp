@@ -287,7 +287,7 @@ void pUOE(
                 gMaxSimCycles += (dgrmLen / 8);
                 uoe_rxpState = RXP_SEND_DATA;
                 break;
-            case nrDgmToSend:
+            case 2: // nrDgmToSend:
                 uoe_rxMeta.dst.port = XMIT_MODE_LSN_PORT;
                 uoe_txByteCnt = dgrmLen;
                 gMaxSimCycles += (dgrmLen / 8);
@@ -347,7 +347,8 @@ void pUOE(
                     if (firstChunk) {
                         for (int i=0; i<8; i++) {
                             if (uoe_txByteCnt) {
-                                goldChunk.setLE_TData(i, (i*8)+7, (i*8)+0);
+                                unsigned char byte = (GEN_CHK0 >> ((7-i)*8)) & 0xFF;
+                                goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
                                 goldChunk.setLE_TKeep(1, i, i);
                                 uoe_txByteCnt--;
                             }
@@ -357,7 +358,8 @@ void pUOE(
                     else {  // Second Chunk
                         for (int i=0; i<8; i++) {
                             if (uoe_txByteCnt) {
-                                goldChunk.setLE_TData(i+8, (i*8)+7, (i*8)+0);
+                                unsigned char byte = (GEN_CHK1 >> ((7-i)*8)) & 0xFF;
+                                goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
                                 goldChunk.setLE_TKeep(1, i, i);
                                 uoe_txByteCnt--;
                             }
@@ -502,9 +504,11 @@ int main(int argc, char *argv[])
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_udp_shell' STARTS HERE                                 ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
-    for (int i=1; i<argc; i++) {
-        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    if (argc > 1) {
+        printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
+        for (int i=1; i<argc; i++) {
+            printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+        }
     }
 
     //------------------------------------------------------
@@ -622,9 +626,8 @@ int main(int argc, char *argv[])
     //---------------------------------------------------------------
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
     //---------------------------------------------------------------
-    int res = system(("diff --brief -w " + \
-                       std::string(ofUOE_DataName) + " " + \
-                       std::string(ofUOE_GoldName) + " ").c_str());
+    int res = myDiffTwoFiles(std::string(ofUOE_DataName),
+                             std::string(ofUOE_GoldName));
     if (res) {
         printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
                    ofUOE_DataName.c_str(), ofUOE_GoldName.c_str());
