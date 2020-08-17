@@ -24,7 +24,7 @@
  *
  *------------------------------------------------------------------------------
  *
- * @details This process handles the control flow interface between the SHELL
+ * @details This entity handles the control flow interface between the SHELL
  *   and the ROLE. The main purpose of the USIF is to provide a placeholder for
  *   the opening of one or multiple listening port(s).
  *   The use of such a dedicated layer is not a prerequisite but it is provided
@@ -40,8 +40,8 @@
  *
  * [TODO] - The DEFAULT_FPGA_LSN_PORT (0x2263=8803) and the DEFAULT_HOST_IP4_ADDR must be made programmable.
  *
- * \ingroup ROL
- * \addtogroup ROL_USIF
+ * \ingroup ROLE
+ * \addtogroup ROLE_USIF
  * \{
  *******************************************************************************/
 
@@ -75,7 +75,6 @@ using namespace std;
 #define TRACE_LSN 1 <<  4
 #define TRACE_CLS 1 <<  5
 #define TRACE_ALL  0xFFFF
-
 #define DEBUG_LEVEL (TRACE_WRP | TRACE_LSN)
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
@@ -88,7 +87,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 //--  FYI --> 8803 is the ZIP code of Ruschlikon ;-)
 //---------------------------------------------------------
 #define DEFAULT_FPGA_LSN_PORT   0x2263      // ROLE   listens on port = 8803
-#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
+//OBSOLETE_20200813 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
 
 
 /*******************************************************************************
@@ -106,7 +105,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
  *   in server mode).
  *  By default, the port numbers 5001, 5201, 8800, 8801 and 8803 will always be
  *   opened in listen mode at startup. Later on, we should be able to open more
- *   port if we provide some configuration register for the user to specify new
+ *   ports if we provide some configuration register for the user to specify new
  *   ones.
  *  As opposed to the TCP Offload engine (TOE), the UOE supports a total of
  *   65,535 (0xFFFF) connections in listening mode.
@@ -129,7 +128,7 @@ void pListen(
     #pragma HLS reset variable=lsn_i
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static const TcpPort LSN_PORT_TABLE[6] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT,
+    static const UdpPort LSN_PORT_TABLE[6] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT,
                                                ECHO_MOD2_LSN_PORT, ECHO_MODE_LSN_PORT,
                                                IPERF_LSN_PORT,     IPREF3_LSN_PORT };
     #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=ROM_1P
@@ -195,7 +194,7 @@ void pListen(
             UdpAppLsnRep listenDone;
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
-                printInfo(myName, "Received OK listen reply from [UOE].\n");
+                printInfo(myName, "Received OK listen reply from [UOE] for port %d.\n", LSN_PORT_TABLE[lsn_i].to_uint());
                 if (lsn_i == sizeof(LSN_PORT_TABLE)/sizeof(LSN_PORT_TABLE[0])-1) {
                     lsn_fsmState = LSN_DONE;
                 }
@@ -207,14 +206,14 @@ void pListen(
             }
             else {
                 printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
-                          DEFAULT_FPGA_LSN_PORT, DEFAULT_FPGA_LSN_PORT);
+                          LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
                 lsn_fsmState = LSN_SEND_REQ;
             }
         }
         else {
             if (lsn_watchDogTimer == 0) {
                 printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
-                           DEFAULT_FPGA_LSN_PORT, DEFAULT_FPGA_LSN_PORT);
+                           LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
                 lsn_fsmState = LSN_SEND_REQ;
             }
         }
@@ -333,7 +332,7 @@ void pReadPath(
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { RDP_READ_META=0, RDP_FWD_META, RDP_STREAM, RDP_TRIG_TX } \
+    static enum FsmStates { RDP_READ_META=0, RDP_FWD_META, RDP_STREAM, RDP_8801 } \
 	                           rdp_fsmState = RDP_READ_META;
     #pragma HLS reset variable=rdp_fsmState
     static FlagBool            rdp_keepFlag=true;
@@ -360,7 +359,7 @@ void pReadPath(
                 // (DstPort == 8801) Retrieve the size of the requested Tx datagram
                 if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Tx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
                 rdp_keepFlag = false;
-                rdp_fsmState  = RDP_TRIG_TX;
+                rdp_fsmState  = RDP_8801;
                 break;
             default:
                 // Business as usual
@@ -391,7 +390,7 @@ void pReadPath(
             }
         }
         break;
-    case RDP_TRIG_TX:
+    case RDP_8801:
         if (!siSHL_Data.empty() and !soWRp_Meta.full() and !soWRp_DReq.full()) {
             // Swap source and destination sockets
             soWRp_Meta.write(SocketPair(rdp_appMeta.dst, rdp_appMeta.src));
@@ -445,11 +444,11 @@ void pWritePath(
     const char *myName  = concat3(THIS_NAME, "/", "WRp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { WRP_WAIT_META=0, WRP_STREAM, WRP_TXGEN } \
-                               wrp_fsmState = WRP_WAIT_META;
+    static enum FsmStates { WRP_IDLE=0, WRP_STREAM, WRP_8801 } \
+                               wrp_fsmState=WRP_IDLE;
     #pragma HLS reset variable=wrp_fsmState
     static enum GenChunks { CHK0=0, CHK1, } \
-                               wrp_genChunk = CHK0;
+                               wrp_genChunk=CHK0;
     #pragma HLS reset variable=wrp_genChunk
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
@@ -461,7 +460,7 @@ void pWritePath(
     UdpAppData    appData;
 
     switch (wrp_fsmState) {
-    case WRP_WAIT_META:
+    case WRP_IDLE:
         //-- Always read the metadata and the length provided by [ROLE/UAF]
         if (!siUAF_Meta.empty() and !siUAF_DLen.empty() and
             !soSHL_Meta.full()  and !soSHL_DLen.full()) {
@@ -485,7 +484,7 @@ void pWritePath(
                 printInfo(myName, "Received a Tx test request of length %d from RDp.\n", wrp_appDReq.to_uint());
                 printSockPair(myName, appMeta);
             }
-            wrp_fsmState = WRP_TXGEN;
+            wrp_fsmState = WRP_8801;
             wrp_genChunk = CHK0;
         }
         break;
@@ -497,10 +496,10 @@ void pWritePath(
             }
             soSHL_Data.write(appData);
             if(appData.getTLast())
-                wrp_fsmState = WRP_WAIT_META;
+                wrp_fsmState = WRP_IDLE;
         }
         break;
-    case WRP_TXGEN:
+    case WRP_8801:
         if (!soSHL_Data.full()) {
             UdpAppData currChunk(0,0,0);
             if (wrp_appDReq > 8) {
@@ -510,7 +509,7 @@ void pWritePath(
             else {
                 currChunk.setLE_TKeep(lenToLE_tKeep(wrp_appDReq));
                 currChunk.setLE_TLast(TLAST);
-                wrp_fsmState = WRP_WAIT_META;
+                wrp_fsmState = WRP_IDLE;
             }
             switch (wrp_genChunk) {
             case CHK0: // Send 'Hi from '
@@ -665,9 +664,9 @@ void udp_shell_if(
     //-------------------------------------------------------------------------
 
     //-- Read Path (RDp)
-    static stream <UdpAppMeta>     ssRDpToWRp_Meta    ("ssRDpToWRp_Meta");
+    static stream<UdpAppMeta>      ssRDpToWRp_Meta    ("ssRDpToWRp_Meta");
     #pragma HLS STREAM    variable=ssRDpToWRp_Meta    depth=2
-    static stream <UdpAppDLen>     ssRDpToWRp_DReq    ("ssRDpToWRp_DReq");
+    static stream<UdpAppDLen>      ssRDpToWRp_DReq    ("ssRDpToWRp_DReq");
     #pragma HLS STREAM    variable=ssRDpToWRp_DReq    depth=2
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------

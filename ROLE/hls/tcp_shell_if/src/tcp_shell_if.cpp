@@ -24,11 +24,12 @@
  *
  *------------------------------------------------------------------------------
  *
- * @details    : This entity handles the control flow interface between the
- *  the SHELL and the ROLE. The main purpose of the TSIF is to open a predefined
- *  set of ports in listening and/or to actively connect to remote host(s).
+ * @details This entity handles the control flow interface between the SHELL
+ *   and the ROLE. The main purpose of the TSIF is to open a predefined set of
+ *   ports in listening mode and/or to actively connect to remote host(s).
  *   The use of a dedicated layer is not a prerequisite but it is provided here
- *   for sake of simplicity.
+ *   for sake of simplicity by separating the data flow processing (see TAF)
+ *   from the current control flow processing.
  *
  *          +-------+  +--------------------------------+
  *          |       |  |  +------+     +-------------+  |
@@ -73,33 +74,40 @@ using namespace std;
 #define TRACE_LSN 1 <<  4
 #define TRACE_CON 1 <<  5
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_LSN | TRACE_CON)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
  * @brief Connect (COn).
  *
- * @param[in]  piSHL_Enable  Enable signal from [SHELL].
- * @param[out] soSHL_OpnReq  Open connection request to [SHELL].
- * @param[in]  siSHL_OpnRep  Open connection reply from [SHELL].
- * @param[out] soSHL_ClsReq  Close connection request to [SHELL].
- * @param[out] poTAF_SConId  Session connect Id to [ROLE/TAF].
+ * @param[in]  piSHL_Enable     Enable signal from [SHELL].
+ * @param[in]  siRRh_OpnAddrReq The remote IP address to connect from ReadRequestHandler (RRh).
+ * @param[in]  siRDp_OpnPortReq The remote TCP port to connect from ReadPath(RDp).
+ * @param[in]  siRDp_TxCountReq The #bytes to be transmitted after connection is opened.
+ * @param[out] soWRp_TxBytesReq The #bytes to be transmitted to WritePath (WRp).
+ * @param[out] soWRp_TxSessId   The session id of the active opened connection to [WRp].
+ * @param[out] soSHL_OpnReq     Open connection request to [SHELL].
+ * @param[in]  siSHL_OpnRep     Open connection reply from [SHELL].
+ * @param[out] soSHL_ClsReq     Close connection request to [SHELL].
  *
  * @details
  *  This process connects the FPGA in client mode to a remote server which
- *   socket address is specified by [TODO-TBD]. The session ID of the opened
- *   connection is then provided to the TcpApplicationFlash (TAF) process of
- *   the ROLE via the 'poTAF_SConId' port.
- *
- * [FIXME:FOR THE TIME BEING,  THIS PROCESS IS DISABLED UNTIL WE ADD A SOFTWARE
- *        CONFIG REGISTER TO SPECIFY THE REMOTE SOCKET]
+ *   socket address is specified by the pair {siRRh_OpnAddrReq,siRDp_OpnPortReq}.
+ *  Alternatively, the process is also used to trigger the TxPath (TXp) to xmit
+ *   a segment to the remote producer of the request. The number of bytes to
+ *   transmit is then specified by the [RDp] via the 'siRDp_TxCountReq' input.
+ *   This mode is used to test the TOE in transmit mode.
  *******************************************************************************/
 void pConnect(
         CmdBit                *piSHL_Enable,
+        stream<Ip4Addr>       &siRRh_OpnAddrReq,
+        stream<TcpPort>       &siRDp_OpnPortReq,
+        stream<Ly4Len>        &siRDp_TxCountReq,
+        stream<Ly4Len>        &soWRp_TxBytesReq,
+        stream<SessionId>     &soWRp_TxSessId,
         stream<TcpAppOpnReq>  &soSHL_OpnReq,
         stream<TcpAppOpnRep>  &siSHL_OpnRep,
-        stream<TcpAppClsReq>  &soSHL_ClsReq,
-        SessionId             *poTAF_SConId)
+        stream<TcpAppClsReq>  &soSHL_ClsReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -107,13 +115,13 @@ void pConnect(
     const char *myName  = concat3(THIS_NAME, "/", "COn");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates{ OPN_IDLE, OPN_REQ, OPN_REP, OPN_DONE }
+    static enum FsmStates{ OPN_IDLE, OPN_REQ, OPN_REP, OPN_8801 }
                                con_fsmState=OPN_IDLE;
     #pragma HLS reset variable=con_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static SockAddr      con_hostSockAddr;
-    static TcpAppOpnRep  con_newCon;
+    static TcpAppOpnRep  con_opnRep;
+    static Ly4Len        con_txBytesReq;
     static ap_uint< 12>  con_watchDogTimer;
 
     switch (con_fsmState) {
@@ -121,26 +129,24 @@ void pConnect(
         if (*piSHL_Enable != 1) {
             if (!siSHL_OpnRep.empty()) {
                 // Drain any potential status data
-                siSHL_OpnRep.read(con_newCon);
-                printWarn(myName, "Draining unexpected residue from the \'OpnRep\' stream. As a result, request to close sessionId=%d.\n", con_newCon.sessId.to_uint());
-                soSHL_ClsReq.write(con_newCon.sessId);
+                siSHL_OpnRep.read(con_opnRep);
+                printWarn(myName, "Draining unexpected residue from the \'OpnRep\' stream. As a result, request to close sessionId=%d.\n", con_opnRep.sessId.to_uint());
+                soSHL_ClsReq.write(con_opnRep.sessId);
             }
         }
         else {
-            // [FIXME - THIS PROCESS IS DISABLED UNTIL WE ADD A SW CONFIG of THE REMOTE SOCKET]
-            con_fsmState = OPN_IDLE;  // FIXME --> Should be OPN_REQ;
+            con_fsmState = OPN_REQ;
         }
         break;
     case OPN_REQ:
-        if (!soSHL_OpnReq.full()) {
-            // [FIXME - Remove the hard coding of this socket]
-            SockAddr    hostSockAddr(FIXME_DEFAULT_HOST_IP4_ADDR, FIXME_DEFAULT_HOST_LSN_PORT);
-            con_hostSockAddr.addr = hostSockAddr.addr;
-            con_hostSockAddr.port = hostSockAddr.port;
-            soSHL_OpnReq.write(con_hostSockAddr);
+        if (!siRDp_OpnPortReq.empty() and !siRDp_TxCountReq.empty() and
+            !siRRh_OpnAddrReq.empty() and !soSHL_OpnReq.full()) {
+            siRDp_TxCountReq.read(con_txBytesReq);
+            SockAddr hostSockAddr(siRRh_OpnAddrReq.read(), siRDp_OpnPortReq.read());
+            soSHL_OpnReq.write(hostSockAddr);
             if (DEBUG_LEVEL & TRACE_CON) {
                 printInfo(myName, "Client is requesting to connect to remote socket:\n");
-                printSockAddr(myName, con_hostSockAddr);
+                printSockAddr(myName, hostSockAddr);
             }
             #ifndef __SYNTHESIS__
                 con_watchDogTimer = 250;
@@ -150,33 +156,27 @@ void pConnect(
             con_fsmState = OPN_REP;
         }
         break;
-
     case OPN_REP:
         con_watchDogTimer--;
         if (!siSHL_OpnRep.empty()) {
             // Read the reply stream
-            siSHL_OpnRep.read(con_newCon);
-            if (con_newCon.tcpState == ESTABLISHED) {
+            siSHL_OpnRep.read(con_opnRep);
+            if (con_opnRep.tcpState == ESTABLISHED) {
                 if (DEBUG_LEVEL & TRACE_CON) {
-                    printInfo(myName, "Client successfully connected to remote socket:\n");
-                    printSockAddr(myName, con_hostSockAddr);
-                    printInfo(myName, "The Session ID of this connection is: %d\n", con_newCon.sessId.to_int());
+                    printInfo(myName, "Client successfully established connection.\n");
                 }
-                *poTAF_SConId = con_newCon.sessId;
-                con_fsmState = OPN_DONE;
+                con_fsmState = OPN_8801;
             }
             else {
-                 printError(myName, "Client failed to connect to remote socket (TCP state is '%s'):\n",
-                            getTcpStateName(con_newCon.tcpState));
-                 printSockAddr(myName, con_hostSockAddr);
-                 con_fsmState = OPN_DONE;
+                 printError(myName, "Client failed to establish connection with remote socket (TCP state is '%s'):\n",
+                            getTcpStateName(con_opnRep.tcpState));
+                 con_fsmState = OPN_IDLE;
             }
         }
         else {
             if (con_watchDogTimer == 0) {
                 if (DEBUG_LEVEL & TRACE_CON) {
-                    printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
-                    printSockAddr(myName, con_hostSockAddr);
+                    printError(myName, "Timeout: Failed to establish connection.\n");
                 }
                 #ifndef __SYNTHESIS__
                   con_watchDogTimer = 250;
@@ -184,10 +184,20 @@ void pConnect(
                   con_watchDogTimer = 10000;
                 #endif
             }
-
         }
         break;
-    case OPN_DONE:
+    case OPN_8801:
+        if (con_txBytesReq != 0) {
+            if(!soWRp_TxBytesReq.full() and !soWRp_TxSessId.full()) {
+                //-- Request [WRp] to start the xmit test
+                soWRp_TxBytesReq.write(con_txBytesReq);
+                soWRp_TxSessId.write(con_opnRep.sessId);
+                con_fsmState = OPN_IDLE;
+            }
+        }
+        else {
+            con_fsmState = OPN_IDLE;
+        }
         break;
     }
 }
@@ -202,17 +212,17 @@ void pConnect(
  * @warning
  *  This process requests the SHELL/NTS/TOE to start listening for incoming
  *   connections on a specific port (.i.e, open connection in server mode).
- *  By default, the port numbers 5001, 5201, 8800 and 8803 will always be opened
- *   in listen mode at startup. Later on, we should be able to open more port if
- *   we provide some configuration register for the user to specify new ones.
- *  FYI - The Port Table (PRt) of SHELL/NTS/TOE supports two port ranges; one
+ *  By default, the port numbers 5001, 5201, 8800 to 8803 will always be opened
+ *   in listen mode at startup. Later on, we should be able to open more ports
+ *   if we provide some configuration register for the user to specify new ones.
+ *  FYI - The PortTable (PRt) of the SHELL/NTS/TOE supports two port ranges; one
  *   for static ports (0 to 32,767) which are used for listening ports, and one
  *   for dynamically assigned or ephemeral ports (32,768 to 65,535) which are
  *   used for active connections. Therefore, listening port numbers must always
  *   fall in the range 0 to 32,767.
  *******************************************************************************/
 void pListen(
-        ap_uint<1>            *piSHL_Enable,
+        CmdBit                *piSHL_Enable,
         stream<TcpAppLsnReq>  &soSHL_LsnReq,
         stream<TcpAppLsnRep>  &siSHL_LsnRep)
 {
@@ -226,17 +236,17 @@ void pListen(
                             LSN_WAIT_REP, LSN_DONE } \
                                lsn_fsmState=LSN_IDLE;
     #pragma HLS reset variable=lsn_fsmState
-    static ap_uint<2>          lsn_i = 0;
+    static ap_uint<3>          lsn_i = 0;
     #pragma HLS reset variable=lsn_i
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static const TcpPort LSN_PORT_TABLE[4] = { RECV_MODE_LSN_PORT, ECHO_MODE_LSN_PORT,
-                                               IPERF_LSN_PORT, IPREF3_LSN_PORT };
+    static const TcpPort LSN_PORT_TABLE[6] = { RECV_MODE_LSN_PORT, XMIT_MODE_LSN_PORT,
+                                               ECHO_MOD2_LSN_PORT, ECHO_MODE_LSN_PORT,
+                                               IPERF_LSN_PORT,     IPREF3_LSN_PORT };
     #pragma HLS RESOURCE variable=LSN_PORT_TABLE core=ROM_1P
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ap_uint<8>  lsn_watchDogTimer;
-    static TcpPort     lsn_tcpPort;
 
     switch (lsn_fsmState) {
     case LSN_IDLE:
@@ -260,25 +270,31 @@ void pListen(
                 soSHL_LsnReq.write(RECV_MODE_LSN_PORT);
                 break;
             case 1:
-                soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
+                soSHL_LsnReq.write(XMIT_MODE_LSN_PORT);
                 break;
             case 2:
-                soSHL_LsnReq.write(IPERF_LSN_PORT);
+                soSHL_LsnReq.write(ECHO_MOD2_LSN_PORT);
                 break;
             case 3:
+                soSHL_LsnReq.write(ECHO_MODE_LSN_PORT);
+                break;
+            case 4:
+                soSHL_LsnReq.write(IPERF_LSN_PORT);
+                break;
+            case 5:
                 soSHL_LsnReq.write(IPREF3_LSN_PORT);
                 break;
             }
             if (DEBUG_LEVEL & TRACE_LSN) {
                 printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
                           LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
+            }
             #ifndef __SYNTHESIS__
                 lsn_watchDogTimer = 10;
             #else
                 lsn_watchDogTimer = 100;
             #endif
             lsn_fsmState = LSN_WAIT_REP;
-            }
         }
         else {
             printWarn(myName, "Cannot send a listen port request to [TOE] because stream is full!\n");
@@ -290,8 +306,8 @@ void pListen(
             TcpAppLsnRep  listenDone;
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
-                printInfo(myName, "Received OK listen reply from [TOE].\n");
-                if (lsn_i == 3) {
+                printInfo(myName, "Received OK listen reply from [TOE] for port %d.\n", LSN_PORT_TABLE[lsn_i].to_uint());
+                if (lsn_i == sizeof(LSN_PORT_TABLE)/sizeof(LSN_PORT_TABLE[0])-1) {
                     lsn_fsmState = LSN_DONE;
                 }
                 else {
@@ -324,24 +340,37 @@ void pListen(
  *
  * @param[in]  siSHL_Notif  A new Rx data notification from [SHELL].
  * @param[out] soSHL_DReq   An Rx data request to [SHELL].
- * @param[out] soRDp_FwdCmd A command to keep/drop a stream to ReadPath (RDp).
+ * @param[out] soRDp_FwdCmd A command telling the ReadPath (RDp) to keep/drop a stream.
+ * @param[out] soCOn_OpnAddrReq The remote destination IP address to connect to.
  *
  * @details
  *  This process waits for a notification from [TOE] indicating the availability
- *   of new data for the TcpApplication Flash (TAF) process of the [ROLE].
- *  If the TCP segment length of the notification message is greater than 0, the
+ *   of new data for the TcpApplication Flash (TAF) process of the [ROLE]. If
+ *   the TCP segment length of the notification message is greater than 0, the
  *   data segment is valid and the notification is accepted.
  *  For testing purposes, the TCP destination port is evaluated here and one of
  *   the following actions is taken upon its value:
- *     - 8800 : The Rx path process is requested to dump/sink this segment. This
- *               is an indirect way to for a client to run iPerf on that port.
+ *     - 8800 : The RxPath (RXp) process is requested to dump/sink this segment.
+ *              This is an indirect way for a remote client to run iPerf on that
+ *              FPGA port used here as a server.
+ *     - 8801 : The TxPath (TXp) is expected to open an active connection and
+ *              to send an certain amount of bytes to the producer of this
+ *              request. It is the responsibility of the RxPath (RXp) to extract
+ *              the destination TCP port number and the #bytes to transmit from
+ *              the 32 first bits of the segment and to forward these data as
+ *              two 16-bit words to the Connect (COn) process. The [COn] will
+ *              then open an active connection before triggering the WritePath
+ *              (WRp) to send the requested amount of bytes on the new connection.
  *     - 5001 : [TBD]
  *     - 5201 : [TBD]
+ *     - Others: The RXp process is requested to forward these data and metadata
+ *              streams to the TcpApplicationFlash (TAF).
  *******************************************************************************/
 void pReadRequestHandler(
         stream<TcpAppNotif>    &siSHL_Notif,
         stream<TcpAppRdReq>    &soSHL_DReq,
-        stream<ForwardCmd>     &soRDp_FwdCmd)
+        stream<ForwardCmd>     &soRDp_FwdCmd,
+        stream<Ip4Addr>        &soCOn_OpnAddrReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -349,26 +378,32 @@ void pReadRequestHandler(
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
 
     //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
-    static enum FsmStates { RRH_WAIT_NOTIF, RRH_SEND_DREQ } \
-                               rrh_fsmState=RRH_WAIT_NOTIF;
+    static enum FsmStates { RRH_IDLE, RRH_SEND_DREQ, RRH_8801 } \
+                               rrh_fsmState=RRH_IDLE;
     #pragma HLS reset variable=rrh_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static   TcpAppNotif rrh_notif;
 
     switch(rrh_fsmState) {
-    case RRH_WAIT_NOTIF:
-        if (!siSHL_Notif.empty()) {
+    case RRH_IDLE:
+        if (!siSHL_Notif.empty() and !soRDp_FwdCmd.full()) {
             siSHL_Notif.read(rrh_notif);
             if (rrh_notif.tcpSegLen != 0) {
                 // Always request the data segment to be received
+                switch (rrh_notif.tcpDstPort) {
+                case RECV_MODE_LSN_PORT: // 8800
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_DROP, NOP));
+
+                    break;
+                case XMIT_MODE_LSN_PORT: // 8801
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_DROP, GEN));
+                    break;
+                default:
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_KEEP, NOP));
+                    break;
+                }
                 rrh_fsmState = RRH_SEND_DREQ;
-                if (rrh_notif.tcpDstPort == RECV_MODE_LSN_PORT) { // 8800
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_DROP));
-                }
-                else {
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_KEEP));
-                }
             }
             else {
                 printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n.");
@@ -378,7 +413,18 @@ void pReadRequestHandler(
     case RRH_SEND_DREQ:
         if (!soSHL_DReq.full()) {
             soSHL_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_notif.tcpSegLen));
-            rrh_fsmState = RRH_WAIT_NOTIF;
+            if (rrh_notif.tcpDstPort != XMIT_MODE_LSN_PORT) {
+                rrh_fsmState = RRH_IDLE;
+            }
+            else {
+                rrh_fsmState = RRH_8801;
+            }
+        }
+        break;
+    case RRH_8801:
+        if (!soCOn_OpnAddrReq.full()) {
+            soCOn_OpnAddrReq.write(rrh_notif.ip4SrcAddr);
+            rrh_fsmState = RRH_IDLE;
         }
         break;
     }
@@ -390,18 +436,31 @@ void pReadRequestHandler(
  * @param[in]  siSHL_Data   Data stream from [SHELL].
  * @param[in]  siSHL_Meta   Session Id from [SHELL].
  * @param[in]  siRRh_FwdCmd A command to keep/drop a stream from ReadRequestHandler (RRh).
+ * @param[out] soCOn_OpnPortReq The remote TCP port to open to Connect (COn).
+ * @param[out] soCOn_TxCountReq The #bytes to be transmitted after active port is opened by [COn].
  * @param[out] soTAF_Data   Data stream to [TAF].
  * @param[out] soTAF_Meta   Session Id to [TAF].
  *
  * @details
  *  This process waits for a new data segment to read and forwards it to the
- *   TcpApplicationFlash (TAF) process. As such, it implements a pipe for the
- *   TCP traffic from [SHELL] to [TAF]
+ *   TcpApplicationFlash (TAF) process or drops it based upon the 'action' field
+ *   of the 'siRRh_FwdCmd' command.
+ *   - If the action is 'CMD_KEEP', the stream is forwarded to the next layer.
+ *     As such, [RDp] implements a pipe for the TCP traffic from [SHELL] to [TAF].
+ *   - If the action is 'CMD_DROP' the field 'opCOde' becomes meaningful and may
+ *     specify additional sub-options:
+ *     - If the op-code is 'NOP', simply drop the stream and do nothing more.
+ *     - If the op-code is 'GEN', extract the remote TCP port to connect to as
+ *       well as the number of bytes to transmit from the 32 first incoming
+ *       bits of the data stream. Next, drop the rest of that stream and forward
+ *       the two extracted fields to the Connect (COn) process.
  *******************************************************************************/
 void pReadPath(
         stream<TcpAppData>  &siSHL_Data,
         stream<TcpAppMeta>  &siSHL_Meta,
         stream<ForwardCmd>  &siRRh_FwdCmd,
+        stream<TcpPort>     &soCOn_OpnPortReq,
+        stream<Ly4Len>      &soCOn_TxCountReq,
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpAppMeta>  &soTAF_Meta)
 {
@@ -411,55 +470,80 @@ void pReadPath(
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { RDP_WAIT_META=0, RDP_STREAM } \
-                               rdp_fsmState=RDP_WAIT_META;
+    static enum FsmStates { RDP_IDLE=0, RDP_STREAM, RDP_8801 } \
+                               rdp_fsmState=RDP_IDLE;
     #pragma HLS reset variable=rdp_fsmState
     static FlagBool            rdp_keepFlag=true;
     #pragma HLS reset variable=rdp_keepFlag
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    TcpAppData  currChunk;
-    TcpAppMeta  sessId;
+    TcpAppData  appData;
+    TcpAppMeta  appMeta;
     ForwardCmd  fwdCmd;
 
     switch (rdp_fsmState ) {
-    case RDP_WAIT_META:
+    case RDP_IDLE:
         if (!siSHL_Meta.empty() and !siRRh_FwdCmd.empty() and !soTAF_Meta.full()) {
-            siSHL_Meta.read(sessId);
+            siSHL_Meta.read(appMeta);
             siRRh_FwdCmd.read(fwdCmd);
             if (fwdCmd.action == CMD_KEEP) {
                 rdp_keepFlag = true;
-                soTAF_Meta.write(sessId);
+                soTAF_Meta.write(appMeta);
+                rdp_fsmState  = RDP_STREAM;
             }
             else {
                 rdp_keepFlag = false;
+                if (fwdCmd.dropCode == GEN) {
+                    rdp_fsmState  = RDP_8801;
+                }
+                else {
+                    rdp_fsmState  = RDP_STREAM;
+                }
             }
-            rdp_fsmState  = RDP_STREAM;
         }
         break;
     case RDP_STREAM:
         if (!siSHL_Data.empty() && !soTAF_Data.full()) {
-            siSHL_Data.read(currChunk);
+            siSHL_Data.read(appData);
             if (rdp_keepFlag) {
-                soTAF_Data.write(currChunk);
-                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", currChunk); }
+                soTAF_Data.write(appData);
+                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", appData); }
             }
-            if (currChunk.getTLast()) {
-                rdp_fsmState  = RDP_WAIT_META;
+            if (appData.getTLast()) {
+                rdp_fsmState  = RDP_IDLE;
             }
         }
         break;
+    case RDP_8801:
+        if (!siSHL_Data.empty() and !soCOn_OpnPortReq.full() and !soCOn_TxCountReq.full()) {
+            // Extract the remote port number and the requested #bytes to transmit
+            siSHL_Data.read(appData);
+            TcpPort portToOpen = byteSwap16(appData.getLE_TData(15,  0));
+            Ly4Len  byesToSend = byteSwap16(appData.getLE_TData(31, 16));
+            soCOn_OpnPortReq.write(portToOpen);
+            soCOn_TxCountReq.write(byesToSend);
+            printInfo(myName, "Received request for Tx test mode to generate a segment of length=%d and to send it to port=%d.\n",
+                      byesToSend.to_int(), portToOpen.to_int());
+            if (appData.getTLast()) {
+                rdp_fsmState  = RDP_IDLE;
+            }
+            else {
+                rdp_fsmState = RDP_STREAM;
+            }
+        }
     }
 }
 
 /*******************************************************************************
  * @brief Write Path (WRp)
  *
- * @param[in]  siTAF_Data  Tx data stream from [ROLE/TAF].
- * @param[in]  siTAF_Meta  The session Id from [ROLE/TAF].
- * @param[out] soSHL_Data  Tx data to [SHELL].
- * @param[out] soSHL_Meta  Tx session Id to to [SHELL].
- * @param[in]  siSHL_DSts  Tx data write status from [SHELL].
+ * @param[in]  siTAF_Data   Tx data stream from [ROLE/TAF].
+ * @param[in]  siTAF_Meta   The session Id from [ROLE/TAF].
+ * @param[in]  siCOn_TxBytesReq The #bytes to be transmitted on the active opened connection from Connect(COn).
+ * @param[in]  siCOn_SessId The session id of the active opened connection from [COn].
+ * @param[out] soSHL_Data   Tx data to [SHELL].
+ * @param[out] soSHL_Meta   Tx session Id to to [SHELL].
+ * @param[in]  siSHL_DSts   Tx data write status from [SHELL].
  *
  * @details
  *  This process waits for a new data segment to write from the TcpAppFlash (TAF)
@@ -469,6 +553,8 @@ void pReadPath(
 void pWritePath(
         stream<TcpAppData>  &siTAF_Data,
         stream<TcpAppMeta>  &siTAF_Meta,
+        stream<Ly4Len>      &siCOn_TxBytesReq,
+        stream<SessionId>   &siCOn_TxSessId,
         stream<TcpAppData>  &soSHL_Data,
         stream<TcpAppMeta>  &soSHL_Meta,
         stream<TcpAppWrSts> &siSHL_DSts)
@@ -479,38 +565,87 @@ void pWritePath(
     const char *myName  = concat3(THIS_NAME, "/", "WRp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { WRP_WAIT_META=0, WRP_STREAM } \
-                               wrp_fsmState = WRP_WAIT_META;
+    static enum FsmStates { WRP_IDLE=0, WRP_STREAM, WRP_8801 } \
+                               wrp_fsmState=WRP_IDLE;
     #pragma HLS reset variable=wrp_fsmState
+    static enum GenChunks { CHK0=0, CHK1, } \
+                               wrp_genChunk=CHK0;
+    #pragma HLS reset variable=wrp_genChunk
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static Ly4Len       wrp_txBytesReq;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    TcpAppMeta   tcpSessId;
-    TcpAppData   currChunk;
+    TcpAppMeta   appMeta;
+    TcpAppData   appData;
 
     switch (wrp_fsmState) {
-    case WRP_WAIT_META:
-        //-- Always read the session Id provided by [ROLE/TAF]
+    case WRP_IDLE:
+        //-- Always read the metadata provided by [ROLE/TAF]
         if (!siTAF_Meta.empty() and !soSHL_Meta.full()) {
-            siTAF_Meta.read(tcpSessId);
-            soSHL_Meta.write(tcpSessId);
+            siTAF_Meta.read(appMeta);
+            soSHL_Meta.write(appMeta);
             if (DEBUG_LEVEL & TRACE_WRP) {
                 printInfo(myName, "Received new session ID #%d from [ROLE].\n",
-                          tcpSessId.to_uint());
+                          appMeta.to_uint());
             }
             wrp_fsmState = WRP_STREAM;
+        }
+        else if (!siCOn_TxBytesReq.empty() and !siCOn_TxSessId.empty()) {
+            siCOn_TxBytesReq.read(wrp_txBytesReq);
+            siCOn_TxSessId.read(appMeta);
+            if (DEBUG_LEVEL & TRACE_WRP) {
+                printInfo(myName, "Received a Tx test request for %d bytes (appMeta=%d).\n",
+                          wrp_txBytesReq.to_uint(), appMeta.to_uint());
+            }
+            if (wrp_txBytesReq != 0) {
+                soSHL_Meta.write(appMeta);
+                wrp_fsmState = WRP_8801;
+                wrp_genChunk = CHK0;
+            }
+            else {
+                wrp_fsmState = WRP_IDLE;
+            }
         }
         break;
     case WRP_STREAM:
         if (!siTAF_Data.empty() && !soSHL_Data.full()) {
-            siTAF_Data.read(currChunk);
-            soSHL_Data.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data =", currChunk); }
-            if(currChunk.getTLast()) {
-                wrp_fsmState = WRP_WAIT_META;
+            siTAF_Data.read(appData);
+            soSHL_Data.write(appData);
+            if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data =", appData); }
+            if(appData.getTLast()) {
+                wrp_fsmState = WRP_IDLE;
             }
         }
         break;
-    }
+    case WRP_8801:
+        if (!soSHL_Data.full()) {
+            TcpAppData currChunk(0,0,0);
+            if (wrp_txBytesReq > 8) {
+                currChunk.setLE_TKeep(0xFF);
+                wrp_txBytesReq -= 8;
+            }
+            else {
+                currChunk.setLE_TKeep(lenToLE_tKeep(wrp_txBytesReq));
+                currChunk.setLE_TLast(TLAST);
+                wrp_fsmState = WRP_IDLE;
+            }
+            switch (wrp_genChunk) {
+            case CHK0: // Send 'Hi from '
+                currChunk.setTData(GEN_CHK0);
+                wrp_genChunk = CHK1;
+                break;
+            case CHK1: // Send 'FMKU60!\n'
+                currChunk.setTData(GEN_CHK1);
+                wrp_genChunk = CHK0;
+                break;
+            }
+            currChunk.clearUnusedBytes();
+            soSHL_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data =", currChunk); }
+        }
+        break;
+    } // End-of: switch
 
     //-- ALWAYS -----------------------
     if (!siSHL_DSts.empty()) {
@@ -538,10 +673,6 @@ void pWritePath(
  * @param[out] soSHL_OpnReq  TCP open connection request to [SHELL].
  * @param[in]  siSHL_OpnRep  TCP open connection reply from [SHELL].
  * @param[out] soSHL_ClsReq  TCP close connection request to [SHELL].
- * @param[out] poTAF_SConId  TCP session connect id to [ROLE/TAF].
- *
- * @return Nothing.
- *
  *******************************************************************************/
 void tcp_shell_if(
 
@@ -592,12 +723,7 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- SHELL / Close Interfaces
         //------------------------------------------------------
-        stream<TcpAppClsReq>  &soSHL_ClsReq,
-
-        //------------------------------------------------------
-        //-- TAF / Session Connect Id Interface
-        //------------------------------------------------------
-        SessionId             *poTAF_SConId)
+        stream<TcpAppClsReq>  &soSHL_ClsReq)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -634,8 +760,6 @@ void tcp_shell_if(
 
     #pragma HLS resource core=AXI4Stream variable=soSHL_ClsReq metadata="-bus_bundle soSHL_ClsReq"
 
-    #pragma HLS INTERFACE ap_vld register    port=poTAF_SConId
-
   #else
 
     #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En  name=piSHL_Mmio_En
@@ -668,25 +792,45 @@ void tcp_shell_if(
 
     #pragma HLS INTERFACE axis register both port=soSHL_ClsReq   name=soSHL_ClsReq
 
-    #pragma HLS INTERFACE ap_vld register    port=poTAF_SConId
-
   #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW interval=1
 
-    //-- LOCAL STREAMS ---------------------------------------------------------
-    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd  ("ssRRhToRDp_FwdCmd");
-    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd  depth=8
+    //--------------------------------------------------------------------------
+    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //--------------------------------------------------------------------------
+
+    //-- Read Path (RDp)
+    static stream<TcpPort>         ssRDpToCOn_OpnPortReq ("ssRDpToCOn_OpnPortReq");
+    #pragma HLS stream    variable=ssRDpToCOn_OpnPortReq depth=2
+    static stream<Ly4Len>          ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
+    #pragma HLS stream    variable=ssRDpToCOn_TxCountReq depth=2
+
+    //-- ReadrequestHandler (RRh)
+    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd     ("ssRRhToRDp_FwdCmd");
+    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd     depth=8
     #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
+    static stream<Ip4Addr>         ssRRhToCOn_OpnAddrReq ("ssRRhToCOn_OpnAddrReq");
+    #pragma HLS stream    variable=ssRRhToCOn_OpnAddrReq depth=2
+
+    //-- Connect (COn)
+    static stream<Ly4Len>          ssCOnToWRp_TxBytesReq ("ssCOnToWRp_TxBytesReq");
+    #pragma HLS stream    variable=ssCOnToWRp_TxBytesReq depth=2
+    static stream<SessionId>       ssCOnToWRp_TxSessId   ("ssCOnToWRp_TxSessId");
+    #pragma HLS stream    variable=ssCOnToWRp_TxSessId   depth=2
 
     //-- PROCESS FUNCTIONS -----------------------------------------------------
     pConnect(
             piSHL_Mmio_En,
+            ssRRhToCOn_OpnAddrReq,
+            ssRDpToCOn_OpnPortReq,
+            ssRDpToCOn_TxCountReq,
+            ssCOnToWRp_TxBytesReq,
+            ssCOnToWRp_TxSessId,
             soSHL_OpnReq,
             siSHL_OpnRep,
-            soSHL_ClsReq,
-            poTAF_SConId);
+            soSHL_ClsReq);
 
     pListen(
             piSHL_Mmio_En,
@@ -696,18 +840,23 @@ void tcp_shell_if(
     pReadRequestHandler(
             siSHL_Notif,
             soSHL_DReq,
-            ssRRhToRDp_FwdCmd);
+            ssRRhToRDp_FwdCmd,
+            ssRRhToCOn_OpnAddrReq);
 
     pReadPath(
             siSHL_Data,
             siSHL_Meta,
             ssRRhToRDp_FwdCmd,
+            ssRDpToCOn_OpnPortReq,
+            ssRDpToCOn_TxCountReq,
             soTAF_Data,
             soTAF_Meta);
 
     pWritePath(
             siTAF_Data,
             siTAF_Meta,
+            ssCOnToWRp_TxBytesReq,
+            ssCOnToWRp_TxSessId,
             soSHL_Data,
             soSHL_Meta,
             siSHL_DSts);

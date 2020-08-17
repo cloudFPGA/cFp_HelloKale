@@ -22,13 +22,8 @@
  * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *                   UDP shell interface.
- *
- * \ingroup ROL
- * \addtogroup ROL_USIF
+ * \ingroup ROLE
+ * \addtogroup ROLE_USIF
  * \{
  *******************************************************************************/
 

@@ -77,7 +77,7 @@ void stepSim() {
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Emulate the behavior of the ROLE/UdpAppFlash (UAF).
  *
  * @param[in]  siUSIF_Data  Data from UdpShellInterface (USIF).
@@ -86,7 +86,11 @@ void stepSim() {
  * @param[out] soUSIF_Meta  Metadata to [USIF].
  * @param[out] soUSIF_DLen  Data len to [USIF].
  *
- ******************************************************************************/
+ * @details
+ *  ALWAYS READ INCOMING DATA STREAM AND ECHO IT BACK.
+ *  Warning: For sake of simplicity, this testbench is operated in streaming
+ *   mode by setting the 'DLen' interface to zero.
+ *******************************************************************************/
 void pUAF(
         //-- USIF / Rx Data Interface
         stream<UdpAppData>  &siUSIF_Data,
@@ -100,19 +104,13 @@ void pUAF(
     const char *myRxName  = concat3(THIS_NAME, "/", "UAF-Rx");
     const char *myTxName  = concat3(THIS_NAME, "/", "UAF-Tx");
 
-    static enum RxFsmStates { RX_WAIT_META=0, RX_STREAM } uaf_rxFsmState = RX_WAIT_META;
+    static enum RxFsmStates { RX_IDLE=0, RX_STREAM } uaf_rxFsmState=RX_IDLE;
 
-    //------------------------------------------------------
-    //-- ALWAYS READ INCOMING DATA STREAM AND ECHO IT BACK
-    //--  Warning: For sake of simplicity, this testbench is
-    //--   operated in streaming mode by setting the 'DLen'
-    //--   interface to zero.
-    //------------------------------------------------------
     UdpAppData      appData;
     UdpAppMeta      appMeta;
 
     switch (uaf_rxFsmState ) {
-    case RX_WAIT_META:
+    case RX_IDLE:
         if (!siUSIF_Meta.empty() and !soUSIF_Meta.full()) {
             siUSIF_Meta.read(appMeta);
             // Swap IP_SA/IP_DA and update UPD_SP/UDP_DP
@@ -131,7 +129,7 @@ void pUAF(
             }
             soUSIF_Data.write(appData);
             if (appData.getTLast()) {
-                uaf_rxFsmState  = RX_WAIT_META;
+                uaf_rxFsmState  = RX_IDLE;
             }
         }
         break;
@@ -208,7 +206,7 @@ void pUOE(
 
     static enum LsnStates { LSN_WAIT_REQ,  LSN_SEND_REP }  uoe_lsnState = LSN_WAIT_REQ;
     static enum RxpStates { RXP_SEND_META, RXP_SEND_DATA, \
-                            RXP_SEND_DLEN, RXP_DONE }      uoe_rxpState = RXP_SEND_META;
+                            RXP_SEND_8801, RXP_DONE }      uoe_rxpState = RXP_SEND_META;
     static enum TxpStates { TXP_WAIT_META, TXP_RECV_DATA } uoe_txpState = TXP_WAIT_META;
 
     static int  uoe_startupDelay = UOE_INIT_CYCLES;
@@ -291,7 +289,7 @@ void pUOE(
                 uoe_rxMeta.dst.port = XMIT_MODE_LSN_PORT;
                 uoe_txByteCnt = dgrmLen;
                 gMaxSimCycles += (dgrmLen / 8);
-                uoe_rxpState = RXP_SEND_DLEN;
+                uoe_rxpState = RXP_SEND_8801;
                 break;
             default:
                 uoe_rxMeta.dst.port = ECHO_MODE_LSN_PORT;
@@ -310,18 +308,18 @@ void pUOE(
             }
             break;
         case RXP_SEND_DATA: // FORWARD DATA TO [USIF]
-            appData.setTData((random() << 32) | random()) ;
-            if (uoe_rxByteCnt > 8) {
-                appData.setTKeep(0xFF);
-                appData.setTLast(0);
-                uoe_rxByteCnt -= 8;
-            }
-            else {
-                appData.setTKeep(lenTotKeep(uoe_rxByteCnt));
-                appData.setTLast(TLAST);
-                uoe_rxpState = RXP_SEND_META;
-            }
             if (!soUSIF_Data.full()) {
+                appData.setTData((random() << 32) | random()) ;
+                if (uoe_rxByteCnt > 8) {
+                    appData.setTKeep(0xFF);
+                    appData.setTLast(0);
+                    uoe_rxByteCnt -= 8;
+                }
+                else {
+                    appData.setTKeep(lenTotKeep(uoe_rxByteCnt));
+                    appData.setTLast(TLAST);
+                    uoe_rxpState = RXP_SEND_META;
+                }
                 soUSIF_Data.write(appData);
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myRxpName, "Sending data chunk to [USIF]: ", appData);
@@ -331,12 +329,12 @@ void pUOE(
                 }
             }
             break;
-        case RXP_SEND_DLEN: // FORWARD TX DATA LENGTH REQUEST TO [USIF]
-            printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d.\n", uoe_txByteCnt);
-            appData.setLE_TData(byteSwap16(uoe_txByteCnt));
-            appData.setLE_TKeep(0x03);
-            appData.setLE_TLast(TLAST);
+        case RXP_SEND_8801: // FORWARD TX DATA LENGTH REQUEST TO [USIF]
             if (!soUSIF_Data.full()) {
+                printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d.\n", uoe_txByteCnt);
+                appData.setLE_TData(byteSwap16(uoe_txByteCnt));
+                appData.setLE_TKeep(0x03);
+                appData.setLE_TLast(TLAST);
                 soUSIF_Data.write(appData);
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myRxpName, "Sending Tx data length request to [USIF]: ", appData);
@@ -433,9 +431,10 @@ void pUOE(
 
 /*******************************************************************************
  * @brief Main function for the test of the UDP Shell Interface (USIF).
+ *
+ * @param[in] The number of bytes to generate in 'Echo' or "Dump' mode [1:65535].
  *******************************************************************************/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
     //------------------------------------------------------
     //-- TESTBENCH GLOBAL VARIABLES

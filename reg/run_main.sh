@@ -61,10 +61,10 @@ export cFpDcpDir="$rootDir/dcps/"
 export roleName1="default"
 export roleName2="unused"
 
-# STEP-2b: Add floating licence servers for the Xilinx tools
-export XILINXD_LICENSE_FILE=27001@boswil.zurich.ibm.com:27001@uzwil.zurich.ibm.com:27001@inwil.zurich.ibm.com:2100@pokwinlic1.pok.ibm.com:2100@pokwinlic2.pok.ibm.com:2100@pokwinlic3.pok.ibm.com:2100@csslab3.watson.ibm.com
+# STEP-2b: Add your floating licence servers for the Xilinx tools here
+# (.e.g export XILINXD_LICENSE_FILE=<port>@<server1>.<domain>.ibm.com:<port>@<server2>.<domain>.ibm.com)
+# echo "<$0> Done with the setting of the environment."
 
-echo "<$0> Done with the setting of the environment."
 retval=1
 
 echo "<$0> ################################################################"
@@ -72,20 +72,6 @@ echo "<$0> ###                        "
 echo "<$0> ###   START OF REGRESSION: " 
 echo "<$0> ###                        " 
 echo "<$0> ################################################################"
-
-
-echo "<$0> ================================================================"
-echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
-echo "<$0> ================================================================"
-cd $cFpBringUpRootDir
-# [DEBUG] make testError
-make full_clean
-make monolithic
-exit_on_error $? 
-echo "<$0> ----------------------------------------------------------------"
-echo "<$0> ---   REGRESSION - END OF BUILD  : 'monolithic' "
-echo "<$0> ----------------------------------------------------------------"
-
 
 echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - ROLE - START OF CSIM "
@@ -122,6 +108,17 @@ echo "<$0> ----------------------------------------------------------------"
 echo "<$0> ---   REGRESSION - cFDK - END OF COSIM "
 echo "<$0> ----------------------------------------------------------------"
 
+echo "<$0> ================================================================"
+echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
+echo "<$0> ================================================================"
+cd $cFpBringUpRootDir
+# [DEBUG] make testError
+make full_clean
+make monolithic
+exit_on_error $? 
+echo "<$0> ----------------------------------------------------------------"
+echo "<$0> ---   REGRESSION - END OF BUILD  : 'monolithic' "
+echo "<$0> ----------------------------------------------------------------"
 
 echo "<$0> ################################################################"
 echo "<$0> ###                      " 
