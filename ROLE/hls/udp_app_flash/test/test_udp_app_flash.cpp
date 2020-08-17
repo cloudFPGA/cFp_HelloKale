@@ -35,6 +35,9 @@
  *                      |       |
  *                      |      \|/
  *
+ * \ingroup ROLE_UAF
+ * \addtogroup ROLE_UAF_TEST
+ * \{
  *******************************************************************************/
 
 #include "test_udp_app_flash.hpp"
@@ -671,9 +674,6 @@ int main(int argc, char *argv[]) {
         }
 
         //-- STEP-7: Compare output DAT vs gold DAT
-        //OBSOLETE_20200810 int res = system(("diff --brief -w " +  \
-        //OBSOLETE_20200810 std::string(ofsUSIF_Data_FileName) + " " + \
-        //OBSOLETE_20200810 std::string(ofsUSIF_Data_Gold_FileName) + " ").c_str());
         int res = myDiffTwoFiles(std::string(ofsUSIF_Data_FileName),
                                  std::string(ofsUSIF_Data_Gold_FileName));
         if (res) {
@@ -718,3 +718,6 @@ int main(int argc, char *argv[]) {
     return nrErr;
 
 }
+
+/*! \} */
+

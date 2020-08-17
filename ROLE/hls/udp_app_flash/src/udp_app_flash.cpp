@@ -39,8 +39,8 @@
  *          |       |  |  +------+     +-------------+  |
  *          +-------+  +--------------------------------+
  *
- * \ingroup ROL_UAF
- * \addtogroup ROL_UAF
+ * \ingroup ROLE
+ * \addtogroup ROLE_UAF
  * \{
  *******************************************************************************/
 
@@ -101,14 +101,6 @@ void pEchoStoreAndForward(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE
 
-    //-- LOCAL STREAMS ---------------------------------------------------------
-    //OBSOLETE_20200811 static stream<UdpAppData>   ssDataFifo ("ssDataFifo");
-    //OBSOLETE_20200811 #pragma HLS stream variable=ssDataFifo depth=2048
-    //OBSOLETE_20200811 static stream<UdpAppMeta>   ssMetaFifo ("ssMetaFifo");
-    //OBSOLETE_20200811 #pragma HLS stream variable=ssMetaFifo depth=64
-    //OBSOLETE_20200811 static stream<UdpAppDLen>   ssDLenFifo ("ssDLenFifo");
-    //OBSOLETE_20200811 #pragma HLS stream variable=ssDLenFifo depth=64
-
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ESF_META=0, ESF_STREAM } \
                                esf_fsmState = ESF_META;
@@ -136,7 +128,7 @@ void pEchoStoreAndForward(
 }    // End-of: pEchoStoreAndForward()
 
 /*******************************************************************************
- * @brief Transmit Path - From THIS to SHELL.
+ * @brief Transmit Path - From THIS to USIF.
  *
  * @param[in]  piSHL_Mmio_EchoCtrl Configuration of the echo function.
  * @param[in]  siEPt_Data          Datagram from pEchoPassTrough (EPt).
@@ -609,12 +601,12 @@ void udp_app_flash (
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
+#if defined(USE_DEPRECATED_DIRECTIVES)
+
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
 
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_EchoCtrl
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn

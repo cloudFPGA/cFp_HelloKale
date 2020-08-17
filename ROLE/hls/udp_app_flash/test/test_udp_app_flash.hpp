@@ -22,7 +22,13 @@
  * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
  *
+ * \ingroup ROLE_UAF
+ * \addtogroup ROLE_UAF_TEST
+ * \{
  *******************************************************************************/
+
+#ifndef _TEST_UAF_H_
+#define _TEST_UAF_H_
 
 #include "../src/udp_app_flash.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
@@ -67,7 +73,9 @@ unsigned int    gMaxSimCycles = TB_SIM_CYCLES + TB_GRACE_TIME;
 
 #define DEFAULT_DATAGRAM_LEN    32
 
+#endif
 
+/*! \} */
 
 
 

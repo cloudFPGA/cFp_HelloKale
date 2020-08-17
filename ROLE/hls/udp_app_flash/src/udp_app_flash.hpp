@@ -27,14 +27,16 @@
  * @details    : Data structures, types and prototypes definitions for the UDP
  *                application embedded in the role of the cFp_BringUp.
  *
- * \ingroup ROL_UAF
- * \addtogroup ROL_UAF
+ * \ingroup ROLE_UAF
+ * \addtogroup ROLE_UAF
  * \{
  *******************************************************************************/
 
+#ifndef _UAF_H_
+#define _UAF_H_
+
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
-
 
 /********************************************
  * SHELL/MMIO/EchoCtrl - Config Register
@@ -71,8 +73,8 @@ void udp_app_flash (
         //-- SHELL / Mmio / Configuration Interfaces
         //------------------------------------------------------
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
-        //[NOT_USED] ap_uint<1>  piSHL_Mmio_PostPktEn,
-        //[NOT_USED] ap_uint<1>  piSHL_Mmio_CaptPktEn,
+        //[NOT_USED] CmdBit      piSHL_Mmio_PostPktEn,
+        //[NOT_USED] CmdBit      piSHL_Mmio_CaptPktEn,
 
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
@@ -89,3 +91,6 @@ void udp_app_flash (
 
 );
 
+#endif
+
+/*! \} */
