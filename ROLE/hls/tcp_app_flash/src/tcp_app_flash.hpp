@@ -48,8 +48,6 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimTcpSegment.hpp"
 
-using namespace hls;
-
 //---------------------------------------------------------
 /// -- SHELL/MMIO/EchoCtrl - Configuration Register
 //---------------------------------------------------------
@@ -58,6 +56,18 @@ enum EchoCtrl {
     ECHO_STORE_FWD = 1,
     ECHO_OFF       = 2
 };
+
+//-------------------------------------------------------------------
+//-- DEFAULT TESTING PORTS
+//--  By default, the following port numbers will be used by the
+//--  TcpApplicationFlash (unless user specifies new ones via TBD).
+//--  Default testing ports:
+//--  --> 8803  : Traffic received on this port is looped back and
+//--              echoed to the sender in path-through mode.
+//--  --> Others: Traffic received on any port != 8803 is looped back
+//--              and echo to the sender in store-and-forward mode.
+//-------------------------------------------------------------------
+#define ECHO_PATH_THRU_PORT  8803   // 0x2263
 
 
 /*******************************************************************************
@@ -71,13 +81,8 @@ void tcp_app_flash (
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
         ap_uint<2>          *piSHL_MmioEchoCtrl,
-        CmdBit              *piSHL_MmioPostSegEn,
-        //[TODO] ap_uint<1> *piSHL_MmioCaptSegEn,
-
-        //------------------------------------------------------
-        //-- TAIF / Session Connect Id Interface
-        //------------------------------------------------------
-        SessionId           *piTAIF_SConnectId,
+        //[NOT_USED] CmdBit              *piSHL_MmioPostSegEn,
+        //[NOT_USED] CmdBit              *piSHL_MmioCaptSegEn,
 
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface

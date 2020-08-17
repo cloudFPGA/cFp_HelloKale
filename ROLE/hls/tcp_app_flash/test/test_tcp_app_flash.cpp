@@ -1,27 +1,18 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
-
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /*******************************************************************************
  * @file       : test_tcp_app_flash.cpp
@@ -31,8 +22,21 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (TAF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TAF
+ *               +-----------------------+
+ *               |  UdpApplicationFlash  |     +--------+
+ *               |        (TAF)          <-----+  MMIO  |
+ *               +-----/|\------+--------+     +--------+
+ *                      |       |
+ *                      |       ||
+ *               +------+------\|/-------+
+ *               |   UdpShellInterface   |
+ *               |       (TSIF)          |
+ *               +-----/|\------+--------+
+ *                      |       |
+ *                      |      \|/
+ *
+ * \ingroup ROLE_TAF
+ * \addtogroup ROLE_TAF_TEST
  * \{
  *******************************************************************************/
 
@@ -116,8 +120,6 @@ bool pTSIF_Recv(
             nrSegments++;
         }
         //-- Write data to file
-        //OBSOLETE_20200727 if (!writeAxiWordToFile(&currChunk, rawFileStream) or \
-        //OBSOLETE_20200727     !writeTcpWordToFile(&currChunk, tcpFileStream)) {
         if (!writeAxisRawToFile(currChunk, rawFileStream) or \
             !writeAxisAppToFile(currChunk, tcpFileStream)) {
             return KO;
@@ -156,8 +158,7 @@ bool pTSIF_Send(
     if (!inpFileStream.eof()) {
         getline(inpFileStream, strLine);
         if (!strLine.empty()) {
-            //OBSOLETE_20200727 sscanf(strLine.c_str(), "%llx %d %x", &currChunk.tdata, &currChunk.tlast, &currChunk.tkeep);
-            bool rc = readAxisRawFromLine(currChunk, strLine);
+             bool rc = readAxisRawFromLine(currChunk, strLine);
             // Write to soMetaStream
             if (startOfTcpSeg) {
                 if (!soTAF_Meta.full()) {
@@ -196,8 +197,6 @@ bool pTSIF_Send(
  *
  * @param[in/out] nrErr           A ref to the error counter of the [TB].
  * @param[out]    poTAF_EchoCtrl  A ptr to set the ECHO mode.
- * @param[out]    poTAF_PostSegEn A ptr to set the POST segment mode.
- * @param[out]    poTAF_CaptSegEn A ptr to set the CAPTURE segment mode.
  * @param[out]    soTAF_Data      Data stream from TcpAppFlash (TAF).
  * @param[out]    soTAF_Meta      Metadata from [TAF].
  * @param[in]     siTAF_Data      Data stream to [TAF].
@@ -208,16 +207,12 @@ void pTSIF(
         int                 &nrErr,
         //-- MMIO/ Configuration Interfaces
         ap_uint<2>          *poTAF_EchoCtrl,
-        CmdBit              *poTAF_PostSegEn,
-        CmdBit              *poTAF_CaptSegEn,
         //-- TAF / TCP Data Interfaces
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpAppMeta>  &soTAF_Meta,
         //-- TAF / TCP Data Interface
         stream<TcpAppData>  &siTAF_Data,
-        stream<TcpAppMeta>  &siTAF_Meta,
-        //-- TSIF / Session Connection Id
-        SessionId           *poTAF_SessConId)
+        stream<TcpAppMeta>  &siTAF_Meta)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TSIF");
 
@@ -256,8 +251,6 @@ void pTSIF(
         printf("\n## PART-1 : TEST OF THE PASS-THROUGH MODE ####################\n");
         tsif_rxSegCnt = 0;
         *poTAF_EchoCtrl  = ECHO_PATH_THRU;
-        *poTAF_PostSegEn = DISABLED;
-        *poTAF_SessConId = (SessionId(0));
 
         //-- STEP-2.0 : REMOVE PREVIOUS OUTPUT FILES
         std::remove(ofRawFile1Name.c_str());
@@ -331,63 +324,6 @@ void pTSIF(
     //------------------------------------------------------
     if (!tsif_doneWithPassThroughTest1 or (gSimCycCnt < tsif_graceTime))
         return;
-
-    //------------------------------------------------------
-    //-- STEP-3 : TEST THE POST-SEGMENT MODE
-    //------------------------------------------------------
-    if (gSimCycCnt == tsif_graceTime) {
-        printf("## PART-2 : TEST OF THE POST-SEGMENT MODE ######################\n");
-        tsif_rxSegCnt = 0;
-        //-- STEP-3.1 : SET THE ECHO_OFF & POST_SEG_ENABLE MODES
-        *poTAF_EchoCtrl  = ECHO_OFF;
-        *poTAF_PostSegEn = ENABLED;
-        printInfo(myName, "Enabling the segment posting mode.\n");
-        //-- STEP-3.2 : SET FORWARD A NEW SESSION CONNECT ID TO TCP_APP_FLASH
-        *poTAF_SessConId = (SessionId(1));
-        //-- STEP-3.3 : OPEN TWO OUTPUT DATA FILES #2
-        if (!ofRawFile2.is_open()) {
-            ofRawFile2.open (ofRawFileName2.c_str(), ofstream::out);
-            if (!ofRawFile2) {
-                printFatal(myName, "Could not open the output Raw data file \'%s\'. \n", ofRawFileName2.c_str());
-                nrErr++;
-                tsif_doneWithPostSegmentTest2 = true;
-                return;
-            }
-        }
-        if (!ofTcpFile2.is_open()) {
-             ofTcpFile2.open (ofTcpFileName2.c_str(), ofstream::out);
-             if (!ofTcpFile2) {
-                 printFatal(myName, "Could not open the Tcp output data file \'%s\'. \n", ofTcpFileName2.c_str());
-                 nrErr++;
-                 tsif_doneWithPostSegmentTest2 = true;
-                 return;
-             }
-         }
-    }
-    else if (!tsif_doneWithPostSegmentTest2) {
-        //-- STEP-3.4 : READ FROM THE TAF
-        rcRecv = pTSIF_Recv(
-                nrErr,
-                siTAF_Data,
-                siTAF_Meta,
-                ofRawFile2,
-                ofTcpFile2,
-                tsif_rxSegCnt);
-        //-- STEP-3.5 : IF TEST IS FINISHED, DISABLE THE POSTING MODE
-        if (!rcRecv or (tsif_rxSegCnt == 6)) {
-            *poTAF_PostSegEn = DISABLED;
-            printInfo(myName, "Disabling the segment posting mode.\n");
-            //-- CLOSE FILES AND VERIFY CONTENT OF OUTPUT FILES
-            ofRawFile2.close();
-            ofTcpFile2.close();
-            int rc1 = system("[ $(grep -o -c '6F57206F6C6C65486D6F726620646C72203036554B4D46202D2D2D2D2D2D2D2D' ../../../../test/ofsTAF_Shl_Echo_Off_Data.tcp) -eq 6 ] ");
-            if (rc1) {
-                printError(myName, "File \'%s\' does not content 6 instances of the expected \'Hello World\' string.\n", std::string(ofTcpFileName2).c_str());
-                nrErr += 1;
-            }
-            tsif_doneWithPostSegmentTest2 = true;
-        }
-    }
 }
 
 
@@ -407,10 +343,8 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- MMIO/ Configuration Interfaces
     ap_uint<2>          sMMIO_TAF_EchoCtrl;
-    CmdBit              sMMIO_TAF_PostSegEn;
-    CmdBit              sMMIO_TAF_CaptSegEn;
-    //-- TSIF / Session Connection Id
-    SessionId           sTSIF_TAF_SessConId;
+    //[NOT_USED] CmdBit sMMIO_TAF_PostSegEn;
+    //[NOT_USED] CmdBit sMMIO_TAF_CaptSegEn;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES
@@ -447,16 +381,12 @@ int main(int argc, char *argv[]) {
             nrErr,
             //-- MMIO / Configuration Interfaces
             &sMMIO_TAF_EchoCtrl,
-            &sMMIO_TAF_PostSegEn,
-            &sMMIO_TAF_CaptSegEn,
             //-- TAF / TCP Data Interfaces
             ssTSIF_TAF_Data,
             ssTSIF_TAF_Meta,
             //-- TAF / TCP Data Interface
             ssTAF_TSIF_Data,
-            ssTAF_TSIF_Meta,
-            //-- TSIF / Session Connection Id
-            &sTSIF_TAF_SessConId);
+            ssTAF_TSIF_Meta);
 
         //-------------------------------------------------
         //-- RUN DUT
@@ -464,10 +394,6 @@ int main(int argc, char *argv[]) {
         tcp_app_flash(
             //-- MMIO / Configuration Interfaces
             &sMMIO_TAF_EchoCtrl,
-            &sMMIO_TAF_PostSegEn,
-            //[TODO] *piSHL_MmioCaptSegEn,
-            //-- TSIF / Session Connect Id Interface
-            &sTSIF_TAF_SessConId,
             //-- TSIF / TCP Rx Data Interface
             ssTSIF_TAF_Data,
             ssTSIF_TAF_Meta,

@@ -22,8 +22,8 @@
  * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (TAF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TAF
+ * \ingroup ROLE_TAF
+ * \addtogroup ROLE_TAF_TEST
  * \{
  *****************************************************************************/
 
@@ -37,13 +37,12 @@
 
 #include "../src/tcp_app_flash.hpp"
 
-using namespace hls;
-using namespace std;
-
 //------------------------------------------------------
 //-- TESTBENCH DEFINES
 //------------------------------------------------------
 #define MAX_SIM_CYCLES  500
+#define TB_GRACE_TIME    200  // Give the TB some time to finish
+#define STARTUP_DELAY   25
 #define VALID           true
 #define UNVALID         false
 #define DONE            true
@@ -52,15 +51,9 @@ using namespace std;
 #define ENABLED         (ap_uint<1>)1
 #define DISABLED        (ap_uint<1>)0
 
-#define DEFAULT_SESS_ID 42
+#define DEFAULT_SESS_ID         42
+#define DEFAULT_DATAGRAM_LEN    32
 
-#define STARTUP_DELAY   25
-
-//------------------------------------------------------
-// UTILITY PROTOTYPE DEFINITIONS
-//------------------------------------------------------
-//OBSOLETE_20200727 bool writeAxiWordToFile(AxiWord  *tcpWord, ofstream &outFileStream);
-//OBSOLETE_20200727 int  writeTcpWordToFile(AxiWord  *tcpWord, ofstream &outFile);
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -70,7 +63,20 @@ using namespace std;
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = MAX_SIM_CYCLES;
+unsigned int    gMaxSimCycles = MAX_SIM_CYCLES + TB_GRACE_TIME;
+
+//---------------------------------------------------------
+//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
+//--  By default, the following sockets will be used by the
+//--  testbench, unless the user specifies new ones via one
+//--  of the test vector files.
+//---------------------------------------------------------
+#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // FPGA's local IP Address   = 10.12.200.01
+#define DEFAULT_FPGA_LSN_PORT   0x2263      // TCP-ROLE listens on port  = 8803
+#define DEFAULT_FPGA_SND_PORT   0xA263      // TCP-ROLE sends on port    = 41571
+#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's foreign IP Address = 10.12.200.50
+#define DEFAULT_HOST_LSN_PORT   0x80        // HOST listens on port      = 128
+#define DEFAULT_HOST_SND_PORT   0x8080      // HOST sends on port        = 32896
 
 #endif
 
