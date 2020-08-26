@@ -885,9 +885,9 @@ architecture structural of topFMKU60 is
       --[NOT_USED] piSHL_Mmio_UdpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
       --[NOT_USED] piSHL_Mmio_UdpPostDgmEn  : in    std_ulogic;
       --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn  : in    std_ulogic;
-      piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
-      piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
+      --[NOT_USED] piSHL_Mmio_TcpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_Mmio_TcpPostSegEn  : in    std_ulogic;
+      --[NOT_USED] piSHL_Mmio_TcpCaptSegEn  : in    std_ulogic;
       ---- [APP_RDROL] -------------------
       poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
       --- [APP_WRROL] --------------------
@@ -1452,9 +1452,9 @@ begin
       --[NOT_USED] piSHL_Mmio_UdpEchoCtrl  => sSHL_ROL_Mmio_UdpEchoCtrl,
       --[NOT_USED] piSHL_Mmio_UdpPostDgmEn => sSHL_ROL_Mmio_UdpPostDgmEn,
       --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn => sSHL_ROL_Mmio_UdpCaptDgmEn,
-      piSHL_Mmio_TcpEchoCtrl            => sSHL_ROL_Mmio_TcpEchoCtrl,
-      piSHL_Mmio_TcpPostSegEn           => sSHL_ROL_Mmio_TcpPostSegEn,
-      piSHL_Mmio_TcpCaptSegEn           => sSHL_ROL_Mmio_TcpCaptSegEn,
+      --[NOT_USED] piSHL_Mmio_TcpEchoCtrl  => sSHL_ROL_Mmio_TcpEchoCtrl,
+      --[NOT_USED] piSHL_Mmio_TcpPostSegEn => sSHL_ROL_Mmio_TcpPostSegEn,
+      --[NOT_USED] piSHL_Mmio_TcpCaptSegEn => sSHL_ROL_Mmio_TcpCaptSegEn,
       ---- [APP_RDROL] -----------------
       poSHL_Mmio_RdReg                  => sROL_SHL_Mmio_RdReg,
       --- [APP_WRROL] ------------------

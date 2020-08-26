@@ -243,12 +243,12 @@ entity Role_BringUp is
     ---- [DIAG_STAT_1] -----------------
     poSHL_Mmio_Mc1_MemTestStat          : out   std_ulogic_vector(  1 downto 0);
     ---- [DIAG_CTRL_2] -----------------
-    --[NOT_USED] piSHL_Mmio_UdpEchoCtrl         : in    std_ulogic_vector(  1 downto 0);
-    --[NOT_USED] piSHL_Mmio_UdpPostDgmEn        : in    std_ulogic;
-    --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn        : in    std_ulogic;
-    piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
-    piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
+    --[NOT_USED] piSHL_Mmio_UdpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
+    --[NOT_USED] piSHL_Mmio_UdpPostDgmEn  : in    std_ulogic;
+    --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn  : in    std_ulogic;
+    --[NOT_USED] piSHL_Mmio_TcpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
+    --[NOT_USED] piSHL_Mmio_TcpPostSegEn  : in    std_ulogic;
+    --[NOT_USED] piSHL_Mmio_TcpCaptSegEn  : in    std_ulogic;
     ---- [APP_RDROL] -------------------
     poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
     --- [APP_WRROL] --------------------
@@ -283,8 +283,6 @@ architecture BringUp of Role_BringUp is
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : TSIF <--> TAF 
   --------------------------------------------------------
-  -- Session Connect Id Interface
-  signal sTSIF_TAF_SessConId        : std_ulogic_vector( 15 downto 0);
   -- TCP Receive Path (TSIF->TAF) ------
   ---- Stream TCP Data -------
   signal ssTSIF_TAF_Data_tdata      : std_ulogic_vector( 63 downto 0);
@@ -443,13 +441,9 @@ architecture BringUp of Role_BringUp is
       ------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       ------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
-      piSHL_MmioPostSegEn_V : in  std_logic;
-      --[TODO] piSHL_MmioCaptSegEn_V  : in  std_logic;      
-      ------------------------------------------------------
-      -- From TSIF / Session Connect Id Interface
-      ------------------------------------------------------
-      piTSIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
+      --[NOT_USED] piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
+      --[NOT_USED] piSHL_MmioCaptSegEn_V : in  std_logic;      
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
       --------------------------------------------------------
@@ -576,13 +570,9 @@ architecture BringUp of Role_BringUp is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
-      piSHL_MmioPostSegEn_V : in  std_logic;
-      --[TODO] piSHL_MmioCaptSegEn  : in  std_logic;
-      ------------------------------------------------------
-      -- From TSIF / Session Connect Id Interface
-      ------------------------------------------------------
-      piTSIF_SConnectId_V   : in  std_logic_vector( 15 downto 0);
+      --[NOT_USED] piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
+      --[NOT_USED] piSHL_MmioCaptSegEn   : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
       --------------------------------------------------------
@@ -606,11 +596,7 @@ architecture BringUp of Role_BringUp is
       --
       soSHL_Meta_tdata      : out std_logic_vector( 15 downto 0);
       soSHL_Meta_tvalid     : out std_logic;
-      soSHL_Meta_tready     : in  std_logic;
-      ------------------------------------------------------
-      -- ROLE / Session Connect Id Interface
-      ------------------------------------------------------
-      poROLE_SConId_V       : out std_ulogic_vector( 15 downto 0)
+      soSHL_Meta_tready     : in  std_logic
     );
   end component TcpApplicationFlashTodo;
  
@@ -718,12 +704,7 @@ architecture BringUp of Role_BringUp is
       ---- TCP Close Request Stream
       soSHL_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
       soSHL_ClsReq_tvalid   : out std_ulogic;
-      soSHL_ClsReq_tready   : in  std_ulogic;
-      ------------------------------------------------------
-      -- TAF / Session Connect Id Interface
-      ------------------------------------------------------
-      poTAF_SConId_V        : out std_ulogic_vector( 15 downto 0);
-      poTAF_SConId_V_ap_vld : out std_ulogic
+      soSHL_ClsReq_tready   : in  std_ulogic
     );
   end component TcpShellInterface;
  
@@ -831,12 +812,7 @@ architecture BringUp of Role_BringUp is
       ---- TCP Close Request Stream 
       soSHL_ClsReq_tdata    : out std_ulogic_vector( 15 downto 0);
       soSHL_ClsReq_tvalid   : out std_ulogic;
-      soSHL_ClsReq_tready   : in  std_ulogic;
-      ------------------------------------------------------
-      -- TAF / Session Connect Id Interface
-      ------------------------------------------------------
-      poTAF_SConId_V        : out std_ulogic_vector( 15 downto 0);
-      poTAF_SConId_V_ap_vld : out std_ulogic
+      soSHL_ClsReq_tready   : in  std_ulogic
     );
   end component TcpShellInterfaceTodo;
   
@@ -1052,12 +1028,7 @@ begin
           ---- TCP Close Request Stream  ---
           soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
           soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
-          soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
-          ------------------------------------------------------
-          -- TAF / Session Connect Id Interface
-          ------------------------------------------------------
-          poTAF_SConId_V           => sTSIF_TAF_SessConId,
-          poTAF_SConId_V_ap_vld    => open
+          soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready
         ); -- End of: TcpShellInterface
   else
     generate
@@ -1165,12 +1136,7 @@ begin
         ---- TCP Close Request Stream 
         soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
         soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
-        soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready,
-        ------------------------------------------------------
-        -- TAF / Session Connect Id Interface
-        ------------------------------------------------------
-        poTAF_SConId_V           => sTSIF_TAF_SessConId,
-        poTAF_SConId_V_ap_vld    => open
+        soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready
       ); -- End of: TcpShellInterface
   end generate;
 
@@ -1414,17 +1380,13 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         aclk                  => piSHL_156_25Clk,
-        aresetn               => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
+        aresetn               => not piSHL_Mmio_Ly7Rst,
         -------------------- ------------------------------------
         -- From SHELL / Mmio  Interfaces
         -------------------- ------------------------------------       
-        piSHL_MmioEchoCtrl_V     => piSHL_Mmio_TcpEchoCtrl,
-        piSHL_MmioPostSegEn_V    => piSHL_Mmio_TcpPostSegEn,
-        --[TODO] piSHL_MmioCaptSegEn_V  => piSHL_Mmio_TcpCaptSegEn,
-        ------------------------------------------------------
-        -- From TSIF / Session Connect Id Interface
-        ------------------------------------------------------
-        piTSIF_SConnectId_V      => sTSIF_TAF_SessConId,
+        --[NOT_USED] piSHL_MmioEchoCtrl_V   => piSHL_Mmio_TcpEchoCtrl,
+        --[NOT_USED] piSHL_MmioPostSegEn_V  => piSHL_Mmio_TcpPostSegEn,
+        --[NOT_USED] piSHL_MmioCaptSegEn_V  => piSHL_Mmio_TcpCaptSegEn,
         --------------------- -----------------------------------
         -- From SHELL / Tcp Data & Session Id Interfaces
         --------------------- -----------------------------------
@@ -1468,13 +1430,9 @@ begin
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------       
-        piSHL_MmioEchoCtrl_V     => piSHL_Mmio_TcpEchoCtrl,
-        piSHL_MmioPostSegEn_V    => piSHL_Mmio_TcpPostSegEn,
-        --[TODO] piSHL_MmioCaptSegEn  => piSHL_Mmio_TcpCaptSegEn,
-        ------------------------------------------------------
-        -- From TRIF / Session Connect Id Interface
-        ------------------------------------------------------
-        piTSIF_SConnectId_V      => sTSIF_TAF_SessConId,
+        --[NOT_USED] piSHL_MmioEchoCtrl_V  => piSHL_Mmio_TcpEchoCtrl,
+        --[NOT_USED] piSHL_MmioPostSegEn_V => piSHL_Mmio_TcpPostSegEn,
+        --[NOT_USED] piSHL_MmioCaptSegEn   => piSHL_Mmio_TcpCaptSegEn,
         --------------------------------------------------------
         -- From SHELL / Tcp Interfaces
         --------------------------------------------------------
