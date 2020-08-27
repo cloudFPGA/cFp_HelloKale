@@ -246,7 +246,7 @@ entity Role_BringUp is
     --[NOT_USED] piSHL_Mmio_UdpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
     --[NOT_USED] piSHL_Mmio_UdpPostDgmEn  : in    std_ulogic;
     --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn  : in    std_ulogic;
-    --[NOT_USED] piSHL_Mmio_TcpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
+    piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
     --[NOT_USED] piSHL_Mmio_TcpPostSegEn  : in    std_ulogic;
     --[NOT_USED] piSHL_Mmio_TcpCaptSegEn  : in    std_ulogic;
     ---- [APP_RDROL] -------------------
@@ -441,7 +441,7 @@ architecture BringUp of Role_BringUp is
       ------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       ------------------------------------------------------       
-      --[NOT_USED] piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
       --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
       --[NOT_USED] piSHL_MmioCaptSegEn_V : in  std_logic;      
       --------------------------------------------------------
@@ -570,7 +570,7 @@ architecture BringUp of Role_BringUp is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      --[NOT_USED] piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
       --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
       --[NOT_USED] piSHL_MmioCaptSegEn   : in  std_logic;
       --------------------------------------------------------
@@ -1383,8 +1383,8 @@ begin
         aresetn               => not piSHL_Mmio_Ly7Rst,
         -------------------- ------------------------------------
         -- From SHELL / Mmio  Interfaces
-        -------------------- ------------------------------------       
-        --[NOT_USED] piSHL_MmioEchoCtrl_V   => piSHL_Mmio_TcpEchoCtrl,
+        -------------------- ------------------------------------
+        piSHL_MmioEchoCtrl_V   => piSHL_Mmio_TcpEchoCtrl,
         --[NOT_USED] piSHL_MmioPostSegEn_V  => piSHL_Mmio_TcpPostSegEn,
         --[NOT_USED] piSHL_MmioCaptSegEn_V  => piSHL_Mmio_TcpCaptSegEn,
         --------------------- -----------------------------------
@@ -1430,7 +1430,7 @@ begin
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------       
-        --[NOT_USED] piSHL_MmioEchoCtrl_V  => piSHL_Mmio_TcpEchoCtrl,
+        piSHL_MmioEchoCtrl_V  => piSHL_Mmio_TcpEchoCtrl,
         --[NOT_USED] piSHL_MmioPostSegEn_V => piSHL_Mmio_TcpPostSegEn,
         --[NOT_USED] piSHL_MmioCaptSegEn   => piSHL_Mmio_TcpCaptSegEn,
         --------------------------------------------------------
