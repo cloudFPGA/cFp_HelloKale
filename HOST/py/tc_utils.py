@@ -37,6 +37,8 @@ ACM_KO = 1
 
 MTU         = 1500  # Maximum Transfer Unit
 IP4_HDR_LEN =   20  # IPv4 Header Length
+TCP_HDR_LEN =   20  # TCP Header Length
+TCP_MSS = (MTU - IP4_HDR_LEN - TCP_HDR_LEN)  # Maximum Segment  Size
 UDP_HDR_LEN =    8  # UDP Header Length
 UDP_MDS = (MTU - IP4_HDR_LEN - UDP_HDR_LEN)  # Maximum Datagram Size
 

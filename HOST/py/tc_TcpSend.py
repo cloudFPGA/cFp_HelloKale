@@ -1,4 +1,4 @@
-#/*
+# *
 # * Copyright 2016 -- 2020 IBM Corporation
 # * 
 # * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,11 +12,11 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
-# */
+# *
 
 # *****************************************************************************
-# * @file       : tc_UdpSend.py
-# * @brief      : A single-threaded script to send traffic on the UDP
+# * @file       : tc_TcpSend.py
+# * @brief      : A single-threaded script to send traffic on the TCP
 # *               connection of an FPGA module.
 # *
 # * System:     : cloudFPGA
@@ -33,11 +33,12 @@ import socket
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
 
-def udp_tx_loop(sock, message, count, verbose=False):
-    """UDP Tx Single-Thread Loop.
+
+def tcp_tx_loop(sock, message, count, verbose=False):
+    """TCP Tx Single-Thread Loop.
      :param sock     The socket to send/receive to/from.
      :param message  The message string to sent.
-     :param count    The number of datagrams to send.
+     :param count    The number of segments to send.
      :param verbose  Enables verbosity.
      :return         None"""
     if verbose:
@@ -48,7 +49,7 @@ def udp_tx_loop(sock, message, count, verbose=False):
     txByteCnt = 0
     startTime = datetime.datetime.now()
     while loop < count:
-        #  Send datagram
+        #  Send segment
         # -------------------
         try:
             sock.sendall(message)
@@ -77,19 +78,19 @@ def udp_tx_loop(sock, message, count, verbose=False):
     bandwidth = (txByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
     print("#####################################################")
     if bandwidth < 1000:
-        print("#### UDP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+        print("#### TCP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     else:
         bandwidth = bandwidth / 1000
-        print("#### UDP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+        print("#### TCP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
     print("#####################################################")
     print()
 
 
-def udp_tx_ramp(sock, message, count, verbose=False):
-    """UDP Tx Single-Thread Ramp.
+def tcp_tx_ramp(sock, message, count, verbose=False):
+    """TCP Tx Single-Thread Ramp.
      :param sock     The socket to send/receive to/from.
      :param message  The message string to sent.
-     :param count    The number of datagrams to send.
+     :param count    The number of segments to send.
      :param verbose  Enables verbosity.
      :return         None"""
     if verbose:
@@ -103,10 +104,10 @@ def udp_tx_ramp(sock, message, count, verbose=False):
         i = 1
         while i <= len(message):
             subMsg = message[0:i]
-            #  Send datagram
+            #  Send segment
             # -------------------
             try:
-                udpSock.sendall(subMsg)
+                sock.sendall(subMsg)
             except socket.error as exc:
                 # Any exception
                 print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
@@ -133,10 +134,10 @@ def udp_tx_ramp(sock, message, count, verbose=False):
     bandwidth = (txByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
     print("#####################################################")
     if bandwidth < 1000:
-        print("#### UDP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+        print("#### TCP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     else:
         bandwidth = bandwidth / 1000
-        print("#### UDP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+        print("#### TCP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
     print("#####################################################")
     print()
 
@@ -149,7 +150,7 @@ def udp_tx_ramp(sock, message, count, verbose=False):
 
 #  STEP-1: Parse the command line strings into Python objects
 # -----------------------------------------------------------------------------
-parser = argparse.ArgumentParser(description='A script to send UDP data to an FPGA module.')
+parser = argparse.ArgumentParser(description='A script to send TCP data to an FPGA module.')
 parser.add_argument('-fi', '--fpga_ipv4',   type=str, default='',
                            help='The IPv4 address of the FPGA (a.k.a image_ip / e.g. 10.12.200.163)')
 parser.add_argument('-ii', '--inst_id',     type=int, default=0,
@@ -189,9 +190,9 @@ instId = getInstanceId(args)
 # -----------------------------------------------------------------------------
 ipResMngr = getResourceManagerIpv4(args)
 
-#  STEP-3a: Set the UDP listen port of the FPGA server (this one is static)
+#  STEP-3a: Set the TCP listen port of the FPGA server (this one is static)
 # -----------------------------------------------------------------------------
-portFpga = RECV_MODE_LSN_PORT # 8800
+portFpga = RECV_MODE_LSN_PORT  # 8800
 
 #  STEP-3b: Retrieve the TCP port of the cloudFPGA Resource Manager
 # -----------------------------------------------------------------------------
@@ -218,21 +219,16 @@ fpgaAssociation = (str(ipFpga), portFpga)
 #           "bind before connect" trick.
 # -----------------------------------------------------------------------------
 if 0:
-    udpSP = portFpga + 49152  # 8803 + 0xC000
-    hostAssociation = (ipSaStr, udpSP)
+    tcpSP = portFpga + 49152  # 8803 + 0xC000
+    hostAssociation = (ipSaStr, tcpSP)
 
-#  STEP-8a: Create a UDP/IP socket
+#  STEP-8a: Create a TCP/IP socket for the TCP/IP connection
 # -----------------------------------------------------------------------------
 try:
-    udpSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    tcpSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
-
-# [FIXME - Disable the IP fragmentation via setsockopt()]
-#   See for also: 
-#     https://stackoverflow.com/questions/973439/how-to-set-the-dont-fragment-df-flag-on-a-socket
-#     https://stackoverflow.com/questions/26440761/why-isnt-dont-fragment-flag-getting-disabled
 
 # STEP-8b: Bind before connect (optional).
 #  This trick enables us to ask the kernel to select a specific source IP and
@@ -240,19 +236,16 @@ except Exception as exc:
 # -----------------------------------------------------------------------------
 if 0:
     try:
-        udpSock.bind(hostAssociation)
+        tcpSock.bind(hostAssociation)
         print('Binding the socket address of the HOST to {%s, %d}' % hostAssociation)
     except Exception as exc:
         print("[EXCEPTION] %s" % exc)
         exit(1)
 
 #  STEP-9a: Connect to the remote FPGA
-#   Info: Although UDP is connectionless, 'connect()' might still be called. This enables
-#         the OS kernel to set the default destination address for the send, whick makes it
-#         faster to send a message.
 # -----------------------------------------------------------------------------
 try:
-    udpSock.connect(fpgaAssociation)
+    tcpSock.connect(fpgaAssociation)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
@@ -261,8 +254,8 @@ else:
 
 #  STEP-9b: Set the socket non-blocking
 # --------------------------------------
-udpSock.setblocking(False)
-udpSock.settimeout(5)
+tcpSock.setblocking(False)
+tcpSock.settimeout(5)
 
 #  STEP-10: Setup the test
 # -------------------------------
@@ -275,10 +268,10 @@ print("\t\t seed = %d" % seed)
 
 size = args.size
 if size == -1:
-    size = random.randint(1, UDP_MDS)
-elif size > UDP_MDS:
+    size = random.randint(1, TCP_MSS)
+elif size > TCP_MSS:
     print('\nERROR: ')
-    print("[ERROR] The UDP stack does not support the reception of datagrams larger than %d bytes.\n" % UDP_MDS)
+    print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS (.i.e %d bytes).\n" % TCP_MSS)
     exit(1)
 print("\t\t size = %d" % size)
 
@@ -294,12 +287,12 @@ verbose = args.verbose
 
 print("[INFO] This run is executed in single-threading mode.\n")
 if seed == 0:
-    udp_tx_ramp(udpSock, message, count, args.verbose)
+    tcp_tx_ramp(tcpSock, message, count, args.verbose)
 else:
-    udp_tx_loop(udpSock, message, count, args.verbose)
+    tcp_tx_loop(tcpSock, message, count, args.verbose)
 
 #  STEP-14: Close socket
 # -----------------------
-udpSock.close()
+tcpSock.close()
 
 

@@ -48,7 +48,7 @@ def udp_tx(sock, message, count, lock, verbose=False):
 
     if verbose:
         print("The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
-                                                                (len(message), count, message.decode()))
+              (len(message), count, message.decode()))
     loop = 0
     startTime = datetime.datetime.now()
     while loop < count:
@@ -82,7 +82,7 @@ def udp_rx(sock, message, count, lock, verbose=False):
      :param sock        The socket to receive from.
      :param message     The expected string message to be received.
      :param count       The number of datagrams to receive.
-     :param lock     A semaphore to access the global variable 'gBytesInFlight'.
+     :param lock        A semaphore to access the global variable 'gBytesInFlight'.
      :param verbose,    Enables verbosity.
      :return            None"""
     global gBytesInFlight
@@ -285,7 +285,7 @@ parser.add_argument('-mp', '--mngr_port',   type=int, default=8080,
 parser.add_argument('-mt', '--multi_threading',       action="store_true",
                            help='Enable multi_threading')
 parser.add_argument('-sd', '--seed',        type=int, default=-1,
-                           help='The initial number to seed the pseudorandom number generator.')
+                           help='The initial number to seed the pseudo-random number generator.')
 parser.add_argument('-sz', '--size',        type=int, default=-1,
                            help='The size of the datagram to generate.')
 parser.add_argument('-un', '--user_name',   type=str, default='',
@@ -379,7 +379,7 @@ if 0:
 
 #  STEP-9a: Connect to the remote FPGA
 #   Info: Although UDP is connectionless, 'connect()' might still be called. This enables
-#         the OS kernel to set the default destination address for the send, whick makes it
+#         the OS kernel to set the default destination address for the send, which makes it
 #         faster to send a message.
 # -----------------------------------------------------------------------------
 try:

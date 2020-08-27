@@ -1,4 +1,4 @@
-#/*
+# *
 # * Copyright 2016 -- 2020 IBM Corporation
 # * 
 # * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,11 +12,11 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
-# */
+# *
 
 # *****************************************************************************
-# * @file       : tc_UdpRecv.py
-# * @brief      : A single-threaded script to receive traffic on the UDP
+# * @file       : tc_TcpRecv.py
+# * @brief      : A single-threaded script to receive traffic on the TCP
 # *               connection of an FPGA module.
 # *
 # * System:     : cloudFPGA
@@ -36,33 +36,58 @@ import struct
 from tc_utils import *
 
 
-def udp_rx_loop(sock, size, count, verbose=False):
-    """UDP Rx Single-Thread Ramp.
-     Expects to receive 'count' datagrams of 'size' bytes. Each datagram is made
-     of the following repetitive pattern '48692066726f6d200x464d4b553630210a' which decodes
-     into the string "Hi from FMKU60\n".
-     :param sock     The socket to receive from.
-     :param size     The size of the expected datagram.
-     :param count    The number of datagrams to receive.
-     :param verbose  Enables verbosity.
-     :return         None"""
+def tcp_rx_loop(clientSock, serverSock, size, activePort, count, verbose=False):
+    """TCP Rx Single-Thread Ramp.
+     Requests the FPGA to open a new active port and expects to receive 'count' segments
+      of 'size' bytes. Each segment is made of the following repetitive pattern
+      '48692066726f6d200x464d4b553630210a' which decodes into the string "Hi from FMKU60\n".
+     :param clientSock The socket to send to.
+     :param serverSock The socket to receive from.
+     :param size       The size of the expected segment.
+     :param activePort The active port number that the fPGA is requested to open.
+     :param count      The number of segments to receive.
+     :param verbose    Enables verbosity.
+     :return           None"""
     if verbose:
-        print("[INFO] Requesting the FPGA to send %d datagrams of %d bytes.\n" % (count, size))
+        print("[INFO] Requesting the FPGA to send %d segments of %d bytes on TCP port number %d.\n" % (count, size, activePort))
     nrErr = 0
     loop = 0
     totalReceivedBytes = 0
+
+    # Set the server socket non-blocking
+    # --------------------------------------
+    serverSock.setblocking(False)
+    serverSock.settimeout(5)
+
+    # case
+    # RXP_SEND_8801: // FORWARD
+    # TCP
+    # PORT
+    # AND
+    # TX
+    # DATA
+    # LENGTH
+    # REQUEST
+    # TO[TSIF]
+    # if (!soTSIF_Data.full()) {
+    # printInfo(myRxpName, "Requesting Tx test mode to generate a segment of length=%d and to send it to port=%d.\n",
+    # toe_txByteCnt.to_int(), testPort);
+    # appData.setLE_TData(byteSwap16(testPort), 15, 0);
+    # appData.setLE_TData(byteSwap16(toe_txByteCnt), 31, 16);
+
     # Turn the size into an unsigned short binary data for transmission
-    reqMsgAsBytes = struct.pack(">H", size)
+    reqMsgAsBytes = struct.pack(">HH", activePort, size)
+    print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
 
     startTime = datetime.datetime.now()
     while loop < count:
             # SEND message length request to FPGA
             # ------------------------------------
             try:
-                sock.sendall(reqMsgAsBytes)
-            except socket.error as exc:
+                clientSock.sendall(reqMsgAsBytes)
+            except socket.error as exception:
                 # Any exception
-                print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
+                print("[EXCEPTION] Socket error while transmitting :: %s" % exception)
                 exit(1)
             finally:
                 pass
@@ -72,7 +97,7 @@ def udp_rx_loop(sock, size, count, verbose=False):
             currRxByteCnt = 0
             while currRxByteCnt < size:
                 try:
-                    data = sock.recv(MTU)
+                    data = serverSock.recv(MTU)
                 except IOError as e:
                     # On non blocking connections - when there are no incoming data, error is going to be raised
                     # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
@@ -111,10 +136,10 @@ def udp_rx_loop(sock, size, count, verbose=False):
     bandwidth = (totalReceivedBytes * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
     print("#####################################################")
     if bandwidth < 1000:
-        print("#### UDP Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+        print("#### TCP Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     else:
         bandwidth = bandwidth / 1000
-        print("#### UDP Rx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+        print("#### TCP Rx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
     print("#####################################################")
     print()
 
@@ -127,7 +152,7 @@ def udp_rx_loop(sock, size, count, verbose=False):
 
 #  STEP-1: Parse the command line strings into Python objects
 # -----------------------------------------------------------------------------
-parser = argparse.ArgumentParser(description='A script to receive UDP data from an FPGA module.')
+parser = argparse.ArgumentParser(description='A script to receive TCP data from an FPGA module.')
 parser.add_argument('-fi', '--fpga_ipv4',   type=str, default='',
                            help='The IPv4 address of the FPGA (a.k.a image_ip / e.g. 10.12.200.163)')
 parser.add_argument('-ii', '--inst_id',     type=int, default=0,
@@ -167,9 +192,9 @@ instId = getInstanceId(args)
 # -----------------------------------------------------------------------------
 ipResMngr = getResourceManagerIpv4(args)
 
-#  STEP-3a: Set the UDP listen port of the FPGA server (this one is static)
+#  STEP-3a: Set the TCP listen port of the FPGA server (this one is static)
 # -----------------------------------------------------------------------------
-portFpga = XMIT_MODE_LSN_PORT  # 8801
+portFpgaServer = XMIT_MODE_LSN_PORT  # 8801
 
 #  STEP-3b: Retrieve the TCP port of the cloudFPGA Resource Manager
 # -----------------------------------------------------------------------------
@@ -183,59 +208,68 @@ restartApp(instId, ipResMngr, portResMngr, args.user_name, args.user_passwd)
 # -----------------------------------------------------------------------------
 pingFpga(ipFpga)
 
-#  STEP-6a: Set the FPGA socket association
+#  STEP-6a: Set the socket association for sending to the FPGA server
 # -----------------------------------------------------------------------------
-fpgaAssociation = (str(ipFpga), portFpga)
+fpgaServerAssociation = (str(ipFpga), portFpgaServer)
 
-#  STEP-6b: Set the HOST socket association (optional)
-#    Info: Linux selects a source port from an ephemeral port range, which by
-#           default is a set to range from 32768 to 61000. You can check it
-#           with the command:
-#               > cat /proc/sys/net/ipv4/ip_local_port_range
-#           If we want to force the source port ourselves, we must use the
-#           "bind before connect" trick.
+#  STEP-6b: Set the socket association for receiving from the FPGA client
 # -----------------------------------------------------------------------------
-if 0:
-    udpSP = portFpga + 49152  # 8801 + 0xC000
-    hostAssociation = (ipSaStr, udpSP)
+portFpgaClient = portFpgaServer + 0x8000  # By default for this test-case
+fpgaClientAssociation = (str(ipFpga), portFpgaClient)
 
-#  STEP-8a: Create a UDP/IP socket
+#  STEP-7a: Create a TCP/IP client socket for sending to FPGA server
 # -----------------------------------------------------------------------------
 try:
-    udpSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    tcpClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 
-# STEP-8b: Bind before connect (optional).
+#  STEP-7b: Create a TCP/IP server socket for listening to FPGA client
+# -----------------------------------------------------------------------------
+try:
+    tcpSeverSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+except Exception as exc:
+    print("[EXCEPTION] %s" % exc)
+    exit(1)
+
+# STEP-8a: Bind the client socket before connect (optional).
 #  This trick enables us to ask the kernel to select a specific source IP and
 #  source PORT by calling bind() before calling connect().
 # -----------------------------------------------------------------------------
 if 0:
     try:
-        udpSock.bind(hostAssociation)
-        print('Binding the socket address of the HOST to {%s, %d}' % hostAssociation)
+        tcpClientSock.bind(hostClientAssociation)
+        print('Binding the socket address of the HOST to {%s, %d}' % hostClientAssociation)
     except Exception as exc:
         print("[EXCEPTION] %s" % exc)
         exit(1)
 
-#  STEP-9a: Connect to the remote FPGA
-#   Info: Although UDP is connectionless, 'connect()' might still be called. This enables
-#         the OS kernel to set the default destination address for the send, whick makes it
-#         faster to send a message.
+# STEP-8b: Bind the server socket before connect (compulsory).
+#  Issued here to associate the server socket with a specific remote IP address and TCP port.
 # -----------------------------------------------------------------------------
 try:
-    udpSock.connect(fpgaAssociation)
+    tcpServerSock.bind(fpgaClientAssociation)
+    print('Binding the socket address of the HOST to {%s, %d}' % fpgaClientAssociation)
+except Exception as exc:
+    print("[EXCEPTION] %s" % exc)
+    exit(1)
+
+#  STEP-9a: Connect the host client to the remote FPGA server.
+# -----------------------------------------------------------------------------
+try:
+    tcpClientSock.connect(fpgaServerAssociation)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 else:
-    print('\nSuccessful connection with socket address of FPGA at {%s, %d} \n' % fpgaAssociation)
+    print('\nSuccessful client connection with socket address of FPGA server at {%s, %d} \n' % fpgaServerAssociation)
 
-#  STEP-9b: Set the socket non-blocking
-# --------------------------------------
-udpSock.setblocking(False)
-udpSock.settimeout(5)
+# STEP-9b: Enable the host server to to accept connections from remote FPGA client.
+# -----------------------------------------------------------------------------
+tcpServerSock.listen()
+print('Host server ready to start listening on socket address {%s, %d} \n' % fpgaClientAssociation)
+tcpServerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 #  STEP-10: Setup the test
 # -------------------------------
@@ -251,7 +285,7 @@ if size == -1:
     size = random.randint(1, 0xFFFF)
 elif size > 0xFFFF:
     print('\nERROR: ')
-    print("[ERROR] This test limits the size of the received datagram to %d bytes.\n" % 0xFFFF)
+    print("[ERROR] This test limits the size of the received segments to %d bytes.\n" % 0xFFFF)
     exit(1)
 print("\t\t size = %d" % size)
 
@@ -263,10 +297,11 @@ verbose = args.verbose
 #  STEP-11: Run the test
 # -------------------------------
 print("[INFO] This run is executed in single-threading mode.\n")
-udp_rx_loop(udpSock, size, count, args.verbose)
+tcp_rx_loop(tcpClientSock, tcpServerSock, size, portFpgaClient, count, args.verbose)
 
-#  STEP-14: Close socket
+#  STEP-14: Close sockets
 # -----------------------
-udpSock.close()
+tcpClientSock.close()
+tcpServerSock.close()
 
 
