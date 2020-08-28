@@ -362,7 +362,7 @@ int main(int argc, char *argv[]) {
     int segCnt = 0;
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_toe' STARTS HERE                                       ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_tcp_app_flash' STARTS HERE                             ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
     for (int i=1; i<argc; i++) {

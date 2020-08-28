@@ -736,7 +736,7 @@ int main(int argc, char *argv[]) {
     ofTOE_Gold.close();
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_tcpshell_if' ENDS HERE                                 ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_tcp_shell_if' ENDS HERE                                ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
     stepSim();
 

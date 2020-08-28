@@ -16,6 +16,8 @@
 #-- Targets --------------------------------------------------------------------
 all:   mem_test_flash tcp_app_flash       tcp_shell_if       udp_app_flash       udp_shell_if       ## Run the HLS synthesis and IP Core export on all sub-directories
 
+clean:                tcp_app_flash.clean tcp_shell_if.clean udp_app_flash.clean udp_shell_if.clean ## Cleans all the local HLS projects
+
 csim:                 tcp_app_flash.csim  tcp_shell_if.csim  udp_app_flash.csim  udp_shell_if.csim  ## Runs HLS C simulation on all sub-directories
 
 cosim:                tcp_app_flash.cosim tcp_shell_if.cosim udp_app_flash.cosim udp_shell_if.cosim ## Runs HLS C/RTL cosimulation on all sub-directories
@@ -24,16 +26,9 @@ cosim:                tcp_app_flash.cosim tcp_shell_if.cosim udp_app_flash.cosim
 	@echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $@
 
-clean:                             ## Cleans all the local HLS projects
-	${RM} -r ./*/*_prj
-	${RM} -r ./*/*/*_prj
-	${RM} -r ./*/*/*/*_prj
-	${RM}    ./*/vivado*.log
-	${RM}    ./*/*/vivado*.log
-	${RM}    ./*/*/*/vivado*.log
-	@${RM}	 ./*/.synth_guard
-	@${RM}   ./*/*/.synth_guard
-	@${RM}   ./*/*/*/.synth_guard
+%.clean:
+	@echo ---- Cleaning [ $@ ] ---------------------------- 
+	@$(MAKE) -C $* clean
 
 %.csim: 
 	@echo ---- Building [ $@ ] ---------------------------- 
