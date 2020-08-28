@@ -7,15 +7,15 @@
 #  *     Authors: FAB, WEI, NGL, POL
 #  *
 #  *     Description:
-#  *        Main cFp_BringUp regression script.
+#  *        Main cFp_Monolithic regression script.
 #  *
 #  *     Synopsis:
-#  *        run_main <cFpBringUpRootDir>
+#  *        run_main <cFpMonolithicRootDir>
 #  *
 #  *     Details:
 #  *       - This script is typically called by the Jenkins server.
-#  *       - It expects to be executed from the cFp_BringUp root directory.
-#  *       - The '$cFpBringUpRootDir' variable must be set externally or passed as a parameter. 
+#  *       - It expects to be executed from the cFp_Monolithic root directory.
+#  *       - The '$cFpMonolithicRootDir' variable must be set externally or passed as a parameter. 
 #  *       - All environment variables must be sourced beforehand.
 #  *
 
@@ -33,23 +33,23 @@ function exit_on_error {
 }
 
 
-# STEP-1a: Check if '$cFpBringUpRootDir' is passed as a parameter
+# STEP-1a: Check if '$cFpMonolithicRootDir' is passed as a parameter
 if [[  $# -eq 1 ]]; then
     echo "<$0> The regression root directory is passed as an argument:"
     echo "<$0>   Regression root directory = '$1' "
-    export cFpBringUpRootDir=$1
+    export cFpMonolithicRootDir=$1
 fi
 
-# STEP-1b: Confirm that '$cFpBringUpRootDir' is set
-if [[ -z $cFpBringUpRootDir ]]; then
+# STEP-1b: Confirm that '$cFpMonolithicRootDir' is set
+if [[ -z $cFpMonolithicRootDir ]]; then
     echo "<$0> STOP ON ERROR: "
     echo "<$0>   You must provide the path of the regression root directory as an argument, "
-    echo "<$0>   or you must set the environment variable '\$cFpBringUpRootDir'."
+    echo "<$0>   or you must set the environment variable '\$cFpMonolithicRootDir'."
     exit_on_error 1
 fi
 
 # STEP-2a: Set the environment variables
-export rootDir=$cFpBringUpRootDir 
+export rootDir=$cFpMonolithicRootDir 
 export cFpRootDir="$rootDir/"
 export cFpIpDir="$rootDir/ip/"
 export cFpMOD="FMKU60"
@@ -68,15 +68,15 @@ export roleName2="unused"
 retval=1
 
 echo "<$0> ################################################################"
-echo "<$0> ###                        " 
-echo "<$0> ###   START OF REGRESSION: " 
-echo "<$0> ###                        " 
+echo "<$0> ###                                         " 
+echo "<$0> ###   START OF 'cFp_Monolithic' REGRESSION: " 
+echo "<$0> ###                                         " 
 echo "<$0> ################################################################"
 
 echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - ROLE - START OF CSIM "
 echo "<$0> ================================================================"
-export usedRoleDir=$cFpBringUpRootDir/ROLE
+export usedRoleDir=$cFpMonolithicRootDir/ROLE
 cd $usedRoleDir
 sh $usedRoleDir/reg/run_csim_reg.sh
 exit_on_error $? 
@@ -88,7 +88,7 @@ echo "<$0> ----------------------------------------------------------------"
 echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - ROLE - START OF COSIM "
 echo "<$0> ================================================================"
-export usedRoleDir=$cFpBringUpRootDir/ROLE
+export usedRoleDir=$cFpMonolithicRootDir/ROLE
 cd $usedRoleDir
 sh $usedRoleDir/reg/run_cosim_reg.sh
 exit_on_error $? 
@@ -97,35 +97,11 @@ echo "<$0> ---   REGRESSION - ROLE - END OF COSIM "
 echo "<$0> ----------------------------------------------------------------"
 
 
-echo "<$0> ================================================================"
-echo "<$0> ===   REGRESSION - cFDK - START OF COSIM "
-echo "<$0> ================================================================"
-export cFdkRootDir=$cFpBringUpRootDir/cFDK
-cd $cFdkRootDir 
-sh $cFdkRootDir/REG/run_cosim_reg.sh
-exit_on_error $? 
-echo "<$0> ----------------------------------------------------------------"
-echo "<$0> ---   REGRESSION - cFDK - END OF COSIM "
-echo "<$0> ----------------------------------------------------------------"
-
-echo "<$0> ================================================================"
-echo "<$0> ===   REGRESSION - START OF BUILD: 'monolithic' "
-echo "<$0> ================================================================"
-cd $cFpBringUpRootDir
-# [DEBUG] make testError
-make full_clean
-make monolithic
-exit_on_error $? 
-echo "<$0> ----------------------------------------------------------------"
-echo "<$0> ---   REGRESSION - END OF BUILD  : 'monolithic' "
-echo "<$0> ----------------------------------------------------------------"
-
 echo "<$0> ################################################################"
-echo "<$0> ###                      " 
-echo "<$0> ###   END OF REGRESSION: " 
-echo "<$0> ###                      " 
+echo "<$0> ###                                       " 
+echo "<$0> ###   END OF 'cFp_Monolithic' REGRESSION: " 
+echo "<$0> ###                                       " 
 echo "<$0> ################################################################"
-
 
 exit 0
 
