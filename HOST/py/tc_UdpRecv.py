@@ -53,6 +53,7 @@ def udp_rx_loop(sock, size, count, verbose=False):
     totalReceivedBytes = 0
     # Turn the size into an unsigned short binary data for transmission
     reqMsgAsBytes = struct.pack(">H", size)
+    print("\n[DEBUG] reqMsgAsBytes = %s" % reqMsgAsBytes)
 
     startTime = datetime.datetime.now()
     while loop < count:

@@ -263,7 +263,7 @@ seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase is run with:")
+print("[INFO] This testcase is sending traffic from HOST-to-FPGA. It is run with:")
 print("\t\t seed = %d" % seed)
 
 size = args.size
@@ -279,9 +279,9 @@ count = args.loop_count
 print("\t\t loop = %d" % count)
 
 if seed % 1:
-    message = str_static_gen(size)
-else:
     message = str_rand_gen(size)
+else:
+    message = str_static_gen(size)
 
 verbose = args.verbose
 

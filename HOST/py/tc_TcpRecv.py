@@ -59,25 +59,14 @@ def tcp_rx_loop(clientSock, serverSock, size, activePort, count, verbose=False):
     serverSock.setblocking(False)
     serverSock.settimeout(5)
 
-    # case
-    # RXP_SEND_8801: // FORWARD
-    # TCP
-    # PORT
-    # AND
-    # TX
-    # DATA
-    # LENGTH
-    # REQUEST
-    # TO[TSIF]
-    # if (!soTSIF_Data.full()) {
-    # printInfo(myRxpName, "Requesting Tx test mode to generate a segment of length=%d and to send it to port=%d.\n",
-    # toe_txByteCnt.to_int(), testPort);
-    # appData.setLE_TData(byteSwap16(testPort), 15, 0);
-    # appData.setLE_TData(byteSwap16(toe_txByteCnt), 31, 16);
-
-    # Turn the size into an unsigned short binary data for transmission
+    # Turn the size into an unsigned short binary data for transmission and request the test
+    # to generate a segment of length='size' and to send it to port='activePort'.
+    reqMsgAsBytes = struct.pack(">H", activePort)
+    # OBSOLETE-DEBUG print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
+    reqMsgAsBytes = struct.pack(">H", size)
+    # OBSOLETE-DEBUG print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
     reqMsgAsBytes = struct.pack(">HH", activePort, size)
-    print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
+    # OBSOLETE-DEBUG print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
 
     startTime = datetime.datetime.now()
     while loop < count:
@@ -228,7 +217,7 @@ except Exception as exc:
 #  STEP-7b: Create a TCP/IP server socket for listening to FPGA client
 # -----------------------------------------------------------------------------
 try:
-    tcpSeverSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcpServerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
@@ -249,8 +238,10 @@ if 0:
 #  Issued here to associate the server socket with a specific remote IP address and TCP port.
 # -----------------------------------------------------------------------------
 try:
-    tcpServerSock.bind(fpgaClientAssociation)
-    print('Binding the socket address of the HOST to {%s, %d}' % fpgaClientAssociation)
+    tcpServerSock.bind((socket.gethostname(), portFpgaClient))
+    print('Binding the socket address of the HOST to {%s, %d}' % (socket.gethostname(), portFpgaClient))
+    # tcpServerSock.bind((fpgaClientAssociation))
+    # print('Binding the socket address of the HOST to {%s, %d}' % fpgaClientAssociation)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
@@ -259,15 +250,16 @@ except Exception as exc:
 # -----------------------------------------------------------------------------
 try:
     tcpClientSock.connect(fpgaServerAssociation)
+    print('Connecting client socket to FPGA server {%s, %d}' % fpgaServerAssociation)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 else:
-    print('\nSuccessful client connection with socket address of FPGA server at {%s, %d} \n' % fpgaServerAssociation)
+    print('Successful client connection with socket address of FPGA server at {%s, %d}' % fpgaServerAssociation)
 
 # STEP-9b: Enable the host server to to accept connections from remote FPGA client.
 # -----------------------------------------------------------------------------
-tcpServerSock.listen()
+tcpServerSock.listen(5)
 print('Host server ready to start listening on socket address {%s, %d} \n' % fpgaClientAssociation)
 tcpServerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -277,7 +269,7 @@ seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase is run with:")
+print("[INFO] This testcase is sending traffic from FPGA-to-HOST. This testcase is run with:")
 print("\t\t seed = %d" % seed)
 
 size = args.size
