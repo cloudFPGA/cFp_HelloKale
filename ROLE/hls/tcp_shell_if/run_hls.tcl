@@ -1,4 +1,3 @@
-
 # *****************************************************************************
 # *                            cloudFPGA
 # *            All rights reserved -- Property of IBM
@@ -110,10 +109,10 @@ config_compile -name_max_length 128 -pipeline_loops 0
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
     csim_design
-    csim_design -argv "1024 32768 512"
-    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {int(rand()*(65535-32768))+32768}] [expr {1 + int(rand()*65535)}]"
-    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {int(rand()*(65535-32768))+32768}] [expr {1 + int(rand()*65535)}]"
-    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {int(rand()*(65535-32768))+32768}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "1024 10.11.12.13 32768 512"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(      32768))}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {32768 + int(rand()*(65535-32768))}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(65535      ))}] [expr {1 + int(rand()*65535)}]"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -136,8 +135,8 @@ if { $hlsCSynth} {
 #-------------------------------------------------
 if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1024 32768 512"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "[expr {1 + int(rand()*65535)}] [expr {int(rand()*(65535-32768))+32768}] [expr {1 + int(rand()*65535)}]"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1024 10.11.12.13 32768 512"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "[expr {1 + int(rand()*65535)}] 192.168.0.200 [expr {1 + int(rand()*(65535))}] [expr {1 + int(rand()*65535)}]"
 
     puts "#############################################################"
     puts "####                                                     ####"

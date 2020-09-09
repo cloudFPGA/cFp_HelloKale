@@ -36,7 +36,7 @@ import struct
 from tc_utils import *
 
 
-def tcp_rx_loop(clientSock, serverSock, size, activePort, count, verbose=False):
+def tcp_rx_loop(clientSock, serverSock, size, tcp_dp, count, verbose=False):
     """TCP Rx Single-Thread Ramp.
      Requests the FPGA to open a new active port and expects to receive 'count' segments
       of 'size' bytes. Each segment is made of the following repetitive pattern
@@ -44,12 +44,12 @@ def tcp_rx_loop(clientSock, serverSock, size, activePort, count, verbose=False):
      :param clientSock The socket to send to.
      :param serverSock The socket to receive from.
      :param size       The size of the expected segment.
-     :param activePort The active port number that the fPGA is requested to open.
+     :param tcp_dp     The active destination port number that the fPGA is requested to open.
      :param count      The number of segments to receive.
      :param verbose    Enables verbosity.
      :return           None"""
     if verbose:
-        print("[INFO] Requesting the FPGA to send %d segments of %d bytes on TCP port number %d.\n" % (count, size, activePort))
+        print("[INFO] Requesting the FPGA to send %d segments of %d bytes on TCP port number %d.\n" % (count, size, tcp_dp))
     nrErr = 0
     loop = 0
     totalReceivedBytes = 0
@@ -59,14 +59,18 @@ def tcp_rx_loop(clientSock, serverSock, size, activePort, count, verbose=False):
     serverSock.setblocking(False)
     serverSock.settimeout(5)
 
-    # Turn the size into an unsigned short binary data for transmission and request the test
-    # to generate a segment of length='size' and to send it to port='activePort'.
-    reqMsgAsBytes = struct.pack(">H", activePort)
-    # OBSOLETE-DEBUG print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
-    reqMsgAsBytes = struct.pack(">H", size)
-    # OBSOLETE-DEBUG print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
-    reqMsgAsBytes = struct.pack(">HH", activePort, size)
-    # OBSOLETE-DEBUG print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
+    hostname = socket.gethostname()
+    # [DEBUG] print(f"Hostname: {hostname}")
+    ip_da_str = socket.gethostbyname(hostname)
+    # [DEBUG] print(f"IP_DA_STR = {ip_da_str}")
+    ip_da = int(ipaddress.IPv4Address(ip_da_str))
+    # [DEBUG] print("IP_DA = 0x%8.8X " % ip_da)
+
+    # Request the test to generate a segment of length='size' and to send it to socket={ip_da, tcp_dp}
+    # by sending 'ip_da', 'tcp_dp' and 'size' to the FPGA.
+    #  Turn the 'ip_da' into an unsigned int binary and 'tcp_dp' and 'size' into an unsigned short binary data.
+    reqMsgAsBytes = struct.pack(">IHH", ip_da, tcp_dp, size)
+    # [DEBUG] print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
 
     startTime = datetime.datetime.now()
     while loop < count:
@@ -203,7 +207,8 @@ fpgaServerAssociation = (str(ipFpga), portFpgaServer)
 
 #  STEP-6b: Set the socket association for receiving from the FPGA client
 # -----------------------------------------------------------------------------
-portFpgaClient = portFpgaServer + 0x8000  # By default for this test-case
+# OBSOLETE_20200902 portFpgaClient = portFpgaServer + 0x8000  # By default for this test-case
+portFpgaClient = 2718  # Default TCP cF-Themisto ports are in range 2718-2750
 fpgaClientAssociation = (str(ipFpga), portFpgaClient)
 
 #  STEP-7a: Create a TCP/IP client socket for sending to FPGA server
@@ -239,9 +244,7 @@ if 0:
 # -----------------------------------------------------------------------------
 try:
     tcpServerSock.bind((socket.gethostname(), portFpgaClient))
-    print('Binding the socket address of the HOST to {%s, %d}' % (socket.gethostname(), portFpgaClient))
-    # tcpServerSock.bind((fpgaClientAssociation))
-    # print('Binding the socket address of the HOST to {%s, %d}' % fpgaClientAssociation)
+    print('Binding the socket address of the HOST to {%s, %d}' % (socket.gethostbyname(socket.gethostname()), portFpgaClient))
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)

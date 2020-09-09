@@ -81,8 +81,7 @@ using namespace std;
  * @brief Connect (COn).
  *
  * @param[in]  piSHL_Enable     Enable signal from [SHELL].
- * @param[in]  siRRh_OpnAddrReq The remote IP address to connect from ReadRequestHandler (RRh).
- * @param[in]  siRDp_OpnPortReq The remote TCP port to connect from ReadPath(RDp).
+ * @param[in]  siRDp_OpnSockReq The remote socket to connect from ReadPath(RDp).
  * @param[in]  siRDp_TxCountReq The #bytes to be transmitted after connection is opened.
  * @param[out] soWRp_TxBytesReq The #bytes to be transmitted to WritePath (WRp).
  * @param[out] soWRp_TxSessId   The session id of the active opened connection to [WRp].
@@ -92,16 +91,15 @@ using namespace std;
  *
  * @details
  *  This process connects the FPGA in client mode to a remote server which
- *   socket address is specified by the pair {siRRh_OpnAddrReq,siRDp_OpnPortReq}.
+ *   socket address is specified by 'siRDp_OpnSockReq'.
  *  Alternatively, the process is also used to trigger the TxPath (TXp) to xmit
- *   a segment to the remote producer of the request. The number of bytes to
- *   transmit is then specified by the [RDp] via the 'siRDp_TxCountReq' input.
+ *   a segment to the newly opened connection. The number of bytes to transmit
+ *   is then specified by the [RDp] via the 'siRDp_TxCountReq' input.
  *   This mode is used to test the TOE in transmit mode.
  *******************************************************************************/
 void pConnect(
         CmdBit                *piSHL_Enable,
-        stream<Ip4Addr>       &siRRh_OpnAddrReq,
-        stream<TcpPort>       &siRDp_OpnPortReq,
+        stream<SockAddr>      &siRDp_OpnSockReq,
         stream<Ly4Len>        &siRDp_TxCountReq,
         stream<Ly4Len>        &soWRp_TxBytesReq,
         stream<SessionId>     &soWRp_TxSessId,
@@ -139,14 +137,14 @@ void pConnect(
         }
         break;
     case OPN_REQ:
-        if (!siRDp_OpnPortReq.empty() and !siRDp_TxCountReq.empty() and
-            !siRRh_OpnAddrReq.empty() and !soSHL_OpnReq.full()) {
+        if (!siRDp_OpnSockReq.empty() and !siRDp_TxCountReq.empty() and
+            !soSHL_OpnReq.full()) {
             siRDp_TxCountReq.read(con_txBytesReq);
-            SockAddr hostSockAddr(siRRh_OpnAddrReq.read(), siRDp_OpnPortReq.read());
-            soSHL_OpnReq.write(hostSockAddr);
+            SockAddr remoteSockAddr = siRDp_OpnSockReq.read();
+            soSHL_OpnReq.write(remoteSockAddr);
             if (DEBUG_LEVEL & TRACE_CON) {
                 printInfo(myName, "Client is requesting to connect to remote socket:\n");
-                printSockAddr(myName, hostSockAddr);
+                printSockAddr(myName, remoteSockAddr);
             }
             #ifndef __SYNTHESIS__
                 con_watchDogTimer = 250;
@@ -341,7 +339,6 @@ void pListen(
  * @param[in]  siSHL_Notif  A new Rx data notification from [SHELL].
  * @param[out] soSHL_DReq   An Rx data request to [SHELL].
  * @param[out] soRDp_FwdCmd A command telling the ReadPath (RDp) to keep/drop a stream.
- * @param[out] soCOn_OpnAddrReq The remote destination IP address to connect to.
  *
  * @details
  *  This process waits for a notification from [TOE] indicating the availability
@@ -356,11 +353,11 @@ void pListen(
  *     - 8801 : The TxPath (TXp) is expected to open an active connection and
  *              to send an certain amount of bytes to the producer of this
  *              request. It is the responsibility of the RxPath (RXp) to extract
- *              the destination TCP port number and the #bytes to transmit from
- *              the 32 first bits of the segment and to forward these data as
- *              two 16-bit words to the Connect (COn) process. The [COn] will
- *              then open an active connection before triggering the WritePath
- *              (WRp) to send the requested amount of bytes on the new connection.
+ *              the TCP destination socket {IpAddr, PortNum} and the #bytes to
+ *              transmit, out of the 64 first bits of the segment and to forward
+ *              these data to the Connect (COn) process. The [COn] will then
+ *              open an active connection before triggering the WritePath (WRp)
+ *              to send the requested amount of bytes on the new connection.
  *     - 5001 : [TBD]
  *     - 5201 : [TBD]
  *     - Others: The RXp process is requested to forward these data and metadata
@@ -369,8 +366,7 @@ void pListen(
 void pReadRequestHandler(
         stream<TcpAppNotif>    &siSHL_Notif,
         stream<TcpAppRdReq>    &soSHL_DReq,
-        stream<ForwardCmd>     &soRDp_FwdCmd,
-        stream<Ip4Addr>        &soCOn_OpnAddrReq)
+        stream<ForwardCmd>     &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -378,7 +374,7 @@ void pReadRequestHandler(
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
 
     //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
-    static enum FsmStates { RRH_IDLE, RRH_SEND_DREQ, RRH_8801 } \
+    static enum FsmStates { RRH_IDLE, RRH_SEND_DREQ } \
                                rrh_fsmState=RRH_IDLE;
     #pragma HLS reset variable=rrh_fsmState
 
@@ -413,17 +409,6 @@ void pReadRequestHandler(
     case RRH_SEND_DREQ:
         if (!soSHL_DReq.full()) {
             soSHL_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_notif.tcpSegLen));
-            if (rrh_notif.tcpDstPort != XMIT_MODE_LSN_PORT) {
-                rrh_fsmState = RRH_IDLE;
-            }
-            else {
-                rrh_fsmState = RRH_8801;
-            }
-        }
-        break;
-    case RRH_8801:
-        if (!soCOn_OpnAddrReq.full()) {
-            soCOn_OpnAddrReq.write(rrh_notif.ip4SrcAddr);
             rrh_fsmState = RRH_IDLE;
         }
         break;
@@ -436,8 +421,8 @@ void pReadRequestHandler(
  * @param[in]  siSHL_Data   Data stream from [SHELL].
  * @param[in]  siSHL_Meta   Session Id from [SHELL].
  * @param[in]  siRRh_FwdCmd A command to keep/drop a stream from ReadRequestHandler (RRh).
- * @param[out] soCOn_OpnPortReq The remote TCP port to open to Connect (COn).
- * @param[out] soCOn_TxCountReq The #bytes to be transmitted after active port is opened by [COn].
+ * @param[out] soCOn_OpnSockReq The remote socket to open to Connect (COn).
+ * @param[out] soCOn_TxCountReq The #bytes to be transmitted after active connection is opened by [COn].
  * @param[out] soTAF_Data   Data stream to [TAF].
  * @param[out] soTAF_Meta   Session Id to [TAF].
  *
@@ -450,16 +435,16 @@ void pReadRequestHandler(
  *   - If the action is 'CMD_DROP' the field 'opCOde' becomes meaningful and may
  *     specify additional sub-options:
  *     - If the op-code is 'NOP', simply drop the stream and do nothing more.
- *     - If the op-code is 'GEN', extract the remote TCP port to connect to as
- *       well as the number of bytes to transmit from the 32 first incoming
+ *     - If the op-code is 'GEN', extract the remote socket to connect to as
+ *       well as the number of bytes to transmit out of the 64 first incoming
  *       bits of the data stream. Next, drop the rest of that stream and forward
- *       the two extracted fields to the Connect (COn) process.
+ *       the extracted fields to the Connect (COn) process.
  *******************************************************************************/
 void pReadPath(
         stream<TcpAppData>  &siSHL_Data,
         stream<TcpAppMeta>  &siSHL_Meta,
         stream<ForwardCmd>  &siRRh_FwdCmd,
-        stream<TcpPort>     &soCOn_OpnPortReq,
+        stream<SockAddr>    &soCOn_OpnSockReq,
         stream<Ly4Len>      &soCOn_TxCountReq,
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpAppMeta>  &soTAF_Meta)
@@ -503,7 +488,7 @@ void pReadPath(
         }
         break;
     case RDP_STREAM:
-        if (!siSHL_Data.empty() && !soTAF_Data.full()) {
+        if (!siSHL_Data.empty() and !soTAF_Data.full()) {
             siSHL_Data.read(appData);
             if (rdp_keepFlag) {
                 soTAF_Data.write(appData);
@@ -515,15 +500,21 @@ void pReadPath(
         }
         break;
     case RDP_8801:
-        if (!siSHL_Data.empty() and !soCOn_OpnPortReq.full() and !soCOn_TxCountReq.full()) {
-            // Extract the remote port number and the requested #bytes to transmit
+        if (!siSHL_Data.empty() and !soCOn_OpnSockReq.full() and !soCOn_TxCountReq.full()) {
+            // Extract the remote socket address and the requested #bytes to transmit
             siSHL_Data.read(appData);
-            TcpPort portToOpen = byteSwap16(appData.getLE_TData(15,  0));
-            Ly4Len  byesToSend = byteSwap16(appData.getLE_TData(31, 16));
-            soCOn_OpnPortReq.write(portToOpen);
-            soCOn_TxCountReq.write(byesToSend);
-            printInfo(myName, "Received request for Tx test mode to generate a segment of length=%d and to send it to port=%d.\n",
-                      byesToSend.to_int(), portToOpen.to_int());
+            //OBSOLETE_20200908 TcpPort portToOpen = byteSwap16(appData.getLE_TData(15,  0));
+            //OBSOLETE_20200908 Ly4Len  bytesToSend = byteSwap16(appData.getLE_TData(31, 16));
+            SockAddr sockToOpen(byteSwap32(appData.getLE_TData(31,  0)),   // IP4 address
+                                byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
+            Ly4Len bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
+            soCOn_OpnSockReq.write(sockToOpen);
+            soCOn_TxCountReq.write(bytesToSend);
+            if (DEBUG_LEVEL & TRACE_RDP) {
+                printInfo(myName, "Received request for Tx test mode to generate a segment of length=%d and to send it to socket:\n",
+                          bytesToSend.to_int());
+                printSockAddr(myName, sockToOpen);
+            }
             if (appData.getTLast()) {
                 rdp_fsmState  = RDP_IDLE;
             }
@@ -609,7 +600,7 @@ void pWritePath(
         }
         break;
     case WRP_STREAM:
-        if (!siTAF_Data.empty() && !soSHL_Data.full()) {
+        if (!siTAF_Data.empty() and !soSHL_Data.full()) {
             siTAF_Data.read(appData);
             soSHL_Data.write(appData);
             if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data =", appData); }
@@ -802,8 +793,8 @@ void tcp_shell_if(
     //--------------------------------------------------------------------------
 
     //-- Read Path (RDp)
-    static stream<TcpPort>         ssRDpToCOn_OpnPortReq ("ssRDpToCOn_OpnPortReq");
-    #pragma HLS stream    variable=ssRDpToCOn_OpnPortReq depth=2
+    static stream<SockAddr>        ssRDpToCOn_OpnSockReq ("ssRDpToCOn_OpnSockReq");
+    #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=2
     static stream<Ly4Len>          ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
     #pragma HLS stream    variable=ssRDpToCOn_TxCountReq depth=2
 
@@ -811,8 +802,6 @@ void tcp_shell_if(
     static stream<ForwardCmd>      ssRRhToRDp_FwdCmd     ("ssRRhToRDp_FwdCmd");
     #pragma HLS stream    variable=ssRRhToRDp_FwdCmd     depth=8
     #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
-    static stream<Ip4Addr>         ssRRhToCOn_OpnAddrReq ("ssRRhToCOn_OpnAddrReq");
-    #pragma HLS stream    variable=ssRRhToCOn_OpnAddrReq depth=2
 
     //-- Connect (COn)
     static stream<Ly4Len>          ssCOnToWRp_TxBytesReq ("ssCOnToWRp_TxBytesReq");
@@ -823,8 +812,7 @@ void tcp_shell_if(
     //-- PROCESS FUNCTIONS -----------------------------------------------------
     pConnect(
             piSHL_Mmio_En,
-            ssRRhToCOn_OpnAddrReq,
-            ssRDpToCOn_OpnPortReq,
+            ssRDpToCOn_OpnSockReq,
             ssRDpToCOn_TxCountReq,
             ssCOnToWRp_TxBytesReq,
             ssCOnToWRp_TxSessId,
@@ -840,14 +828,13 @@ void tcp_shell_if(
     pReadRequestHandler(
             siSHL_Notif,
             soSHL_DReq,
-            ssRRhToRDp_FwdCmd,
-            ssRRhToCOn_OpnAddrReq);
+            ssRRhToRDp_FwdCmd);
 
     pReadPath(
             siSHL_Data,
             siSHL_Meta,
             ssRRhToRDp_FwdCmd,
-            ssRDpToCOn_OpnPortReq,
+            ssRDpToCOn_OpnSockReq,
             ssRDpToCOn_TxCountReq,
             soTAF_Data,
             soTAF_Meta);

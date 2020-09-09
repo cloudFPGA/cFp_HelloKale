@@ -147,8 +147,8 @@ void pMMIO(
  * @param[in]  ofTOE_Gold    A ref to the TOE gold file to write.
  * @param[in]  ofTOE_Data    A ref to the TOE data file to write.
  * @param[in]  echoSegLen    The length of the echo segment to generate.
+ * @param[in]  testSock      The destination socket to send traffic to.
  * @param[in]  testSegLen    The length of the test segment to generate.
- * @param[in]  testPort      The host destination port to send traffic to.
  * @param[out] poMMIO_Ready  Ready signal to [MMIO].
  * @param[out] soTSIF_Notif  Notification to TcpShellInterface (TSIF).
  * @param[in]  siTSIF_DReq   Data read request from [TSIF].
@@ -163,8 +163,8 @@ void pTOE(
         ofstream              &ofTOE_Gold,
         ofstream              &ofTOE_Data,
         int                    echoSegLen,
+        SockAddr               testSock,
         int                    testSegLen,
-        int                    testPort,
         //-- MMIO / Ready Signal
         StsBit                *poMMIO_Ready,
         //-- TSIF / Tx Data Interfaces
@@ -294,27 +294,36 @@ void pTOE(
     static TcpSegLen   toe_txByteCnt;
     static int         toe_sessCnt=0;
     static int         toe_segCnt=0;
+    static int         toe_waitEndOfTxTest=0;
     const  int         nrSegToSend=4;
     const  int         nrSessToSend=2;
 
     if (toe_rxpIsReady) {
         switch (toe_rxpState) {
         case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TSIF]
+            if (toe_waitEndOfTxTest) {
+                // Give TSIF the time to finish sending all the requested bytes
+                toe_waitEndOfTxTest--;
+                break;
+            }
             switch (toe_segCnt) {
             case 1:
                 toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
                 toe_rxByteCnt   = echoSegLen;
                 gMaxSimCycles += (echoSegLen / 8);
+                toe_waitEndOfTxTest = 0;
                break;
-            case 2:
+            case (nrSegToSend-1):
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
                 toe_txByteCnt = testSegLen;
                 gMaxSimCycles += (testSegLen / 8);
+                toe_waitEndOfTxTest = (testSegLen / 8) + 1;
                 break;
             default:
                 toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
                 toe_rxByteCnt   = echoSegLen;
                 gMaxSimCycles += (echoSegLen / 8);
+                toe_waitEndOfTxTest = 0;
                 break;
             }
             toe_sessId         = DEFAULT_SESSION_ID + toe_sessCnt;
@@ -363,15 +372,12 @@ void pTOE(
                     appData.setTKeep(lenTotKeep(toe_rxByteCnt));
                     appData.setTLast(TLAST);
                     toe_segCnt += 1;
-                    /*** OBSOLETE
                     if (toe_segCnt == nrSegToSend) {
                         toe_rxpState = RXP_NEXT_SESS;
                     }
                     else {
                         toe_rxpState = RXP_SEND_NOTIF;
                     }
-                    ***/
-                    toe_rxpState = RXP_NEXT_SESS;
                 }
                 soTSIF_Data.write(appData);
                 if (DEBUG_LEVEL & TRACE_TOE) {
@@ -386,13 +392,18 @@ void pTOE(
                 }
             }
             break;
-        case RXP_SEND_8801: // FORWARD TCP PORT AND TX DATA LENGTH REQUEST TO [TSIF]
+        case RXP_SEND_8801: // FORWARD TX SOCKET ADDRESS AND TX DATA LENGTH REQUEST TO [TSIF]
             if (!soTSIF_Data.full()) {
-                printInfo(myRxpName, "Requesting Tx test mode to generate a segment of length=%d and to send it to port=%d.\n",
-                          toe_txByteCnt.to_int(), testPort);
-                appData.setLE_TData(byteSwap16(testPort),      15,  0);
-                appData.setLE_TData(byteSwap16(toe_txByteCnt), 31, 16);
-                appData.setLE_TKeep(0x0F);
+                printInfo(myRxpName, "Requesting Tx test mode to generate a segment of length=%d and to send it to socket: \n",
+                          toe_txByteCnt.to_int());
+                printSockAddr(myRxpName, testSock);
+                //OBSOLETE_20200908 appData.setLE_TData(byteSwap16(testPort),      15,  0);
+                //OBSOLETE_20200908 aappData.setLE_TData(byteSwap16(toe_txByteCnt), 31, 16);
+                //OBSOLETE_20200908 aappData.setLE_TKeep(0x0F);
+                appData.setLE_TData(byteSwap32(testSock.addr), 31,  0);
+                appData.setLE_TData(byteSwap16(testSock.port), 47, 32);
+                appData.setLE_TData(byteSwap16(toe_txByteCnt), 63, 48);
+                appData.setLE_TKeep(0xFF);
                 appData.setLE_TLast(TLAST);
                 soTSIF_Data.write(appData);
                 if (DEBUG_LEVEL & TRACE_TOE) {
@@ -493,8 +504,10 @@ void pTOE(
 /*******************************************************************************
  * @brief Main function for the test of the TCP Shell Interface (TSIF).
  *
+ * This test take 0,1,2,3 or 4 parameters in the following order:
  * @param[in] The number of bytes to generate in 'Echo' or "Dump' mode [1:65535].
- * @param[in] The TCP port number to open (must be in the range [32768:65535].
+ * @param[in] The IPv4 address to open (must be in the range [0x00000000:0xFFFFFFFF].
+ * @param[in] The TCP port number to open (must be in the range [0:65535].
  * @param[in] The number of bytes to generate in 'Tx' test mode [1:65535] or '0'
  *            to simply open a port w/o triggering the Tx test mode.
  *******************************************************************************/
@@ -558,41 +571,54 @@ int main(int argc, char *argv[]) {
     ofstream    ofTOE_Gold;  // Gold streams to compare with
     const char *ofTOE_GoldName = "../../../../test/simOutFiles/soTOE_Gold.dat";
 
-    int         defaultLenOfSegmentEcho = 42;
-    int         defaultLenOfSegmentTest = 0;
-    int         defaultDestHostPortTest = 32768;
+    const int   defaultLenOfSegmentEcho = 42;
+    const int   defaultDestHostIpv4Test = 0xC0A80096; // 192.168.0.150
+    const int   defaultDestHostPortTest = 2718;
+    const int   defaultLenOfSegmentTest = 43;
+
+    int         echoLenOfSegment = defaultLenOfSegmentEcho;
+    ap_uint<32> testDestHostIpv4 = defaultDestHostIpv4Test;
+    ap_uint<16> testDestHostPort = defaultDestHostIpv4Test;
+    int         testLenOfSegment = defaultLenOfSegmentTest;
 
     //------------------------------------------------------
     //-- PARSING THE TESBENCH ARGUMENTS
     //------------------------------------------------------
-    if (argc == 1) {
-        defaultLenOfSegmentEcho = 42;     // In bytes [1:65535]
-        defaultLenOfSegmentTest = 43;     // In bytes [1:65535]
-        defaultDestHostPortTest = 0x8042; // In range [32768:65535]
+    if (argc >= 2) {
+        echoLenOfSegment = atoi(argv[1]);
+        if ((echoLenOfSegment <= 1) or (echoLenOfSegment >= 0x10000)) {
+            printFatal(THIS_NAME, "Argument 'len' is out of range [1:65535].\n");
+            return NTS_KO;
+        }
     }
-    else {
-        if (argc >= 2) {
-            defaultLenOfSegmentEcho = atoi(argv[1]);
-            if ((defaultLenOfSegmentEcho <= 1) or (defaultLenOfSegmentEcho >= 0x10000)) {
-                printFatal(THIS_NAME, "Argument 'len' is out of range [1:65535].\n");
-                return NTS_KO;
-            }
+    if (argc >= 3) {
+        if (isDottedDecimal(argv[2])) {
+            testDestHostIpv4 = myDottedDecimalIpToUint32(argv[2]);
         }
-        if (argc >= 3) {
-            defaultDestHostPortTest = atoi(argv[2]);
-            if ((defaultDestHostPortTest <= 0x7FFF) or (defaultDestHostPortTest >= 0x10000)) {
-                printFatal(THIS_NAME, "Argument 'port' is out of range [32768:65535].\n");
-                return NTS_KO;
-            }
+        else {
+            testDestHostIpv4 = atoi(argv[2]);
         }
-        if (argc >= 4) {
-            defaultLenOfSegmentTest = atoi(argv[3]);
-            if ((defaultLenOfSegmentTest <= 0) or (defaultLenOfSegmentTest >= 0x10000)) {
+        if ((testDestHostIpv4 < 0x00000000) or (testDestHostIpv4 > 0xFFFFFFFF)) {
+            printFatal(THIS_NAME, "Argument 'IPv4' is out of range [0x00000000:0xFFFFFFFF].\n");
+            return NTS_KO;
+        }
+    }
+    if (argc >= 4) {
+        testDestHostPort = atoi(argv[3]);
+        if ((testDestHostPort < 0x0000) or (testDestHostPort >= 0x10000)) {
+            printFatal(THIS_NAME, "Argument 'port' is out of range [0:65535].\n");
+            return NTS_KO;
+        }
+    }
+    if (argc >= 5) {
+            testLenOfSegment = atoi(argv[4]);
+            if ((testLenOfSegment <= 0) or (testLenOfSegment >= 0x10000)) {
                 printFatal(THIS_NAME, "Argument 'len' is out of range [0:65535].\n");
                 return NTS_KO;
             }
-        }
     }
+
+    SockAddr testSock(testDestHostIpv4, testDestHostPort);
 
     //------------------------------------------------------
     //-- REMOVE PREVIOUS OLD SIM FILES and OPEN NEW ONES
@@ -647,9 +673,9 @@ int main(int argc, char *argv[]) {
             ofTAF_Gold,
             ofTOE_Gold,
             ofTOE_Data,
-            defaultLenOfSegmentEcho,
-            defaultLenOfSegmentTest,
-            defaultDestHostPortTest,
+            echoLenOfSegment,
+            testSock,
+            testLenOfSegment,
             //-- TOE / Ready Signal
             &sTOE_MMIO_Ready,
             //-- TOE / Tx Data Interfaces
@@ -753,6 +779,16 @@ int main(int argc, char *argv[]) {
     printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTOE_DataName, ofTOE_GoldName);
         nrErr++;
     }
+
+    //---------------------------------------------------------------
+    //-- PRINT TESTBENCH STATUS
+    //---------------------------------------------------------------
+    printf("\n");
+    printInfo(THIS_NAME, "This testbench was executed with the following parameters: \n");
+    for (int i=1; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+    printf("\n");
 
     if (nrErr) {
          printError(THIS_NAME, "###########################################################\n");
