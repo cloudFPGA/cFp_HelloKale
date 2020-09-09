@@ -29,8 +29,8 @@ them to SHELL/NTS/TOE.
 
 | Acronym                             | Description                                | File
 |:------------------------------------|:-------------------------------------------|:--------------
-| **[SHELL](../../cFDK/DOC/Kale.md)** | TCP application interface to shell _Kale_. | [Shell](../../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
-| **[TAF](./TAF.md)**                 | TCP Application Flash                      | [tcp_app_flash](../hls/tcp_app_flash/src/tcp_app_flash.hpp)
+| **[SHELL](../cFDK/DOC/Kale.md)**    | TCP application interface to shell _Kale_. | [Shell](../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
+| **[TAF](./TAF.md)**                 | TCP Application Flash                      | [tcp_app_flash](../ROLE/hls/tcp_app_flash/src/tcp_app_flash.hpp)
 
 <br>
 
@@ -38,10 +38,10 @@ them to SHELL/NTS/TOE.
 
 | Acronym         | Description                    | Filename
 |:----------------|:-------------------------------|:--------------
-| **COn**         | Connect process                | [tcp_shell_if](../hls/tcp_shell_if/src/tcp_shell_if.cpp)
-| **LSn**         | Listen process                 | [tcp_shell_if](../hls/tcp_shell_if/src/tcp_shell_if.cpp)
-| **RDp**         | Read Path process              | [tcp_shell_if](../hls/tcp_shell_if/src/tcp_shell_if.cpp)
-| **RRh**         | Read Request Handler process   | [tcp_shell_if](../hls/tcp_shell_if/src/tcp_shell_if.cpp)
-| **WRp**         | Write Path process             | [tcp_shell_if](../hls/tcp_shell_if/src/tcp_shell_if.cpp)
+| **COn**         | Connect process                | [tcp_shell_if](../ROLE/hls/tcp_shell_if/src/tcp_shell_if.cpp)
+| **LSn**         | Listen process                 | [tcp_shell_if](../ROLE/hls/tcp_shell_if/src/tcp_shell_if.cpp)
+| **RDp**         | Read Path process              | [tcp_shell_if](../ROLE/hls/tcp_shell_if/src/tcp_shell_if.cpp)
+| **RRh**         | Read Request Handler process   | [tcp_shell_if](../ROLE/hls/tcp_shell_if/src/tcp_shell_if.cpp)
+| **WRp**         | Write Path process             | [tcp_shell_if](../ROLE/hls/tcp_shell_if/src/tcp_shell_if.cpp)
 
 <br>
