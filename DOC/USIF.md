@@ -30,8 +30,8 @@ them to SHELL/NTS/UOE.
 
 | Acronym                             | Description                                | File
 |:------------------------------------|:-------------------------------------------|:--------------
-| **[SHELL](../../cFDK/DOC/Kale.md)** | UDP application interface to _Shell_Kale_  | [Shell](../../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
-| **[UAF](./UAF.md)**                 | UDP Application Flash interface            | [udp_app_flash](../hls/udp_app_flash/src/udp_app_flash.hpp)
+| **[SHELL](../cFDK/DOC/Kale.md)** | UDP application interface to _Shell_Kale_  | [Shell](../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
+| **[UAF](./UAF.md)**                 | UDP Application Flash interface            | [udp_app_flash](../ROLE/hls/udp_app_flash/src/udp_app_flash.hpp)
 
 <br>
 
@@ -39,9 +39,9 @@ them to SHELL/NTS/UOE.
 
 | Acronym         | Description                    | Filename
 |:----------------|:-------------------------------|:--------------
-| **CLs**         | Close process                  | [udp_shell_if](../hls/udp_shell_if/src/udp_shell_if.cpp)
-| **LSn**         | Listen process                 | [udp_shell_if](../hls/udp_shell_if/src/udp_shell_if.cpp)
-| **RDp**         | Read Path process              | [udp_shell_if](../hls/udp_shell_if/src/udp_shell_if.cpp)
-| **WRp**         | Write Path process             | [udp_shell_if](../hls/udp_shell_if/src/udp_shell_if.cpp)
+| **CLs**         | Close process                  | [udp_shell_if](../ROLE/hls/udp_shell_if/src/udp_shell_if.cpp)
+| **LSn**         | Listen process                 | [udp_shell_if](../ROLE/hls/udp_shell_if/src/udp_shell_if.cpp)
+| **RDp**         | Read Path process              | [udp_shell_if](../ROLE/hls/udp_shell_if/src/udp_shell_if.cpp)
+| **WRp**         | Write Path process             | [udp_shell_if](../ROLE/hls/udp_shell_if/src/udp_shell_if.cpp)
 
 <br>
