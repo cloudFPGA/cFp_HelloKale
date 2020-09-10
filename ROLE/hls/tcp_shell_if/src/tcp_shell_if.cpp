@@ -421,7 +421,7 @@ void pReadRequestHandler(
  * @param[in]  siSHL_Data   Data stream from [SHELL].
  * @param[in]  siSHL_Meta   Session Id from [SHELL].
  * @param[in]  siRRh_FwdCmd A command to keep/drop a stream from ReadRequestHandler (RRh).
- * @param[out] soCOn_OpnSockReq The remote socket to open to Connect (COn).
+ * @param[out] soCOn_OpnSockReq The remote socket to connect open to Connect (COn).
  * @param[out] soCOn_TxCountReq The #bytes to be transmitted after active connection is opened by [COn].
  * @param[out] soTAF_Data   Data stream to [TAF].
  * @param[out] soTAF_Meta   Session Id to [TAF].

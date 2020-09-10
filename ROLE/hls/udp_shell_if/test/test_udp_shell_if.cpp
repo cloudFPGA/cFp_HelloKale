@@ -187,7 +187,9 @@ void pUOE(
         int                   &nrErr,
         ofstream              &goldFile,
         ofstream              &dataFile,
-        int                    dgrmLen,
+        int                    echoDgrmLen,
+        SockAddr               testSock,
+        int                    testDgrmLen,
         //-- MMIO / Ready Signal
         StsBit                *poMMIO_Ready,
         //-- UOE->USIF / UDP Rx Data Interfaces
@@ -269,41 +271,58 @@ void pUOE(
     UdpAppData         appData;
     static UdpAppMeta  uoe_rxMeta;
     static int         uoe_rxByteCnt;
-    static int         uoe_txByteCnt;
+    static Ly4Len      uoe_txByteCnt;
+    //OBSOLET static Ly4Len      uoe_txByteReq;
     static int         uoe_dgmCnt=0;
-    const  int         nrDgmToSend=5;
+    static int         uoe_waitEndOfTxTest=0;
+    const  int         nrDgmToSend=7;
     if (uoe_rxpIsReady) {
         switch (uoe_rxpState) {
         case RXP_SEND_META: // SEND METADATA TO [USIF]
-            uoe_rxMeta.src.addr = DEFAULT_HOST_IP4_ADDR;
-            uoe_rxMeta.src.port = DEFAULT_HOST_SND_PORT;
-            uoe_rxMeta.dst.addr = DEFAULT_FPGA_IP4_ADDR;
-            switch (uoe_dgmCnt) {
-            case 1:
-                uoe_rxMeta.dst.port = RECV_MODE_LSN_PORT;
-                uoe_rxByteCnt = dgrmLen;
-                gMaxSimCycles += (dgrmLen / 8);
-                uoe_rxpState = RXP_SEND_DATA;
-                break;
-            case 2: // nrDgmToSend:
-                uoe_rxMeta.dst.port = XMIT_MODE_LSN_PORT;
-                uoe_txByteCnt = dgrmLen;
-                gMaxSimCycles += (dgrmLen / 8);
-                uoe_rxpState = RXP_SEND_8801;
-                break;
-            default:
-                uoe_rxMeta.dst.port = ECHO_MODE_LSN_PORT;
-                uoe_rxByteCnt = dgrmLen;
-                gMaxSimCycles += (dgrmLen / 8);
-                uoe_rxpState = RXP_SEND_DATA;
-                break;
-            }
-            uoe_dgmCnt += 1;
             if (!soUSIF_Meta.full()) {
-                soUSIF_Meta.write(uoe_rxMeta);
-                if (DEBUG_LEVEL & TRACE_UOE) {
-                    printInfo(myRxpName, "Sending metadata to [USIF].\n");
-                    printSockPair(myRxpName, uoe_rxMeta);
+                if (uoe_waitEndOfTxTest) {
+                    // Give USIF the time to finish sending all the requested bytes
+                    uoe_waitEndOfTxTest--;
+                }
+                else if (uoe_dgmCnt == nrDgmToSend) {
+                    uoe_rxpState = RXP_DONE;
+                }
+                else {
+                    uoe_rxMeta.src.addr = DEFAULT_HOST_IP4_ADDR;
+                    uoe_rxMeta.src.port = DEFAULT_HOST_SND_PORT;
+                    uoe_rxMeta.dst.addr = DEFAULT_FPGA_IP4_ADDR;
+                    switch (uoe_dgmCnt) {
+                    case 1:
+                    case 3:
+                        uoe_rxMeta.dst.port = RECV_MODE_LSN_PORT;
+                        uoe_rxByteCnt = echoDgrmLen;
+                        gMaxSimCycles += (echoDgrmLen / 8);
+                        uoe_waitEndOfTxTest = 0;
+                        uoe_rxpState = RXP_SEND_DATA;
+                        break;
+                    case 2:
+                    case 4:
+                        uoe_rxMeta.dst.port = XMIT_MODE_LSN_PORT;
+                        //OBSOLETE uoe_txByteReq = testDgrmLen;
+                        uoe_txByteCnt = testDgrmLen;
+                        gMaxSimCycles += (testDgrmLen / 8);
+                        uoe_waitEndOfTxTest = (testDgrmLen / 8) + 1;
+                        uoe_rxpState = RXP_SEND_8801;
+                        break;
+                    default:
+                        uoe_rxMeta.dst.port = ECHO_MODE_LSN_PORT;
+                        uoe_rxByteCnt = echoDgrmLen;
+                        gMaxSimCycles += (echoDgrmLen / 8);
+                        uoe_waitEndOfTxTest = 0;
+                        uoe_rxpState = RXP_SEND_DATA;
+                        break;
+                    }
+                    soUSIF_Meta.write(uoe_rxMeta);
+                    if (DEBUG_LEVEL & TRACE_UOE) {
+                        printInfo(myRxpName, "Sending metadata to [USIF].\n");
+                        printSockPair(myRxpName, uoe_rxMeta);
+                    }
+                    uoe_dgmCnt += 1;
                 }
             }
             break;
@@ -331,46 +350,54 @@ void pUOE(
             break;
         case RXP_SEND_8801: // FORWARD TX DATA LENGTH REQUEST TO [USIF]
             if (!soUSIF_Data.full()) {
-                printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d.\n", uoe_txByteCnt);
-                appData.setLE_TData(byteSwap16(uoe_txByteCnt));
-                appData.setLE_TKeep(0x03);
+                //OBSOLETE_20200909 printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d.\n", yteCnt);
+                //OBSOLETE_20200909 appData.setLE_TData(byteSwap16(uoe_txByteCnt));
+                //OBSOLETE_20200909 appData.setLE_TKeep(0x03);
+                //OBSOLETE_20200909 appData.setLE_TLast(TLAST);
+                printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d and to send it to socket: \n",
+                          uoe_txByteCnt.to_uint());
+                printSockAddr(myRxpName, testSock);
+                appData.setLE_TData(byteSwap32(testSock.addr), 31,  0);
+                appData.setLE_TData(byteSwap16(testSock.port), 47, 32);
+                appData.setLE_TData(byteSwap16(uoe_txByteCnt), 63, 48);
+                appData.setLE_TKeep(0xFF);
                 appData.setLE_TLast(TLAST);
                 soUSIF_Data.write(appData);
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myRxpName, "Sending Tx data length request to [USIF]: ", appData);
                 }
                 bool firstChunk=true;
-                while (uoe_txByteCnt) {
+                int txByteReq = uoe_txByteCnt;
+                while (txByteReq) {
                     UdpAppData goldChunk(0,0,0);
                     if (firstChunk) {
                         for (int i=0; i<8; i++) {
-                            if (uoe_txByteCnt) {
+                            if (txByteReq) {
                                 unsigned char byte = (GEN_CHK0 >> ((7-i)*8)) & 0xFF;
                                 goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
                                 goldChunk.setLE_TKeep(1, i, i);
-                                uoe_txByteCnt--;
+                                txByteReq--;
                             }
                         }
                         firstChunk = !firstChunk;
                     }
                     else {  // Second Chunk
                         for (int i=0; i<8; i++) {
-                            if (uoe_txByteCnt) {
+                            if (txByteReq) {
                                 unsigned char byte = (GEN_CHK1 >> ((7-i)*8)) & 0xFF;
                                 goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
                                 goldChunk.setLE_TKeep(1, i, i);
-                                uoe_txByteCnt--;
+                                txByteReq--;
                             }
                         }
                         firstChunk = !firstChunk;
                     }
-                    if (uoe_txByteCnt == 0) {
+                    if (txByteReq == 0) {
                         goldChunk.setLE_TLast(TLAST);
                     }
                     writeAxisRawToFile(goldChunk, goldFile);
                 }
-                uoe_dgmCnt += 1;
-                uoe_rxpState = RXP_DONE;
+                uoe_rxpState = RXP_SEND_META;
             }
             break;
         case RXP_DONE: // END OF THE RX PATH SEQUENCE
@@ -384,7 +411,7 @@ void pUOE(
     //-- FSM #3 - TX DATA PATH
     //--    (Always drain the data coming from [USIF])
     //------------------------------------------------------
-    int  rcvdBytes;
+    static UdpAppDLen uoe_appDLen;
     if (uoe_txpIsReady) {
         switch (uoe_txpState) {
         case TXP_WAIT_META:
@@ -392,14 +419,13 @@ void pUOE(
                 UdpAppMeta  appMeta;
                 UdpAppDLen  appDLen;
                 siUSIF_Meta.read(appMeta);
-                siUSIF_DLen.read(appDLen);
-                rcvdBytes = appDLen;
+                siUSIF_DLen.read(uoe_appDLen);
                 if (DEBUG_LEVEL & TRACE_UOE) {
-                    if (uoe_txByteCnt == 0) {
+                    if (uoe_appDLen == 0) {
                         printInfo(myTxpName, "This UDP Tx datagram is forwarded in streaming mode (DLen=0).\n");
                     }
                     else {
-                        printInfo(myTxpName, "Receiving %d bytes of data from [USIF].\n", appDLen.to_int());
+                        printInfo(myTxpName, "Receiving %d bytes of data from [USIF].\n", uoe_appDLen.to_int());
                     }
                     printSockPair(myTxpName, appMeta);
                 }
@@ -411,15 +437,15 @@ void pUOE(
                 UdpAppData     appData;
                 siUSIF_Data.read(appData);
                 writeAxisRawToFile(appData, dataFile);
-                if (uoe_txByteCnt != 0) {
-                    uoe_txByteCnt -= appData.getLen();
+                if (uoe_appDLen != 0) {
+                    uoe_appDLen -= appData.getLen();
                 }
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myTxpName, "Received data chunk from [USIF] ", appData);
                 }
                 if (appData.getTLast()) {
                     uoe_txpState = TXP_WAIT_META;
-                    if (uoe_txByteCnt != 0) {
+                    if (uoe_appDLen != 0) {
                         printWarn(myTxpName, "TLAST is set but DLen != 0.\n");
                     }
                 }
@@ -480,25 +506,54 @@ int main(int argc, char *argv[]) {
     ofstream    ofUOE_Gold;  // Gold streams to compare with
     string      ofUOE_GoldName = "../../../../test/simOutFiles/soUOE_Gold.dat";
 
-    int         lenOfDatagramTest;
+    const int   defaultLenOfDatagramEcho = 42;
+    const int   defaultDestHostIpv4Test  = 0xC0A80096; // 192.168.0.150
+    const int   defaultDestHostPortTest  = 2718;
+    const int   defaultLenOfDatagramTest = 43;
+
+    int         echoLenOfDatagram = defaultLenOfDatagramEcho;
+    ap_uint<32> testDestHostIpv4  = defaultDestHostIpv4Test;
+    ap_uint<16> testDestHostPort  = defaultDestHostIpv4Test;
+    int         testLenOfDatagram = defaultLenOfDatagramTest;
 
     //------------------------------------------------------
     //-- PARSING THE TESBENCH ARGUMENTS
     //------------------------------------------------------
-    if (argc == 1) {
-        lenOfDatagramTest = 42; // In bytes
-    }
-    else if (argc == 2) {
-        lenOfDatagramTest = atoi(argv[1]);
-        if ((lenOfDatagramTest <= 0) or (lenOfDatagramTest >= 0x10000)) {
-            printFatal(THIS_NAME, "Argument is out of range [0:65535].\n");
+    if (argc >= 2) {
+        echoLenOfDatagram = atoi(argv[1]);
+        if ((echoLenOfDatagram < 1) or (echoLenOfDatagram >= 0x10000)) {
+            printFatal(THIS_NAME, "Argument 'len' is out of range [1:65535].\n");
             return NTS_KO;
         }
     }
-    else {
-        printFatal(THIS_NAME, "Expected an argument specifying the length of the data stream to generate.\n");
-        return NTS_KO;
+    if (argc >= 3) {
+        if (isDottedDecimal(argv[2])) {
+            testDestHostIpv4 = myDottedDecimalIpToUint32(argv[2]);
+        }
+        else {
+            testDestHostIpv4 = atoi(argv[2]);
+        }
+        if ((testDestHostIpv4 < 0x00000000) or (testDestHostIpv4 > 0xFFFFFFFF)) {
+            printFatal(THIS_NAME, "Argument 'IPv4' is out of range [0x00000000:0xFFFFFFFF].\n");
+            return NTS_KO;
+        }
     }
+    if (argc >= 4) {
+        testDestHostPort = atoi(argv[3]);
+        if ((testDestHostPort < 0x0000) or (testDestHostPort >= 0x10000)) {
+            printFatal(THIS_NAME, "Argument 'port' is out of range [0:65535].\n");
+            return NTS_KO;
+        }
+    }
+    if (argc >= 5) {
+            testLenOfDatagram = atoi(argv[4]);
+            if ((testLenOfDatagram <= 0) or (testLenOfDatagram >= 0x10000)) {
+                printFatal(THIS_NAME, "Argument 'len' is out of range [0:65535].\n");
+                return NTS_KO;
+            }
+    }
+
+    SockAddr testSock(testDestHostIpv4, testDestHostPort);
 
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_udp_shell' STARTS HERE                                 ##\n");
@@ -541,7 +596,9 @@ int main(int argc, char *argv[]) {
             nrErr,
             ofUOE_Gold,
             ofUOE_Data,
-            lenOfDatagramTest,
+            echoLenOfDatagram,
+            testSock,
+            testLenOfDatagram,
             //-- UOE / Ready Signal
             &sUOE_MMIO_Ready,
             //-- UOE->USIF / UDP Rx Data Interfaces
@@ -620,7 +677,17 @@ int main(int argc, char *argv[]) {
     printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
     printf("## TESTBENCH 'test_udp_shell_if' ENDS HERE                                ##\n");
-    printf("############################################################################\n\n");
+    printf("############################################################################\n");
+
+    //---------------------------------------------------------------
+    //-- PRINT TESTBENCH STATUS
+    //---------------------------------------------------------------
+    printf("\n");
+    printInfo(THIS_NAME, "This testbench was executed with the following parameters: \n");
+    for (int i=1; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+    printf("\n");
 
     //---------------------------------------------------------------
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES

@@ -110,23 +110,28 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv 1
-    csim_design -argv 2
-    csim_design -argv 3
-    csim_design -argv 4
-    csim_design -argv 5
-    csim_design -argv 6
-    csim_design -argv 7
-    csim_design -argv 8
-    csim_design -argv 129
-    csim_design -argv 258
-    csim_design -argv 515
-    csim_design -argv 1028
-    csim_design -argv 2053
-    csim_design -argv 4010
-    csim_design -argv 8197
-    csim_design -argv 16384
-    csim_design -argv [expr {int(rand()*65536)}]
+    csim_design
+    csim_design -argv "    1 10.11.12.13 2718     1"
+    csim_design -argv "    2 10.11.12.13 2718     2"
+    csim_design -argv "    3 10.11.12.13 2718     3"
+    csim_design -argv "    4 10.11.12.13 2718     4"
+    csim_design -argv "    5 10.11.12.13 2718     5"
+    csim_design -argv "    6 10.11.12.13 2718     6"
+    csim_design -argv "    7 10.11.12.13 2718     7"
+    csim_design -argv "    8 10.11.12.13 2718     8"
+    csim_design -argv "  129 10.11.12.13 2718   129"
+    csim_design -argv "  258 10.11.12.13 2718   258"
+    csim_design -argv "  515 10.11.12.13 2718   515"
+    csim_design -argv " 1028 10.11.12.13 2718  1028"
+    csim_design -argv " 2053 10.11.12.13 2718  2053"
+    csim_design -argv " 4010 10.11.12.13 2718  4010"
+    csim_design -argv " 8197 10.11.12.13 2718  8197"
+    csim_design -argv "16384 10.11.12.13 2718 16384"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*65535)}]"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -149,8 +154,9 @@ if { $hlsCSynth} {
 #-------------------------------------------------
 if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv [expr {int(rand()*65536)}]
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv [expr {int(rand()*65536)}]
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1024 10.11.12.13 32768 512"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*65535)}]"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*65535)}]"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

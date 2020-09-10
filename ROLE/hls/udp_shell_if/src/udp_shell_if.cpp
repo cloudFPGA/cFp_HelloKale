@@ -75,7 +75,7 @@ using namespace std;
 #define TRACE_LSN 1 <<  4
 #define TRACE_CLS 1 <<  5
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_WRP | TRACE_LSN)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
@@ -87,7 +87,6 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 //--  FYI --> 8803 is the ZIP code of Ruschlikon ;-)
 //---------------------------------------------------------
 #define DEFAULT_FPGA_LSN_PORT   0x2263      // ROLE   listens on port = 8803
-//OBSOLETE_20200813 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
 
 
 /*******************************************************************************
@@ -313,9 +312,11 @@ void pClose(
  *  depending on the value of the UDP destination port.
  *  1) If DstPort==8800, the incoming datagram is dumped. This mode is used to
  *     the UOE in receive mode.
- *  2) If DstPort==8801, it retrieves the first 16-bit word of the data payload
- *     and triggers the TxWritePath (WRp) to start sending this amount of bytes
- *     to the socket address corresponding to the producer of this request.
+ *  2) If DstPort==8801, it extract the address of the remote socket to connect
+ *     to as well as the number of bytes to transmit, out of the 64 first
+ *     incoming bits of the data stream. Next, it sends these 3 fields to the
+ *     the TxWritePath (WRp) which will start sending this amount of bytes
+ *     to the specified destination socket.
  *  3) Otherwise, incoming metadata and data are forwarded to the UAF.
  *******************************************************************************/
 void pReadPath(
@@ -392,11 +393,20 @@ void pReadPath(
         break;
     case RDP_8801:
         if (!siSHL_Data.empty() and !soWRp_Meta.full() and !soWRp_DReq.full()) {
-            // Swap source and destination sockets
-            soWRp_Meta.write(SocketPair(rdp_appMeta.dst, rdp_appMeta.src));
-            // Extract the requested Tx datagram length
-            appData = siSHL_Data.read();
-            soWRp_DReq.write(byteSwap16(appData.getLE_TData(15, 0)));
+            // Extract the remote socket address and the requested #bytes to transmit
+            siSHL_Data.read(appData);
+            SockAddr dstSockAddr(byteSwap32(appData.getLE_TData(31,  0)),   // IP4 address
+                                 byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
+            Ly4Len bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
+            // Forward socket-pair information to [WRp]
+            soWRp_Meta.write(SocketPair(dstSockAddr, rdp_appMeta.src));
+            // Forward the extracted number of bytes to transmit
+            soWRp_DReq.write(bytesToSend);
+            if (DEBUG_LEVEL & TRACE_RDP) {
+                printInfo(myName, "Received request for Tx test mode to generate a segment of length=%d and to send it to socket:\n",
+                          bytesToSend.to_int());
+                printSockAddr(myName, dstSockAddr);
+            }
             if (appData.getLE_TLast()) {
                 rdp_fsmState  = RDP_READ_META;
             }
@@ -513,12 +523,10 @@ void pWritePath(
             }
             switch (wrp_genChunk) {
             case CHK0: // Send 'Hi from '
-                //OBSOLETE_20200813 currChunk.setLE_TData(0x0706050403020100);
                 currChunk.setTData(GEN_CHK0);
                 wrp_genChunk = CHK1;
                 break;
             case CHK1: // Send 'FMKU60!\n'
-                //OBSOLETE_20200813 currChunk.setLE_TData(0x0f0e0d0c0b0a0908);
                 currChunk.setTData(GEN_CHK1);
                 wrp_genChunk = CHK0;
                 break;
