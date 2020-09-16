@@ -44,7 +44,7 @@ def tcp_rx_loop(clientSock, serverSock, size, tcp_dp, count, verbose=False):
      :param clientSock The socket to send to.
      :param serverSock The socket to receive from.
      :param size       The size of the expected segment.
-     :param tcp_dp     The active destination port number that the fPGA is requested to open.
+     :param tcp_dp     The active destination port number that the FPGA is requested to open.
      :param count      The number of segments to receive.
      :param verbose    Enables verbosity.
      :return           None"""
@@ -60,11 +60,12 @@ def tcp_rx_loop(clientSock, serverSock, size, tcp_dp, count, verbose=False):
     serverSock.settimeout(5)
 
     hostname = socket.gethostname()
-    # [DEBUG] print(f"Hostname: {hostname}")
+    print(f"Hostname = {hostname}")
     ip_da_str = socket.gethostbyname(hostname)
-    # [DEBUG] print(f"IP_DA_STR = {ip_da_str}")
+    ip_da_str = '10.2.0.18'
+    print(f"IP_DA_STR = {ip_da_str}")
     ip_da = int(ipaddress.IPv4Address(ip_da_str))
-    # [DEBUG] print("IP_DA = 0x%8.8X " % ip_da)
+    print("IP_DA = 0x%8.8X " % ip_da)
 
     # Request the test to generate a segment of length='size' and to send it to socket={ip_da, tcp_dp}
     # by sending 'ip_da', 'tcp_dp' and 'size' to the FPGA.
@@ -207,7 +208,6 @@ fpgaServerAssociation = (str(ipFpga), portFpgaServer)
 
 #  STEP-6b: Set the socket association for receiving from the FPGA client
 # -----------------------------------------------------------------------------
-# OBSOLETE_20200902 portFpgaClient = portFpgaServer + 0x8000  # By default for this test-case
 portFpgaClient = 2718  # Default TCP cF-Themisto ports are in range 2718-2750
 fpgaClientAssociation = (str(ipFpga), portFpgaClient)
 

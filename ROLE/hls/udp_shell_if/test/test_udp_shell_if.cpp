@@ -61,7 +61,7 @@ using namespace std;
 #define TRACE_MMIO   1 <<  3
 #define TRACE_ALL     0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_UOE)
 
 /*******************************************************************************
  * @brief Increment the simulation counter
@@ -169,8 +169,10 @@ void pMMIO(
  * @brief Emulate behavior of the SHELL/NTS/TCP Offload Engine (TOE).
  *
  * @param[in]  nrErr          A ref to the error counter of main.
- * @param[in]  goldFile       A ref to the file storing the DUT gold data.
+ * @param[in]  dataGoldFile   A ref to the file storing the DUT gold data.
  * @param[in]  dataFile       A ref to the file storing the DUT output data.
+ * @param[in]  metaGoldFile   A ref to the file storing the DUT gold meta.
+ * @param[in]  metaFile       A ref to the file storing the DUT output meta.
  * @param[in]  dgrmLen        The length of the test datatagram to generate.
  * @param[out] poMMIO_Ready   Ready signal to [MMIO].
  * @param[out] soUSIF_Data    The UDP datagram to [USIF].
@@ -185,8 +187,10 @@ void pMMIO(
  ******************************************************************************/
 void pUOE(
         int                   &nrErr,
-        ofstream              &goldFile,
+        ofstream              &dataGoldFile,
         ofstream              &dataFile,
+        ofstream              &metaGoldFile,
+        ofstream              &metaFile,
         int                    echoDgrmLen,
         SockAddr               testSock,
         int                    testDgrmLen,
@@ -272,7 +276,6 @@ void pUOE(
     static UdpAppMeta  uoe_rxMeta;
     static int         uoe_rxByteCnt;
     static Ly4Len      uoe_txByteCnt;
-    //OBSOLET static Ly4Len      uoe_txByteReq;
     static int         uoe_dgmCnt=0;
     static int         uoe_waitEndOfTxTest=0;
     const  int         nrDgmToSend=7;
@@ -303,7 +306,6 @@ void pUOE(
                     case 2:
                     case 4:
                         uoe_rxMeta.dst.port = XMIT_MODE_LSN_PORT;
-                        //OBSOLETE uoe_txByteReq = testDgrmLen;
                         uoe_txByteCnt = testDgrmLen;
                         gMaxSimCycles += (testDgrmLen / 8);
                         uoe_waitEndOfTxTest = (testDgrmLen / 8) + 1;
@@ -315,6 +317,11 @@ void pUOE(
                         gMaxSimCycles += (echoDgrmLen / 8);
                         uoe_waitEndOfTxTest = 0;
                         uoe_rxpState = RXP_SEND_DATA;
+                        // Swap IP_SA/IP_DA and update UPD_SP/UDP_DP
+                        UdpAppMeta udpGldMeta(SockAddr(uoe_rxMeta.dst.addr, DEFAULT_FPGA_SND_PORT),
+                                              SockAddr(uoe_rxMeta.src.addr, DEFAULT_HOST_LSN_PORT));
+                        // Dump this socket pair to a gold file
+                        writeSocketPairToFile(udpGldMeta, metaGoldFile);
                         break;
                     }
                     soUSIF_Meta.write(uoe_rxMeta);
@@ -344,16 +351,12 @@ void pUOE(
                     printAxisRaw(myRxpName, "Sending data chunk to [USIF]: ", appData);
                 }
                 if (uoe_rxMeta.dst.port != RECV_MODE_LSN_PORT) {
-                    writeAxisRawToFile(appData, goldFile);
+                    writeAxisRawToFile(appData, dataGoldFile);
                 }
             }
             break;
         case RXP_SEND_8801: // FORWARD TX DATA LENGTH REQUEST TO [USIF]
             if (!soUSIF_Data.full()) {
-                //OBSOLETE_20200909 printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d.\n", yteCnt);
-                //OBSOLETE_20200909 appData.setLE_TData(byteSwap16(uoe_txByteCnt));
-                //OBSOLETE_20200909 appData.setLE_TKeep(0x03);
-                //OBSOLETE_20200909 appData.setLE_TLast(TLAST);
                 printInfo(myRxpName, "Requesting Tx test mode to generate a datagram of length=%d and to send it to socket: \n",
                           uoe_txByteCnt.to_uint());
                 printSockAddr(myRxpName, testSock);
@@ -366,6 +369,12 @@ void pUOE(
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myRxpName, "Sending Tx data length request to [USIF]: ", appData);
                 }
+                //-- Update the Meta-Gold File
+                UdpAppMeta udpGldMeta(SockAddr(DEFAULT_FPGA_IP4_ADDR, uoe_rxMeta.dst.port),
+                                      SockAddr(testSock.addr,         testSock.port));
+                // Dump this socket pair to a gold file
+                writeSocketPairToFile(udpGldMeta, metaGoldFile);
+                //-- Update the Data-Gold File
                 bool firstChunk=true;
                 int txByteReq = uoe_txByteCnt;
                 while (txByteReq) {
@@ -395,7 +404,7 @@ void pUOE(
                     if (txByteReq == 0) {
                         goldChunk.setLE_TLast(TLAST);
                     }
-                    writeAxisRawToFile(goldChunk, goldFile);
+                    writeAxisRawToFile(goldChunk, dataGoldFile);
                 }
                 uoe_rxpState = RXP_SEND_META;
             }
@@ -429,6 +438,7 @@ void pUOE(
                     }
                     printSockPair(myTxpName, appMeta);
                 }
+                writeSocketPairToFile(appMeta, metaFile);
                 uoe_txpState = TXP_RECV_DATA;
             }
             break;
@@ -502,9 +512,13 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     int         nrErr = 0;   // Total number of testbench errors
     ofstream    ofUOE_Data;  // Data streams delivered to UOE
+    ofstream    ofUOE_Meta;  // Meta streams delivered to UOE
     string      ofUOE_DataName = "../../../../test/simOutFiles/soUOE_Data.dat";
-    ofstream    ofUOE_Gold;  // Gold streams to compare with
-    string      ofUOE_GoldName = "../../../../test/simOutFiles/soUOE_Gold.dat";
+    string      ofUOE_MetaName = "../../../../test/simOutFiles/soUOE_Meta.dat";
+    ofstream    ofUOE_DataGold;  // Data gold streams to compare with
+    ofstream    ofUOE_MetaGold;  // Meta gold streams to compare with
+    string      ofUOE_DataGoldName = "../../../../test/simOutFiles/soUOE_DataGold.dat";
+    string      ofUOE_MetaGoldName = "../../../../test/simOutFiles/soUOE_MetaGold.dat";
 
     const int   defaultLenOfDatagramEcho = 42;
     const int   defaultDestHostIpv4Test  = 0xC0A80096; // 192.168.0.150
@@ -576,11 +590,27 @@ int main(int argc, char *argv[]) {
             return(NTS_KO);
         }
     }
-    remove(ofUOE_GoldName.c_str());
-    if (!ofUOE_Gold.is_open()) {
-        ofUOE_Gold.open(ofUOE_GoldName.c_str(), ofstream::out);
-        if (!ofUOE_Gold) {
-            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofUOE_GoldName.c_str());
+    remove(ofUOE_MetaName.c_str());
+    if (!ofUOE_Meta.is_open()) {
+        ofUOE_Meta.open(ofUOE_MetaName.c_str(), ofstream::out);
+        if (!ofUOE_Meta) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofUOE_MetaName.c_str());
+            return(NTS_KO);
+        }
+    }
+    remove(ofUOE_DataGoldName.c_str());
+    if (!ofUOE_DataGold.is_open()) {
+        ofUOE_DataGold.open(ofUOE_DataGoldName.c_str(), ofstream::out);
+        if (!ofUOE_DataGold) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofUOE_DataGoldName.c_str());
+            return(NTS_KO);
+        }
+    }
+    remove(ofUOE_MetaGoldName.c_str());
+    if (!ofUOE_MetaGold.is_open()) {
+        ofUOE_MetaGold.open(ofUOE_MetaGoldName.c_str(), ofstream::out);
+        if (!ofUOE_MetaGold) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofUOE_MetaGoldName.c_str());
             return(NTS_KO);
         }
     }
@@ -594,8 +624,10 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         pUOE(
             nrErr,
-            ofUOE_Gold,
+            ofUOE_DataGold,
             ofUOE_Data,
+            ofUOE_MetaGold,
+            ofUOE_Meta,
             echoLenOfDatagram,
             testSock,
             testLenOfDatagram,
@@ -671,8 +703,10 @@ int main(int argc, char *argv[]) {
     //---------------------------------
     //-- CLOSING OPEN FILES
     //---------------------------------
-    ofUOE_Gold.close();
+    ofUOE_DataGold.close();
     ofUOE_Data.close();
+    ofUOE_MetaGold.close();
+    ofUOE_Meta.close();
 
     printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
@@ -693,10 +727,17 @@ int main(int argc, char *argv[]) {
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
     //---------------------------------------------------------------
     int res = myDiffTwoFiles(std::string(ofUOE_DataName),
-                             std::string(ofUOE_GoldName));
+                             std::string(ofUOE_DataGoldName));
     if (res) {
         printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-                   ofUOE_DataName.c_str(), ofUOE_GoldName.c_str());
+                   ofUOE_DataName.c_str(), ofUOE_DataGoldName.c_str());
+        nrErr += 1;
+    }
+    res = myDiffTwoFiles(std::string(ofUOE_MetaName),
+                         std::string(ofUOE_MetaGoldName));
+    if (res) {
+        printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                   ofUOE_MetaName.c_str(), ofUOE_MetaGoldName.c_str());
         nrErr += 1;
     }
 

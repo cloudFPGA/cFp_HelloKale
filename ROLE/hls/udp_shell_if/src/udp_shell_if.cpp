@@ -175,13 +175,13 @@ void pListen(
             if (DEBUG_LEVEL & TRACE_LSN) {
                 printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
                           LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
+            }
             #ifndef __SYNTHESIS__
                 lsn_watchDogTimer = 10;
             #else
                 lsn_watchDogTimer = 100;
             #endif
             lsn_fsmState = LSN_WAIT_REP;
-            }
         }
         else {
             printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
@@ -213,6 +213,8 @@ void pListen(
             if (lsn_watchDogTimer == 0) {
                 printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
                            LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
+                //-- Try next listen port number
+                lsn_i += 1;
                 lsn_fsmState = LSN_SEND_REQ;
             }
         }
@@ -395,11 +397,12 @@ void pReadPath(
         if (!siSHL_Data.empty() and !soWRp_Meta.full() and !soWRp_DReq.full()) {
             // Extract the remote socket address and the requested #bytes to transmit
             siSHL_Data.read(appData);
+            SockAddr srcSockAddr(rdp_appMeta.dst.addr, rdp_appMeta.dst.port);
             SockAddr dstSockAddr(byteSwap32(appData.getLE_TData(31,  0)),   // IP4 address
                                  byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
             Ly4Len bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
             // Forward socket-pair information to [WRp]
-            soWRp_Meta.write(SocketPair(dstSockAddr, rdp_appMeta.src));
+            soWRp_Meta.write(SocketPair(srcSockAddr, dstSockAddr));
             // Forward the extracted number of bytes to transmit
             soWRp_DReq.write(bytesToSend);
             if (DEBUG_LEVEL & TRACE_RDP) {

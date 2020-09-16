@@ -35,12 +35,13 @@ import string
 ACM_OK = 0    # ACM = Accelerator Module (alias for FM = Fpga Module)
 ACM_KO = 1
 
-MTU         = 1500  # Maximum Transfer Unit
+MTU         = 1500  # ETHERNET - Maximum Transfer Unit
+MTU_ZYC2    = 1450  # ETHERNET - MTU in ZYC2 = 1500-20-8-8-14
 IP4_HDR_LEN =   20  # IPv4 Header Length
 TCP_HDR_LEN =   20  # TCP Header Length
 TCP_MSS = (MTU - IP4_HDR_LEN - TCP_HDR_LEN)  # Maximum Segment  Size
 UDP_HDR_LEN =    8  # UDP Header Length
-UDP_MDS = (MTU - IP4_HDR_LEN - UDP_HDR_LEN)  # Maximum Datagram Size
+UDP_MDS = (MTU_ZYC2 - IP4_HDR_LEN - UDP_HDR_LEN) & ~0x7  # Maximum Datagram Size (modulo 8)
 
 # -------------------------------------------------------------------
 # -- DEFAULT LISTENING PORTS

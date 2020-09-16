@@ -151,13 +151,13 @@ def udp_txrx_loop(sock, message, count, verbose=False):
         #  Send datagram
         # -------------------
         try:
-            udpSock.sendall(message)
+            sock.sendall(message)
         finally:
             pass
         #  Receive datagram
         # -------------------
         try:
-            data = udpSock.recv(len(message))
+            data = sock.recv(len(message))
             rxByteCnt += len(data)
             if data == message:
                 if verbose:
@@ -216,13 +216,13 @@ def udp_txrx_ramp(sock, message, count, verbose=False):
             #  Send datagram
             # -------------------
             try:
-                udpSock.sendall(subMsg)
+                sock.sendall(subMsg)
             finally:
                 pass
             #  Receive datagram
             # -------------------
             try:
-                data = udpSock.recv(len(subMsg))
+                data = sock.recv(len(subMsg))
                 rxByteCnt += len(data)
                 if data == subMsg:
                     if verbose:
