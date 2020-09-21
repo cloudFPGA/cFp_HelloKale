@@ -56,18 +56,10 @@ def udp_rx_loop(clientSock, serverSock, size, ip_da, udp_dp, count, verbose=Fals
     loop = 0
     totalReceivedBytes = 0
 
-    #  STEP-9b: Set the socket non-blocking
+    #  Set the server socket non-blocking
     # --------------------------------------
     serverSock.setblocking(False)
     serverSock.settimeout(5)
-
-    # OBSOLETE hostname = socket.gethostname()
-    # OBSOLETE print(f"Hostname = {hostname}")
-    # OBSOLETE ip_da_str = socket.gethostbyname(hostname)
-    # OBSOLETE ip_da_str = '10.2.0.18'
-    # OBSOLETE print(f"IP_DA_STR = {ip_da_str}")
-    # OBSOLETE ip_da = int(ipaddress.IPv4Address(ip_da_str))
-    # OBSOLETE print("IP_DA = 0x%8.8X " % ip_da)
 
     # Request the test to generate a datagram of length='size' and to send it to
     # socket={ip_da, tcp_dp}. This is done by sending 'ip_da', 'tcp_dp' and 'size'
@@ -101,10 +93,12 @@ def udp_rx_loop(clientSock, serverSock, size, ip_da, udp_dp, count, verbose=Fals
                     # We are going to check for both - if one of them - that's expected, means no incoming data,
                     # continue as normal. If we got different error code - something happened
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                        print('[ERROR] Socket reading error: {}'.format(str(e)))
-                        exit(1)
+                        print("[ERROR] Socket reading error: {}".format(str(e)))
+                        print("\t[INFO] So far we received %d bytes out of %d." % (currRxByteCnt, size))
+                        # OBSOLETE_202020921 exit(1)
                     # We just did not receive anything
-                    continue
+                    # OBSOLETE_202020921 continue
+                    break
                 except socket.error as exc:
                     # Any other exception
                     print("[EXCEPTION] Socket error while receiving :: %s" % exc)
@@ -112,14 +106,14 @@ def udp_rx_loop(clientSock, serverSock, size, ip_da, udp_dp, count, verbose=Fals
                 else:
                     currRxByteCnt += len(data)
                     if verbose:
-                        print("Loop=%d | RxBytes=%d | RxData=%s\n" % (loop, len(data), data))
+                        print("[INFO] Loop=%d | RxBytes=%d | RxData=%s\n" % (loop, len(data), data))
                         # [FIXME-TODO: assess the stream of received bytes]
                 finally:
                     pass
             totalReceivedBytes += currRxByteCnt;
             loop += 1
     endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime;
+    elapseTime = endTime - startTime
 
     if totalReceivedBytes < 1000000:
         print("[INFO] Received a total of %d bytes." % totalReceivedBytes)
@@ -133,10 +127,12 @@ def udp_rx_loop(clientSock, serverSock, size, ip_da, udp_dp, count, verbose=Fals
     bandwidth = (totalReceivedBytes * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
     print("#####################################################")
     if bandwidth < 1000:
-        print("#### UDP Rx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+        print("#### UDP Rx DONE with bandwidth = %6.1f Mb/s " % bandwidth)
     else:
         bandwidth = bandwidth / 1000
-        print("#### UDP Rx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+        print("#### UDP Rx DONE with bandwidth = %2.1f Gb/s " % bandwidth)
+    if (totalReceivedBytes != (size * count)):
+        print("####  [WARNING] UDP data loss = %.1f%" % ((totalReceivedBytes)/(size*count)))
     print("#####################################################")
     print()
 
@@ -174,7 +170,7 @@ parser.add_argument('-v',  '--verbose',     action="store_true",
 args = parser.parse_args()
 
 if args.user_name == '' or args.user_passwd == '':
-    print("\nWARNING: You must provide a ZYC2 user name and the corresponding password for this script to execute.\n")
+    print("\n[WARNING] You must provide a ZYC2 user name and the corresponding password for this script to execute.\n")
     exit(1)
 
 #  STEP-2a: Retrieve the IP address of the FPGA module (this will be the SERVER)
@@ -191,7 +187,7 @@ ipResMngr = getResourceManagerIpv4(args)
 
 #  STEP-3a: Set the UDP listen port of the FPGA server (this one is static)
 # -----------------------------------------------------------------------------
-portFpga = XMIT_MODE_LSN_PORT  # 8801
+portFpgaServer = XMIT_MODE_LSN_PORT  # 8801
 
 #  STEP-3b: Retrieve the TCP port of the cloudFPGA Resource Manager
 # -----------------------------------------------------------------------------
@@ -207,7 +203,7 @@ pingFpga(ipFpga)
 
 #  STEP-6a: Set the FPGA socket association
 # -----------------------------------------------------------------------------
-fpgaServerAssociation = (str(ipFpga), portFpga)
+fpgaServerAssociation = (str(ipFpga), portFpgaServer)
 
 #  STEP-6b: Set the socket association for receiving from the FPGA client
 # -----------------------------------------------------------------------------
@@ -237,7 +233,7 @@ except Exception as exc:
 if 0:
     try:
         udpClientSock.bind(hostClientAssociation)
-        print('Binding the socket address of the HOST to {%s, %d}' % hostClientAssociation)
+        print('[INFO] Binding the socket address of the HOST to {%s, %d}' % hostClientAssociation)
     except Exception as exc:
         print("[EXCEPTION] %s" % exc)
         exit(1)
@@ -245,15 +241,18 @@ if 0:
 # STEP-8b: Bind the server socket before connect (compulsory).
 #  Issued here to associate the server socket with a specific remote IP address and UDP port.
 # -----------------------------------------------------------------------------
-ipHostStr = socket.gethostbyname(socket.gethostname())
+hostname  = socket.gethostname()
+ipHostStr = socket.gethostbyname(hostname)
 if ipHostStr.startswith('9.4.'):
     # Use the IP address of 'tun0' (.e.g 10.2.0.18)
     ipHostStr = ni.ifaddresses('tun0')[2][0]['addr']
 ipHost = int(ipaddress.IPv4Address(ipHostStr))
+if args.verbose:
+    print("[INFO] Hostname = %s | IP is %s (0x%8.8X) \n" % (hostname, ipHostStr, ipHost))
 
 try:
     udpServerSock.bind((ipHostStr, dpHost))
-    print('\nBinding the socket address of the HOST to {%s, %d}' % (ipHostStr, dpHost))
+    print('[INFO] Binding the socket address of the HOST to {%s, %d}' % (ipHostStr, dpHost))
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
@@ -269,11 +268,11 @@ except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 else:
-    print('Successful connection with socket address of FPGA at {%s, %d}' % fpgaServerAssociation)
+    print('[INFO] Successful connection with socket address of FPGA at {%s, %d}' % fpgaServerAssociation)
 
 # STEP-9b: Enable the host server to to accept connections from remote FPGA client.
 # -----------------------------------------------------------------------------
-print('Host server ready to start listening on socket address {%s, %d}' % fpgaClientAssociation)
+print('[INFO] Host server ready to start listening on socket address {%s, %d}' % fpgaClientAssociation)
 
 #  STEP-10: Setup the test
 # -------------------------------
@@ -295,8 +294,6 @@ print("\t\t size = %d" % size)
 
 count = args.loop_count
 print("\t\t loop = %d" % count)
-
-verbose = args.verbose
 
 #  STEP-11: Run the test
 # -------------------------------
