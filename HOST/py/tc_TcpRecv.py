@@ -31,12 +31,13 @@ import datetime
 import errno
 import socket
 import struct
+import netifaces as ni
 
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
 
 
-def tcp_rx_loop(clientSock, serverSock, size, tcp_dp, count, verbose=False):
+def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=False):
     """TCP Rx Single-Thread Ramp.
      Requests the FPGA to open a new active port and expects to receive 'count' segments
       of 'size' bytes. Each segment is made of the following repetitive pattern
@@ -44,6 +45,7 @@ def tcp_rx_loop(clientSock, serverSock, size, tcp_dp, count, verbose=False):
      :param clientSock The socket to send to.
      :param serverSock The socket to receive from.
      :param size       The size of the expected segment.
+     :param ip_da      The destination address of the host.
      :param tcp_dp     The active destination port number that the FPGA is requested to open.
      :param count      The number of segments to receive.
      :param verbose    Enables verbosity.
@@ -58,14 +60,6 @@ def tcp_rx_loop(clientSock, serverSock, size, tcp_dp, count, verbose=False):
     # --------------------------------------
     serverSock.setblocking(False)
     serverSock.settimeout(5)
-
-    hostname = socket.gethostname()
-    print(f"Hostname = {hostname}")
-    ip_da_str = socket.gethostbyname(hostname)
-    ip_da_str = '10.2.0.18'
-    print(f"IP_DA_STR = {ip_da_str}")
-    ip_da = int(ipaddress.IPv4Address(ip_da_str))
-    print("IP_DA = 0x%8.8X " % ip_da)
 
     # Request the test to generate a segment of length='size' and to send it to socket={ip_da, tcp_dp}
     # by sending 'ip_da', 'tcp_dp' and 'size' to the FPGA.
@@ -109,14 +103,14 @@ def tcp_rx_loop(clientSock, serverSock, size, tcp_dp, count, verbose=False):
                 else:
                     currRxByteCnt += len(data)
                     if verbose:
-                        print("Loop=%d | RxBytes=%d | RxData=%s\n" % (loop, len(data), data))
+                        print("[INFO] Loop=%d | RxBytes=%d | RxData=%s\n" % (loop, len(data), data))
                         # [FIXME-TODO: assess the stream of received bytes]
                 finally:
                     pass
             totalReceivedBytes += currRxByteCnt;
             loop += 1
     endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime;
+    elapseTime = endTime - startTime
 
     if totalReceivedBytes < 1000000:
         print("[INFO] Received a total of %d bytes." % totalReceivedBytes)
@@ -171,7 +165,7 @@ parser.add_argument('-v',  '--verbose',     action="store_true",
 args = parser.parse_args()
 
 if args.user_name == '' or args.user_passwd == '':
-    print("\nWARNING: You must provide a ZYC2 user name and the corresponding password for this script to execute.\n")
+    print("\n[WARNING] You must provide a ZYC2 user name and the corresponding password for this script to execute.\n")
     exit(1)
 
 #  STEP-2a: Retrieve the IP address of the FPGA module (this will be the SERVER)
@@ -208,8 +202,8 @@ fpgaServerAssociation = (str(ipFpga), portFpgaServer)
 
 #  STEP-6b: Set the socket association for receiving from the FPGA client
 # -----------------------------------------------------------------------------
-portFpgaClient = 2718  # Default TCP cF-Themisto ports are in range 2718-2750
-fpgaClientAssociation = (str(ipFpga), portFpgaClient)
+dpHost = 2718  # Default TCP cF-Themisto ports are in range 2718-2750
+fpgaClientAssociation = (str(ipFpga), dpHost)
 
 #  STEP-7a: Create a TCP/IP client socket for sending to FPGA server
 # -----------------------------------------------------------------------------
@@ -234,7 +228,7 @@ except Exception as exc:
 if 0:
     try:
         tcpClientSock.bind(hostClientAssociation)
-        print('Binding the socket address of the HOST to {%s, %d}' % hostClientAssociation)
+        print('[INFO] Binding the socket address of the HOST to {%s, %d}' % hostClientAssociation)
     except Exception as exc:
         print("[EXCEPTION] %s" % exc)
         exit(1)
@@ -242,9 +236,18 @@ if 0:
 # STEP-8b: Bind the server socket before connect (compulsory).
 #  Issued here to associate the server socket with a specific remote IP address and TCP port.
 # -----------------------------------------------------------------------------
+hostname  = socket.gethostname()
+ipHostStr = socket.gethostbyname(hostname)
+if ipHostStr.startswith('9.4.'):
+    # Use the IP address of 'tun0' (.e.g 10.2.0.18)
+    ipHostStr = ni.ifaddresses('tun0')[2][0]['addr']
+ipHost = int(ipaddress.IPv4Address(ipHostStr))
+if args.verbose:
+    print("[INFO] Hostname = %s | IP is %s (0x%8.8X) \n" % (hostname, ipHostStr, ipHost))
+
 try:
-    tcpServerSock.bind((socket.gethostname(), portFpgaClient))
-    print('Binding the socket address of the HOST to {%s, %d}' % (socket.gethostbyname(socket.gethostname()), portFpgaClient))
+    tcpServerSock.bind((ipHostStr, dpHost))
+    print('[INFO] Binding the socket address of the HOST to {%s, %d}' % (ipHostStr, dpHost))
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
@@ -253,17 +256,17 @@ except Exception as exc:
 # -----------------------------------------------------------------------------
 try:
     tcpClientSock.connect(fpgaServerAssociation)
-    print('Connecting client socket to FPGA server {%s, %d}' % fpgaServerAssociation)
+    print('[INFO] Connecting client socket to FPGA server {%s, %d}' % fpgaServerAssociation)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 else:
-    print('Successful client connection with socket address of FPGA server at {%s, %d}' % fpgaServerAssociation)
+    print('[INFO] Successful client connection with socket address of FPGA server at {%s, %d}' % fpgaServerAssociation)
 
 # STEP-9b: Enable the host server to to accept connections from remote FPGA client.
 # -----------------------------------------------------------------------------
 tcpServerSock.listen(5)
-print('Host server ready to start listening on socket address {%s, %d} \n' % fpgaClientAssociation)
+print('[INFO] Host server ready to start listening on socket address {%s, %d} \n' % fpgaClientAssociation)
 tcpServerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 #  STEP-10: Setup the test
@@ -292,7 +295,7 @@ verbose = args.verbose
 #  STEP-11: Run the test
 # -------------------------------
 print("[INFO] This run is executed in single-threading mode.\n")
-tcp_rx_loop(tcpClientSock, tcpServerSock, size, portFpgaClient, count, args.verbose)
+tcp_rx_loop(tcpClientSock, tcpServerSock, size, ipHost, dpHost, count, args.verbose)
 
 #  STEP-14: Close sockets
 # -----------------------
