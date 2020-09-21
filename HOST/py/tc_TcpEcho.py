@@ -350,6 +350,7 @@ try:
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
+tcpSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # STEP-8b: Bind before connect (optional).
 #  This trick enables us to ask the kernel to select a specific source IP and
