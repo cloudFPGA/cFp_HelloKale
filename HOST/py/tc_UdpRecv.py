@@ -66,7 +66,8 @@ def udp_rx_loop(clientSock, serverSock, size, ip_da, udp_dp, count, verbose=Fals
     # to the FPGA UDP_DP=8801 while turning the 'ip_da' into an unsigned int binary
     # and 'tcp_dp' and 'size' into an unsigned short binary data.
     reqMsgAsBytes = struct.pack(">IHH", ip_da, udp_dp, size)
-    # [DEBUG] print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
+    if verbose:
+        print("\n\n[DEBUG] reqMsgAsBytes = %s" % reqMsgAsBytes)
 
     startTime = datetime.datetime.now()
     while loop < count:

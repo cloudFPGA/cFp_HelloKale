@@ -65,7 +65,8 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
     # by sending 'ip_da', 'tcp_dp' and 'size' to the FPGA.
     #  Turn the 'ip_da' into an unsigned int binary and 'tcp_dp' and 'size' into an unsigned short binary data.
     reqMsgAsBytes = struct.pack(">IHH", ip_da, tcp_dp, size)
-    # [DEBUG] print("\n\n>>> reqMsgAsBytes = %s" % reqMsgAsBytes)
+    if verbose:
+        print("[DEBUG] reqMsgAsBytes = %s" % reqMsgAsBytes)
 
     startTime = datetime.datetime.now()
     while loop < count:
@@ -93,8 +94,9 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
                     # continue as normal. If we got different error code - something happened
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                         print('[ERROR] Socket reading error: {}'.format(str(e)))
-                        exit(1)
+                        #OBSOLETE_20200922 exit(1)
                     # We just did not receive anything
+                    print("\t[INFO] So far we received %d bytes out of %d." % (currRxByteCnt, size))
                     continue
                 except socket.error as exc:
                     # Any other exception
@@ -128,6 +130,8 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
     else:
         bandwidth = bandwidth / 1000
         print("#### TCP Rx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+    if (totalReceivedBytes != (size * count)):
+        print("####  [WARNING] TCP data loss = %.1f%%" % (1 - (totalReceivedBytes) / (size * count)))
     print("#####################################################")
     print()
 
@@ -213,10 +217,10 @@ except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 
-#  STEP-7b: Create a TCP/IP server socket for listening to FPGA client
+#  STEP-7b: Create a TCP/IP socket for listening to FPGA client(s)
 # -----------------------------------------------------------------------------
 try:
-    tcpServerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcpListenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
@@ -233,8 +237,8 @@ if 0:
         print("[EXCEPTION] %s" % exc)
         exit(1)
 
-# STEP-8b: Bind the server socket before connect (compulsory).
-#  Issued here to associate the server socket with a specific remote IP address and TCP port.
+# STEP-8b: Bind the listen socket before connect (compulsory).
+#  Issued here to associate the listen socket with a specific remote IP address and TCP port.
 # -----------------------------------------------------------------------------
 hostname  = socket.gethostname()
 ipHostStr = socket.gethostbyname(hostname)
@@ -243,11 +247,11 @@ if ipHostStr.startswith('9.4.'):
     ipHostStr = ni.ifaddresses('tun0')[2][0]['addr']
 ipHost = int(ipaddress.IPv4Address(ipHostStr))
 if args.verbose:
-    print("[INFO] Hostname = %s | IP is %s (0x%8.8X) \n" % (hostname, ipHostStr, ipHost))
+    print("[INFO] Hostname = %s | IP is %s (0x%8.8X)" % (hostname, ipHostStr, ipHost))
 
 try:
-    tcpServerSock.bind((ipHostStr, dpHost))
-    print('[INFO] Binding the socket address of the HOST to {%s, %d}' % (ipHostStr, dpHost))
+    tcpListenSock.bind((ipHostStr, dpHost))
+    print('[INFO] Binding the listen socket address of the HOST to {%s, %d}' % (ipHostStr, dpHost))
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
@@ -263,11 +267,36 @@ except Exception as exc:
 else:
     print('[INFO] Successful client connection with socket address of FPGA server at {%s, %d}' % fpgaServerAssociation)
 
-# STEP-9b: Enable the host server to to accept connections from remote FPGA client.
+# STEP-9b: Enable the host server to accept connections from remote FPGA client(s).
 # -----------------------------------------------------------------------------
-tcpServerSock.listen(5)
-print('[INFO] Host server ready to start listening on socket address {%s, %d} \n' % fpgaClientAssociation)
-tcpServerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+tcpListenSock.listen(5)
+print('[INFO] Host server ready to start listening on port %d' % dpHost)
+
+# STEP-9c: Request the remote FPGA to open a new connection. This will trigger the 3-way
+#   handshake connection with the listening socket and will provide us with a new TCP
+#   socket for the server to communicate with the FPGA.
+# -----------------------------------------------------------------------------
+reqMsgAsBytes = struct.pack(">IHH", ipHost, dpHost, 0)
+if args.verbose:
+    print("[DEBUG] reqMsgAsBytes = %s" % reqMsgAsBytes)
+try:
+    tcpClientSock.sendall(reqMsgAsBytes)
+except socket.error as exception:
+    # Any exception
+    print("[EXCEPTION] Socket error while transmitting :: %s" % exception)
+    exit(1)
+finally:
+    pass
+
+# STEP-9d: Block and wait for incoming connection
+# -----------------------------------------------------------------------------
+if 0:
+    tcpServerSock = tcpListenSock.accept()
+    print('[INFO] Host server is now connected with host socket address {%s, %d}' % tcpServerSock)
+    tcpServerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+else:
+    conn, addr = tcpListenSock.accept()
+    print('[INFO] Host server is now connected with host socket address {%s, %d}' % (conn, addr))
 
 #  STEP-10: Setup the test
 # -------------------------------
@@ -301,5 +330,4 @@ tcp_rx_loop(tcpClientSock, tcpServerSock, size, ipHost, dpHost, count, args.verb
 # -----------------------
 tcpClientSock.close()
 tcpServerSock.close()
-
-
+tcpListenSock.close()
