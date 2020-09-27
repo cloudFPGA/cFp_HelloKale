@@ -95,10 +95,9 @@ def udp_rx_loop(clientSock, serverSock, size, ip_da, udp_dp, count, verbose=Fals
                     # continue as normal. If we got different error code - something happened
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                         print("[ERROR] Socket reading error: {}".format(str(e)))
-                        # OBSOLETE_202020921 exit(1)
                     # We just did not receive anything
                     print("\t[INFO] So far we received %d bytes out of %d." % (currRxByteCnt, size))
-                    continue
+                    break
                 except socket.error as exc:
                     # Any other exception
                     print("[EXCEPTION] Socket error while receiving :: %s" % exc)

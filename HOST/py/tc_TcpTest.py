@@ -274,6 +274,8 @@ else:
 #   handshake connection with the listening socket and will provide us with a new TCP
 #   socket for the server to communicate with the FPGA.
 # -----------------------------------------------------------------------------
+ipHostStr = '10.12.0.1'
+ipHost = int(ipaddress.IPv4Address(ipHostStr))
 reqMsgAsBytes = struct.pack(">IHH", ipHost, dpHost, 0)
 print("\n\n[DEBUG] reqMsgAsBytes = %s" % reqMsgAsBytes)
 try:
