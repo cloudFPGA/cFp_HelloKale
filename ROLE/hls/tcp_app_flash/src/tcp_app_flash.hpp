@@ -45,8 +45,8 @@
 
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimTcpSegment.hpp"
+//OBSOLETE_20200928 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
+//OBSOLETE_20200928 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimTcpSegment.hpp"
 
 //---------------------------------------------------------
 /// -- SHELL/MMIO/EchoCtrl - Configuration Register

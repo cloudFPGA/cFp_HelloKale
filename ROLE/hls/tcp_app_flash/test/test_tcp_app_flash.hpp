@@ -36,6 +36,7 @@
 #include <hls_stream.h>
 
 #include "../src/tcp_app_flash.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 
 //------------------------------------------------------
 //-- TESTBENCH DEFINES
