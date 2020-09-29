@@ -268,7 +268,7 @@ print("\t\t seed = %d" % seed)
 
 size = args.size
 if size == -1:
-    size = random.randint(1, TCP_MSS)
+    size = random.randint(1, TCP_MSS)  # [FIXME - Chenge the Max segment size]
 elif size > TCP_MSS:
     print('\nERROR: ')
     print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS (.i.e %d bytes).\n" % TCP_MSS)

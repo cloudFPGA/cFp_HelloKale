@@ -239,7 +239,7 @@ def tcp_txrx_ramp(sock, message, count, verbose=False):
             i += 1
         loop += 1
     endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime;
+    elapseTime = endTime - startTime
     bandwidth  = (rxByteCnt * 8 * count * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
     megaBytes  = (rxByteCnt * 1.0) / (1024 * 1024 * 1.0)
     print("[INFO] Transferred a total of %.1f MB." % megaBytes)
