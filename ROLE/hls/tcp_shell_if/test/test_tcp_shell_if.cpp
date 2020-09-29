@@ -193,7 +193,8 @@ void pTOE(
     static enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_REP}  toe_lsnState=LSN_WAIT_REQ;
     static enum OpnStates { OPN_WAIT_REQ,   OPN_SEND_REP}  toe_opnState=OPN_WAIT_REQ;
     static enum RxpStates { RXP_SEND_NOTIF, RXP_WAIT_DREQ,
-                            RXP_SEND_META,  RXP_SEND_DATA, RXP_SEND_8801,
+                            RXP_SEND_META,  RXP_SEND_DATA,
+                            RXP_SEND_8801,
                             RXP_NEXT_SESS,  RXP_DONE}      toe_rxpState=RXP_SEND_NOTIF;
     static enum TxpStates { TXP_WAIT_META,  TXP_RECV_DATA} toe_txpState=TXP_WAIT_META;
 
@@ -295,7 +296,7 @@ void pTOE(
     static int         toe_sessCnt=0;
     static int         toe_segCnt=0;
     static int         toe_waitEndOfTxTest=0;
-    const  int         nrSegToSend=4;
+    const  int         nrSegToSend=5;
     const  int         nrSessToSend=2;
 
     if (toe_rxpIsReady) {
@@ -307,13 +308,19 @@ void pTOE(
                 break;
             }
             switch (toe_segCnt) {
-            case 1:
+            case 1: //-- Set TSIF in receive mode and execute test
                 toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
                 toe_rxByteCnt   = echoSegLen;
                 gMaxSimCycles += (echoSegLen / 8);
                 toe_waitEndOfTxTest = 0;
                break;
-            case (nrSegToSend-1):
+            case 2: //-- Request TSIF to open an active port (with byteCnt==0)
+                toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
+                toe_txByteCnt = 0;
+                gMaxSimCycles += (testSegLen / 8);
+                toe_waitEndOfTxTest = (testSegLen / 8) + 1;
+                break;
+            case 3: //-- Set TSIF in transmit mode and execute test
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
                 toe_txByteCnt = testSegLen;
                 gMaxSimCycles += (testSegLen / 8);
@@ -394,12 +401,15 @@ void pTOE(
             break;
         case RXP_SEND_8801: // FORWARD TX SOCKET ADDRESS AND TX DATA LENGTH REQUEST TO [TSIF]
             if (!soTSIF_Data.full()) {
-                printInfo(myRxpName, "Requesting Tx test mode to generate a segment of length=%d and to send it to socket: \n",
-                          toe_txByteCnt.to_int());
-                printSockAddr(myRxpName, testSock);
-                //OBSOLETE_20200908 appData.setLE_TData(byteSwap16(testPort),      15,  0);
-                //OBSOLETE_20200908 aappData.setLE_TData(byteSwap16(toe_txByteCnt), 31, 16);
-                //OBSOLETE_20200908 aappData.setLE_TKeep(0x0F);
+                if (toe_txByteCnt == 0) {
+                    printInfo(myRxpName, "Requesting TSIF to connect to socket: \n");
+                    printSockAddr(myRxpName, testSock);
+                }
+                else {
+                    printInfo(myRxpName, "Requesting TSIF to generate a segment of length=%d and to send it to socket: \n",
+                              toe_txByteCnt.to_int());
+                    printSockAddr(myRxpName, testSock);
+                }
                 appData.setLE_TData(byteSwap32(testSock.addr), 31,  0);
                 appData.setLE_TData(byteSwap16(testSock.port), 47, 32);
                 appData.setLE_TData(byteSwap16(toe_txByteCnt), 63, 48);

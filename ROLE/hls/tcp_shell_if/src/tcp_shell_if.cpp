@@ -92,10 +92,15 @@ using namespace std;
  * @details
  *  This process connects the FPGA in client mode to a remote server which
  *   socket address is specified by 'siRDp_OpnSockReq'.
- *  Alternatively, the process is also used to trigger the TxPath (TXp) to xmit
- *   a segment to the newly opened connection. The number of bytes to transmit
- *   is then specified by the [RDp] via the 'siRDp_TxCountReq' input.
- *   This mode is used to test the TOE in transmit mode.
+ *  Alternatively, the process is also used to trigger the TxPath (TXp) to
+ *   transmit a segment to the newly opened connection.
+ *  The switch between opening a connection and sending traffic a remote host is
+ *   defined by the value of the 'siRDp_TxCountReq' input:
+ *     1) If 'siRDp_TxCountReq' == 0, the process opens a new connection with
+ *        the remote host specified by 'siRDp_OpnSockReq'.
+ *     2) If 'siRDp_TxCountReq' != 0, the process triggers the TxPath (TXp) to
+ *        transmit a segment to the *LAST* opened connection.
+ *        The number of bytes to transmit is specified by 'siRDp_TxCountReq'.
  *******************************************************************************/
 void pConnect(
         CmdBit                *piSHL_Enable,
@@ -113,9 +118,12 @@ void pConnect(
     const char *myName  = concat3(THIS_NAME, "/", "COn");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates{ OPN_IDLE, OPN_REQ, OPN_REP, OPN_8801 }
-                               con_fsmState=OPN_IDLE;
+    static enum FsmStates{ CON_IDLE, CON_RD_RDp, CON_WR_WRp, \
+                                     CON_OPN_REQ, CON_OPN_REP }
+                               con_fsmState=CON_IDLE;
     #pragma HLS reset variable=con_fsmState
+    static SockAddr            con_testSockAddr;
+    #pragma HLS reset variable=con_testSockAddr
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static TcpAppOpnRep  con_opnRep;
@@ -123,7 +131,7 @@ void pConnect(
     static ap_uint< 12>  con_watchDogTimer;
 
     switch (con_fsmState) {
-    case OPN_IDLE:
+    case CON_IDLE:
         if (*piSHL_Enable != 1) {
             if (!siSHL_OpnRep.empty()) {
                 // Drain any potential status data
@@ -133,28 +141,47 @@ void pConnect(
             }
         }
         else {
-            con_fsmState = OPN_REQ;
+            con_fsmState = CON_RD_RDp;
         }
         break;
-    case OPN_REQ:
-        if (!siRDp_OpnSockReq.empty() and !siRDp_TxCountReq.empty() and
-            !soSHL_OpnReq.full()) {
+    case CON_RD_RDp:
+        if (!siRDp_OpnSockReq.empty() and !siRDp_TxCountReq.empty()) {
             siRDp_TxCountReq.read(con_txBytesReq);
-            SockAddr remoteSockAddr = siRDp_OpnSockReq.read();
-            soSHL_OpnReq.write(remoteSockAddr);
-            if (DEBUG_LEVEL & TRACE_CON) {
-                printInfo(myName, "Client is requesting to connect to remote socket:\n");
-                printSockAddr(myName, remoteSockAddr);
+            SockAddr currSockAddr = siRDp_OpnSockReq.read();
+            if (con_txBytesReq == 0) {
+                con_fsmState = CON_OPN_REQ;
+                con_testSockAddr = currSockAddr;
+                if (DEBUG_LEVEL & TRACE_CON) {
+                    printInfo(myName, "Client is requesting to connect to new remote socket:\n");
+                              printSockAddr(myName, con_testSockAddr);
+                }
             }
+            else if (currSockAddr == con_testSockAddr) {
+                con_fsmState = CON_WR_WRp;
+                if (DEBUG_LEVEL & TRACE_CON) {
+                    printInfo(myName, "Client is requesting the FPGA to send %d bytes to the last opened socket:\n", con_txBytesReq.to_uint());
+                              printSockAddr(myName, currSockAddr);
+                }
+            }
+            else {
+                con_fsmState = CON_RD_RDp;
+                printFatal(myName, "Client is requesting the FPGA to send traffic to a none opened connection:\n");
+                printSockAddr(myName, currSockAddr);
+            }
+        }
+        break;
+    case CON_OPN_REQ:
+        if (!soSHL_OpnReq.full()) {
+            soSHL_OpnReq.write(con_testSockAddr);
             #ifndef __SYNTHESIS__
                 con_watchDogTimer = 250;
             #else
                 con_watchDogTimer = 10000;
             #endif
-            con_fsmState = OPN_REP;
+            con_fsmState = CON_OPN_REP;
         }
         break;
-    case OPN_REP:
+    case CON_OPN_REP:
         con_watchDogTimer--;
         if (!siSHL_OpnRep.empty()) {
             // Read the reply stream
@@ -163,13 +190,12 @@ void pConnect(
                 if (DEBUG_LEVEL & TRACE_CON) {
                     printInfo(myName, "Client successfully established connection.\n");
                 }
-                con_fsmState = OPN_8801;
             }
             else {
                  printError(myName, "Client failed to establish connection with remote socket (TCP state is '%s'):\n",
                             getTcpStateName(con_opnRep.tcpState));
-                 con_fsmState = OPN_IDLE;
             }
+            con_fsmState = CON_IDLE;
         }
         else {
             if (con_watchDogTimer == 0) {
@@ -184,17 +210,12 @@ void pConnect(
             }
         }
         break;
-    case OPN_8801:
-        if (con_txBytesReq != 0) {
-            if(!soWRp_TxBytesReq.full() and !soWRp_TxSessId.full()) {
-                //-- Request [WRp] to start the xmit test
-                soWRp_TxBytesReq.write(con_txBytesReq);
-                soWRp_TxSessId.write(con_opnRep.sessId);
-                con_fsmState = OPN_IDLE;
-            }
-        }
-        else {
-            con_fsmState = OPN_IDLE;
+    case CON_WR_WRp:
+        if(!soWRp_TxBytesReq.full() and !soWRp_TxSessId.full()) {
+            //-- Request [WRp] to start the xmit test
+            soWRp_TxBytesReq.write(con_txBytesReq);
+            soWRp_TxSessId.write(con_opnRep.sessId);
+            con_fsmState = CON_IDLE;
         }
         break;
     }
