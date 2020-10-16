@@ -87,6 +87,7 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
             # RECEIVE message length bytes from FPGA
             # ---------------------------------------
             currRxByteCnt = 0
+            nonBlockingTrials = 0
             while currRxByteCnt < size:
                 try:
                     data = serverSock.recv(MTU)
@@ -96,21 +97,29 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
                     # We are going to check for both - if one of them - that's expected, means no incoming data,
                     # continue as normal. If we got different error code - something happened
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                        print('[ERROR] Socket reading error: {}'.format(str(e)))
+                        print('\n[ERROR] Socket reading error: {}'.format(str(e)))
                         exit(1)
                     # We just did not receive anything
-                    if verbose:
-                        print("[DEBUG] So far we received %d bytes out of %d." % (currRxByteCnt, size))
+                    if nonBlockingTrials > 100000:
+                        print('\n[ERROR] Too many socket read attempts ({:d})'.format(nonBlockingTrials))
+                        break
+                    else:
+                        nonBlockingTrials += 1
+                    if verbose and (nonBlockingTrials % 100 == 0):
+                        # print("[DEBUG] So far we received %d bytes out of %d." % (currRxByteCnt, size))
+                        print(".", end="")
                     continue
                 except socket.error as exc:
                     # Any other exception
-                    print("[EXCEPTION] Socket error while receiving :: %s" % exc)
+                    print("\n[EXCEPTION] Socket error while receiving :: %s" % exc)
                     exit(1)
                 else:
                     currRxByteCnt += len(data)
                     if verbose:
-                        print("[INFO] Loop=%d | RxBytes=%d | RxData=%s\n" % (loop, len(data), data))
+                        print("\n[INFO] Loop=%d | RxBytes=%d | " % (loop, len(data)))
+                        # print("RxData=%s\n" % data)
                         # [FIXME-TODO: assess the stream of received bytes]
+                    nonBlockingTrials = 0
                 finally:
                     pass
             totalReceivedBytes += currRxByteCnt
@@ -135,7 +144,8 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
         bandwidth = bandwidth / 1000
         print("#### TCP Rx DONE with bandwidth = %2.1f Gb/s" % bandwidth)
     if (totalReceivedBytes != (size * count)):
-        print("####  [WARNING] TCP data loss = %.1f%%" % (1 - (totalReceivedBytes) / (size * count)))
+        print("####  [WARNING] TCP data loss = %.1f%%" % (100 - (totalReceivedBytes) / (size * count)))
+        # [FIXME] Should return an error code
     print("#####################################################")
     print()
 
@@ -241,7 +251,7 @@ def tcp_rx_ramp(clientSock, serverSock, ip_da, tcp_dp, verbose=False, start=1, e
         bandwidth = bandwidth / 1000
         print("#### TCP Rx DONE with bandwidth = %2.1f Gb/s" % bandwidth)
     if totalReceivedBytes != (end-start+1)*(start+end)/2:
-        print("####  [WARNING] TCP data loss = %.1f%%" % (1 - (totalReceivedBytes) / (size * count)))
+        print("####  [WARNING] TCP data loss = %.1f%%" % (100 - (totalReceivedBytes) / (size * count)))
     print("#####################################################")
     print()
 
@@ -321,6 +331,7 @@ try:
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
+tcpClientSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # STEP-6c: Connect the host client to the remote FPGA server.
 # -----------------------------------------------------------------------------

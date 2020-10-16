@@ -97,6 +97,7 @@ def udp_rx_loop(clientSock, serverSock, size, ip_da, udp_dp, count, verbose=Fals
                         print("[ERROR] Socket reading error: {}".format(str(e)))
                     # We just did not receive anything
                     print("\t[INFO] So far we received %d bytes out of %d." % (currRxByteCnt, size))
+                    count = loop
                     break
                 except socket.error as exc:
                     # Any other exception
