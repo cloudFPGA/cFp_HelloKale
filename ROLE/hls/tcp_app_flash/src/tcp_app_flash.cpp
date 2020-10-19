@@ -178,13 +178,19 @@ void pTcpTxPath(
         case ECHO_PATH_THRU:
             // Read session Id from pEchoPassThrough and forward to [SHL]
             if ( !siEPt_Meta.empty() and !soSHL_Meta.full() and
-                 !siEPt_Data.empty() ) {
+                 !siEPt_Data.empty()) {
                 TcpAppMeta appMeta;
                 siEPt_Meta.read(appMeta);
-                soSHL_Meta.write(appMeta);
                 siEPt_Data.read(appData);
+
+                soSHL_Meta.write(appMeta);
+                if (appData.getTLast()) {
+                    txp_wasLastChunk = true;
+                }
+                else {
+                    txp_wasLastChunk = false;
+                }
                 txp_fsmState = TXP_CONTINUATION_OF_SEGMENT;
-                txp_wasLastChunk = false;
             }
             break;
         case ECHO_STORE_FWD:
@@ -318,6 +324,7 @@ void pTcpRxPath(
 
     //-- LOCAL VARIABLES -------------------------------------------------------
     TcpAppData        appData;
+    TcpAppMeta        appMeta;
 
     switch (rxp_fsmState ) {
     case RXP_START_OF_SEGMENT:
@@ -325,10 +332,18 @@ void pTcpRxPath(
         case ECHO_PATH_THRU:
             //-- Read incoming session Id and forward to pEchoPathThrough
             if ( !siTSIF_Meta.empty() and !soEPt_Meta.full() and
-                 !siTSIF_Data.empty() ) {
-                soEPt_Meta.write(siTSIF_Meta.read());
+                 !siTSIF_Data.empty() and !soEPt_Data.full()) {
+                siTSIF_Meta.read(appMeta);
                 siTSIF_Data.read(appData);
-                rxp_fsmState = RXP_CONTINUATION_OF_SEGMENT;
+
+                soEPt_Meta.write(appMeta);
+                if (appData.getTLast()) {
+                    //-- This is a short segment < 9 bytes
+                    soEPt_Data.write(appData);
+                }
+                else {
+                    rxp_fsmState = RXP_CONTINUATION_OF_SEGMENT;
+                }
             }
             break;
           case ECHO_STORE_FWD:

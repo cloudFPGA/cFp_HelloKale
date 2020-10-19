@@ -100,7 +100,6 @@ bool pTSIF_Recv(
     TcpAppMeta  appMeta;
     TcpSessId   tcpSessId;
 
-
     // Read and drain the siMetaStream
     if (!siTAF_Meta.empty()) {
         siTAF_Meta.read(appMeta);
@@ -135,61 +134,101 @@ bool pTSIF_Recv(
  * @param[out] soTAF_Data    The data stream to write.
  * @param[out] soTAF_Meta    The meta stream to write.
  * @param[in]  inpFileStream A ref to the input file stream.
+ * @param[in]  outGoldStream A ref to the a golden raw output file stream.
  * @param[out] nrSegments    A ref to the counter of generated segments.
  *
- * @returns OK/KO.
+ * @returns OK or KO upon error or end-of-file.
  *******************************************************************************/
 bool pTSIF_Send(
     int                &nrError,
     stream<TcpAppData> &soTAF_Data,
     stream<TcpAppMeta> &soTAF_Meta,
     ifstream           &inpFileStream,
+    ofstream           &outGoldStream,
     int                &nrSegments)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TSIF_Send");
 
     string      strLine;
+    vector<string>      stringVector;
     TcpAppData  currChunk;
     TcpAppMeta  tcpSessId = DEFAULT_SESS_ID;
 
     static bool startOfTcpSeg = true;
 
     //-- FEED DATA AND META STREAMS
-    if (!inpFileStream.eof()) {
+    while (!inpFileStream.eof()) {
         getline(inpFileStream, strLine);
+        stringVector = myTokenizer(strLine, ' ');
+
         if (!strLine.empty()) {
-             bool rc = readAxisRawFromLine(currChunk, strLine);
-            // Write to soMetaStream
-            if (startOfTcpSeg) {
-                if (!soTAF_Meta.full()) {
-                    soTAF_Meta.write(TcpAppMeta(tcpSessId));
-                    startOfTcpSeg = false;
-                    nrSegments += 1;
+            if (stringVector[0].length() == 1) {
+                //------------------------------------------------------
+                //-- Process the command and comment lines
+                //--  FYI: A command or a comment start with a single
+                //--       character followed by a space character.
+                //------------------------------------------------------
+                if (stringVector[0] == "#") {
+                    // This is a comment line.
+                    if (DEBUG_LEVEL & TRACE_TSIF) {
+                        for (int t=0; t<stringVector.size(); t++) {
+                            printf("%s ", stringVector[t].c_str());
+                        }
+                    printf("\n");
+                    }
+                }
+                else if (stringVector[0] == ">") {
+                    // The test vector is issuing a command
+                    //  FYI, don't forget to return at the end of command execution.
+                    if (stringVector[1] == "IDLE") {
+                        // COMMAND = Request to idle for <NUM> cycles.
+                        //TODO iprx_idleCycReq = atoi(stringVector[2].c_str());
+                        //TODO iprx_idlingReq = true;
+                        if (DEBUG_LEVEL & TRACE_TSIF) {
+                            //TODO printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
+                            printInfo(myName, "[TODO] Request to idle for ... \n");
+                        }
+                        //TODO increaseSimTime(iprx_idleCycReq);
+                        //TODO return;
+                    }
+                }
+            }
+            else {
+                bool rc = readAxisRawFromLine(currChunk, strLine);
+                // Write to soMetaStream
+                if (startOfTcpSeg) {
+                    if (!soTAF_Meta.full()) {
+                        soTAF_Meta.write(TcpAppMeta(tcpSessId));
+                        startOfTcpSeg = false;
+                        nrSegments += 1;
+                    }
+                    else {
+                        printError(myName, "Cannot write META to [TAF] because stream is full.\n");
+                        nrError++;
+                        inpFileStream.close();
+                        return KO;
+                    }
+                }
+                // Write to soDataStream
+                if (!soTAF_Data.full()) {
+                    soTAF_Data.write(currChunk);
+                    bool rc = writeAxisRawToFile(currChunk, outGoldStream);
+                    if (DEBUG_LEVEL & TRACE_TAF) { printAxisRaw(myName, "soTAF_Data =", currChunk); }
+                    if (currChunk.getTLast()) {
+                        startOfTcpSeg = true;
+                    }
                 }
                 else {
-                    printError(myName, "Cannot write META to [TAF] because stream is full.\n");
+                    printError(myName, "Cannot write DATA to [TAF] because stream is full.\n");
                     nrError++;
                     inpFileStream.close();
                     return KO;
                 }
-            }
-            // Write to soDataStream
-            if (!soTAF_Data.full()) {
-                soTAF_Data.write(currChunk);
-                if (DEBUG_LEVEL & TRACE_TAF) { printAxisRaw(myName, "soTAF_Data =", currChunk); }
-                if (currChunk.getTLast()) {
-                    startOfTcpSeg = true;
-                }
-            }
-            else {
-                printError(myName, "Cannot write DATA to [TAF] because stream is full.\n");
-                nrError++;
-                inpFileStream.close();
-                return KO;
+                return OK;
             }
         }
     }
-    return OK;
+    return KO;
 }
 
 /*******************************************************************************
@@ -218,13 +257,14 @@ void pTSIF(
 
     //-- STATIC VARIABLES ------------------------------------------------------
     static bool     tsif_doneWithPassThroughTest1 = false;
-    static bool     tsif_doneWithPostSegmentTest2 = false;
+    //OBSOLETE_20201019 static bool     tsif_doneWithPostSegmentTest2 = false;
     static int      tsif_txSegCnt = 0;
     static int      tsif_rxSegCnt = 0;
-    static int      tsif_graceTime;
+    static int      tsif_graceTime1 = 25; // Give TEST #1 some grace time to finish
 
     static ifstream ifSHL_Data;
     static ofstream ofRawFile1;
+    static ofstream ofRawGold1;
     static ofstream ofTcpFile1;
     static ofstream ofRawFile2;
     static ofstream ofTcpFile2;
@@ -232,17 +272,22 @@ void pTSIF(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     bool   rcSend;
     bool   rcRecv;
-    string ifSHL_DataName = "../../../../test/testVectors/siSHL_Data.dat";
-    string ofRawFile1Name = "../../../../test/simOutFiles/soTAF_Shl_Echo_Path_Thru_Data.dat";
+    string ifSHL_DataName = "../../../../test/testVectors/siTSIF_Data.dat";
+    string ofRawFileName1 = "../../../../test/simOutFiles/soTAF_Shl_Echo_Path_Thru_Data.dat";
+    string ofRawGoldName1 = "../../../../test/simOutFiles/soTAF_Shl_Echo_Path_Thru_Data_Gold.dat";
     string ofTcpFileName1 = "../../../../test/simOutFiles/soTAF_Shl_Echo_Path_Thru_Data.tcp";
     string ofRawFileName2 = "../../../../test/simOutFiles/soTAF_Shl_Echo_Off_Data.dat";
     string ofTcpFileName2 = "../../../../test/simOutFiles/soTAF_Shl_Echo_Off_Data.tcp";
 
     //------------------------------------------------------
-    //-- STEP-1 : GIVE THE TEST SOME STARTUP TIME
+    //-- STEP-1 : RETURN IF DONE or STARTUP TIME
     //------------------------------------------------------
-    if (gSimCycCnt < STARTUP_DELAY)
+    if (tsif_doneWithPassThroughTest1) {
         return;
+    }
+    if (gSimCycCnt < STARTUP_DELAY) {
+         return;
+    }
 
     //------------------------------------------------------
     //-- STEP-2 : TEST THE PASS-THROUGH MODE
@@ -253,7 +298,8 @@ void pTSIF(
         *poTAF_EchoCtrl  = ECHO_PATH_THRU;
 
         //-- STEP-2.0 : REMOVE PREVIOUS OUTPUT FILES
-        std::remove(ofRawFile1Name.c_str());
+        std::remove(ofRawFileName1.c_str());
+        std::remove(ofRawGoldName1.c_str());
         std::remove(ofRawFileName2.c_str());
         std::remove(ofTcpFileName1.c_str());
         std::remove(ofTcpFileName2.c_str());
@@ -270,9 +316,18 @@ void pTSIF(
         }
         //-- STEP-2.2 : OPEN TWO OUTPUT DATA FILES #1
         if (!ofRawFile1.is_open()) {
-            ofRawFile1.open (ofRawFile1Name.c_str(), ofstream::out);
+            ofRawFile1.open (ofRawFileName1.c_str(), ofstream::out);
             if (!ofRawFile1) {
-                printFatal(myName, "Could not open the output Raw data file \'%s\'. \n", ofRawFile1Name.c_str());
+                printFatal(myName, "Could not open the output Raw data file \'%s\'. \n", ofRawFileName1.c_str());
+                nrErr++;
+                tsif_doneWithPassThroughTest1 = true;
+                return;
+            }
+        }
+        if (!ofRawGold1.is_open()) {
+            ofRawGold1.open (ofRawGoldName1.c_str(), ofstream::out);
+            if (!ofRawGold1) {
+                printFatal(myName, "Could not open the output Raw gold file \'%s\'. \n", ofRawGoldName1.c_str());
                 nrErr++;
                 tsif_doneWithPassThroughTest1 = true;
                 return;
@@ -288,13 +343,14 @@ void pTSIF(
              }
          }
     }
-    else if (!tsif_doneWithPassThroughTest1) {
+    else if (tsif_graceTime1) {
         //-- STEP-2.3 : FEED THE TAF
         rcSend = pTSIF_Send(
                 nrErr,
                 soTAF_Data,
                 soTAF_Meta,
                 ifSHL_Data,
+                ofRawGold1,
                 tsif_txSegCnt);
         //-- STEP-2.4 : READ FROM THE TAF
         rcRecv = pTSIF_Recv(
@@ -304,26 +360,27 @@ void pTSIF(
                 ofRawFile1,
                 ofTcpFile1,
                 tsif_rxSegCnt);
-        //-- STEP-2.5 : CHECK IF TEST IS FINISHED
-        if (!rcSend or !rcRecv or (tsif_txSegCnt == tsif_rxSegCnt)) {
-            ifSHL_Data.close();
-            ofRawFile1.close();
-            ofTcpFile1.close();
-            int rc1 = system(("diff --brief -w " + std::string(ofRawFile1Name) + " " + std::string(ifSHL_DataName) + " ").c_str());
-            if (rc1) {
-                printError(myName, "File '%s' does not match '%s'.\n", ofRawFile1Name.c_str(), ifSHL_DataName.c_str());
-                nrErr += 1;
-            }
-            tsif_doneWithPassThroughTest1 = true;
-            tsif_graceTime = gSimCycCnt + 100;
+        //-- STEP-2.5 : CHECK IF TEST FAILED or IS FINISHED
+        if ((rcSend != OK) or (rcRecv != OK)) {
+            tsif_graceTime1--; // Give the test some grace time to finish
         }
     }
 
     //------------------------------------------------------
-    //-- STEP-3 : GIVE TEST #1 SOME GRACE TIME TO FINISH
+    //-- STEP-3 : VERIFY THE PASS-THROUGH MODE
     //------------------------------------------------------
-    if (!tsif_doneWithPassThroughTest1 or (gSimCycCnt < tsif_graceTime))
-        return;
+    if (tsif_graceTime1 == 0) {
+        ifSHL_Data.close();
+        ofRawFile1.close();
+        ofRawGold1.close();
+        ofTcpFile1.close();
+        int rc1 = system(("diff --brief -w " + std::string(ofRawFileName1) + " " + std::string(ofRawGoldName1) + " ").c_str());
+        if (rc1) {
+            printError(myName, "File '%s' does not match '%s'.\n", ofRawFileName1.c_str(), ofRawGoldName1.c_str());
+            nrErr += 1;
+        }
+        tsif_doneWithPassThroughTest1 = true;
+    }
 }
 
 

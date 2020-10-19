@@ -1,0 +1,112 @@
+# ########################################################################################
+#  @file  : siTSIF_Data.dat
+#  @brief : A set of TCP segments of increasing length.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default listen port on the FPGA side.
+#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort  <PORT>  --> Request to set the default listen port on the HOST side.
+#    # This is a comment
+#    > SET   FpgaSndPort  <PORT>  --> Request to add a new send port on the FPGA side. 
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > SET   FpgaSocket <ADDR> <PORT> --> Request to add a new FPGA socket.
+#    > SET   HostSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ######################################################################################## 
+
+> IDLE 1
+
+# -- SEG[1] : Len=1 ------------------------------
+0000000000000001 1 01
+
+> IDLE 2
+
+# -- SEG[2] : Len=2 ------------------------------
+0000000000000202 1 03
+
+> IDLE 3
+
+# -- SEG[3] : Len=3 ------------------------------
+0000000000030303 1 07
+
+> IDLE 4
+
+# -- SEG[4] : Len=4 ------------------------------
+0000000004040404 1 0F
+
+> IDLE 5
+
+# -- SEG[5] : Len=5 ------------------------------
+0000000505050505 1 1F
+
+> IDLE 6
+
+# -- SEG[6] : Len=6 ------------------------------
+0000060606060606 1 3F
+
+> IDLE 7
+
+# -- SEG[7] : Len=7 ------------------------------
+0007070707070707 1 7F
+
+> IDLE 8
+
+# -- SEG[8] : Len=8 ------------------------------
+0008080808080808 1 FF
+
+> IDLE 9
+
+# -- SEG[9] : Len=9 ------------------------------
+0909090909090909 0 FF
+0000000000000009 1 01
+
+> IDLE 10
+
+# -- SEG[10] : Len=10 -----------------------------
+1010101010101010 0 FF
+0000000000001010 1 03
+
+> IDLE 11
+
+# -- SEG[11] : Len=11 ----------------------------
+1111111111111111 0 FF
+0000000000111111 1 07
+
+> IDLE 12
+
+# -- SEG[12] : Len=12 ----------------------------
+1212121212121212 0 FF
+0000000012121212 1 0F
+
+
+
+
+
+> IDLE 24
+
+# -- SEG[1] : Len=28 -----------------------------
+0000000000000000 0 FF
+0101010101010101 0 FF
+0202020202020202 0 FF
+0000000003030303 1 0F
+
+> IDLE 26
+
+# -- SEG[2] : Len=26 -----------------------------
+0404040404040404 0 FF
+0505050505050505 0 FF
+0606060606060606 0 FF
+0000000000000707 1 03
+
+
