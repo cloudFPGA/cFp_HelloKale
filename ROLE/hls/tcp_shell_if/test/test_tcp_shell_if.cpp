@@ -596,7 +596,7 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     if (argc >= 2) {
         echoLenOfSegment = atoi(argv[1]);
-        if ((echoLenOfSegment <= 1) or (echoLenOfSegment >= 0x10000)) {
+        if ((echoLenOfSegment < 1) or (echoLenOfSegment >= 0x10000)) {
             printFatal(THIS_NAME, "Argument 'len' is out of range [1:65535].\n");
             return NTS_KO;
         }

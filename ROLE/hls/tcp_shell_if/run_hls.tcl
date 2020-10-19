@@ -109,6 +109,14 @@ config_compile -name_max_length 128 -pipeline_loops 0
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
     csim_design
+    csim_design -argv "   1 10.11.12.13 32768   1"
+    csim_design -argv "   2 10.11.12.13 32768   2"
+    csim_design -argv "   3 10.11.12.13 32768   3"
+    csim_design -argv "   4 10.11.12.13 32768   4"
+    csim_design -argv "   5 10.11.12.13 32768   5"
+    csim_design -argv "   6 10.11.12.13 32768   6"
+    csim_design -argv "   7 10.11.12.13 32768   7"
+    csim_design -argv "   8 10.11.12.13 32768   8"
     csim_design -argv "1024 10.11.12.13 32768 512"
     csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(      32768))}] [expr {1 + int(rand()*65535)}]"
     csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {32768 + int(rand()*(65535-32768))}] [expr {1 + int(rand()*65535)}]"
