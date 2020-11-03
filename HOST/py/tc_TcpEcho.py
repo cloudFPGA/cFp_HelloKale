@@ -341,7 +341,8 @@ if 0:
 
 #  STEP-7: Wait until the current socket can be reused
 # -----------------------------------------------------------------------------
-waitUntilSocketPairCanBeReused(ipFpga, portFpga)
+if 0:
+    waitUntilSocketPairCanBeReused(ipFpga, portFpga)
 
 #  STEP-8a: Create a TCP/IP socket for the TCP/IP connection
 # -----------------------------------------------------------------------------
@@ -385,10 +386,10 @@ print("\t\t seed = %d" % seed)
 
 size = args.size
 if size == -1:
-    size = random.randint(1, TCP_MSS)
-elif size > TCP_MSS:
+    size = random.randint(1, ZYC2_MSS)
+elif size > ZYC2_MSS:
     print('\nERROR: ')
-    print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS (.i.e %d bytes).\n" % TCP_MSS)
+    print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS (.i.e %d bytes).\n" % ZYC2_MSS)
     exit(1)
 print("\t\t size = %d" % size)
 

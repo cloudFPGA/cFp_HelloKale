@@ -229,6 +229,7 @@ try:
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
+tcpSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # STEP-8b: Bind before connect (optional).
 #  This trick enables us to ask the kernel to select a specific source IP and
@@ -268,10 +269,10 @@ print("\t\t seed = %d" % seed)
 
 size = args.size
 if size == -1:
-    size = random.randint(1, TCP_MSS)  # [FIXME - Chenge the Max segment size]
-elif size > TCP_MSS:
+    size = random.randint(1, ZYC2_MSS)
+elif size > ZYC2_MSS:
     print('\nERROR: ')
-    print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS (.i.e %d bytes).\n" % TCP_MSS)
+    print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS (.i.e %d bytes).\n" % ZYC2_MSS)
     exit(1)
 print("\t\t size = %d" % size)
 
