@@ -406,18 +406,17 @@ void pReadRequestHandler(
     case RRH_IDLE:
         if (!siSHL_Notif.empty() and !soRDp_FwdCmd.full()) {
             siSHL_Notif.read(rrh_notif);
-            if (rrh_notif.tcpSegLen != 0) {
-                // Always request the data segment to be received
+            if (rrh_notif.tcpDatLen != 0) {
+                // Always request the data to be received
                 switch (rrh_notif.tcpDstPort) {
                 case RECV_MODE_LSN_PORT: // 8800
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_DROP, NOP));
-
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_DROP, NOP));
                     break;
                 case XMIT_MODE_LSN_PORT: // 8801
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_DROP, GEN));
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_DROP, GEN));
                     break;
                 default:
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, CMD_KEEP, NOP));
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_KEEP, NOP));
                     break;
                 }
                 rrh_fsmState = RRH_SEND_DREQ;
@@ -429,7 +428,7 @@ void pReadRequestHandler(
         break;
     case RRH_SEND_DREQ:
         if (!soSHL_DReq.full()) {
-            soSHL_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_notif.tcpSegLen));
+            soSHL_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_notif.tcpDatLen));
             rrh_fsmState = RRH_IDLE;
         }
         break;
@@ -442,14 +441,15 @@ void pReadRequestHandler(
  * @param[in]  siSHL_Data   Data stream from [SHELL].
  * @param[in]  siSHL_Meta   Session Id from [SHELL].
  * @param[in]  siRRh_FwdCmd A command to keep/drop a stream from ReadRequestHandler (RRh).
- * @param[out] soCOn_OpnSockReq The remote socket to connect open to Connect (COn).
- * @param[out] soCOn_TxCountReq The #bytes to be transmitted after active connection is opened by [COn].
+ * @param[out] soCOn_OpnSockReq The remote socket to open to Connect (COn).
+ * @param[out] soCOn_TxCountReq The #bytes to be transmitted once connection is opened by [COn].
  * @param[out] soTAF_Data   Data stream to [TAF].
- * @param[out] soTAF_Meta   Session Id to [TAF].
+ * @param[out] soTAF_SessId The session-id to [TAF].
+ * @param[out] soTAF_DatLen The data-lengthto [TAF].
  *
  * @details
- *  This process waits for a new data segment to read and forwards it to the
- *   TcpApplicationFlash (TAF) process or drops it based upon the 'action' field
+ *  This process waits for new data to read and either forwards them to the
+ *   TcpApplicationFlash (TAF) process or drops them based on the 'action' field
  *   of the 'siRRh_FwdCmd' command.
  *   - If the action is 'CMD_KEEP', the stream is forwarded to the next layer.
  *     As such, [RDp] implements a pipe for the TCP traffic from [SHELL] to [TAF].
@@ -466,9 +466,10 @@ void pReadPath(
         stream<TcpAppMeta>  &siSHL_Meta,
         stream<ForwardCmd>  &siRRh_FwdCmd,
         stream<SockAddr>    &soCOn_OpnSockReq,
-        stream<Ly4Len>      &soCOn_TxCountReq,
+        stream<TcpDatLen>   &soCOn_TxCountReq,
         stream<TcpAppData>  &soTAF_Data,
-        stream<TcpAppMeta>  &soTAF_Meta)
+        stream<TcpSessId>   &soTAF_SessId,
+        stream<TcpDatLen>   &soTAF_DatLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -476,45 +477,56 @@ void pReadPath(
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { RDP_IDLE=0, RDP_STREAM, RDP_8801 } \
+    static enum FsmStates { RDP_IDLE=0, RDP_META, RDP_STREAM, RDP_SINK, RDP_8801 } \
                                rdp_fsmState=RDP_IDLE;
     #pragma HLS reset variable=rdp_fsmState
-    static FlagBool            rdp_keepFlag=true;
-    #pragma HLS reset variable=rdp_keepFlag
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    ForwardCmd  rdp_fwdCmd;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpAppData  appData;
-    TcpAppMeta  appMeta;
-    ForwardCmd  fwdCmd;
+    TcpSessId   sessId;
 
     switch (rdp_fsmState ) {
     case RDP_IDLE:
-        if (!siSHL_Meta.empty() and !siRRh_FwdCmd.empty() and !soTAF_Meta.full()) {
-            siSHL_Meta.read(appMeta);
-            siRRh_FwdCmd.read(fwdCmd);
-            if (fwdCmd.action == CMD_KEEP) {
-                rdp_keepFlag = true;
-                soTAF_Meta.write(appMeta);
-                rdp_fsmState  = RDP_STREAM;
+        if (!siRRh_FwdCmd.empty()) {
+            siRRh_FwdCmd.read(rdp_fwdCmd);
+            if (rdp_fwdCmd.action == CMD_KEEP) {
+                rdp_fsmState  = RDP_META;
             }
             else {
-                rdp_keepFlag = false;
-                if (fwdCmd.dropCode == GEN) {
+                if (rdp_fwdCmd.dropCode == GEN) {
                     rdp_fsmState  = RDP_8801;
                 }
                 else {
-                    rdp_fsmState  = RDP_STREAM;
+                    rdp_fsmState  = RDP_SINK;
                 }
             }
+        }
+        break;
+    case RDP_META:
+        if (!siSHL_Meta.empty() and !soTAF_SessId.full() and !soTAF_DatLen.full()) {
+            siSHL_Meta.read(sessId);
+            soTAF_SessId.write(sessId);
+            soTAF_DatLen.write(rdp_fwdCmd.datLen);
+            rdp_fsmState  = RDP_STREAM;
         }
         break;
     case RDP_STREAM:
         if (!siSHL_Data.empty() and !soTAF_Data.full()) {
             siSHL_Data.read(appData);
-            if (rdp_keepFlag) {
-                soTAF_Data.write(appData);
-                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", appData); }
+            soTAF_Data.write(appData);
+            if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", appData); }
+            if (appData.getTLast()) {
+                rdp_fsmState  = RDP_IDLE;
             }
+        }
+        break;
+    case RDP_SINK:
+        if (!siSHL_Data.empty()) {
+            siSHL_Data.read(appData);
+            if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Sink Data =", appData); }
             if (appData.getTLast()) {
                 rdp_fsmState  = RDP_IDLE;
             }
@@ -524,11 +536,9 @@ void pReadPath(
         if (!siSHL_Data.empty() and !soCOn_OpnSockReq.full() and !soCOn_TxCountReq.full()) {
             // Extract the remote socket address and the requested #bytes to transmit
             siSHL_Data.read(appData);
-            //OBSOLETE_20200908 TcpPort portToOpen = byteSwap16(appData.getLE_TData(15,  0));
-            //OBSOLETE_20200908 Ly4Len  bytesToSend = byteSwap16(appData.getLE_TData(31, 16));
             SockAddr sockToOpen(byteSwap32(appData.getLE_TData(31,  0)),   // IP4 address
                                 byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
-            Ly4Len bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
+            TcpDatLen bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
             soCOn_OpnSockReq.write(sockToOpen);
             soCOn_TxCountReq.write(bytesToSend);
             if (DEBUG_LEVEL & TRACE_RDP) {
@@ -540,7 +550,7 @@ void pReadPath(
                 rdp_fsmState  = RDP_IDLE;
             }
             else {
-                rdp_fsmState = RDP_STREAM;
+                rdp_fsmState = RDP_SINK;
             }
         }
     }
@@ -550,34 +560,49 @@ void pReadPath(
  * @brief Write Path (WRp)
  *
  * @param[in]  siTAF_Data   Tx data stream from [ROLE/TAF].
- * @param[in]  siTAF_Meta   The session Id from [ROLE/TAF].
+ * @param[in]  siTAF_SessId The session Id from [ROLE/TAF].
+ * @param[in]  siTAF_DatLen The data length from [ROLE/TAF].
  * @param[in]  siCOn_TxBytesReq The #bytes to be transmitted on the active opened connection from Connect(COn).
  * @param[in]  siCOn_SessId The session id of the active opened connection from [COn].
  * @param[out] soSHL_Data   Tx data to [SHELL].
- * @param[out] soSHL_Meta   Tx session Id to to [SHELL].
- * @param[in]  siSHL_DSts   Tx data write status from [SHELL].
+ * @param[out] soSHL_SndReq Request to send to [SHELL].
+ * @param[in]  siSHL_SndRep Send reply from [SHELL].
  *
  * @details
- *  This process waits for a new data segment to write from the TcpAppFlash (TAF)
- *   and forwards it to the [SHELL]. As such, it implements a pipe for the TCP
- *   traffic from [TAF] to [SHELL].
+ *  This process waits for new data to be forwarded from the TcpAppFlash (TAF)
+ *   or for a transmit test command from Connect(COn).
+ *  Upon reception of one of these two requests, the process issues a request to
+ *   send message and waits for its reply. A request to send consists of a
+ *   session-id and a data-length information.
+ *  A send reply consists of a session-id, a data-length, the amount of space
+ *   left in TCP Tx buffer and an error code.
+ *   1) If the return code is 'NO_ERROR', the process is allowed to send the
+ *      amount of requested bytes.
+ *   2) If the return code is 'NO_SPACE', there is not enough space available in
+ *      the TCP Tx buffer of the session. The process will retry its request
+ *      after a short delay but may give up after a maximum number f trials.
+ *   3) If the return code is 'NO_CONNECTION', the process will abandon the
+ *      transmission because there is no established connection for session-id.
+ *
  *******************************************************************************/
 void pWritePath(
-        stream<TcpAppData>  &siTAF_Data,
-        stream<TcpAppMeta>  &siTAF_Meta,
-        stream<Ly4Len>      &siCOn_TxBytesReq,
-        stream<SessionId>   &siCOn_TxSessId,
-        stream<TcpAppData>  &soSHL_Data,
-        stream<TcpAppMeta>  &soSHL_Meta,
-        stream<TcpAppWrSts> &siSHL_DSts)
+        stream<TcpAppData>   &siTAF_Data,
+        stream<TcpSessId>    &siTAF_SessId,
+        stream<TcpDatLen>    &siTAF_DatLen,
+        stream<TcpDatLen>    &siCOn_TxBytesReq,
+        stream<SessionId>    &siCOn_TxSessId,
+        stream<TcpAppData>   &soSHL_Data,
+        stream<TcpAppSndReq> &soSHL_SndReq,
+        stream<TcpAppSndRep> &siSHL_SndRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    const char *myName  = concat3(THIS_NAME, "/", "WRp");
+    const char *myName = concat3(THIS_NAME, "/", "WRp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { WRP_IDLE=0, WRP_STREAM, WRP_8801 } \
+    static enum FsmStates { WRP_IDLE=0, WRP_RTS, WRP_RTS_REP,
+                            WRP_STREAM, WRP_TXGEN, WRP_DRAIN } \
                                wrp_fsmState=WRP_IDLE;
     #pragma HLS reset variable=wrp_fsmState
     static enum GenChunks { CHK0=0, CHK1, } \
@@ -585,38 +610,92 @@ void pWritePath(
     #pragma HLS reset variable=wrp_genChunk
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static Ly4Len       wrp_txBytesReq;
+    static TcpAppSndReq wrp_sendReq;
+    static FlagBool     wrp_testMode;
+    static uint16_t     wrp_retryCnt;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    TcpAppMeta   appMeta;
-    TcpAppData   appData;
+    TcpAppData  appData;
 
     switch (wrp_fsmState) {
     case WRP_IDLE:
         //-- Always read the metadata provided by [ROLE/TAF]
-        if (!siTAF_Meta.empty() and !soSHL_Meta.full()) {
-            siTAF_Meta.read(appMeta);
-            soSHL_Meta.write(appMeta);
+        if (!siTAF_SessId.empty() and !siTAF_DatLen.empty()) {
+            siTAF_SessId.read(wrp_sendReq.sessId);
+            siTAF_DatLen.read(wrp_sendReq.length);
             if (DEBUG_LEVEL & TRACE_WRP) {
-                printInfo(myName, "Received new session ID #%d from [ROLE].\n",
-                          appMeta.to_uint());
+                printInfo(myName, "Received a data forward request from [ROLE/TAF] for sessId=%d and nrBytes=%d.\n",
+                          wrp_sendReq.sessId.to_uint(), wrp_sendReq.length.to_uint());
             }
-            wrp_fsmState = WRP_STREAM;
+            wrp_testMode = false;
+            wrp_retryCnt = 0x200;
+            wrp_fsmState = WRP_RTS;
         }
-        else if (!siCOn_TxBytesReq.empty() and !siCOn_TxSessId.empty()) {
-            siCOn_TxBytesReq.read(wrp_txBytesReq);
-            siCOn_TxSessId.read(appMeta);
+        else if (!siCOn_TxSessId.empty() and !siCOn_TxBytesReq.empty()) {
+            siCOn_TxSessId.read(wrp_sendReq.sessId);
+            siCOn_TxBytesReq.read(wrp_sendReq.length);
             if (DEBUG_LEVEL & TRACE_WRP) {
-                printInfo(myName, "Received a Tx test request for %d bytes (appMeta=%d).\n",
-                          wrp_txBytesReq.to_uint(), appMeta.to_uint());
+                printInfo(myName, "Received a Tx test request from [TSIF/COn] for sessId=%d and nrBytes=%d.\n",
+                        wrp_sendReq.sessId.to_uint(), wrp_sendReq.length.to_uint());
             }
-            if (wrp_txBytesReq != 0) {
-                soSHL_Meta.write(appMeta);
-                wrp_fsmState = WRP_8801;
-                wrp_genChunk = CHK0;
+            if (wrp_sendReq.length != 0) {
+                wrp_testMode = true;
+                wrp_retryCnt = 0x200;
+                wrp_fsmState = WRP_RTS;
             }
             else {
                 wrp_fsmState = WRP_IDLE;
+            }
+        }
+        break;
+    case WRP_RTS:
+        if (!soSHL_SndReq.full()) {
+            soSHL_SndReq.write(wrp_sendReq);
+            wrp_fsmState = WRP_RTS_REP;
+        }
+        break;
+    case WRP_RTS_REP:
+        if (!siSHL_SndRep.empty()) {
+            //-- Read the request-to-send reply and continue accordingly
+            TcpAppSndRep appSndRep = siSHL_SndRep.read();
+            switch (appSndRep.error) {
+            case NO_ERROR:
+                if (wrp_testMode) {
+                    wrp_genChunk = CHK0;
+                    wrp_fsmState = WRP_TXGEN;
+                }
+                else {
+                    wrp_fsmState = WRP_STREAM;
+                }
+                break;
+            case NO_SPACE:
+                printWarn(myName, "Not enough space for writing %d bytes in the Tx buffer of session #%d. Available space is %d bytes.\n",
+                          appSndRep.length.to_uint(), appSndRep.sessId.to_uint(), appSndRep.spaceLeft.to_uint());
+                if (wrp_retryCnt--) {
+                    wrp_fsmState = WRP_RTS;
+                }
+                else {
+                    if (wrp_testMode) {
+                        wrp_fsmState = WRP_IDLE;
+                    }
+                    else {
+                        wrp_fsmState = WRP_DRAIN;
+                    }
+                }
+                break;
+            case NO_CONNECTION:
+                printWarn(myName, "Attempt to write data for a session that is not established.\n");
+                if (wrp_testMode) {
+                    wrp_fsmState = WRP_IDLE;
+                }
+                else {
+                    wrp_fsmState = WRP_DRAIN;
+                }
+                break;
+            default:
+                printWarn(myName, "Received unknown TCP request to send reply from [TOE].\n");
+                wrp_fsmState = WRP_IDLE;
+                break;
             }
         }
         break;
@@ -630,15 +709,15 @@ void pWritePath(
             }
         }
         break;
-    case WRP_8801:
+    case WRP_TXGEN:
         if (!soSHL_Data.full()) {
             TcpAppData currChunk(0,0,0);
-            if (wrp_txBytesReq > 8) {
+            if (wrp_sendReq.length > 8) {
                 currChunk.setLE_TKeep(0xFF);
-                wrp_txBytesReq -= 8;
+                wrp_sendReq.length -= 8;
             }
             else {
-                currChunk.setLE_TKeep(lenToLE_tKeep(wrp_txBytesReq));
+                currChunk.setLE_TKeep(lenToLE_tKeep(wrp_sendReq.length));
                 currChunk.setLE_TLast(TLAST);
                 wrp_fsmState = WRP_IDLE;
             }
@@ -657,12 +736,17 @@ void pWritePath(
             if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data =", currChunk); }
         }
         break;
+    case WRP_DRAIN:
+        if (!siTAF_Data.empty()) {
+            siTAF_Data.read(appData);
+            if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "Draining siTAF_Data =", appData); }
+            if(appData.getTLast()) {
+                wrp_fsmState = WRP_IDLE;
+            }
+        }
+        break;
     } // End-of: switch
 
-    //-- ALWAYS -----------------------
-    if (!siSHL_DSts.empty()) {
-        siSHL_DSts.read();  // [TODO] Must check!
-    }
 }
 
 /*******************************************************************************
@@ -670,9 +754,9 @@ void pWritePath(
  *
  * @param[in]  piSHL_Mmio_En Enable signal from [SHELL/MMIO].
  * @param[in]  siTAF_Data    TCP data stream from TcpAppFlash (TAF).
- * @param[in]  siTAF_Meta    TCP session Id  from [TAF].
+ * @param[in]  siTAF_SessId  TCP session Id  from [TAF].
  * @param[out] soTAF_Data    TCP data stream to   [TAF].
- * @param[out] soTAF_Meta    TCP session Id  to   [TAF].
+ * @param[out] soTAF_SessId  TCP session Id  to   [TAF].
  * @param[in]  siSHL_Notif   TCP data notification from [SHELL].
  * @param[out] soSHL_DReq    TCP data request to [SHELL].
  * @param[in]  siSHL_Data    TCP data stream from [SHELL].
@@ -680,8 +764,8 @@ void pWritePath(
  * @param[out] soSHL_LsnReq  TCP listen port request to [SHELL].
  * @param[in]  siSHL_LsnRep  TCP listen port acknowledge from [SHELL].
  * @param[out] soSHL_Data    TCP data stream to [SHELL].
- * @param[out] soSHL_Meta    TCP metadata to [SHELL].
- * @param[in]  siSHL_DSts    TCP write data status from [SHELL].
+ * @param[out] soSHL_SndReq  TCP send request to [SHELL].
+ * @param[in]  siSHL_SndRep  TCP send reply from [SHELL].
  * @param[out] soSHL_OpnReq  TCP open connection request to [SHELL].
  * @param[in]  siSHL_OpnRep  TCP open connection reply from [SHELL].
  * @param[out] soSHL_ClsReq  TCP close connection request to [SHELL].
@@ -697,13 +781,15 @@ void tcp_shell_if(
         //-- TAF / TxP Data Interface
         //------------------------------------------------------
         stream<TcpAppData>    &siTAF_Data,
-        stream<TcpAppMeta>    &siTAF_Meta,
+        stream<TcpSessId>     &siTAF_SessId,
+        stream<TcpDatLen>     &siTAF_DatLen,
 
         //------------------------------------------------------
         //-- TAF / RxP Data Interface
         //------------------------------------------------------
         stream<TcpAppData>    &soTAF_Data,
-        stream<TcpAppMeta>    &soTAF_Meta,
+        stream<TcpSessId>     &soTAF_SessId,
+        stream<TcpDatLen>     &soTAF_DatLen,
 
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
@@ -723,8 +809,8 @@ void tcp_shell_if(
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
         stream<TcpAppData>    &soSHL_Data,
-        stream<TcpAppMeta>    &soSHL_Meta,
-        stream<TcpAppWrSts>   &siSHL_DSts,
+        stream<TcpAppSndReq>  &soSHL_SndReq,
+        stream<TcpAppSndRep>  &siSHL_SndRep,
 
         //------------------------------------------------------
         //-- SHELL / Tx Open Interfaces
@@ -745,10 +831,11 @@ void tcp_shell_if(
     #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En    name=piSHL_Mmio_En
 
     #pragma HLS resource core=AXI4Stream variable=siTAF_Data   metadata="-bus_bundle siTAF_Data"
-    #pragma HLS resource core=AXI4Stream variable=siTAF_Meta   metadata="-bus_bundle siTAF_Meta"
+    #pragma HLS resource core=AXI4Stream variable=siTAF_SessId metadata="-bus_bundle siTAF_SessId"
+    #pragma HLS resource core=AXI4Stream variable=siTAF_DatLen metadata="-bus_bundle siTAF_DatLen"
 
     #pragma HLS resource core=AXI4Stream variable=soTAF_Data   metadata="-bus_bundle soTAF_Data"
-    #pragma HLS resource core=AXI4Stream variable=soTAF_Meta   metadata="-bus_bundle soTAF_Meta"
+    #pragma HLS resource core=AXI4Stream variable=soTAF_SessId metadata="-bus_bundle soTAF_SessId"
 
     #pragma HLS resource core=AXI4Stream variable=siSHL_Notif  metadata="-bus_bundle siSHL_Notif"
     #pragma HLS DATA_PACK                variable=siSHL_Notif
@@ -761,9 +848,10 @@ void tcp_shell_if(
     #pragma HLS resource core=AXI4Stream variable=siSHL_LsnRep metadata="-bus_bundle siSHL_LsnRep"
 
     #pragma HLS resource core=AXI4Stream variable=soSHL_Data   metadata="-bus_bundle soSHL_Data"
-    #pragma HLS resource core=AXI4Stream variable=soSHL_Meta   metadata="-bus_bundle soSHL_Meta"
-    #pragma HLS resource core=AXI4Stream variable=siSHL_DSts   metadata="-bus_bundle siSHL_DSts"
-    #pragma HLS DATA_PACK                variable=siSHL_DSts
+    #pragma HLS resource core=AXI4Stream variable=soSHL_SndReq metadata="-bus_bundle soSHL_SndReq"
+    #pragma HLS DATA_PACK                variable=soSHL_SndReq
+    #pragma HLS resource core=AXI4Stream variable=siSHL_SndRep metadata="-bus_bundle siSHL_SndRep"
+    #pragma HLS DATA_PACK                variable=siSHL_SndRep
 
     #pragma HLS resource core=AXI4Stream variable=soSHL_OpnReq metadata="-bus_bundle soSHL_OpnReq"
     #pragma HLS DATA_PACK                variable=soSHL_OpnReq
@@ -777,10 +865,11 @@ void tcp_shell_if(
     #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     #pragma HLS INTERFACE axis register both port=siTAF_Data     name=siTAF_Data
-    #pragma HLS INTERFACE axis register both port=siTAF_Meta     name=siTAF_Meta
+    #pragma HLS INTERFACE axis register both port=siTAF_SessId   name=siTAF_SessId
+    #pragma HLS INTERFACE axis register both port=siTAF_DatLen   name=siTAF_DatLen
 
     #pragma HLS INTERFACE axis register both port=soTAF_Data     name=soTAF_Data
-    #pragma HLS INTERFACE axis register both port=soTAF_Meta     name=soTAF_Meta
+    #pragma HLS INTERFACE axis register both port=soTAF_SessId   name=soTAF_SessId
 
     #pragma HLS INTERFACE axis register both port=siSHL_Notif    name=siSHL_Notif
     #pragma HLS DATA_PACK                variable=siSHL_Notif
@@ -793,9 +882,10 @@ void tcp_shell_if(
     #pragma HLS INTERFACE axis register both port=siSHL_LsnRep   name=siSHL_LsnRep
 
     #pragma HLS INTERFACE axis register both port=soSHL_Data     name=soSHL_Data
-    #pragma HLS INTERFACE axis register both port=soSHL_Meta     name=soSHL_Meta
-    #pragma HLS INTERFACE axis register both port=siSHL_DSts     name=siSHL_DSts
-    #pragma HLS DATA_PACK                variable=siSHL_DSts
+    #pragma HLS INTERFACE axis register both port=soSHL_SndReq   name=soSHL_SndReq
+    #pragma HLS DATA_PACK                variable=soSHL_SndReq
+    #pragma HLS INTERFACE axis register both port=siSHL_SndRep   name=siSHL_SndRep
+    #pragma HLS DATA_PACK                variable=siSHL_SndRep
 
     #pragma HLS INTERFACE axis register both port=soSHL_OpnReq   name=soSHL_OpnReq
     #pragma HLS DATA_PACK                variable=soSHL_OpnReq
@@ -816,7 +906,7 @@ void tcp_shell_if(
     //-- Read Path (RDp)
     static stream<SockAddr>        ssRDpToCOn_OpnSockReq ("ssRDpToCOn_OpnSockReq");
     #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=2
-    static stream<Ly4Len>          ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
+    static stream<TcpDatLen>       ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
     #pragma HLS stream    variable=ssRDpToCOn_TxCountReq depth=2
 
     //-- ReadrequestHandler (RRh)
@@ -825,7 +915,7 @@ void tcp_shell_if(
     #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
 
     //-- Connect (COn)
-    static stream<Ly4Len>          ssCOnToWRp_TxBytesReq ("ssCOnToWRp_TxBytesReq");
+    static stream<TcpDatLen>       ssCOnToWRp_TxBytesReq ("ssCOnToWRp_TxBytesReq");
     #pragma HLS stream    variable=ssCOnToWRp_TxBytesReq depth=2
     static stream<SessionId>       ssCOnToWRp_TxSessId   ("ssCOnToWRp_TxSessId");
     #pragma HLS stream    variable=ssCOnToWRp_TxSessId   depth=2
@@ -858,16 +948,18 @@ void tcp_shell_if(
             ssRDpToCOn_OpnSockReq,
             ssRDpToCOn_TxCountReq,
             soTAF_Data,
-            soTAF_Meta);
+            soTAF_SessId,
+            soTAF_DatLen);
 
     pWritePath(
             siTAF_Data,
-            siTAF_Meta,
+            siTAF_SessId,
+            siTAF_DatLen,
             ssCOnToWRp_TxBytesReq,
             ssCOnToWRp_TxSessId,
             soSHL_Data,
-            soSHL_Meta,
-            siSHL_DSts);
+            soSHL_SndReq,
+            siSHL_SndRep);
 
 }
 

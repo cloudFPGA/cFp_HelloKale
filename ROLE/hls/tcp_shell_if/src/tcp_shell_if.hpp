@@ -93,11 +93,12 @@ enum DropCode {
 class ForwardCmd {
   public:
     SessionId   sessId;
+    TcpDatLen   datLen;
     CmdBit      action;
     DropCode    dropCode;
     ForwardCmd() {}
-    ForwardCmd(SessionId  sessId, CmdBit action, DropCode dropCode) :
-            sessId(sessId), action(action), dropCode(dropCode) {}
+    ForwardCmd(SessionId sessId, TcpDatLen datLen, CmdBit action, DropCode dropCode) :
+            sessId(sessId), datLen(datLen), action(action), dropCode(dropCode) {}
 };
 
 
@@ -118,13 +119,15 @@ void tcp_shell_if(
         //-- TAF / Rx Data Interface
         //------------------------------------------------------
         stream<TcpAppData>    &siTAF_Data,
-        stream<TcpAppMeta>    &siTAF_Meta,
+        stream<TcpSessId>     &siTAF_SessId,
+        stream<TcpDatLen>     &siTAF_DatLen,
 
         //------------------------------------------------------
         //-- TAF / Tx Data Interface
         //------------------------------------------------------
         stream<TcpAppData>    &soTAF_Data,
-        stream<TcpAppMeta>    &soTAF_Meta,
+        stream<TcpSessId>     &soTAF_SessId,
+        stream<TcpDatLen>     &soTAF_DatLen,
 
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
@@ -144,8 +147,8 @@ void tcp_shell_if(
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
         stream<TcpAppData>    &soSHL_Data,
-        stream<TcpAppMeta>    &soSHL_Meta,
-        stream<TcpAppWrSts>   &siSHL_DSts,
+        stream<TcpAppSndReq>  &soSHL_SndReq,
+        stream<TcpAppSndRep>  &siSHL_SndRep,
 
         //------------------------------------------------------
         //-- SHELL / Open Interfaces

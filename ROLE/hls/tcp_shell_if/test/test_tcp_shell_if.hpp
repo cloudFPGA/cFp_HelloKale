@@ -32,6 +32,7 @@
 
 #include <hls_stream.h>
 #include <iostream>
+#include <set>
 
 #include "../src/tcp_shell_if.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
@@ -53,7 +54,7 @@ using namespace hls;
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = 0x8000 + 200;
+unsigned int    gMaxSimCycles = 0x8000 + 500;
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS

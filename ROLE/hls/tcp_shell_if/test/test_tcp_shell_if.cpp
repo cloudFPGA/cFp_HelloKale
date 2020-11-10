@@ -66,21 +66,24 @@ void stepSim() {
 /*******************************************************************************
  * @brief Emulate the behavior of the TcpAppFlash (TAF).
  *
- * @param[in]  ofTAF_Data   A ref to the output TxApp file to write to.
- * @param[in]  siTSIF_Data  Data stream from TcpShellInterface (TSIF).
- * @param[in]  siTSIF_Meta  Session ID to [TSIF].
- * @param[out] soTSIF_Data  Data stream to [TSIF].
- * @param[out] soTSIF_Meta  SessionID to [TSIF].
- *
+ * @param[in]  ofTAF_Data    A ref to the output TxApp file to write to.
+ * @param[in]  siTSIF_Data   Data stream from TcpShellInterface (TSIF).
+ * @param[in]  siTSIF_SessId Session-id from [TSIF].
+ * @param[in]  siTSIF_DatLen Data-length from [TSIF].
+ * @param[out] soTSIF_Data   Data stream to [TSIF].
+ * @param[out] soTSIF_SessId Session-id to [TSIF].
+ * @param[out] soTSIF_DatLen Data-length to [TSIF].
  * @details
  *  ALWAYS READ INCOMING DATA STREAM AND ECHO IT BACK.
  *******************************************************************************/
 void pTAF(
         ofstream            &ofTAF_Data,
         stream<TcpAppData>  &siTSIF_Data,
-        stream<TcpAppMeta>  &siTSIF_Meta,
+        stream<TcpSessId>   &siTSIF_SessId,
+        stream<TcpDatLen>   &siTSIF_DatLen,
         stream<TcpAppData>  &soTSIF_Data,
-        stream<TcpAppMeta>  &soTSIF_Meta)
+        stream<TcpSessId>   &soTSIF_SessId,
+        stream<TcpSessId>   &soTSIF_DatLen)
 {
 
     const char *myName = concat3(THIS_NAME, "/", "TAF");
@@ -88,18 +91,22 @@ void pTAF(
     static enum FsmStates { RX_IDLE=0, RX_STREAM } taf_fsmState=RX_IDLE;
 
     TcpAppData      appData;
-    TcpAppMeta      appMeta;
+    TcpSessId       sessId;
+    TcpDatLen       datLen;
 
     switch (taf_fsmState ) {
     case RX_IDLE:
-        if (!siTSIF_Meta.empty() and !soTSIF_Meta.full()) {
-            siTSIF_Meta.read(appMeta);
-            soTSIF_Meta.write(appMeta);
+        if (!siTSIF_SessId.empty() and !soTSIF_SessId.full() and
+            !siTSIF_DatLen.empty() and !soTSIF_DatLen.full()) {
+            siTSIF_SessId.read(sessId);
+            siTSIF_DatLen.read(datLen);
+            soTSIF_SessId.write(sessId);
+            soTSIF_DatLen.write(datLen);
             taf_fsmState  = RX_STREAM;
         }
         break;
     case RX_STREAM:
-        if (!siTSIF_Data.empty() && !soTSIF_Data.full()) {
+        if (!siTSIF_Data.empty() and !soTSIF_Data.full()) {
             siTSIF_Data.read(appData);
             int bytes = writeAxisAppToFile(appData, ofTAF_Data);
             soTSIF_Data.write(appData);
@@ -146,9 +153,9 @@ void pMMIO(
  * @param[in]  ofTAF_Gold    A ref to the TAF gold file to write.
  * @param[in]  ofTOE_Gold    A ref to the TOE gold file to write.
  * @param[in]  ofTOE_Data    A ref to the TOE data file to write.
- * @param[in]  echoSegLen    The length of the echo segment to generate.
+ * @param[in]  echoDatLen    The length of the echo data to generate.
  * @param[in]  testSock      The destination socket to send traffic to.
- * @param[in]  testSegLen    The length of the test segment to generate.
+ * @param[in]  tcpDataLen    The length of the TCP payload to generate.
  * @param[out] poMMIO_Ready  Ready signal to [MMIO].
  * @param[out] soTSIF_Notif  Notification to TcpShellInterface (TSIF).
  * @param[in]  siTSIF_DReq   Data read request from [TSIF].
@@ -162,9 +169,9 @@ void pTOE(
         ofstream              &ofTAF_Gold,
         ofstream              &ofTOE_Gold,
         ofstream              &ofTOE_Data,
-        int                    echoSegLen,
+        int                    echoDatLen,
         SockAddr               testSock,
-        int                    testSegLen,
+        int                    tcpDataLen,
         //-- MMIO / Ready Signal
         StsBit                *poMMIO_Ready,
         //-- TSIF / Tx Data Interfaces
@@ -177,18 +184,21 @@ void pTOE(
         stream<TcpAppLsnRep>  &soTSIF_LsnRep,
         //-- TSIF / Rx Data Interfaces
         stream<TcpAppData>    &siTSIF_Data,
-        stream<TcpAppMeta>    &siTSIF_Meta,
-        stream<TcpAppWrSts>   &soTSIF_DSts,
+        stream<TcpAppSndReq>  &siTSIF_SndReq,
+        stream<TcpAppSndRep>  &soTSIF_SndRep,
         //-- TSIF / Open Interfaces
         stream<TcpAppOpnReq>  &siTSIF_OpnReq,
         stream<TcpAppOpnRep>  &soTSIF_OpnRep)
 {
 
-    static Ip4Addr toe_hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
-    static TcpPort toe_fpgaLsnPort = -1;
-    static TcpPort toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
-    static TcpPort toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
-    static int     toe_loop        = 1;
+    static Ip4Addr  toe_hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
+    static TcpPort  toe_fpgaLsnPort = -1;
+    static TcpPort  toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
+    static TcpPort  toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
+    static int      toe_loop        = 1;
+
+    static set<SessionId> toe_openedSess;  // A set to keep track of the opened sessions
+    static TcpAppSndReq   toe_appSndReq;
 
     static enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_REP}  toe_lsnState=LSN_WAIT_REQ;
     static enum OpnStates { OPN_WAIT_REQ,   OPN_SEND_REP}  toe_opnState=OPN_WAIT_REQ;
@@ -196,7 +206,8 @@ void pTOE(
                             RXP_SEND_META,  RXP_SEND_DATA,
                             RXP_SEND_8801,
                             RXP_NEXT_SESS,  RXP_DONE}      toe_rxpState=RXP_SEND_NOTIF;
-    static enum TxpStates { TXP_WAIT_META,  TXP_RECV_DATA} toe_txpState=TXP_WAIT_META;
+    static enum TxpStates { TXP_READ_REQUEST, TXP_REPLY_REQUEST,
+                            TXP_RECV_DATA} toe_txpState=TXP_READ_REQUEST;
 
     static int  toe_startupDelay = 0x8000;
     static int  toe_rxpStartupDelay = 100;
@@ -276,6 +287,9 @@ void pTOE(
         case OPN_SEND_REP:
             if (!soTSIF_OpnRep.full()) {
                 soTSIF_OpnRep.write(opnReply);
+                // Add the current session # to the set of opened sessions
+                toe_openedSess.insert(opnReply.sessId);
+                printInfo(myOpnName, "Session #%d is now established.\n", opnReply.sessId.to_uint());
                 toe_opnState = OPN_WAIT_REQ;
             }
             else {
@@ -310,37 +324,42 @@ void pTOE(
             switch (toe_segCnt) {
             case 1: //-- Set TSIF in receive mode and execute test
                 toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
-                toe_rxByteCnt   = echoSegLen;
-                gMaxSimCycles += (echoSegLen / 8);
-                toe_waitEndOfTxTest = 0;
+                toe_rxByteCnt  = echoDatLen;
+                toe_sessId     = 1;
+                gMaxSimCycles += (echoDatLen / 8);
+                toe_waitEndOfTxTest = 10;
                break;
             case 2: //-- Request TSIF to open an active port (with byteCnt==0)
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
-                toe_txByteCnt = 0;
-                gMaxSimCycles += (testSegLen / 8);
-                toe_waitEndOfTxTest = (testSegLen / 8) + 1;
+                toe_txByteCnt  = 0;
+                toe_sessId     = 2;
+                gMaxSimCycles += (tcpDataLen / 8);
+                toe_waitEndOfTxTest = (tcpDataLen / 8) + 1;
                 break;
             case 3: //-- Set TSIF in transmit mode and execute test
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
-                toe_txByteCnt = testSegLen;
-                gMaxSimCycles += (testSegLen / 8);
-                toe_waitEndOfTxTest = (testSegLen / 8) + 1;
+                toe_txByteCnt  = tcpDataLen;
+                toe_sessId     = 3;
+                gMaxSimCycles += (tcpDataLen / 8);
+                toe_waitEndOfTxTest = (tcpDataLen / 8) + 1;
                 break;
             default:
                 toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
-                toe_rxByteCnt   = echoSegLen;
-                gMaxSimCycles += (echoSegLen / 8);
+                toe_rxByteCnt  = echoDatLen;
+                toe_sessId     = DEFAULT_SESSION_ID + toe_sessCnt;
+                gMaxSimCycles += (echoDatLen / 8) + 1;
                 toe_waitEndOfTxTest = 0;
                 break;
             }
-            toe_sessId         = DEFAULT_SESSION_ID + toe_sessCnt;
             toe_hostIp4Addr    = DEFAULT_HOST_IP4_ADDR;
             toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
+            // Add the current session # to the set of opened sessions
+            toe_openedSess.insert(toe_sessId);
             if (!soTSIF_Notif.full()) {
                 soTSIF_Notif.write(TcpAppNotif(toe_sessId,  toe_rxByteCnt, toe_hostIp4Addr,
                                             toe_hostTcpSrcPort, toe_hostTcpDstPort));
                 if (DEBUG_LEVEL & TRACE_TOE_RXP) {
-                    printInfo(myRxpName, "Sending notification #%d to [TSIF] (sessId=%d, segLen=%d, dstPort=%d).\n",
+                    printInfo(myRxpName, "Sending notification #%d to [TSIF] (sessId=%d, datLen=%d, dstPort=%d).\n",
                               toe_sessId.to_int(), toe_sessId.to_int(), toe_rxByteCnt.to_int(), toe_hostTcpDstPort.to_uint());
                 }
                 toe_rxpState = RXP_WAIT_DREQ;
@@ -350,7 +369,7 @@ void pTOE(
             if (!siTSIF_DReq.empty()) {
                 siTSIF_DReq.read(toe_appRdReq);
                 if (DEBUG_LEVEL & TRACE_TOE_RXP) {
-                    printInfo(myRxpName, "Received a data read request from [TSIF] (sessId=%d, segLen=%d).\n",
+                    printInfo(myRxpName, "Received a data read request from [TSIF] (sessId=%d, datLen=%d).\n",
                               toe_appRdReq.sessionID.to_int(), toe_appRdReq.length.to_int());
                 }
                 toe_rxpState = RXP_SEND_META;
@@ -406,7 +425,7 @@ void pTOE(
                     printSockAddr(myRxpName, testSock);
                 }
                 else {
-                    printInfo(myRxpName, "Requesting TSIF to generate a segment of length=%d and to send it to socket: \n",
+                    printInfo(myRxpName, "Requesting TSIF to generate a TCP payload of length=%d and to send it to socket: \n",
                               toe_txByteCnt.to_int());
                     printSockAddr(myRxpName, testSock);
                 }
@@ -480,21 +499,38 @@ void pTOE(
     //------------------------------------------------------
     if (toe_txpIsReady) {
         switch (toe_txpState) {
-        case TXP_WAIT_META:
-            if (!siTSIF_Meta.empty() && !siTSIF_Data.empty()) {
-                TcpAppData      appData;
-                TcpAppMeta      sessId;
-                siTSIF_Meta.read(sessId);
-                siTSIF_Data.read(appData);
-                writeAxisRawToFile(appData, ofTOE_Data);
-                if (DEBUG_LEVEL & TRACE_TOE_TXP) {
-                    printInfo(myTxpName, "Receiving data for session #%d\n", sessId.to_uint());
-                    printAxisRaw(myTxpName, "siTSIF_Data =", appData);
-                }
-                if (!appData.getTLast())
-                    toe_txpState = TXP_RECV_DATA;
+        case TXP_READ_REQUEST:
+            if (!siTSIF_SndReq.empty()) {
+                // Read the request to send
+                siTSIF_SndReq.read(toe_appSndReq);
+                toe_txpState = TXP_REPLY_REQUEST;
             }
             break;
+        case TXP_REPLY_REQUEST:
+           if (!soTSIF_SndRep.full()) {
+               // Check if session is established
+               if (toe_openedSess.find(toe_appSndReq.sessId) == toe_openedSess.end()) {
+                   // Notify APP about the none-established connection
+                   soTSIF_SndRep.write(TcpAppSndRep(toe_appSndReq.sessId, toe_appSndReq.length, 0, NO_CONNECTION));
+                   printError(myTxpName, "Session %d is not established.\n", toe_appSndReq.sessId.to_uint());
+                   nrErr++;
+                   toe_txpState = TXP_REPLY_REQUEST;
+               }
+               else if (toe_appSndReq.length > 0x10000) {  // [TODO-emulate 'maxWriteLength']
+                   // Notify APP about the lack of space
+                   soTSIF_SndRep.write(TcpAppSndRep(toe_appSndReq.sessId, toe_appSndReq.length, 0x10000, NO_SPACE));
+                   printError(myTxpName, "There is not enough TxBuf memory space available for session %d.\n",
+                              toe_appSndReq.sessId.to_uint());
+                   nrErr++;
+                   toe_txpState = TXP_REPLY_REQUEST;
+               }
+               else { //-- Session is ESTABLISHED and data-length <= maxWriteLength
+                   // Notify APP about acceptance of the transmission
+                   soTSIF_SndRep.write(TcpAppSndRep(toe_appSndReq.sessId, toe_appSndReq.length, 0x10000, NO_ERROR));
+                   toe_txpState = TXP_RECV_DATA;
+               }
+           }
+           break;
         case TXP_RECV_DATA:
             if (!siTSIF_Data.empty()) {
                 TcpAppData     appData;
@@ -504,7 +540,7 @@ void pTOE(
                     printAxisRaw(myTxpName, "siTSIF_Data =", appData);
                 }
                 if (appData.getTLast())
-                    toe_txpState = TXP_WAIT_META;
+                    toe_txpState = TXP_READ_REQUEST;
             }
             break;
         }
@@ -543,10 +579,12 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- TAF / Rx Data Interface
     stream<TcpAppData>    ssTAF_TSIF_Data     ("ssTAF_TSIF_Data");
-    stream<TcpAppMeta>    ssTAF_TSIF_Meta     ("ssTAF_TSIF_Meta");
+    stream<TcpSessId>     ssTAF_TSIF_SessId   ("ssTAF_TSIF_SessId");
+    stream<TcpDatLen>     ssTAF_TSIF_DatLen   ("ssTAF_TSIF_DatLen");
     //-- TSIF / Tx Data Interface
     stream<TcpAppData>    ssTSIF_TAF_Data     ("ssTSIF_TAF_Data");
-    stream<TcpAppMeta>    ssTSIF_TAF_Meta     ("ssTSIF_TAF_Meta");
+    stream<TcpSessId>     ssTSIF_TAF_SessId   ("ssTSIF_TAF_SessId");
+    stream<TcpDatLen>     ssTSIF_TAF_DatLen   ("ssTSIF_TAF_DatLen");
     //-- TOE  / Rx Data Interfaces
     stream<TcpAppNotif>   ssTOE_TSIF_Notif    ("ssTOE_TSIF_Notif");
     stream<TcpAppData>    ssTOE_TSIF_Data     ("ssTOE_TSIF_Data");
@@ -558,10 +596,10 @@ int main(int argc, char *argv[]) {
     //-- TSIF / Listen Interface
     stream<TcpAppLsnReq>  ssTSIF_TOE_LsnReq   ("ssTSIF_TOE_LsnReq");
     //-- TOE  / Tx Data Interfaces
-    stream<TcpAppWrSts>   ssTOE_TSIF_DSts     ("ssTOE_TSIF_DSts");
+    stream<TcpAppSndRep>  ssTOE_TSIF_SndRep   ("ssTOE_TSIF_SndRep");
     //-- TSIF  / Tx Data Interfaces
     stream<TcpAppData>    ssTSIF_TOE_Data     ("ssTSIF_TOE_Data");
-    stream<TcpAppMeta>    ssTSIF_TOE_Meta     ("ssTSIF_TOE_Meta");
+    stream<TcpAppSndReq>  ssTSIF_TOE_SndReq   ("ssTSIF_TOE_SndReq");
     //-- TOE  / Connect Interfaces
     stream<TcpAppOpnRep>  ssTOE_TSIF_OpnRep   ("ssTOE_TSIF_OpnRep");
     //-- TSIF / Connect Interfaces
@@ -698,8 +736,8 @@ int main(int argc, char *argv[]) {
             ssTOE_TSIF_LsnRep,
             //-- TOE / Tx Data Interfaces
             ssTSIF_TOE_Data,
-            ssTSIF_TOE_Meta,
-            ssTOE_TSIF_DSts,
+            ssTSIF_TOE_SndReq,
+            ssTOE_TSIF_SndRep,
             //-- TOE / Open Interfaces
             ssTSIF_TOE_OpnReq,
             ssTOE_TSIF_OpnRep);
@@ -721,9 +759,11 @@ int main(int argc, char *argv[]) {
             &sMMIO_TSIF_Enable,
             //-- TAF / Rx & Tx Data Interfaces
             ssTAF_TSIF_Data,
-            ssTAF_TSIF_Meta,
+            ssTAF_TSIF_SessId,
+            ssTAF_TSIF_DatLen,
             ssTSIF_TAF_Data,
-            ssTSIF_TAF_Meta,
+            ssTSIF_TAF_SessId,
+            ssTSIF_TAF_DatLen,
             //-- TOE / Rx Data Interfaces
             ssTOE_TSIF_Notif,
             ssTSIF_TOE_DReq,
@@ -734,8 +774,8 @@ int main(int argc, char *argv[]) {
             ssTOE_TSIF_LsnRep,
             //-- TOE / Tx Data Interfaces
             ssTSIF_TOE_Data,
-            ssTSIF_TOE_Meta,
-            ssTOE_TSIF_DSts,
+            ssTSIF_TOE_SndReq,
+            ssTOE_TSIF_SndRep,
             //-- TOE / Tx Open Interfaces
             ssTSIF_TOE_OpnReq,
             ssTOE_TSIF_OpnRep,
@@ -749,19 +789,19 @@ int main(int argc, char *argv[]) {
             ofTAF_Data,
             //-- TSIF / Data Interface
             ssTSIF_TAF_Data,
-            ssTSIF_TAF_Meta,
+            ssTSIF_TAF_SessId,
+            ssTSIF_TAF_DatLen,
             //-- TAF / Data Interface
             ssTAF_TSIF_Data,
-            ssTAF_TSIF_Meta);
+            ssTAF_TSIF_SessId,
+            ssTAF_TSIF_DatLen);
 
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         stepSim();
 
-    } while ( (gSimCycCnt < gMaxSimCycles) or
-              gFatalError or
-              (nrErr > 10) );
+    } while ((gSimCycCnt < gMaxSimCycles) and (!gFatalError) and (nrErr < 10));
 
     //---------------------------------
     //-- CLOSING OPEN FILES
