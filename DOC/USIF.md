@@ -1,7 +1,7 @@
 ### UDP Shell Interface (USIF)
 
-This page describes the UDP front-end process of the _cFp_Monolithic/_[_Role_BrinUp_](../BringUpRole.md)
- to the _cFp_Monolithic/_[_Shell_Kale_](../../cFDK/DOC/Kale.md). 
+This page describes the UDP front-end process of the _cFp_Monolithic/_[_Role_BrinUp_](./BringUpRole.md)
+ to the _cFp_Monolithic/_[_Shell_Kale_](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md). 
 
 #### Overview
 The _**UDP Shell Interface (USIF)**_ handles the control flow interface between the SHELL and 
@@ -30,7 +30,7 @@ them to SHELL/NTS/UOE.
 
 | Acronym                             | Description                                | File
 |:------------------------------------|:-------------------------------------------|:--------------
-| **[SHELL](../cFDK/DOC/Kale.md)** | UDP application interface to _Shell_Kale_  | [Shell](../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
+| **[SHELL](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md)** | UDP application interface to shell _Kale_. | [Shell](https://github.ibm.com/cloudFPGA/cFDK/tree/master/SRA/LIB/SHELL/Kale/Shell.v)
 | **[UAF](./UAF.md)**                 | UDP Application Flash interface            | [udp_app_flash](../ROLE/hls/udp_app_flash/src/udp_app_flash.hpp)
 
 <br>

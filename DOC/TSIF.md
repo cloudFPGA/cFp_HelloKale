@@ -27,10 +27,10 @@ them to SHELL/NTS/TOE.
 
 #### List of Interfaces
 
-| Acronym                             | Description                                | File
-|:------------------------------------|:-------------------------------------------|:--------------
-| **[SHELL](../cFDK/DOC/Kale.md)**    | TCP application interface to shell _Kale_. | [Shell](../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
-| **[TAF](./TAF.md)**                 | TCP Application Flash                      | [tcp_app_flash](../ROLE/hls/tcp_app_flash/src/tcp_app_flash.hpp)
+| Acronym                          | Description                                | File
+|:---------------------------------|:-------------------------------------------|:--------------
+| **[SHELL](https://github.ibm.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md)** | TCP application interface to shell _Kale_. | [Shell](https://github.ibm.com/cloudFPGA/cFDK/tree/master/SRA/LIB/SHELL/Kale/Shell.v)
+| **[TAF](./TAF.md)**              | TCP Application Flash                      | [tcp_app_flash](../ROLE/hls/tcp_app_flash/src/tcp_app_flash.hpp)
 
 <br>
 
