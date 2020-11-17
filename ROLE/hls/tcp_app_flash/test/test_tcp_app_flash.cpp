@@ -52,11 +52,12 @@ using namespace std;
 #define THIS_NAME "TB"
 
 #define TRACE_OFF     0x0000
-#define TRACE_TSIF   1 <<  1
-#define TRACE_TAF    1 <<  2
-#define TRACE_MMIO   1 <<  3
+#define TRACE_TSs    1 <<  1
+#define TRACE_TSr    1 <<  2
+#define TRACE_TAF    1 <<  3
+#define TRACE_MMIO   1 <<  4
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -73,13 +74,23 @@ void stepSim() {
 }
 
 /*******************************************************************************
+ * @brief Increase the simulation time of the testbench
+ *
+ * @param[in]  The number of cycles to increase.
+ *******************************************************************************/
+void increaseSimTime(unsigned int cycles) {
+    gMaxSimCycles += cycles;
+}
+
+/*******************************************************************************
  * @brief Emulate the receiving part of the TSIF process.
  *
  * @param[in/out] nrError    A reference to the error counter of the [TB].
- * @param[out] siTAF_Data    The data stream to read.
- * @param[out] siTAF_Meta    The meta stream to read.
- * @param[in]  outFileStream A ref to the a raw output file stream.
- * @param[in]  outFileStream A ref to the a tcp output file stream.
+ * @param[in]  siTAF_Data    The data stream to read from [TAF].
+ * @param[in]  siTAF_SessId  TCP session-id to read from [TAF].
+ * @param[in]  siTAF_DatLen  TCP data-length to read from [TAF].
+ * @param[out] outFileStream A ref to the a raw output file stream.
+ * @param[out] outFileStream A ref to the a tcp output file stream.
  * @param[out] nrSegments    A ref to the counter of received segments.
  *
  * @returns OK/KO.
@@ -87,35 +98,39 @@ void stepSim() {
 bool pTSIF_Recv(
     int                &nrErr,
     stream<TcpAppData> &siTAF_Data,
-    stream<TcpAppMeta> &siTAF_Meta,
+    stream<TcpSessId>  &siTAF_SessId,
+    stream<TcpDatLen>  &siTAF_DatLen,
     ofstream           &rawFileStream,
     ofstream           &tcpFileStream,
     int                &nrSegments)
 {
-    const char *myName  = concat3(THIS_NAME, "/", "TSIF_Recv");
+    const char *myName  = concat3(THIS_NAME, "/", "TSr");
 
-    static int  tsifr_startOfSegCount = 0;
+    static int  tsr_startOfSegCount = 0;
 
     TcpAppData  currChunk;
-    TcpAppMeta  appMeta;
     TcpSessId   tcpSessId;
+    TcpDatLen   tcpDatLen;
 
-    // Read and drain the siMetaStream
-    if (!siTAF_Meta.empty()) {
-        siTAF_Meta.read(appMeta);
-        tsifr_startOfSegCount++;
-        if (tsifr_startOfSegCount > 1) {
-            printWarn(myName, "Meta and Data stream did not arrive in expected order!\n");
+    // Read and drain the metadata
+    if (!siTAF_SessId.empty() and !siTAF_DatLen.empty()) {
+        siTAF_SessId.read(tcpSessId);
+        siTAF_DatLen.read(tcpDatLen);
+        tsr_startOfSegCount++;
+        if (tsr_startOfSegCount > 1) {
+            printWarn(myName, "Metadata and data streams did not arrive in expected order!\n");
         }
-        tcpSessId = appMeta;
-        printInfo(myName, "Reading META (SessId) = %d \n", tcpSessId.to_uint());
+        if (DEBUG_LEVEL & TRACE_TSr) {
+            printInfo(myName, "Received SessId=%d and DatLen=%d\n",
+                      tcpSessId.to_uint(), tcpDatLen.to_uint());
+        }
     }
-    // Read and drain sDataStream
+    // Read and drain data stream
     if (!siTAF_Data.empty()) {
         siTAF_Data.read(currChunk);
-        if (DEBUG_LEVEL & TRACE_TAF) { printAxisRaw(myName, "siTAF_Data=", currChunk); }
+        if (DEBUG_LEVEL & TRACE_TSr) { printAxisRaw(myName, "siTAF_Data=", currChunk); }
         if (currChunk.getTLast()) {
-            tsifr_startOfSegCount--;
+            tsr_startOfSegCount--;
             nrSegments++;
         }
         //-- Write data to file
@@ -132,7 +147,8 @@ bool pTSIF_Recv(
  *
  * @param[in/out] nrError    A reference to the error counter of the [TB].
  * @param[out] soTAF_Data    The data stream to write.
- * @param[out] soTAF_Meta    The meta stream to write.
+ * @param[out] soTAF_SessId  TCP session-id to write.
+ * @param[out] soTAF_DatLen  TCP data-length to write.
  * @param[in]  inpFileStream A ref to the input file stream.
  * @param[in]  outGoldStream A ref to the a golden raw output file stream.
  * @param[out] nrSegments    A ref to the counter of generated segments.
@@ -142,93 +158,134 @@ bool pTSIF_Recv(
 bool pTSIF_Send(
     int                &nrError,
     stream<TcpAppData> &soTAF_Data,
-    stream<TcpAppMeta> &soTAF_Meta,
+    stream<TcpSessId>  &soTAF_SessId,
+    stream<TcpDatLen>  &soTAF_DatLen,
     ifstream           &inpFileStream,
     ofstream           &outGoldStream,
     int                &nrSegments)
 {
-    const char *myName  = concat3(THIS_NAME, "/", "TSIF_Send");
+    const char *myName  = concat3(THIS_NAME, "/", "TSs");
 
-    string      strLine;
-    vector<string>      stringVector;
-    TcpAppData  currChunk;
-    TcpAppMeta  tcpSessId = DEFAULT_SESS_ID;
+    //-- STATIC VARIABLES ------------------------------------------------------
+    static bool         tss_startOfTcpSeg = true;
+    static bool         tss_idlingReq  = false; // Request to idle (i.e., do not feed TAF's input stream)
+    static unsigned int tss_idleCycReq = 0;  // The requested number of idle cycles
+    static unsigned int tss_idleCycCnt = 0;  // The count of idle cycles
+    static SimAppData   tss_simAppData;
 
-    static bool startOfTcpSeg = true;
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    string          strLine;
+    vector<string>  stringVector;
+    TcpAppData      currChunk;
+    TcpSessId       tcpSessId = DEFAULT_SESS_ID;
+    char           *pEnd;
 
-    //-- FEED DATA AND META STREAMS
-    while (!inpFileStream.eof()) {
-        getline(inpFileStream, strLine);
-        stringVector = myTokenizer(strLine, ' ');
-
-        if (!strLine.empty()) {
-            if (stringVector[0].length() == 1) {
-                //------------------------------------------------------
-                //-- Process the command and comment lines
-                //--  FYI: A command or a comment start with a single
-                //--       character followed by a space character.
-                //------------------------------------------------------
-                if (stringVector[0] == "#") {
-                    // This is a comment line.
-                    if (DEBUG_LEVEL & TRACE_TSIF) {
-                        for (int t=0; t<stringVector.size(); t++) {
-                            printf("%s ", stringVector[t].c_str());
-                        }
-                    printf("\n");
-                    }
-                }
-                else if (stringVector[0] == ">") {
-                    // The test vector is issuing a command
-                    //  FYI, don't forget to return at the end of command execution.
-                    if (stringVector[1] == "IDLE") {
-                        // COMMAND = Request to idle for <NUM> cycles.
-                        //TODO iprx_idleCycReq = atoi(stringVector[2].c_str());
-                        //TODO iprx_idlingReq = true;
-                        if (DEBUG_LEVEL & TRACE_TSIF) {
-                            //TODO printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
-                            printInfo(myName, "[TODO] Request to idle for ... \n");
-                        }
-                        //TODO increaseSimTime(iprx_idleCycReq);
-                        //TODO return;
-                    }
-                }
+    //-----------------------------------------------------
+    //-- RETURN IF IDLING IS REQUESTED
+    //-----------------------------------------------------
+    if (tss_idlingReq == true) {
+        if (tss_idleCycCnt >= tss_idleCycReq) {
+            tss_idleCycCnt = 0;
+            tss_idlingReq = false;
+            if (DEBUG_LEVEL & TRACE_TSs) {
+                printInfo(myName, "End of Tx idling phase. \n");
             }
-            else {
-                bool rc = readAxisRawFromLine(currChunk, strLine);
-                // Write to soMetaStream
-                if (startOfTcpSeg) {
-                    if (!soTAF_Meta.full()) {
-                        soTAF_Meta.write(TcpAppMeta(tcpSessId));
-                        startOfTcpSeg = false;
-                        nrSegments += 1;
+        }
+        else {
+            tss_idleCycCnt++;
+        }
+        return true;
+    }
+
+    //------------------------------------------------------
+    //-- FEED DATA STREAM
+    //------------------------------------------------------
+    if (tss_simAppData.size() != 0) {
+        if (!soTAF_Data.full()) {
+            //-- Feed TAF with a new data chunk
+            AxisApp appChunk = tss_simAppData.pullChunk();
+            soTAF_Data.write(appChunk);
+            if (DEBUG_LEVEL & TRACE_TSs) { printAxisRaw(myName, "soTAF_Data=", appChunk); }
+            increaseSimTime(1);
+        }
+    }
+    else {
+        //------------------------------------------------------
+        //-- BUILD a new DATA STREAM from FILE
+        //------------------------------------------------------
+        while (!inpFileStream.eof()) {
+            //-- Read a line from input vector file -----------
+            getline(inpFileStream, strLine);
+            if (DEBUG_LEVEL & TRACE_TSs) { printf("%s \n", strLine.c_str()); fflush(stdout); }
+            stringVector = myTokenizer(strLine, ' ');
+            if (!strLine.empty()) {
+                //-- Build a new tss_simAppData from file
+                if (stringVector[0].length() == 1) {
+                    //------------------------------------------------------
+                    //-- Process the command and comment lines
+                    //--  FYI: A command or a comment start with a single
+                    //--       character followed by a space character.
+                    //------------------------------------------------------
+                    if (stringVector[0] == "#") {
+                        // This is a comment line.
+                        continue;
                     }
+                    else if (stringVector[0] == ">") {
+                        // The test vector is issuing a command
+                        //  FYI, don't forget to return at the end of command execution.
+                        if (stringVector[1] == "IDLE") {
+                            // COMMAND = Request to idle for <NUM> cycles.
+                            tss_idleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
+                            tss_idlingReq = true;
+                            if (DEBUG_LEVEL & TRACE_TSs) {
+                                printInfo(myName, "Request to idle for %d cycles. \n", tss_idleCycReq);
+                            }
+                            increaseSimTime(tss_idleCycReq);
+                            return true;
+                        }
+                        if (stringVector[1] == "SET") {
+                           printWarn(myName, "The 'SET' command is not yet implemented...");
+                        }
+                   }
                     else {
-                        printError(myName, "Cannot write META to [TAF] because stream is full.\n");
-                        nrError++;
-                        inpFileStream.close();
-                        return KO;
-                    }
-                }
-                // Write to soDataStream
-                if (!soTAF_Data.full()) {
-                    soTAF_Data.write(currChunk);
-                    bool rc = writeAxisRawToFile(currChunk, outGoldStream);
-                    if (DEBUG_LEVEL & TRACE_TAF) { printAxisRaw(myName, "soTAF_Data =", currChunk); }
-                    if (currChunk.getTLast()) {
-                        startOfTcpSeg = true;
-                    }
-                }
+                        printFatal(myName, "Read unknown command \"%s\" from TSIF.\n", stringVector[0].c_str());
+                   }
+               }
                 else {
-                    printError(myName, "Cannot write DATA to [TAF] because stream is full.\n");
-                    nrError++;
-                    inpFileStream.close();
-                    return KO;
+                    AxisApp currChunk;
+                    bool    firstChunkFlag = true; // Axis chunk is first data chunk
+                    int     writtenBytes = 0;
+                    do {
+                        if (firstChunkFlag == false) {
+                            getline(inpFileStream, strLine);
+                            if (DEBUG_LEVEL & TRACE_TSs) { printf("%s \n", strLine.c_str()); fflush(stdout); }
+                            stringVector = myTokenizer(strLine, ' ');
+                            // Skip lines that might be commented out
+                            if (stringVector[0] == "#") {
+                                // This is a comment line.
+                                if (DEBUG_LEVEL & TRACE_TSs) { printf("%s ", strLine.c_str()); fflush(stdout); }
+                                continue;
+                            }
+                        }
+                        firstChunkFlag = false;
+                        bool rc = readAxisRawFromLine(currChunk, strLine);
+                        if (rc) {
+                            tss_simAppData.pushChunk(currChunk);
+                        }
+                        // Write current chunk to the gold file
+                        rc = writeAxisRawToFile(currChunk, outGoldStream);
+                        if (currChunk.getTLast()) {
+                            // Send metadata to [TAF]
+                            soTAF_SessId.write(TcpSessId(tcpSessId));
+                            soTAF_DatLen.write(TcpDatLen(tss_simAppData.length()));
+                            return OK;
+                        }
+                    } while (not currChunk.getTLast());
                 }
-                return OK;
             }
         }
     }
-    return KO;
+    return OK;
 }
 
 /*******************************************************************************
@@ -237,9 +294,11 @@ bool pTSIF_Send(
  * @param[in/out] nrErr           A ref to the error counter of the [TB].
  * @param[out]    poTAF_EchoCtrl  A ptr to set the ECHO mode.
  * @param[out]    soTAF_Data      Data stream from TcpAppFlash (TAF).
- * @param[out]    soTAF_Meta      Metadata from [TAF].
+ * @param[out]    soTAF_SessId    TCP session-id from [TAF].
+ * @param[out]    soTAF_DatLen    TCP data-length from [TAF].
  * @param[in]     siTAF_Data      Data stream to [TAF].
- * @param[in]     siTAF_Meta      Metadata to [TAF].
+ * @param[in]     siTAF_SessId    TCP session-id to [TAF].
+ * @param[in]     siTAF_DatLen    TCP data-length to [TAF].
  *
  *******************************************************************************/
 void pTSIF(
@@ -248,16 +307,17 @@ void pTSIF(
         ap_uint<2>          *poTAF_EchoCtrl,
         //-- TAF / TCP Data Interfaces
         stream<TcpAppData>  &soTAF_Data,
-        stream<TcpAppMeta>  &soTAF_Meta,
+        stream<TcpSessId>   &soTAF_SessId,
+        stream<TcpDatLen>   &soTAF_DatLen,
         //-- TAF / TCP Data Interface
         stream<TcpAppData>  &siTAF_Data,
-        stream<TcpAppMeta>  &siTAF_Meta)
+        stream<TcpSessId>   &siTAF_SessId,
+        stream<TcpDatLen>   &siTAF_DatLen)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TSIF");
 
     //-- STATIC VARIABLES ------------------------------------------------------
     static bool     tsif_doneWithPassThroughTest1 = false;
-    //OBSOLETE_20201019 static bool     tsif_doneWithPostSegmentTest2 = false;
     static int      tsif_txSegCnt = 0;
     static int      tsif_rxSegCnt = 0;
     static int      tsif_graceTime1 = 25; // Give TEST #1 some grace time to finish
@@ -348,7 +408,8 @@ void pTSIF(
         rcSend = pTSIF_Send(
                 nrErr,
                 soTAF_Data,
-                soTAF_Meta,
+                soTAF_SessId,
+                soTAF_DatLen,
                 ifSHL_Data,
                 ofRawGold1,
                 tsif_txSegCnt);
@@ -356,7 +417,8 @@ void pTSIF(
         rcRecv = pTSIF_Recv(
                 nrErr,
                 siTAF_Data,
-                siTAF_Meta,
+                siTAF_SessId,
+                siTAF_DatLen,
                 ofRawFile1,
                 ofTcpFile1,
                 tsif_rxSegCnt);
@@ -407,10 +469,12 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
     //-- TSIF / TCP Data Interfaces
-    stream<TcpAppData>  ssTSIF_TAF_Data ("ssTSIF_TAF_Data");
-    stream<TcpAppMeta>  ssTSIF_TAF_Meta ("ssTSIF_TAF_Meta");
-    stream<TcpAppData>  ssTAF_TSIF_Data ("ssTAF_TSIF_Data");
-    stream<TcpAppMeta>  ssTAF_TSIF_Meta ("ssTAF_TSIF_Meta");
+    stream<TcpAppData>  ssTSIF_TAF_Data   ("ssTSIF_TAF_Data");
+    stream<TcpSessId>   ssTSIF_TAF_SessId ("ssTSIF_TAF_SessId");
+    stream<TcpDatLen>   ssTSIF_TAF_DatLen ("ssTSIF_TAF_DatLen");
+    stream<TcpAppData>  ssTAF_TSIF_Data   ("ssTAF_TSIF_Data");
+    stream<TcpSessId>   ssTAF_TSIF_SessId ("ssTAF_TSIF_SessId");
+    stream<TcpDatLen>   ssTAF_TSIF_DatLen ("ssTAF_TSIF_DatLen");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -440,10 +504,12 @@ int main(int argc, char *argv[]) {
             &sMMIO_TAF_EchoCtrl,
             //-- TAF / TCP Data Interfaces
             ssTSIF_TAF_Data,
-            ssTSIF_TAF_Meta,
+            ssTSIF_TAF_SessId,
+            ssTSIF_TAF_DatLen,
             //-- TAF / TCP Data Interface
             ssTAF_TSIF_Data,
-            ssTAF_TSIF_Meta);
+            ssTAF_TSIF_SessId,
+            ssTAF_TSIF_DatLen);
 
         //-------------------------------------------------
         //-- RUN DUT
@@ -453,10 +519,12 @@ int main(int argc, char *argv[]) {
             &sMMIO_TAF_EchoCtrl,
             //-- TSIF / TCP Rx Data Interface
             ssTSIF_TAF_Data,
-            ssTSIF_TAF_Meta,
+            ssTSIF_TAF_SessId,
+            ssTSIF_TAF_DatLen,
             //-- TSIF / TCP Tx Data Interface
             ssTAF_TSIF_Data,
-            ssTAF_TSIF_Meta);
+            ssTAF_TSIF_SessId,
+            ssTAF_TSIF_DatLen);
 
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
@@ -464,7 +532,7 @@ int main(int argc, char *argv[]) {
         stepSim();
 
     } while ( (gSimCycCnt < gMaxSimCycles) and
-            !gFatalError and
+             !gFatalError and
             (nrErr < 10) );
 
     //---------------------------------------------------------------

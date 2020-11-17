@@ -37,12 +37,13 @@
 
 #include "../src/tcp_app_flash.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimAppData.hpp"
 
 //------------------------------------------------------
 //-- TESTBENCH DEFINES
 //------------------------------------------------------
 #define MAX_SIM_CYCLES  500
-#define TB_GRACE_TIME    200  // Give the TB some time to finish
+#define TB_GRACE_TIME   1000  // Give the TB some time to finish
 #define STARTUP_DELAY   25
 #define VALID           true
 #define UNVALID         false

@@ -45,8 +45,6 @@
 
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
-//OBSOLETE_20200928 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
-//OBSOLETE_20200928 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimTcpSegment.hpp"
 
 //---------------------------------------------------------
 /// -- SHELL/MMIO/EchoCtrl - Configuration Register
@@ -88,13 +86,15 @@ void tcp_app_flash (
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
         stream<TcpAppData>  &siSHL_Data,
-        stream<TcpAppMeta>  &siSHL_SessId,
+        stream<TcpSessId>   &siSHL_SessId,
+        stream<TcpDatLen>   &siSHL_DatLen,
 
         //------------------------------------------------------
         //-- SHELL / TCP Tx Data Interface
         //------------------------------------------------------
         stream<TcpAppData>  &soSHL_Data,
-        stream<TcpAppMeta>  &soSHL_SessId
+        stream<TcpSessId>   &soSHL_SessId,
+        stream<TcpDatLen>   &soSHL_DatLen
 );
 
 #endif

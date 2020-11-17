@@ -241,20 +241,20 @@ architecture structural of topFMKU60 is
   signal ssSHL_ROL_Nts_Udp_ClsRep_tready    : std_ulogic;
   
   -- ROLE-->SHELL / Nts / Tcp / Tx Data Interfaces
-  ---- Axi4-Stream TCP Data ---------------
+  ---- Axi4-Stream TCP Data ----------------
   signal ssROL_SHL_Nts_Tcp_Data_tdata       : std_ulogic_vector( 63 downto 0);
   signal ssROL_SHL_Nts_Tcp_Data_tkeep       : std_ulogic_vector(  7 downto 0);
   signal ssROL_SHL_Nts_Tcp_Data_tlast       : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_Data_tvalid      : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_Data_tready      : std_ulogic;
-  ---- Axi4-Stream TCP Metadata -----------
-  signal ssROL_SHL_Nts_Tcp_Meta_tdata       : std_ulogic_vector( 15 downto 0);
-  signal ssROL_SHL_Nts_Tcp_Meta_tvalid      : std_ulogic;
-  signal ssROL_SHL_Nts_Tcp_Meta_tready      : std_ulogic;
-  ---- Axi4-Stream TCP Data Status --------
-  signal ssSHL_ROL_Nts_Tcp_DSts_tdata       : std_ulogic_vector( 23 downto 0);
-  signal ssSHL_ROL_Nts_Tcp_DSts_tvalid      : std_ulogic;
-  signal ssSHL_ROL_Nts_Tcp_DSts_tready      : std_ulogic;
+  ---- Axi4-Stream TCP Send Request --------
+  signal ssROL_SHL_Nts_Tcp_SndReq_tdata     : std_ulogic_vector( 31 downto 0);
+  signal ssROL_SHL_Nts_Tcp_SndReq_tvalid    : std_ulogic;
+  signal ssROL_SHL_Nts_Tcp_SndReq_tready    : std_ulogic;
+  ---- Axi4-Stream TCP Send Reply ----------
+  signal ssSHL_ROL_Nts_Tcp_SndRep_tdata     : std_ulogic_vector( 55 downto 0);
+  signal ssSHL_ROL_Nts_Tcp_SndRep_tvalid    : std_ulogic;
+  signal ssSHL_ROL_Nts_Tcp_SndRep_tready    : std_ulogic;
   
   -- SHELL-->ROLE / Nts / Tcp / Rx Data Interfaces
   ---- Axi4-Stream TCP Data -----------------
@@ -539,14 +539,14 @@ architecture structural of topFMKU60 is
       siROL_Nts_Tcp_Data_tlast          : in    std_ulogic;
       siROL_Nts_Tcp_Data_tvalid         : in    std_ulogic;
       siROL_Nts_Tcp_Data_tready         : out   std_ulogic;
-      ---- Axi4-Stream TCP Metadata -----------
-      siROL_Nts_Tcp_Meta_tdata          : in    std_ulogic_vector( 15 downto 0);
-      siROL_Nts_Tcp_Meta_tvalid         : in    std_ulogic;
-      siROL_Nts_Tcp_Meta_tready         : out   std_ulogic;
-      ---- Axi4-Stream TCP Data Status --------
-      soROL_Nts_Tcp_DSts_tdata          : out   std_ulogic_vector( 23 downto 0);
-      soROL_Nts_Tcp_DSts_tvalid         : out   std_ulogic;
-      soROL_Nts_Tcp_DSts_tready         : in    std_ulogic;
+      ---- Axi4-Stream TCP Send Request -------
+      siROL_Nts_Tcp_SndReq_tdata        : in    std_ulogic_vector( 31 downto 0);
+      siROL_Nts_Tcp_SndReq_tvalid       : in    std_ulogic;
+      siROL_Nts_Tcp_SndReq_tready       : out   std_ulogic;
+      ---- Axi4-Stream TCP Send Reply ---------
+      soROL_Nts_Tcp_SndRep_tdata        : out   std_ulogic_vector( 55 downto 0);
+      soROL_Nts_Tcp_SndRep_tvalid       : out   std_ulogic;
+      soROL_Nts_Tcp_SndRep_tready       : in    std_ulogic;
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -751,14 +751,14 @@ architecture structural of topFMKU60 is
       soSHL_Nts_Tcp_Data_tlast            : out   std_ulogic;
       soSHL_Nts_Tcp_Data_tvalid           : out   std_ulogic;
       soSHL_Nts_Tcp_Data_tready           : in    std_ulogic;
-      ---- Axi4-Stream TCP Metadata -----------
-      soSHL_Nts_Tcp_Meta_tdata            : out   std_ulogic_vector( 15 downto 0);
-      soSHL_Nts_Tcp_Meta_tvalid           : out   std_ulogic;
-      soSHL_Nts_Tcp_Meta_tready           : in    std_ulogic;
-      ---- Axi4-Stream TCP Data Status --------
-      siSHL_Nts_Tcp_DSts_tdata            : in    std_ulogic_vector( 23 downto 0);
-      siSHL_Nts_Tcp_DSts_tvalid           : in    std_ulogic;
-      siSHL_Nts_Tcp_DSts_tready           : out   std_ulogic;
+      ---- Axi4-Stream TCP Send Request -------
+      soSHL_Nts_Tcp_SndReq_tdata          : out   std_ulogic_vector( 31 downto 0);
+      soSHL_Nts_Tcp_SndReq_tvalid         : out   std_ulogic;
+      soSHL_Nts_Tcp_SndReq_tready         : in    std_ulogic;
+      ---- Axi4-Stream TCP Send Reply ---------
+      siSHL_Nts_Tcp_SndRep_tdata          : in    std_ulogic_vector( 55 downto 0);
+      siSHL_Nts_Tcp_SndRep_tvalid         : in    std_ulogic;
+      siSHL_Nts_Tcp_SndRep_tready         : out   std_ulogic;
       --------------------------------------------------------
       -- SHELL / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       --------------------------------------------------------
@@ -1106,14 +1106,14 @@ begin
       siROL_Nts_Tcp_Data_tlast      => ssROL_SHL_Nts_Tcp_Data_tlast,
       siROL_Nts_Tcp_Data_tvalid     => ssROL_SHL_Nts_Tcp_Data_tvalid,
       siROL_Nts_Tcp_Data_tready     => ssROL_SHL_Nts_Tcp_Data_tready,
-      ---- Axi4-Stream TCP Metadata -----------
-      siROL_Nts_Tcp_Meta_tdata      => ssROL_SHL_Nts_Tcp_Meta_tdata,
-      siROL_Nts_Tcp_Meta_tvalid     => ssROL_SHL_Nts_Tcp_Meta_tvalid,
-      siROL_Nts_Tcp_Meta_tready     => ssROL_SHL_Nts_Tcp_Meta_tready,
-      ---- Axi4-Stream TCP Metadata -----------
-      soROL_Nts_Tcp_DSts_tdata      => ssSHL_ROL_Nts_Tcp_DSts_tdata,
-      soROL_Nts_Tcp_DSts_tvalid     => ssSHL_ROL_Nts_Tcp_DSts_tvalid, 
-      soROL_Nts_Tcp_DSts_tready     => ssSHL_ROL_Nts_Tcp_DSts_tready,
+      ---- Axi4-Stream TCP Send Request -------
+      siROL_Nts_Tcp_SndReq_tdata    => ssROL_SHL_Nts_Tcp_SndReq_tdata,
+      siROL_Nts_Tcp_SndReq_tvalid   => ssROL_SHL_Nts_Tcp_SndReq_tvalid,
+      siROL_Nts_Tcp_SndReq_tready   => ssROL_SHL_Nts_Tcp_SndReq_tready,
+      ---- Axi4-Stream TCP Send Reply ---------
+      soROL_Nts_Tcp_SndRep_tdata    => ssSHL_ROL_Nts_Tcp_SndRep_tdata,
+      soROL_Nts_Tcp_SndRep_tvalid   => ssSHL_ROL_Nts_Tcp_SndRep_tvalid, 
+      soROL_Nts_Tcp_SndRep_tready   => ssSHL_ROL_Nts_Tcp_SndRep_tready,
       ------------------------------------------------------
       -- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1317,14 +1317,14 @@ begin
       soSHL_Nts_Tcp_Data_tlast          => ssROL_SHL_Nts_Tcp_Data_tlast ,
       soSHL_Nts_Tcp_Data_tvalid         => ssROL_SHL_Nts_Tcp_Data_tvalid,
       soSHL_Nts_Tcp_Data_tready         => ssROL_SHL_Nts_Tcp_Data_tready,
-      ---- Axi4-Stream TCP Metadata -----------
-      soSHL_Nts_Tcp_Meta_tdata          => ssROL_SHL_Nts_Tcp_Meta_tdata ,
-      soSHL_Nts_Tcp_Meta_tvalid         => ssROL_SHL_Nts_Tcp_Meta_tvalid,
-      soSHL_Nts_Tcp_Meta_tready         => ssROL_SHL_Nts_Tcp_Meta_tready,
-       ---- Axi4-Stream TCP Data Status --------
-      siSHL_Nts_Tcp_DSts_tdata          => ssSHL_ROL_Nts_Tcp_DSts_tdata ,
-      siSHL_Nts_Tcp_DSts_tvalid         => ssSHL_ROL_Nts_Tcp_DSts_tvalid,
-      siSHL_Nts_Tcp_DSts_tready         => ssSHL_ROL_Nts_Tcp_DSts_tready,
+      ---- Axi4-Stream TCP Send Request --------
+      soSHL_Nts_Tcp_SndReq_tdata        => ssROL_SHL_Nts_Tcp_SndReq_tdata ,
+      soSHL_Nts_Tcp_SndReq_tvalid       => ssROL_SHL_Nts_Tcp_SndReq_tvalid,
+      soSHL_Nts_Tcp_SndReq_tready       => ssROL_SHL_Nts_Tcp_SndReq_tready,
+       ---- Axi4-Stream TCP Send Reply ---------
+      siSHL_Nts_Tcp_SndRep_tdata        => ssSHL_ROL_Nts_Tcp_SndRep_tdata ,
+      siSHL_Nts_Tcp_SndRep_tvalid       => ssSHL_ROL_Nts_Tcp_SndRep_tvalid,
+      siSHL_Nts_Tcp_SndRep_tready       => ssSHL_ROL_Nts_Tcp_SndRep_tready,
       --------------------------------------------------------
       -- SHELL / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       --------------------------------------------------------

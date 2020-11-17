@@ -836,6 +836,7 @@ void tcp_shell_if(
 
     #pragma HLS resource core=AXI4Stream variable=soTAF_Data   metadata="-bus_bundle soTAF_Data"
     #pragma HLS resource core=AXI4Stream variable=soTAF_SessId metadata="-bus_bundle soTAF_SessId"
+    #pragma HLS resource core=AXI4Stream variable=soTAF_DatLen metadata="-bus_bundle soTAF_DatLen"
 
     #pragma HLS resource core=AXI4Stream variable=siSHL_Notif  metadata="-bus_bundle siSHL_Notif"
     #pragma HLS DATA_PACK                variable=siSHL_Notif
