@@ -169,7 +169,7 @@ void pTOE(
         ofstream              &ofTAF_Gold,
         ofstream              &ofTOE_Gold,
         ofstream              &ofTOE_Data,
-        int                    echoDatLen,
+        TcpDatLen              echoDatLen,
         SockAddr               testSock,
         int                    tcpDataLen,
         //-- MMIO / Ready Signal
@@ -207,7 +207,7 @@ void pTOE(
                             RXP_SEND_8801,
                             RXP_NEXT_SESS,  RXP_DONE}      toe_rxpState=RXP_SEND_NOTIF;
     static enum TxpStates { TXP_READ_REQUEST, TXP_REPLY_REQUEST,
-                            TXP_RECV_DATA} toe_txpState=TXP_READ_REQUEST;
+                            TXP_RECV_DATA}                 toe_txpState=TXP_READ_REQUEST;
 
     static int  toe_startupDelay = 0x8000;
     static int  toe_rxpStartupDelay = 100;
@@ -327,28 +327,28 @@ void pTOE(
                 toe_rxByteCnt  = echoDatLen;
                 toe_sessId     = 1;
                 gMaxSimCycles += (echoDatLen / 8);
-                toe_waitEndOfTxTest = 10;
+                toe_waitEndOfTxTest = (echoDatLen / 8) + 25;
                break;
             case 2: //-- Request TSIF to open an active port (with byteCnt==0)
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
                 toe_txByteCnt  = 0;
                 toe_sessId     = 2;
                 gMaxSimCycles += (tcpDataLen / 8);
-                toe_waitEndOfTxTest = (tcpDataLen / 8) + 1;
+                toe_waitEndOfTxTest = (tcpDataLen / 8) + 25;
                 break;
             case 3: //-- Set TSIF in transmit mode and execute test
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
                 toe_txByteCnt  = tcpDataLen;
                 toe_sessId     = 3;
                 gMaxSimCycles += (tcpDataLen / 8);
-                toe_waitEndOfTxTest = (tcpDataLen / 8) + 1;
+                toe_waitEndOfTxTest = (tcpDataLen / 8) + 25;
                 break;
             default:
                 toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
                 toe_rxByteCnt  = echoDatLen;
                 toe_sessId     = DEFAULT_SESSION_ID + toe_sessCnt;
-                gMaxSimCycles += (echoDatLen / 8) + 1;
-                toe_waitEndOfTxTest = 0;
+                gMaxSimCycles += (echoDatLen / 8);
+                toe_waitEndOfTxTest = (echoDatLen / 8) + 25;
                 break;
             }
             toe_hostIp4Addr    = DEFAULT_HOST_IP4_ADDR;
@@ -624,7 +624,7 @@ int main(int argc, char *argv[]) {
     const int   defaultDestHostPortTest = 2718;
     const int   defaultLenOfSegmentTest = 43;
 
-    int         echoLenOfSegment = defaultLenOfSegmentEcho;
+    ap_uint<16> echoLenOfSegment = defaultLenOfSegmentEcho;
     ap_uint<32> testDestHostIpv4 = defaultDestHostIpv4Test;
     ap_uint<16> testDestHostPort = defaultDestHostIpv4Test;
     int         testLenOfSegment = defaultLenOfSegmentTest;
@@ -633,10 +633,12 @@ int main(int argc, char *argv[]) {
     //-- PARSING THE TESBENCH ARGUMENTS
     //------------------------------------------------------
     if (argc >= 2) {
-        echoLenOfSegment = atoi(argv[1]);
-        if ((echoLenOfSegment < 1) or (echoLenOfSegment >= 0x10000)) {
+        if ((atoi(argv[1]) < 1) or (atoi(argv[1]) >= 0x10000)) {
             printFatal(THIS_NAME, "Argument 'len' is out of range [1:65535].\n");
             return NTS_KO;
+        }
+        else {
+            echoLenOfSegment = atoi(argv[1]);
         }
     }
     if (argc >= 3) {

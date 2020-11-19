@@ -118,8 +118,8 @@ void pConnect(
     const char *myName  = concat3(THIS_NAME, "/", "COn");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates{ CON_IDLE, CON_RD_RDp, CON_WR_WRp, \
-                                     CON_OPN_REQ, CON_OPN_REP }
+    static enum FsmStates{ CON_IDLE, CON_RD_RDp,  CON_WR_WRp,    \
+                                     CON_OPN_REQ, CON_OPN_REP } \
                                con_fsmState=CON_IDLE;
     #pragma HLS reset variable=con_fsmState
     static SockAddr            con_testSockAddr;
@@ -251,8 +251,7 @@ void pListen(
     const char *myName = concat3(THIS_NAME, "/", "LSn");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { LSN_IDLE, LSN_SEND_REQ,
-                            LSN_WAIT_REP, LSN_DONE } \
+    static enum FsmStates { LSN_IDLE, LSN_SEND_REQ, LSN_WAIT_REP, LSN_DONE } \
                                lsn_fsmState=LSN_IDLE;
     #pragma HLS reset variable=lsn_fsmState
     static ap_uint<3>          lsn_i = 0;
@@ -343,7 +342,7 @@ void pListen(
         }
         else {
             if (lsn_watchDogTimer == 0) {
-                printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
+                printError(myName, "Timeout: Server failed to listen on port %d (0x%4.4X).\n",
                         LSN_PORT_TABLE[lsn_i].to_uint(), LSN_PORT_TABLE[lsn_i].to_uint());
                 lsn_fsmState = LSN_SEND_REQ;
             }
@@ -477,12 +476,14 @@ void pReadPath(
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { RDP_IDLE=0, RDP_META, RDP_STREAM, RDP_SINK, RDP_8801 } \
+    static enum FsmStates { RDP_IDLE=0,    RDP_8801,
+                            RDP_FWD_META,  RDP_FWD_STREAM,
+                            RDP_SINK_META, RDP_SINK_STREAM } \
                                rdp_fsmState=RDP_IDLE;
     #pragma HLS reset variable=rdp_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    ForwardCmd  rdp_fwdCmd;
+    static ForwardCmd  rdp_fwdCmd;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpAppData  appData;
@@ -493,27 +494,26 @@ void pReadPath(
         if (!siRRh_FwdCmd.empty()) {
             siRRh_FwdCmd.read(rdp_fwdCmd);
             if (rdp_fwdCmd.action == CMD_KEEP) {
-                rdp_fsmState  = RDP_META;
+                rdp_fsmState  = RDP_FWD_META;
             }
             else {
-                if (rdp_fwdCmd.dropCode == GEN) {
-                    rdp_fsmState  = RDP_8801;
-                }
-                else {
-                    rdp_fsmState  = RDP_SINK;
-                }
+                rdp_fsmState  = RDP_SINK_META;
             }
         }
         break;
-    case RDP_META:
+    case RDP_FWD_META:
         if (!siSHL_Meta.empty() and !soTAF_SessId.full() and !soTAF_DatLen.full()) {
             siSHL_Meta.read(sessId);
             soTAF_SessId.write(sessId);
             soTAF_DatLen.write(rdp_fwdCmd.datLen);
-            rdp_fsmState  = RDP_STREAM;
+            if (DEBUG_LEVEL & TRACE_RDP) {
+                printInfo(myName, "soTAF_SessId = %d \n", sessId.to_uint());
+                printInfo(myName, "soTAF_DatLen = %d \n", rdp_fwdCmd.datLen.to_uint());
+            }
+            rdp_fsmState  = RDP_FWD_STREAM;
         }
         break;
-    case RDP_STREAM:
+    case RDP_FWD_STREAM:
         if (!siSHL_Data.empty() and !soTAF_Data.full()) {
             siSHL_Data.read(appData);
             soTAF_Data.write(appData);
@@ -523,7 +523,18 @@ void pReadPath(
             }
         }
         break;
-    case RDP_SINK:
+    case RDP_SINK_META:
+        if (!siSHL_Meta.empty()) {
+            siSHL_Meta.read();
+            if (rdp_fwdCmd.dropCode == GEN) {
+                rdp_fsmState  = RDP_8801;
+            }
+            else {
+                rdp_fsmState  = RDP_SINK_STREAM;
+            }
+        }
+        break;
+    case RDP_SINK_STREAM:
         if (!siSHL_Data.empty()) {
             siSHL_Data.read(appData);
             if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Sink Data =", appData); }
@@ -550,7 +561,7 @@ void pReadPath(
                 rdp_fsmState  = RDP_IDLE;
             }
             else {
-                rdp_fsmState = RDP_SINK;
+                rdp_fsmState = RDP_SINK_STREAM;
             }
         }
     }
@@ -605,7 +616,7 @@ void pWritePath(
                             WRP_STREAM, WRP_TXGEN, WRP_DRAIN } \
                                wrp_fsmState=WRP_IDLE;
     #pragma HLS reset variable=wrp_fsmState
-    static enum GenChunks { CHK0=0, CHK1, } \
+    static enum GenChunks { CHK0=0, CHK1 } \
                                wrp_genChunk=CHK0;
     #pragma HLS reset variable=wrp_genChunk
 
@@ -671,7 +682,8 @@ void pWritePath(
             case NO_SPACE:
                 printWarn(myName, "Not enough space for writing %d bytes in the Tx buffer of session #%d. Available space is %d bytes.\n",
                           appSndRep.length.to_uint(), appSndRep.sessId.to_uint(), appSndRep.spaceLeft.to_uint());
-                if (wrp_retryCnt--) {
+                if (wrp_retryCnt) {
+                    wrp_retryCnt -= 1;
                     wrp_fsmState = WRP_RTS;
                 }
                 else {
