@@ -233,11 +233,15 @@ try:
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
-tcpSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-# STEP-8b: Bind before connect (optional).
-#  This trick enables us to ask the kernel to select a specific source IP and
-#  source PORT by calling bind() before calling connect().
+#  Step-8b: Allow this socket to be re-used and disable the Nagle's algorithm
+# ----------------------------------------------------------------------------
+tcpSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+tcpSock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
+#  STEP-8c: Bind before connect (optional).
+#   This trick enables us to ask the kernel to select a specific source IP and
+#   source PORT by calling bind() before calling connect().
 # -----------------------------------------------------------------------------
 if 0:
     try:
@@ -247,7 +251,7 @@ if 0:
         print("[EXCEPTION] %s" % exc)
         exit(1)
 
-#  STEP-9a: Connect to the remote FPGA
+#  STEP-9a: Connect with remote FPGA
 # -----------------------------------------------------------------------------
 try:
     tcpSock.connect(fpgaAssociation)

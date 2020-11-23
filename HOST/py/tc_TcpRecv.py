@@ -341,9 +341,13 @@ try:
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
-tcpClientSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-# STEP-6c: Connect the host client to the remote FPGA server.
+#  Step-6c: Allow this socket to be re-used and disable the Nagle's algorithm
+# ----------------------------------------------------------------------------
+tcpClientSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+tcpClientSock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
+# STEP-6d: Connect the host client to the remote FPGA server.
 # -----------------------------------------------------------------------------
 try:
     tcpClientSock.connect(fpgaServerAssociation)
