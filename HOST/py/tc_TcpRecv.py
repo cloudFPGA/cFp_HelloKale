@@ -116,8 +116,8 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
                 else:
                     currRxByteCnt += len(data)
                     if verbose:
-                        print("\n[INFO] Loop=%d | RxBytes=%d | " % (loop, len(data)))
-                        # print("RxData=%s\n" % data)
+                        print("\n[INFO] Loop=%6d | RxBytes=%3d | " % (loop, len(data)))
+                        print("RxData=%s" % data)
                         # [FIXME-TODO: assess the stream of received bytes]
                     nonBlockingTrials = 0
                 finally:
@@ -152,7 +152,7 @@ def tcp_rx_loop(clientSock, serverSock, size, ip_da, tcp_dp, count, verbose=Fals
 
 def tcp_rx_ramp(clientSock, serverSock, ip_da, tcp_dp, verbose=False, start=1, end=0xFFFF):
     """TCP Rx Single-Thread Ramp.
-    Requests the FPGA to send 'start-end' number of segments to the HOST, each segment with an
+    Requests the FPGA to send 'start'-'end' number of segments to the HOST, each segment with an
      increasing number of bytes from 'start' to 'end'. Expect the HOST to receive the segments
      on the socket (ip_da, tcp_port). Each segment is made of the following repetitive pattern
      pattern '48692066726f6d200x464d4b553630210a' which decodes into "Hi from FMKU60\n".
@@ -203,6 +203,7 @@ def tcp_rx_ramp(clientSock, serverSock, ip_da, tcp_dp, verbose=False, start=1, e
         # RECEIVE message length bytes from FPGA
         # ---------------------------------------
         currRxByteCnt = 0
+        nonBlockingTrials = 0
         while currRxByteCnt < size:
             try:
                 data = serverSock.recv(MTU)
@@ -215,8 +216,15 @@ def tcp_rx_ramp(clientSock, serverSock, ip_da, tcp_dp, verbose=False, start=1, e
                     print('[ERROR] Socket reading error: {}'.format(str(e)))
                     exit(1)
                 # We just did not receive anything
-                if 0:
-                    print("[DEBUG] So far we received %d bytes out of %d." % (currRxByteCnt, size))
+                if nonBlockingTrials > 1000000:
+                    print('\n[ERROR] Too many socket read attempts ({:d})'.format(nonBlockingTrials))
+                    exit(1)
+                    break
+                else:
+                    nonBlockingTrials += 1
+                if verbose and (nonBlockingTrials % 100 == 0):
+                    # print("[DEBUG] So far we received %d bytes out of %d." % (currRxByteCnt, size))
+                    print(".", end="")
                 continue
             except socket.error as exc:
                 # Any other exception
@@ -226,7 +234,9 @@ def tcp_rx_ramp(clientSock, serverSock, ip_da, tcp_dp, verbose=False, start=1, e
                 currRxByteCnt += len(data)
                 if verbose:
                     print("[INFO] ReqBytes=%d | RxBytes=%d\n" % (size, len(data)))
+                    print("RxData=%s\n" % data)
                     # [FIXME-TODO: assess the stream of received bytes]
+                nonBlockingTrials = 0
             finally:
                 pass
         totalReceivedBytes += currRxByteCnt
@@ -412,17 +422,21 @@ if 1:
     print("[INFO] This testcase is sending traffic from FPGA-to-HOST. It is run with:")
     print("\t\t seed = %d" % seed)
 
+    # [FIXME-Size greater than 2048 is not supported yet because of the ACK-race bug.]
+    TODO_MAX_SEG_SIZE = 2048
     size = args.size
     if size == -1:
-        size = random.randint(1, 0xFFFF)
-    elif size > 0xFFFF:
+        size = random.randint(1, TODO_MAX_SEG_SIZE)
+    elif size > TODO_MAX_SEG_SIZE:
         print('\nERROR: ')
-        print("[ERROR] This test limits the size of the received segments to %d bytes.\n" % 0xFFFF)
+        print("[ERROR] This test limits the size of the received segments to %d bytes.\n" % TODO_MAX_SEG_SIZE)
         exit(1)
-    print("\t\t size = %d" % size)
+    if seed != 0:
+        print("\t\t size = %d" % size)
 
     count = args.loop_count
-    print("\t\t loop = %d" % count)
+    if seed != 0:
+        print("\t\t loop = %d" % count)
 
     verbose = args.verbose
 
@@ -430,14 +444,17 @@ if 1:
     # -------------------------------
     print("[INFO] This run is executed in single-threading mode.\n")
     if seed == 0:
-        tcp_rx_ramp(tcpClientSock, tcpServerSock, ipHost, dpHost, args.verbose,   1,   10)
-        tcp_rx_ramp(tcpClientSock, tcpServerSock, ipHost, dpHost, args.verbose,  11,  100)
-        #tcp_rx_ramp(tcpClientSock, tcpServerSock, ipHost, dpHost, args.verbose, 101, 1000)
+        # [FIXME-Size greater than 2048 not supported yet because of the ACK-race bug.]
+        tcp_rx_ramp(tcpClientSock, tcpServerSock, ipHost, dpHost, args.verbose,    1,   10)
+        tcp_rx_ramp(tcpClientSock, tcpServerSock, ipHost, dpHost, args.verbose,   11,  100)
+        tcp_rx_ramp(tcpClientSock, tcpServerSock, ipHost, dpHost, args.verbose,  101, 1000)
+        tcp_rx_ramp(tcpClientSock, tcpServerSock, ipHost, dpHost, args.verbose, 1001, 2048)
     else:
         tcp_rx_loop(tcpClientSock, tcpServerSock, size, ipHost, dpHost, count, args.verbose)
 
 #  STEP-14: Close sockets
 # -----------------------
+time.sleep(2)
 tcpClientSock.close()
 tcpServerSock.close()
 tcpListenSock.close()

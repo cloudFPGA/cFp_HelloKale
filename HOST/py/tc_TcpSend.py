@@ -29,6 +29,7 @@
 import argparse
 import datetime
 import socket
+import time
 
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
@@ -62,6 +63,9 @@ def tcp_tx_loop(sock, message, count, verbose=False):
         txByteCnt += len(message)
         if verbose:
             print("Loop=%d | TxBytes=%d" % (loop, txByteCnt))
+            # if loop > 10:
+            #     time.sleep(0.1)
+            #     input('Hit <Enter> to continue:')
         loop += 1
     endTime = datetime.datetime.now()
     elapseTime = endTime - startTime
@@ -87,7 +91,7 @@ def tcp_tx_loop(sock, message, count, verbose=False):
 
 
 def tcp_tx_ramp(sock, message, count, verbose=False):
-    """TCP Tx Single-Thread Ramp.
+    """TCP Tx Single-Thread Ramp. Send an incremental number of bytes from 1 to len(message).
      :param sock     The socket to send/receive to/from.
      :param message  The message string to sent.
      :param count    The number of segments to send.
@@ -294,6 +298,7 @@ else:
 
 #  STEP-14: Close socket
 # -----------------------
+time.sleep(2)
 tcpSock.close()
 
 
