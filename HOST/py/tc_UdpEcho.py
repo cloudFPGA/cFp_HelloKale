@@ -185,7 +185,7 @@ def udp_txrx_loop(sock, message, count, verbose=False):
             pass
         loop += 1
     endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime;
+    elapseTime = endTime - startTime
     bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
     print("[INFO] Transferred a total of %d bytes." % rxByteCnt)
     print("#####################################################")

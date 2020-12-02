@@ -173,7 +173,7 @@ def getInstanceId(args):
 
 def restartApp(instId, ipResMngr, portResMngr, user_name, user_passwd):
     """Trigger the role of an FPGA to restart (i.e. perform a SW reset of the role)
-    :param instId:      The instance Id to restart (must be 1-32).
+    :param instId:      The instance Id to restart.
     :param ipResMngr:   The IPv4 address of the cF resource manager.
     :param portResMngr: The TCP port number of the cF resource manager.
     :param user_name:   The user name as used to log in ZYC2.
@@ -202,7 +202,8 @@ def pingFpga(ipFpga):
     :return:        Nothing
     """
     print("Now: Trying to \'ping\' the FPGA: ")
-    rc = os.system("ping -c 2 " + str(ipFpga))
+    # Send 2 PINGs and wait 2 seconds max for each of them (for a total max of 4s)
+    rc = os.system("ping -c 2 -W 2 " + str(ipFpga))
     if rc != 0:
         print("[ERROR] FPGA does not reply to \'ping\'!")
         exit(1)

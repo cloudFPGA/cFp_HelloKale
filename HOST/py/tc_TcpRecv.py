@@ -17,7 +17,7 @@
 # *****************************************************************************
 # * @file       : tc_TcpRecv.py
 # * @brief      : A single-threaded script to receive traffic on the TCP
-# *               connection of an FPGA module.
+# *               connection of an FPGA module (i.e. FPGA --> HOST).
 # *
 # * System:     : cloudFPGA
 # * Component   : cFp_BringUp/ROLE

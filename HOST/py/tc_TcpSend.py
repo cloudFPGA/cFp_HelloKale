@@ -17,7 +17,7 @@
 # *****************************************************************************
 # * @file       : tc_TcpSend.py
 # * @brief      : A single-threaded script to send traffic on the TCP
-# *               connection of an FPGA module.
+# *               connection of an FPGA module (i.e. HOST --> FPGA).
 # *
 # * System:     : cloudFPGA
 # * Component   : cFp_BringUp/ROLE
