@@ -53,7 +53,7 @@ echoed back by the FPGA instance.
 The _HOST/py_ directory contains a set of _Python_ scripts for interacting with the role of the 
 _cFp_Monolithic_ project. 
 
---> **Follow this <[link](./py/README.md)> if you want to read about these scripts.**  
+* Follow this <[link](./py/README.md)> if you want to read about these scripts.  
 
 
 ## Step-4: How To iPerf 
