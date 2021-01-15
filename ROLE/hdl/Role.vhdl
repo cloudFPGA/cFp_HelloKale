@@ -41,7 +41,7 @@ use     UNISIM.vcomponents.all;
 --**  ENTITY  **  FMKU60 ROLE
 --******************************************************************************
 
-entity Role_BringUp is
+entity Role_Kale is
   port (
     --------------------------------------------------------
     -- SHELL / Clock, Reset and Enable Interface
@@ -259,14 +259,14 @@ entity Role_BringUp is
     piTOP_250_00Clk                     : in    std_ulogic   -- Freerunning
   );
   
-end Role_BringUp;
+end Role_Kale;
 
 
 -- *****************************************************************************
 -- **  ARCHITECTURE  **  BRING_UP of ROLE_BRING_UP
 -- *****************************************************************************
 
-architecture BringUp of Role_BringUp is
+architecture BringUp of Role_Kale is
 
   constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;

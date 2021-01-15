@@ -1,12 +1,27 @@
+# /*******************************************************************************
+#  * Copyright 2016 -- 2020 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  *     http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# *******************************************************************************/
+
 #  *
 #  *                       cloudFPGA
-#  *     Copyright IBM Research, All Rights Reserved
 #  *    =============================================
-#  *     Created: Apr 2019
+#  *     Created: May 2018
 #  *     Authors: FAB, WEI, NGL
 #  *
 #  *     Description:
-#  *        TCL file execute the Vivado commands
+#  *        TCL file to execute the Vivado commands
 #  *
 
 
@@ -16,7 +31,6 @@ package require cmdline
 
 # Set the Global Settings used by the SHELL Project
 #-------------------------------------------------------------------------------
-#source xpr_settings.tcl
 source ../../cFDK/SRA/LIB/tcl/xpr_settings.tcl
 
 # import environment Variables
@@ -677,7 +691,7 @@ if { ${link} } {
   open_run synth_1 -name synth_1
   # Link the two dcps together
   #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
-  ### CAVE: link_design is done by open_design in project mode!!
+  ### NOTE: link_design is done by open_design in project mode!!
   # to prevent the "out-of-date" message; we just added an alreday synthesized dcp -> not necessary
   set_property needs_refresh false [get_runs synth_1]
   
@@ -685,6 +699,13 @@ if { ${link} } {
 
   if { $pr } { 
     set constrObj [ get_filesets constrs_1 ]
+    if { $insert_ila } { 
+      # we have to add debug constrains (of the Shell) befor we add PR partitions
+      add_files -fileset ${constrObj} ${rootDir}/TOP/xdc/debug.xdc 
+      my_info_puts "DEBUG XDC ADDED."
+      set_property needs_refresh false [get_runs synth_1]
+    }
+
     set prConstrFile "${xdcDir}/topFMKU60_pr.xdc"
     add_files -fileset ${constrObj} ${prConstrFile} 
     #if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
@@ -734,7 +755,8 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
         catch {open_project ${xprDir}/${xprName}.xpr}
     #}
     
-    if { $insert_ila } { 
+    if { $insert_ila && $forceWithoutBB } { 
+     # only for non-pr flow
      set constrObj [ get_filesets constrs_1 ]
      #add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
      add_files -fileset ${constrObj} ${rootDir}/TOP/xdc/debug.xdc 
@@ -987,14 +1009,24 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       # We are in monolythic flow
       #---------------------------
       catch {open_project ${xprDir}/${xprName}.xpr} 
-      set implObj [ get_runs impl_1 ]     
+      set implObj [ get_runs impl_1 ]
+      #set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
+      #set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
+
+      #catch {open_run impl_1}
+      
       open_run impl_1
       # Request to embed a timestamp into the bitstream
       set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
-      # Generate a static bitstream
+
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
-      # Generate the files for programming the Flash (this is for a 28f512p30e as used by FMKU2995v2)
-      write_cfgmem -force -format mcs -size 64 -interface BPIx16 -loadbit "up 0x00000000  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit" -file  ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.mcs
+      #launch_runs impl_1 -to_step write_bitstream -jobs 8
+      #wait_on_run impl_1
+    
+      # DEBUG probes
+      if { $insert_ila } { 
+        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
+      }
 
     } else {
       #---------------------------
@@ -1018,6 +1050,10 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
             write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
           }
           #close_project
+          # DEBUG probes
+          if { $insert_ila } { 
+            write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+          }
         } 
         # else: do nothing: only impl2 or grey_box will be generated (to save time)
         
@@ -1027,6 +1063,10 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         #source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
+        # DEBUG probes
+        if { $insert_ila } { 
+          write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+        }
       }
 
       if { $bitGen2 } { 
@@ -1043,6 +1083,10 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
           write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         }
         #close_project
+        # DEBUG probes
+        if { $insert_ila } { 
+          write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+        }
       } 
       if { $pr_grey_bitgen } { 
         catch {close_project}
@@ -1057,14 +1101,14 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
     }
 
-    #DEBUG
-    if { $insert_ila } { 
-      if { ${forceWithoutBB} } {
-        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
-      } else {
-        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
-      }
-    }
+    # DEBUG probes
+    # if { $insert_ila } { 
+    #   if { ${forceWithoutBB} } {
+    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
+    #   } else {
+    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+    #   }
+    # }
 
 
     my_puts "################################################################################"
