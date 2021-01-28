@@ -1,49 +1,112 @@
 #!/bin/bash
+# Script to test a series of FPGAs
 
+echo -e " "
+date
+# id 
+echo -e " "
+
+# define functions (the function definition must be placed before any calls to the function)
+# helper function
 HELPER_FUNCTION(){
-echo "********************************************************************************************"
+echo -e "********************************************************************************************"
 echo -e " "
-echo HELP on how to use this script:
+echo -e "HELP on how to use this script:"
 echo -e " "
-echo ./cFp_PeriodicTest-Zyc2.sh {-h STOP_ERROR TCP_SEND TCP_RECV TCP_ECHO UDP_SEND UDP_RECV UDP_ECHO}
+echo -e "./cFp_PeriodicTest-Zyc2.sh {-h STOP_ERROR TCP_SEND TCP_RECV TCP_ECHO UDP_SEND UDP_RECV UDP_ECHO}{-ri RESOURCE_ID}"
 echo -e " "
-echo -h prints this HELP message
-echo options to set ERROR behaviour: 
-echo STOP_ERROR: if given the script stops on ERROR
-echo options to set a test: if given it runs this tests
-echo TCP_SEND TCP_RECV TCP_ECHO UDP_SEND UDP_RECV UDP_ECHO
-echo  -e " "
-echo "To test a series of FPGAs you may use (in bash):"
+echo -e "-h prints this HELP message"
+echo -e "options to set ERROR behaviour: "
+echo -e "STOP_ERROR: if given the script stops on ERROR"
+echo -e "options to set a test: if given it runs this tests"
+echo -e "TCP_SEND TCP_RECV TCP_ECHO UDP_SEND UDP_RECV UDP_ECHO"
 echo -e " "
-echo "for n in {1..500} ;do (echo round nr. $n; ./cFp_PeriodicTest-Zyc2.sh {OPTIONS}; sleep 10 ) | tee -a cFp_PeriodicTest-Zyc2.log ;done"
+echo -e "-ri RESOURCE_ID a specific RESOURCE to test (instead of a random number)"
+echo -e "*** this (pair of) option must be the last when calling the script ***"
 echo -e " "
-echo "********************************************************************************************"
+echo -e "To test a series of FPGAs you may use (in bash):"
+echo -e " "
+echo -e "for n in {1..500} ;do (echo round nr. $n; ./cFp_PeriodicTest-Zyc2.sh {OPTIONS}; sleep 10 ) | tee -a cFp_PeriodicTest-Zyc2.log ;done"
+echo -e " "
+echo -e "********************************************************************************************"
 echo -e " "
 }
 
-# HELPER_FUNCTION
+# delete_instance
+DELETE_INSTANCE(){
+	echo -e " "
+	echo -e "           **** The instance is going to be deleted ****"
+	echo -e " "
+	REPLY=$(curl -X DELETE --header 'Accept: application/json' "http://10.12.0.132:8080/instances/${RESOURCE_ID}?username=${ZYC2_USER}&password=${ZYC2_PASS}")
+	# echo ${REPLY}
+	
+	if $VPN_CHECK ; then 
+		# delete credentials
+		sudo kill $(cat /tmp/zyc2-user-vpn.pid)
+		rm -f /tmp/zyc2-user-vpn.credentials
+		rm -f /tmp/zyc2-user-vpn.conf
+	fi
+}
 
+# test_instance
+PUT_TEST_INSTANCE(){
+	REPLY=$(curl -X PUT --header 'Content-Type: application/x-www-form-urlencoded' --header 'Accept: application/json' -d ${IMAGE_ID_IN} "http://10.12.0.132:8080/administration/test_instance/${RESOURCE_ID}?username=${ZYC2_USER}&password=${ZYC2_PASS}&dont_verify_memory=0")
+	# echo ${REPLY}
+}
+
+# set_status_available
+SET_STATUS_AVAILABLE(){
+	echo -e " "
+	echo -e "**** After a successful test, the status of the FPGA is changed back to available ****"
+	echo -e " "
+
+	REPLY=$(curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' "http://10.12.0.132:8080/resources/${RESOURCE_ID}/status/?username=${ZYC2_USER}&password=${ZYC2_PASS}&new_status=AVAILABLE")
+	# echo ${REPLY}
+}
+
+# get_resource_status
+GET_RESOURCE_STATUS(){
+	# check status of resource
+	REPLY=$(curl -X GET --header 'Accept: application/json' "http://10.12.0.132:8080/resources/${RESOURCE_ID}/status/?username=${ZYC2_USER}&password=${ZYC2_PASS}")
+	# echo ${REPLY}
+}
+
+# get the last argument passed to this script
+NTHARG() {
+    shift $1
+    printf '%s\n' "$1"
+}
+
+# pre-define variables
 STOP_ERROR=false	# if true, exit script if ERROR occurs, else false
 
-TCP_SEND=false   # change to true to run the TcpSend tests
-TCP_RECV=false   # change to true to run the TcpRecv tests
-TCP_ECHO=false   # change to true to run the TcpEcho tests
+TCP_SEND=false  	# change to true to run the TcpSend tests
+TCP_RECV=false  	# change to true to run the TcpRecv tests
+TCP_ECHO=false  	# change to true to run the TcpEcho tests
 
-UDP_SEND=false    # change to true to run the UdpSend tests
-UDP_RECV=false    # change to true to run the UdpRecv tests
-UDP_ECHO=false    # change to true to run the UdpEcho tests
+UDP_SEND=false  	# change to true to run the UdpSend tests
+UDP_RECV=false  	# change to true to run the UdpRecv tests
+UDP_ECHO=false  	# change to true to run the UdpEcho tests
+
+IPERF=true    		# change to false to change running the IPERF test by default
+VPN_CHECK=false		# change to false to change not runnning user_VPN check by default
+RAND=true			# change to false to choose the resource_id not randomly
 
 # set given parameters to true
 for var in "$@" 
 do 
 	if [ $var = "-h" ]; then
 		HELPER_FUNCTION
+	elif [ $var = "-ri" ]; then
+		# get last argument, '-ri' must be the second last
+		RESOURCE_ID=`NTHARG $# "$@"`
+		RAND=false
 	else
 		eval $var=true
     fi
 done
 
-# echo $STOP_ERROR $TCP_SEND $TCP_RECV $TCP_ECHO $UDP_SEND $UDP_RECV $UDP_ECHO
+echo $STOP_ERROR $TCP_SEND $TCP_RECV $TCP_ECHO $UDP_SEND $UDP_RECV $UDP_ECHO $IPERF $VPN_CHECK $RAND $RESOURCE_ID
 
 # Used for testing up to here
 # echo "Press any key to continue"
@@ -56,61 +119,26 @@ done
 	# fi
 # done
 
-# define functions
-# delete_instance
-DELETE_INSTANCE(){
-	echo -e " "
-	echo -e "           **** The instance is going to be deleted ****"
-	echo -e " "
-	REPLY=$(curl -X DELETE --header 'Accept: application/json' "http://10.12.0.132:8080/instances/${INSTANCE_ID}?username=${ZYC2_USER}&password=${ZYC2_PASS}")
-	# echo ${REPLY}
-}
-
-# test_instance
-PUT_TEST_INSTANCE(){
-	REPLY=$(curl -X PUT --header 'Content-Type: application/x-www-form-urlencoded' --header 'Accept: application/json' -d ${IMAGE_ID_IN} "http://10.12.0.132:8080/administration/test_instance/${INSTANCE_ID}?username=${ZYC2_USER}&password=${ZYC2_PASS}&dont_verify_memory=0")
-	# echo ${REPLY}
-}
-
-# set_status_available
-SET_STATUS_AVAILABLE(){
-	echo -e " "
-	echo -e "**** After a successful test, the status of the FPGA is changed back to available ****"
-	echo -e " "
-
-	REPLY=$(curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' "http://10.12.0.132:8080/resources/${INSTANCE_ID}/status/?username=${ZYC2_USER}&password=${ZYC2_PASS}&new_status=AVAILABLE")
-	# echo ${REPLY}
-}
-
-# get_resource_status
-GET_RESOURCE_STATUS(){
-	# check status of resource
-	REPLY=$(curl -X GET --header 'Accept: application/json' "http://10.12.0.132:8080/resources/${INSTANCE_ID}/status/?username=${ZYC2_USER}&password=${ZYC2_PASS}")
-	# echo ${REPLY}
-}
-
-date
-id 
-# copy credentials script
-# cp -f ${ZYC2_USER_VPN_CONFIG} /tmp/zyc2-user-vpn.conf
-# cp -f ${ZYC2_USER_VPN_CREDENTIALS} /tmp/zyc2-user-vpn.credentials
-
-# generate a random INSTANCE_ID in the range of 1..98, 38 and 64 are not valid resources
-while :; do ran=$RANDOM; (($ran < 32760)) && echo $(((ran%98)+1)) && break; done
-INSTANCE_ID=$(((ran%98)+1))
-# INSTANCE_ID=16
+if $RAND ; then 
+	# generate a random RESOURCE_ID in the range of 1..98, 38 and 64 are not valid resources
+	while :; do ran=$RANDOM; (($ran < 32760)) && echo $(((ran%98)+1)) && break; done
+	RESOURCE_ID=$(((ran%98)+1))
+fi
 
 echo -e " "
 echo -e "#####################################################################"
-echo -e "###                  Instance_ID = ${INSTANCE_ID}                               "
+echo -e "###                  RESOURCE_ID = ${RESOURCE_ID}                               "
 echo -e "#####################################################################"
 echo -e " "
 
-if true ; then # change to true to run user VPN check, false otherwise
+if $VPN_CHECK ; then 
 	# Send 4 PINGs and wait 4 seconds max for each of them (for a total max of 16s)  
 	ping -c 4 -W 2 10.12.0.1
 	if [ $? -ne 0 ]; then 
 		# Connect to VPN if not yet
+		# copy credentials
+		cp -f ${ZYC2_USER_VPN_CONFIG} /tmp/zyc2-user-vpn.conf
+		cp -f ${ZYC2_USER_VPN_CREDENTIALS} /tmp/zyc2-user-vpn.credentials
 		sudo openvpn --config /tmp/zyc2-user-vpn.conf --auth-user-pass /tmp/zyc2-user-vpn.credentials --log /tmp/zyc2-user-vpn.log --writepid /tmp/zyc2-user-vpn.pid --daemon
 		sleep 10
 		# Send 4 PINGs and wait 4 seconds max for each of them (for a total max of 16s)  
@@ -120,6 +148,10 @@ if true ; then # change to true to run user VPN check, false otherwise
 		echo -e " "
 		echo -e "###                  user VPN cannot be reached ####"
 		echo -e " "
+		# delete credentials
+		sudo kill $(cat /tmp/zyc2-user-vpn.pid)
+		rm -f /tmp/zyc2-user-vpn.credentials
+		rm -f /tmp/zyc2-user-vpn.conf
 		exit 1
 	else 
 		echo -e " "
@@ -133,23 +165,23 @@ GET_RESOURCE_STATUS
 RESOURCE_STATUS=$(echo $REPLY | jq .status)
 RESOURCE_STATUS="${RESOURCE_STATUS%\"}"
 RESOURCE_STATUS="${RESOURCE_STATUS#\"}"
-echo -e "#### Resource-Nr ${INSTANCE_ID} is ${RESOURCE_STATUS} ####"
+echo -e "#### Resource-Nr ${RESOURCE_ID} is ${RESOURCE_STATUS} ####"
 
 if true ; then # change to true to run the `resource is used` check, false otherwise
 	if [ "$RESOURCE_STATUS" = "USED" ]; then
 		# exit here if resource is used
 		echo -e " "
-		echo -e "#### Resource-Nr ${INSTANCE_ID} is used and not going to be tested! ####"
+		echo -e "#### Resource-Nr ${RESOURCE_ID} is used and not going to be tested! ####"
 		echo -e " "
 		exit 1
 	else 
 		echo -e " "
-		echo "#### Resource-Nr ${INSTANCE_ID} is not used and going to be tested! ####"
+		echo "#### Resource-Nr ${RESOURCE_ID} is not used and going to be tested! ####"
 		echo -e " "
 	fi
 fi
 
-# Test instance programming and get the IP address
+# Test programming the instance and get the IP address
 RESOURCE_STATUS="empty"
 echo -e " "
 echo -e "#####################################################################"
@@ -170,14 +202,15 @@ RESOURCE_STATUS="${RESOURCE_STATUS%\"}"
 RESOURCE_STATUS="${RESOURCE_STATUS#\"}"
 
 if [ "$RESOURCE_STATUS" != "Successfully deployed" ]; then 
-	echo -e "#### programming ERROR Resource-Nr ${INSTANCE_ID} ####"; DELETE_INSTANCE
+	echo -e "#### programming ERROR Resource-Nr ${RESOURCE_ID} ####"
+	FAILURE_MSG=$(echo $REPLY | jq .failure_msg)
+	# FAILURE_MSG="${FAILURE_MSG%\"}"
+	# FAILURE_MSG="${FAILURE_MSG#\"}"
+	echo ${FAILURE_MSG}
+	DELETE_INSTANCE
 	exit 1
-else echo -e "#### Resource-Nr ${INSTANCE_ID} is ${RESOURCE_STATUS} ####"
+else echo -e "#### Resource-Nr ${RESOURCE_ID} is ${RESOURCE_STATUS} ####"
 fi
-
-# RESP_CODE=$(echo ${REPLY:421:3})
-# echo RESP_CODE = ${RESP_CODE}
-# if [ $RESP_CODE > 299 ]; then echo -e "#### ERROR while programming instance Resource-Nr ${INSTANCE_ID} ####"; exit 1; fi; \
 
 ROLE_IP=$(echo $REPLY | jq .role_ip)
 ROLE_IP="${ROLE_IP%\"}"
@@ -207,12 +240,6 @@ pip install -r requirements.txt
 
 LOOP=2
 ZYC2_MSS=1352
-
-STOP_ERROR=false	# if true, exit script if ERROR occurs, else false
-
-# TCP_SEND=false   # change to true to run the TcpSend tests
-# TCP_RECV=false   # change to true to run the TcpRecv tests
-# TCP_ECHO=false   # change to true to run the TcpEcho tests
 
 if $TCP_SEND ; then
 	echo -e " "
@@ -299,13 +326,6 @@ for value in {1..${LOOP}}; \
     if [ $? -ne 0 ]; then echo -e "#### TCP_ECHO_2 ERROR ####"; if $STOP_ERROR; then DELETE_INSTANCE; exit 1; fi; fi; \
   done
 fi
-# IPERF - Host-2-Fpga 
-# iperf -c ${ROLE_IP} -p 8800 -t 10
-# echo -e "Done with 10 seconds of Iperf. \n"
-
-# UDP_SEND=true    # change to true to run the UdpSend tests
-# UDP_RECV=true    # change to true to run the UdpRecv tests
-# UDP_ECHO=true    # change to true to run the UdpEcho tests
 
 if $UDP_SEND ; then
 	echo -e " "
@@ -386,31 +406,29 @@ for value in {1..${LOOP}}; \
     done
 fi
 # IPERF - Host-2-Fpga
-echo -e " "
-echo -e "#####################################################################"
-echo -e "###                 IPERF - Host-2-Fpga TEST                      ###"
-echo -e "#####################################################################"
-echo -e " "
-iperf -c ${ROLE_IP} -p 8800 -u -t 30;
-if [ $? -eq 0 ]; then echo -e "Done with 5 minutes of Iperf. \n"; else  echo "#### ERROR ####"; DELETE_INSTANCE; exit 1; fi;
+if $IPERF ; then
+	echo -e " "
+	echo -e "#####################################################################"
+	echo -e "###                 IPERF - Host-2-Fpga TEST                      ###"
+	echo -e "#####################################################################"
+	echo -e " "
+	iperf -c ${ROLE_IP} -p 8800 -u -t 30;
+	if [ $? -eq 0 ]; then echo -e "Done with Iperf. \n"; else  echo "#### ERROR ####"; DELETE_INSTANCE; exit 1; fi;
+fi
 
 echo -e " "
 echo -e "#####################################################################"
 echo -e "###                    END OF TESTS                               ###"
-echo -e "###                Instance_ID = ${INSTANCE_ID}                               ###"
+echo -e "###                RESOURCE_ID = ${RESOURCE_ID}                               ###"
 echo -e "#####################################################################"
 echo -e " "
-
-DELETE_INSTANCE
 
 SET_STATUS_AVAILABLE
 # echo -e " "
 # echo -e "**** After a successful test, the status of the FPGA is changed back to available ****"
 # echo -e " "
 
-REPLY=$(curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' "http://10.12.0.132:8080/resources/${INSTANCE_ID}/status/?username=${ZYC2_USER}&password=${ZYC2_PASS}&new_status=AVAILABLE")
+REPLY=$(curl -X PUT --header 'Content-Type: application/json' --header 'Accept: application/json' "http://10.12.0.132:8080/resources/${RESOURCE_ID}/status/?username=${ZYC2_USER}&password=${ZYC2_PASS}&new_status=AVAILABLE")
 echo ${REPLY}
 
-# sudo kill $(cat /tmp/zyc2-user-vpn.pid)
-# rm -f /tmp/zyc2-user-vpn.credentials
-# rm -f /tmp/zyc2-user-vpn.conf
+DELETE_INSTANCE
