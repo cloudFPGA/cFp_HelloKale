@@ -19,7 +19,7 @@
  * @brief    : TCP Application Flash (TAF)
  *
  * System:   : cloudFPGA
- * Component : cFp_BringUp / ROLE
+ * Component : cFp_Monolithic / ROLE
  * Language  : Vivado HLS
  *
  *----------------------------------------------------------------------------
