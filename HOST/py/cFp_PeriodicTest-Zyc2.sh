@@ -115,15 +115,15 @@ echo "STOP_ERROR TCP_SEND TCP_RECV TCP_ECHO UDP_SEND UDP_RECV UDP_ECHO IPERF VPN
 echo "$STOP_ERROR       $TCP_SEND    $TCP_RECV    $TCP_ECHO    $UDP_SEND    $UDP_RECV    $UDP_ECHO     $IPERF  $VPN_CHECK     $RAND    $RESOURCE_ID"
 
 # Used for testing up to here and then stop
-echo "Press any key to continue"
-while [ true ] ; do
-	read -t 3 -n 1
-	if [ $? = 0 ] ; then
-		exit
-	else
-		echo "waiting for the keypress"
-	fi
-done
+# echo "Press any key to continue"
+# while [ true ] ; do
+	# read -t 3 -n 1
+	# if [ $? = 0 ] ; then
+		# exit
+	# else
+		# echo "waiting for the keypress"
+	# fi
+# done
 
 if $RAND ; then 
 	# generate a random RESOURCE_ID in the range of 1..98, 38 and 64 are not valid resources
