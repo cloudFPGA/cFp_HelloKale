@@ -93,6 +93,7 @@ IPERF=true    		# change to false to change running the IPERF test by default
 VPN_CHECK=false		# change to false to change not runnning user_VPN check by default
 RAND=true			# change to false to choose the resource_id not randomly
 
+NOT_LAST=true
 # set given parameters to true
 for var in "$@" 
 do 
@@ -102,23 +103,27 @@ do
 		# get last argument, '-ri' must be the second last
 		RESOURCE_ID=`NTHARG $# "$@"`
 		RAND=false
+		NOT_LAST=false
 	else
-		eval $var=true
+		if $NOT_LAST; then
+			eval $var=true
+		fi
     fi
 done
 
-echo $STOP_ERROR $TCP_SEND $TCP_RECV $TCP_ECHO $UDP_SEND $UDP_RECV $UDP_ECHO $IPERF $VPN_CHECK $RAND $RESOURCE_ID
+echo "STOP_ERROR TCP_SEND TCP_RECV TCP_ECHO UDP_SEND UDP_RECV UDP_ECHO IPERF VPN_CHECK RAND RESOURCE_ID"
+echo "$STOP_ERROR       $TCP_SEND    $TCP_RECV    $TCP_ECHO    $UDP_SEND    $UDP_RECV    $UDP_ECHO     $IPERF  $VPN_CHECK     $RAND    $RESOURCE_ID"
 
-# Used for testing up to here
-# echo "Press any key to continue"
-# while [ true ] ; do
-	# read -t 3 -n 1
-	# if [ $? = 0 ] ; then
-		# exit
-	# else
-		# echo "waiting for the keypress"
-	# fi
-# done
+# Used for testing up to here and then stop
+echo "Press any key to continue"
+while [ true ] ; do
+	read -t 3 -n 1
+	if [ $? = 0 ] ; then
+		exit
+	else
+		echo "waiting for the keypress"
+	fi
+done
 
 if $RAND ; then 
 	# generate a random RESOURCE_ID in the range of 1..98, 38 and 64 are not valid resources
