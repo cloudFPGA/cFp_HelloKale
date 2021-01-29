@@ -1,14 +1,28 @@
+# *
+# * Copyright 2016 -- 2020 IBM Corporation
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *
+
 # *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Sep 2018
-# * Authors : Francois Abel  
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the UDP applica-
-# *   tion embedded into the  bring-up role of the cloudFPGA module FMKU60.
+# * Description : A Tcl script to simulate, synthesize and package the current
+# *   HLS core as an IP. This script handles two projects:
+# *     1) 'ip_core' which is used to csim, csynth and cosim, 
+# *     2) 'ip_top'  which is used to export and package the IP. 
 # * 
-# * Synopsis : vivado_hls -f <this_file>
+# * Synopsis: 
+# *    vivado_hls -f <this_file> [ip_core|ip_top]
 # *
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
@@ -17,26 +31,40 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "udp_app_flash"
+set ipName         "udp_app_flash"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
-set ipName         ${projectName}
-set ipDisplayName  "UDP Application for cFp_BringUp/Role"
-set ipDescription  "A set of tests and functions embedded into the bring-up role of the FMKU60."
+set ipDisplayName  "UDP Application Flash"
+set ipDescription  "A set of tests and functions embedded into the bring-up role of the FMKU60"
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
 set ipRtl          "vhdl"
 
-# Set Project Environment Variables  
+# Retrieve the arguments passed to this script
 #-------------------------------------------------
-set currDir        [pwd]
-set srcDir         ${currDir}/src
-set testDir        ${currDir}/test
-set implDir        ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir        ${currDir}/../../ip
+if { $argc == 2 } {
+    set ipProjectName "ip_core"
+} elseif { $argc == 3 } {
+    set ipProjectName [lindex $argv 2]
+    if { ![string equal ${ipProjectName} ip_core] && ![string equal ${ipProjectName} ip_top] } {
+        puts "####"
+        puts "####  ERROR: Unknown project name passed as 3rd argument."
+        puts "####    Expected: -f run_hls.tcl [ip_core|ip_top]"
+        puts "####    Received: $argv"
+        puts "####"
+        exit 2  
+    }
+} else {
+    puts "####"
+    puts "####  ERROR: This script requires 2 or 3 arguments."
+    puts "####    Expected: -f run_hls.tcl [a-project-name]"
+    puts "####    Received: $argv"
+    puts "####"
+    exit 2
+}
 
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
@@ -44,6 +72,12 @@ set hlsCSim        $::env(hlsCSim)
 set hlsCSynth      $::env(hlsCSynth)
 set hlsCoSim       $::env(hlsCoSim)
 set hlsRtl         $::env(hlsRtl)
+
+# Set Project Environment Variables  
+#-------------------------------------------------
+set currDir        [pwd]
+set srcDir         ${currDir}/src
+set testDir        ${currDir}/test
 
 #-------------------------------------------------
 # Retrieve the HLS testbench mode from ENV
@@ -53,7 +87,7 @@ set hlsRtl         $::env(hlsRtl)
 # being verified in C/RTL co-simulation mode. In oder to comply with the 'Interface Synthesis
 # Requirements' of UG902, the design is compiled with a preprocessor macro that statically 
 # defines the testbench mode of operation.
-# This avoid the following error issued when trying to C/RTL co-simulate this component:
+# This avoids the following error issued when trying to C/RTL co-simulate this component:
 #   @E [SIM-345] Cosim only supports the following 'ap_ctrl_none' designs: (1) combinational
 #                designs; (2) pipelined design with task interval of 1; (3) designs with array
 #                streaming or hls_stream ports.
@@ -61,17 +95,24 @@ set hlsRtl         $::env(hlsRtl)
 #---------------------------------------------------------------------------------------------
 if { [info exists ::env(hlsTbMode)] } { set hlsTbMode  $::env(hlsTbMode) } else { set hlsTbMode 0 }
 
-# Open and Setup Project
+# Open Project
 #-------------------------------------------------
-open_project       ${projectName}_prj
-set_top            ${projectName}
+open_project  ${ipProjectName}_prj
 
 # Add files
 #-------------------------------------------------
-add_files          ${currDir}/src/${projectName}.cpp
+add_files          ${currDir}/src/${ipName}.cpp
 add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
 add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
-add_files -tb      ${currDir}/test/test_${projectName}.cpp -cflags -DTB_MODE=${hlsTbMode}
+
+if { [string equal ${ipProjectName} ip_core] } {
+    set_top       ${ipName}
+    add_files -tb ${testDir}/test_${ipName}.cpp -cflags -DTB_MODE=${hlsTbMode}
+} elseif { [string equal ${ipProjectName} ip_top] } {
+    set_top       ${ipName}_top
+    add_files     ${srcDir}/${ipName}_top.cpp
+    add_files -tb ${testDir}/test_${ipName}_top.cpp -cflags -DTB_MODE=${hlsTbMode} 
+}
 
 # Create a solution
 #-------------------------------------------------
@@ -104,8 +145,10 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-# [TODO - Check vivado_hls version and only enable this command if >= 2018]
-# config_rtl -disable_start_propagation
+set VIVADO_VERSION $::env(VIVADO_VERSION)
+if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } { 
+	config_rtl -disable_start_propagation
+}
 
 #----------------------------------------------------
 # Configuring the behavior of the front-end compiler
@@ -122,6 +165,11 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF COMPILATION              ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
     csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_OneDatagram.dat"
     csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_TwoDatagrams.dat"
     csim_design -argv "$hlsTbMode ../../../../test/testVectors/siUSIF_RampDgrmSize.dat"
@@ -187,13 +235,13 @@ if { $hlsCoSim } {
 if { $hlsRtl } {
     switch $hlsRtl {
         1 {
-            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design            -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         2 {
-            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow syn  -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         3 {
-            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow impl -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         default { 
             puts "####  INVALID VALUE ($hlsRtl) ####"
