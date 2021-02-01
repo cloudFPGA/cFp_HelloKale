@@ -381,11 +381,11 @@ else:
 
 #  STEP-10: Setup the test
 # -------------------------------
+print("[INFO] Testcase `%s` is run with:" % (os.path.basename(__file__)))
 seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase is run with:")
 print("\t\t seed = %d" % seed)
 
 size = args.size
@@ -407,6 +407,7 @@ else:
 
 verbose = args.verbose
 
+print("[INFO] This testcase is sending traffic from HOST-to-FPGA and back from FPGA-to-HOST.")
 if args.multi_threading:
     print("[INFO] This run is executed in multi-threading mode.\n")
     #  STEP-11: Create Rx and Tx threads

@@ -283,16 +283,16 @@ finally:
 print("[INFO] Waiting for a connection from remote FPGA")
 tcpServerSock, fpgaClientAssociation = tcpListenSock.accept()
 print("[INFO] Received a connection from FPGA socket address ",  fpgaClientAssociation)
+print()
 
 #  STEP-10: Setup the test
 # -------------------------------
-print()
+print("[INFO] Testcase `%s` is run with:" % (os.path.basename(__file__)))
 if 1:
     seed = args.seed
     if seed == -1:
         seed = random.randint(0, 100000)
     random.seed(seed)
-    print("[INFO] This testcase is sending traffic from FPGA-to-HOST. This testcase is run with:")
     print("\t\t seed = %d" % seed)
 
     size = args.size

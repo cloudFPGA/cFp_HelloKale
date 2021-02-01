@@ -414,16 +414,16 @@ finally:
 print("[INFO] Waiting for a connection from remote FPGA")
 tcpServerSock, fpgaClientAssociation = tcpListenSock.accept()
 print("[INFO] Received a connection from FPGA socket address ",  fpgaClientAssociation)
+print()
 
 #  STEP-10: Setup the test
 # -------------------------------
-print()
+print("[INFO] Testcase `%s` is run with:" % (os.path.basename(__file__)))
 if 1:
     seed = args.seed
     if seed == -1:
         seed = random.randint(0, 100000)
     random.seed(seed)
-    print("[INFO] This testcase is sending traffic from FPGA-to-HOST. It is run with:")
     print("\t\t seed = %d" % seed)
 
     # [FIXME-Size greater than 2048 is not supported yet because of the ACK-race bug.]
@@ -446,6 +446,7 @@ if 1:
 
     #  STEP-11: Run the test
     # -------------------------------
+    print("[INFO] This testcase is sending traffic from FPGA-to-HOST.")
     print("[INFO] This run is executed in single-threading mode.\n")
     if seed == 0:
         # [FIXME-Size greater than 2048 not supported yet because of the ACK-race bug.]

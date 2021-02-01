@@ -276,11 +276,11 @@ print('[INFO] Host server ready to start listening on socket address {%s, %d}' %
 
 #  STEP-10: Setup the test
 # -------------------------------
+print("[INFO] Testcase `%s` is run with:" % (os.path.basename(__file__)))
 seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase is sending traffic from FPGA-to-HOST. This testcase is run with:")
 print("\t\t seed = %d" % seed)
 
 size = args.size
@@ -297,6 +297,7 @@ print("\t\t loop = %d" % count)
 
 #  STEP-11: Run the test
 # -------------------------------
+print("[INFO] This testcase is sending traffic from FPGA-to-HOST.")
 print("[INFO] This run is executed in single-threading mode.\n")
 udp_rx_loop(udpClientSock, udpServerSock, size, ipHost, dpHost, count, args.verbose)
 
