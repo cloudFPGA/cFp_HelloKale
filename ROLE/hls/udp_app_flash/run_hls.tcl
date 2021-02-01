@@ -145,7 +145,7 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-set VIVADO_VERSION $::env(VIVADO_VERSION)
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
 if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } { 
 	config_rtl -disable_start_propagation
 }
