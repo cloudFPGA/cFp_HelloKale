@@ -24,10 +24,10 @@
  *
  *------------------------------------------------------------------------------
  *
- * @details This toplevel implements provides support for the interface synthesis 
- *   process in which arguments and parameters of the core function are synthesized
- *   into RTL ports. The type of interfaces that are created by interface synthesis
- *   are directed by the pragma 'INTERFACE'.
+ * @details This toplevel implements support for the interface synthesis process
+ *   in which arguments and parameters of the core function are synthesized into
+ *   RTL ports. The type of interfaces that are created by interface synthesis
+ *   are directed by the pragma 'HLS INTERFACE'.
  *
  * \ingroup ROLE
  * \addtogroup ROLE_UAF
@@ -45,7 +45,7 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not always work for us.
  ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
+#undef USE_DEPRECATED_DIRECTIVES
 
 
 /*******************************************************************************
@@ -73,13 +73,13 @@ void udp_app_flash_top (
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<UdpAppData>  &siUSIF_Data,
+        stream<AxisRaw>     &siUSIF_Data,
         stream<UdpAppMeta>  &siUSIF_Meta,
 
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<UdpAppData>  &soUSIF_Data,
+        stream<AxisRaw>     &soUSIF_Data,
         stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
@@ -112,18 +112,38 @@ void udp_app_flash_top (
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
 
-    #pragma HLS INTERFACE axis register both port=siUSIF_Data  name=siUSIF_Data
-    #pragma HLS INTERFACE axis register both port=siUSIF_Meta  name=siUSIF_Meta
-    #pragma HLS DATA_PACK                variable=siUSIF_Meta
+    #pragma HLS INTERFACE axis register      port=siUSIF_Data     name=siUSIF_Data
+    #pragma HLS INTERFACE axis register      port=siUSIF_Meta     name=siUSIF_Meta
+    #pragma HLS DATA_PACK                variable=siUSIF_Meta instance=siUSIF_Meta
 
-    #pragma HLS INTERFACE axis register both port=soUSIF_Data  name=soUSIF_Data
-    #pragma HLS INTERFACE axis register both port=soUSIF_Meta  name=soUSIF_Meta
-    #pragma HLS DATA_PACK                variable=soUSIF_Meta
-    #pragma HLS INTERFACE axis register both port=soUSIF_DLen  name=soUSIF_DLen
+    #pragma HLS INTERFACE axis register      port=soUSIF_Data     name=soUSIF_Data
+    #pragma HLS INTERFACE axis register      port=soUSIF_Meta     name=soUSIF_Meta
+	#pragma HLS DATA_PACK                variable=soUSIF_Meta instance=soUSIF_Meta
+    #pragma HLS INTERFACE axis register      port=soUSIF_DLen     name=soUSIF_DLen
+    #pragma HLS DATA_PACK                variable=soUSIF_DLen instance=soUSIF_DLen
 
 #endif
 
+	//-- LOCAL IN and OUT STREAMS ----------------------------------------------
+    static stream<UdpAppData>       ssiUSIF_Data  ("ssiUSIF_Data");
+    #pragma HLS STREAM     variable=ssiUSIF_Data  depth=2
+    static stream<UdpAppMeta>       ssiUSIF_Meta  ("ssiUSIF_Meta");
+    #pragma HLS STREAM     variable=ssiUSIF_Meta  depth=2
 
+    static stream<UdpAppData>       ssoUSIF_Data  ("ssoUSIF_Data");
+    #pragma HLS STREAM     variable=ssoUSIF_Data  depth=2
+    static stream<UdpAppMeta>       ssoUSIF_Meta  ("ssoUSIF_Meta");
+    #pragma HLS STREAM     variable=ssoUSIF_Meta  depth=2
+    static stream<UdpAppDLen>       ssoUSIF_DLen  ("ssoUSIF_DLen");
+    #pragma HLS STREAM     variable=ssoUSIF_DLen  depth=2
+
+    //-- INPUT INTERFACES ------------------------------------------------------
+    if (!siUSIF_Data.empty() and !ssiUSIF_Data.full()) {
+        ssiUSIF_Data.write(siUSIF_Data.read());
+    }
+    if (!siUSIF_Meta.empty() and !ssiUSIF_Meta.full()) {
+        ssiUSIF_Meta.write(siUSIF_Meta.read());
+    }
 
 	//-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_app_flash (
@@ -137,14 +157,25 @@ void udp_app_flash_top (
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
-        siUSIF_Data,
-        siUSIF_Meta,
+        ssiUSIF_Data,
+        ssiUSIF_Meta,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
-        soUSIF_Data,
-        soUSIF_Meta,
-        soUSIF_DLen);
+        ssoUSIF_Data,
+        ssoUSIF_Meta,
+        ssoUSIF_DLen);
+
+    //-- OUTPUT INTERFACES -----------------------------------------------------
+    if (!ssoUSIF_Data.empty() and !soUSIF_Data.full()) {
+        soUSIF_Data.write(ssoUSIF_Data.read());
+    }
+    if (!ssoUSIF_Meta.empty() and !soUSIF_Meta.full()) {
+        soUSIF_Meta.write(ssoUSIF_Meta.read());
+    }
+    if (!ssoUSIF_DLen.empty() and !soUSIF_DLen.full()) {
+        soUSIF_DLen.write(ssoUSIF_DLen.read());
+    }
 
 }
 

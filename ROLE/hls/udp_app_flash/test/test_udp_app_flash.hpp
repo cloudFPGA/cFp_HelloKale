@@ -16,7 +16,7 @@
 
 /*******************************************************************************
  * @file       : test_udp_app_flash.hpp
- * @brief      : Testbench for toplevel of the UDP Application Flash (UAF).
+ * @brief      : Testbench for the UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
  * Component   : cFp_Monolithic / ROLE
@@ -27,10 +27,10 @@
  * \{
  *******************************************************************************/
 
-#ifndef _TEST_UAF_TOP_H_
-#define _TEST_UAF_TOP_H_
+#ifndef _TEST_UAF_H_
+#define _TEST_UAF_H_
 
-#include "../src/udp_app_flash_top.hpp"
+#include "../src/udp_app_flash.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimUdpDatagram.hpp"

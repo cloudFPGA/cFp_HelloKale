@@ -26,9 +26,6 @@
 # * 
 # ******************************************************************************
 
-# OBSOLETE # Name of the HLS core used to build this IP
-# OBSOLETE ipName = udp_app_flash
-
 # Dependencies
 SRC_DEPS := $(shell find ./src -name *.cpp)
 
@@ -107,4 +104,3 @@ ipSyn:                   ## Exports the RTL design and executes logic synthesis 
 ipImpl:                  ## Exports the RTL design and performs both RTL synthesis and implementation
 	$(MAKE) ipClean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl ip_top
-

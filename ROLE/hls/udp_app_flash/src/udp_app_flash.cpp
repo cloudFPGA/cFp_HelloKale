@@ -50,14 +50,6 @@ using namespace hls;
 using namespace std;
 
 /************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we may continue to design
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not always work for us.
- ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
-
-/************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (RXP_TRACE | ESF_TRACE)
  ************************************************/
@@ -456,7 +448,7 @@ void pRxPath(
         }
         break;
     case RXP_META_EPT:
-        if (!siUSIF_Data.empty() and !soEPt_Data.full()) {
+        if (!soEPt_Meta.full() and !soEPt_DLen.full()) {
             //-- Forward incoming metadata to pEchoPathThrough while requesting
             //-- [TXp] to operate in STREAMING-MODE by setting 'DLen' to zero.
             soEPt_Meta.write(rxp_appMeta);
@@ -482,7 +474,6 @@ void pRxPath(
             rxp_fsmState = RXP_DATA_ESF;
         }
         break;
-
     case RXP_DATA_ESF:
         if (!siUSIF_Data.empty() and !soESf_Data.full()) {
             //-- Read incoming data and forward to pEchoStoreAndForward

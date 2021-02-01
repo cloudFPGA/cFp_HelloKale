@@ -269,7 +269,7 @@ end Role_Kale;
 architecture BringUp of Role_Kale is
 
   constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
+  constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
   constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_SIF_DEPRECATED_DIRECTIVES  : boolean := true;
 
@@ -351,7 +351,7 @@ architecture BringUp of Role_Kale is
   --===========================================================================
   --== COMPONENT DECLARATIONS
   --===========================================================================
-  component UdpApplicationFlash is
+  component UdpApplicationFlash_Deprecated is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock, Reset
@@ -393,15 +393,15 @@ architecture BringUp of Role_Kale is
       soUSIF_DLen_tvalid     : out std_logic;
       soUSIF_DLen_tready     : in  std_logic  
     );
-  end component UdpApplicationFlash;
+  end component UdpApplicationFlash_Deprecated;
   
-  component UdpApplicationFlashTodo is
+  component UdpApplicationFlash is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
-      ap_clk                    : in  std_logic;
-      ap_rst_n                  : in  std_logic;
+      ap_clk                 : in  std_logic;
+      ap_rst_n               : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
@@ -417,7 +417,7 @@ architecture BringUp of Role_Kale is
       siUSIF_Data_tvalid     : in  std_logic;
       siUSIF_Data_tready     : out std_logic;
       --
-      siUSIF_Meta_tdata      : in  std_logic_vector(95 downto 0);
+      siUSIF_Meta_tdata      : in  std_logic_vector( 95 downto 0);
       siUSIF_Meta_tvalid     : in  std_logic;
       siUSIF_Meta_tready     : out std_logic;
       --------------------------------------------------------
@@ -429,15 +429,15 @@ architecture BringUp of Role_Kale is
       soUSIF_Data_tvalid     : out std_logic;
       soUSIF_Data_tready     : in  std_logic;
       --               
-      soUSIF_Meta_tdata      : out std_logic_vector(95 downto 0);
+      soUSIF_Meta_tdata      : out std_logic_vector( 95 downto 0);
       soUSIF_Meta_tvalid     : out std_logic;
       soUSIF_Meta_tready     : in  std_logic; 
       --
-      soUSIF_DLen_tdata      : out std_logic_vector(95 downto 0);
-      soUSIF_DLen_tvalid     : out std_logic;
-      soUSIF_DLen_tready     : in  std_logic
+      soUSIF_DLen_V_V_tdata  : out std_logic_vector( 15 downto 0);
+      soUSIF_DLen_V_V_tvalid : out std_logic;
+      soUSIF_DLen_V_V_tready : in  std_logic
     );
-  end component UdpApplicationFlashTodo;
+  end component UdpApplicationFlash;
   
   component TcpApplicationFlash is
     port (
@@ -1305,18 +1305,19 @@ begin
   --#    #######  #####    #         #     # #       #                             #
   --#                                                                              #
   --################################################################################
+  
+  --==========================================================================
+  --==  INST: UDP-APPLICATION_FLASH (UAF) for cFp_BringUp
+  --==   This application implements a set of UDP-oriented tests. The [UAF]
+  --==   connects to the SHELL via a UDP Shell Interface (USIF) block. The
+  --==   main purpose of the [USIF] is to provide a placeholder for the 
+  --==   opening of one or multiple listening port(s). The use of the [USIF] is
+  --==   not a prerequisite, but it is provided here for sake of simplicity.
+  --==========================================================================
 
   gUdpAppFlash : if cUDP_APP_DEPRECATED_DIRECTIVES = true generate
-   
-    --==========================================================================
-    --==  INST: UDP-APPLICATION_FLASH (UAF) for cFp_BringUp
-    --==   This application implements a set of UDP-oriented tests. The [UAF]
-    --==   connects to the SHELL via a UDP Shell Interface (USIF) block. The
-    --==   main purpose of the [USIF] is to provide a placeholder for the 
-    --==   opening of one or multiple listening port(s). The us of the [USIF] is
-    --==   not a prerequisite, but it is provided here for sake of simplicity.
-    --==========================================================================
-    UAF : UdpApplicationFlash
+  
+    UAF : UdpApplicationFlash_Deprecated
       port map (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
@@ -1360,19 +1361,14 @@ begin
       );
     
   else generate
- 
-    --==========================================================================
-    --==  INST: UDP-APPLICATION_FLASH for FMKU60
-    --==   This version of the 'udp_app_flash' has the following interfaces:
-    --==    - one bidirectionnal UDP data stream and one streaming MemoryPort. 
-    --==========================================================================
-    UAF : UdpApplicationFlashTodo
+
+    UAF : UdpApplicationFlash
       port map (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
-        ap_clk                => piSHL_156_25Clk,
-        ap_rst_n              => not piSHL_Mmio_Ly7Rst,
+        ap_clk                 => piSHL_156_25Clk,
+        ap_rst_n               => not piSHL_Mmio_Ly7Rst,
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------      
@@ -1382,31 +1378,31 @@ begin
         --------------------------------------------------------
         -- From USIF / UDP Rx Data Interfaces
         --------------------------------------------------------
-        siUSIF_Data_tdata     => ssUSIF_UAF_Data_tdata,
-        siUSIF_Data_tkeep     => ssUSIF_UAF_Data_tkeep,
-        siUSIF_Data_tlast     => ssUSIF_UAF_Data_tlast,
-        siUSIF_Data_tvalid    => ssUSIF_UAF_Data_tvalid,
-        siUSIF_Data_tready    => ssUSIF_UAF_Data_tready,
+        siUSIF_Data_tdata      => ssUSIF_UAF_Data_tdata,
+        siUSIF_Data_tkeep      => ssUSIF_UAF_Data_tkeep,
+        siUSIF_Data_tlast      => ssUSIF_UAF_Data_tlast,
+        siUSIF_Data_tvalid     => ssUSIF_UAF_Data_tvalid,
+        siUSIF_Data_tready     => ssUSIF_UAF_Data_tready,
         --
-        siUSIF_Meta_tdata     => ssUSIF_UAF_Meta_tdata,
-        siUSIF_Meta_tvalid    => ssUSIF_UAF_Meta_tvalid,
-        siUSIF_Meta_tready    => ssUSIF_UAF_Meta_tready,
+        siUSIF_Meta_tdata      => ssUSIF_UAF_Meta_tdata,
+        siUSIF_Meta_tvalid     => ssUSIF_UAF_Meta_tvalid,
+        siUSIF_Meta_tready     => ssUSIF_UAF_Meta_tready,
         --------------------------------------------------------
         -- To USIF / UDP Tx Data Interfaces
         --------------------------------------------------------
-        soUSIF_Data_tdata     => ssUAF_USIF_Data_tdata ,
-        soUSIF_Data_tkeep     => ssUAF_USIF_Data_tkeep ,
-        soUSIF_Data_tlast     => ssUAF_USIF_Data_tlast ,
-        soUSIF_Data_tvalid    => ssUAF_USIF_Data_tvalid,
-        soUSIF_Data_tready    => ssUAF_USIF_Data_tready,
+        soUSIF_Data_tdata      => ssUAF_USIF_Data_tdata ,
+        soUSIF_Data_tkeep      => ssUAF_USIF_Data_tkeep ,
+        soUSIF_Data_tlast      => ssUAF_USIF_Data_tlast ,
+        soUSIF_Data_tvalid     => ssUAF_USIF_Data_tvalid,
+        soUSIF_Data_tready     => ssUAF_USIF_Data_tready,
         --
-        soUSIF_Meta_tdata     => ssUAF_USIF_Meta_tdata ,
-        soUSIF_Meta_tvalid    => ssUAF_USIF_Meta_tvalid,
-        soUSIF_Meta_tready    => ssUAF_USIF_Meta_tready,
+        soUSIF_Meta_tdata      => ssUAF_USIF_Meta_tdata ,
+        soUSIF_Meta_tvalid     => ssUAF_USIF_Meta_tvalid,
+        soUSIF_Meta_tready     => ssUAF_USIF_Meta_tready,
         --
-        soUSIF_DLen_tdata     => ssUAF_USIF_DLen_tdata ,
-        soUSIF_DLen_tvalid    => ssUAF_USIF_DLen_tvalid,
-        soUSIF_DLen_tready    => ssUAF_USIF_DLen_tready
+        soUSIF_DLen_V_V_tdata  => ssUAF_USIF_DLen_tdata,
+        soUSIF_DLen_V_V_tvalid => ssUAF_USIF_DLen_tvalid,
+        soUSIF_DLen_V_V_tready => ssUAF_USIF_DLen_tready
       );
 
   end generate;
