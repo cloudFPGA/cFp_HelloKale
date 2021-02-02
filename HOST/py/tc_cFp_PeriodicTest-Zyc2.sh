@@ -93,7 +93,9 @@ IPERF=true    		# change to false to change running the IPERF test by default
 VPN_CHECK=false		# change to false to change not runnning user_VPN check by default
 RAND=true			# change to false to choose the resource_id not randomly
 
-NOT_LAST=true
+TEST_RESOURCE=true	# this variable is used to abort if resource does not respond
+
+NOT_LAST=true		# this variable is used to indicate for the last given parameter pair
 # set given parameters to true
 for var in "$@" 
 do 
@@ -171,20 +173,40 @@ GET_RESOURCE_STATUS
 RESOURCE_STATUS=$(echo $REPLY | jq .status)
 RESOURCE_STATUS="${RESOURCE_STATUS%\"}"
 RESOURCE_STATUS="${RESOURCE_STATUS#\"}"
+
+if [[ $RESOURCE_STATUS == 400 ]] || [[ $RESOURCE_STATUS == 401 ]]; then
+	echo -e " "
+	echo "#### Check your credentials ZYC2_USER and ZYC2_PASS  ####"
+	exit 1
+	# exit here if there is a problem with authentication
+fi
+
+if [[ -z "$RESOURCE_STATUS" ]]; then
+   # if variable is empty
+   RESOURCE_STATUS="NO RESPONSE"
+   TEST_RESOURCE=false
+fi
 echo -e "#### Resource-Nr ${RESOURCE_ID} is ${RESOURCE_STATUS} ####"
 
-if true ; then # change to true to run the `resource is used` check, false otherwise
-	if [ "$RESOURCE_STATUS" = "USED" ]; then
-		# exit here if resource is used
-		echo -e " "
-		echo -e "#### Resource-Nr ${RESOURCE_ID} is used and not going to be tested! ####"
-		echo -e " "
-		exit 1
-	else 
-		echo -e " "
-		echo "#### Resource-Nr ${RESOURCE_ID} is not used and going to be tested! ####"
-		echo -e " "
-	fi
+if $TEST_RESOURCE ; then
+	echo -e " "
+	echo -e "#### We got a response from Resource-Nr ${RESOURCE_ID} ####"
+else 	
+	echo -e " "
+	echo "#### Resource-Nr ${RESOURCE_ID} did not respond! ####"
+	# exit here if resource does not respond
+	exit 1
+fi
+
+if [ "$RESOURCE_STATUS" = "USED" ]; then
+	echo -e " "
+	echo -e "#### Resource-Nr ${RESOURCE_ID} is used and not going to be tested! ####"
+	echo -e " "
+	# exit here if resource is used
+	exit 1
+else 
+	echo -e " "
+	echo "#### Resource-Nr ${RESOURCE_ID} is not used and going to be tested! ####"
 fi
 
 # Test programming the instance and get the IP address
@@ -199,7 +221,7 @@ echo -e "**** TODO: Choose automatically the image_id with the latest successful
 # IMAGE_ID_IN='image_id=f372e409-6f12-497e-afe4-d32d31f0bbc8'
 # 2021-01-20
 IMAGE_ID_IN='image_id=866268f3-df01-42e1-8055-625ebead666f'
-echo ${IMAGE_ID_IN}
+echo "Programming with " ${IMAGE_ID_IN}
 
 PUT_TEST_INSTANCE
 
