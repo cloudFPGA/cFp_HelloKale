@@ -268,11 +268,11 @@ tcpSock.settimeout(5)
 
 #  STEP-10: Setup the test
 # -------------------------------
+print("[INFO] Testcase `%s` is run with:" % (os.path.basename(__file__)))
 seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase is sending traffic from HOST-to-FPGA. It is run with:")
 print("\t\t seed = %d" % seed)
 
 size = args.size
@@ -294,7 +294,10 @@ else:
 
 verbose = args.verbose
 
-print("[INFO] This run is executed in single-threading mode.\n")
+#  STEP-11: Run the test
+# -------------------------------
+print("[INFO] This testcase is sending traffic from HOST-to-FPGA. ")
+print("[INFO] It is run in single-threading mode.\n")
 if seed == 0:
     tcp_tx_ramp(tcpSock, message, count, args.verbose)
 else:

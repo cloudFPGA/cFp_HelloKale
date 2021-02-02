@@ -19,7 +19,7 @@
  * @brief      : Testbench for TCP Application Flash.
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (TAF)
+ * Component   : cFp_Monolithic/ROLE/TcpApplicationFlash (TAF)
  * Language    : Vivado HLS
  *
  *               +-----------------------+

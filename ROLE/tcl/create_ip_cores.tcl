@@ -398,7 +398,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : UDP Application Flash
 #------------------------------------------------------------------------------
 set ipModName "UdpApplicationFlash"
-set ipName    "udp_app_flash"
+set ipName    "udp_app_flash_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

@@ -19,7 +19,7 @@
  * @brief      : Testbench for the UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_BringUp / ROLE
  * Language    : Vivado HLS
  *
  *               +-----------------------+
@@ -538,7 +538,7 @@ int main(int argc, char *argv[]) {
     }
     tbMode = EchoCtrl(atoi(argv[1]));
     if (tbMode != sSHL_UAF_Mmio_EchoCtrl) {
-        printFatal(THIS_NAME, "tbMode (%d) does not match TB_MODE (%d).\n", tbMode, TB_MODE);
+        printFatal(THIS_NAME, "tbMode (%d) does not match TB_MODE (%d). Modify the CFLAG and re-compile.\n", tbMode, TB_MODE);
     }
 
     switch (tbMode) {

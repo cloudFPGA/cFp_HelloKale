@@ -397,11 +397,11 @@ udpSock.settimeout(5)
 
 #  STEP-10: Setup the test
 # -------------------------------
+print("[INFO] Testcase `%s` is run with:" % (os.path.basename(__file__)))
 seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase is run with:")
 print("\t\t seed = %d" % seed)
 
 size = args.size
@@ -423,6 +423,7 @@ else:
 
 verbose = args.verbose
 
+print("[INFO] This testcase is sending traffic from HOST-to-FPGA and back from FPGA-to-HOST.")
 if args.multi_threading:
     print("[INFO] This run is executed in multi-threading mode.\n")
     # Global variable
@@ -442,7 +443,7 @@ if args.multi_threading:
     tx_thread.join()
     rx_thread.join()
 else:
-    print("[INFO] The run is executed in single-threading mode.\n")
+    print("[INFO] This run is executed in single-threading mode.\n")
     if seed == 0:
         udp_txrx_ramp(udpSock, message, count, args.verbose)
     else:

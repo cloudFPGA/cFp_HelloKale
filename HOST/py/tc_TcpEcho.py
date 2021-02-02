@@ -133,34 +133,40 @@ def tcp_txrx_loop(sock, message, count, verbose=False):
         print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
               (len(message), count, message.decode()))
     nrErr = 0
-    loop = 0
+    txMssgCnt = 0
+    rxMssgCnt = 0
     rxByteCnt = 0
+    txStream = ""
+    rxStream = ""
+
+    # Init the Tx reference stream
+    for i in range(count):
+        txStream = txStream + message.decode()
+
     startTime = datetime.datetime.now()
-    while loop < count:
-        #  Send segment
-        # -------------------
-        try:
-            tcpSock.sendall(message)
-        finally:
-            pass
-        #  Receive segment
-        # -------------------
+
+    while rxByteCnt < (count * len(message)):
+        if txMssgCnt < count:
+            #  Send a new message
+            # ------------------------
+            try:
+                tcpSock.sendall(message)
+                txMssgCnt += 1
+            finally:
+                pass
+
+        #  Receive a segment
+        # --------------------
         try:
             data = tcpSock.recv(len(message))
             rxByteCnt += len(data)
-            if data == message:
-                if verbose:
-                    print("Loop=%d | RxBytes=%d" % (loop, rxByteCnt))
-            else:
-                print("Loop=%d | RxBytes=%d" % (loop, rxByteCnt))
-                print(" KO | Received  Message=%s" % data.decode())
-                print("    | Expecting Message=%s" % message)
-                nrErr += 1
+            rxMssgCnt += 1
         except IOError as e:
-            # On non blocking connections - when there are no incoming data, error is going to be raised
-            # Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
-            # We are going to check for both - if one of them - that's expected, means no incoming data,
-            # continue as normal. If we got different error code - something happened
+            # On non blocking connections - when there are no incoming data, error is going to be
+            # raised. Some operating systems will indicate that using AGAIN, and some using
+            # WOULDBLOCK error code.  We are going to check for both - if one of them - that's
+            # expected, means no incoming data, continue as normal. If we got different error code,
+            # something happened
             if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                 print('[ERROR] Socket reading error: {}'.format(str(e)))
                 exit(1)
@@ -172,8 +178,18 @@ def tcp_txrx_loop(sock, message, count, verbose=False):
             # exit(1)
         finally:
             pass
-        loop += 1
+        rxStream = rxStream + data.decode()
+
     endTime = datetime.datetime.now()
+
+    # Compare Tx and Rx stream
+    if rxStream != txStream:
+        print(" KO | Received stream = %s" % data.decode())
+        print("    | Expected stream = %s" % rxStream)
+        nrErr += 1
+    elif verbose:
+        print(" OK | Received %d bytes in %d messages." % (rxByteCnt, rxMssgCnt))
+
     elapseTime = endTime - startTime;
     bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
     print("[INFO] Transferred a total of %d bytes." % rxByteCnt)
@@ -381,11 +397,11 @@ else:
 
 #  STEP-10: Setup the test
 # -------------------------------
+print("[INFO] Testcase `%s` is run with:" % (os.path.basename(__file__)))
 seed = args.seed
 if seed == -1:
     seed = random.randint(0, 100000)
 random.seed(seed)
-print("[INFO] This testcase is run with:")
 print("\t\t seed = %d" % seed)
 
 size = args.size
@@ -407,6 +423,7 @@ else:
 
 verbose = args.verbose
 
+print("[INFO] This testcase is sending traffic from HOST-to-FPGA and back from FPGA-to-HOST.")
 if args.multi_threading:
     print("[INFO] This run is executed in multi-threading mode.\n")
     #  STEP-11: Create Rx and Tx threads

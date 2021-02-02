@@ -50,14 +50,6 @@ using namespace hls;
 using namespace std;
 
 /************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we may continue to design
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not always work for us.
- ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
-
-/************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (RXP_TRACE | ESF_TRACE)
  ************************************************/
@@ -456,7 +448,7 @@ void pRxPath(
         }
         break;
     case RXP_META_EPT:
-        if (!siUSIF_Data.empty() and !soEPt_Data.full()) {
+        if (!soEPt_Meta.full() and !soEPt_DLen.full()) {
             //-- Forward incoming metadata to pEchoPathThrough while requesting
             //-- [TXp] to operate in STREAMING-MODE by setting 'DLen' to zero.
             soEPt_Meta.write(rxp_appMeta);
@@ -482,7 +474,6 @@ void pRxPath(
             rxp_fsmState = RXP_DATA_ESF;
         }
         break;
-
     case RXP_DATA_ESF:
         if (!siUSIF_Data.empty() and !soESf_Data.full()) {
             //-- Read incoming data and forward to pEchoStoreAndForward
@@ -598,46 +589,6 @@ void udp_app_flash (
         stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
-    /*********************************************************************/
-    /*** For the time being, we continue designing with the DEPRECATED ***/
-    /*** directives because the new PRAGMAs do not work for us.        ***/
-    /*********************************************************************/
-
-    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_EchoCtrl
-    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
-    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
-
-    #pragma HLS resource core=AXI4Stream variable=siUSIF_Data    metadata="-bus_bundle siUSIF_Data"
-    #pragma HLS resource core=AXI4Stream variable=siUSIF_Meta    metadata="-bus_bundle siUSIF_Meta"
-    #pragma HLS DATA_PACK                variable=siUSIF_Meta
-
-    #pragma HLS resource core=AXI4Stream variable=soUSIF_Data    metadata="-bus_bundle soUSIF_Data"
-    #pragma HLS resource core=AXI4Stream variable=soUSIF_Meta    metadata="-bus_bundle soUSIF_Meta"
-    #pragma HLS DATA_PACK                variable=soUSIF_Meta
-    #pragma HLS resource core=AXI4Stream variable=soUSIF_DLen    metadata="-bus_bundle soUSIF_DLen"
-
-#else
-
-    //[NOT_USED] #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_EchoCtrl  name=piSHL_Mmio_EchoCtrl
-    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
-    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
-
-    #pragma HLS INTERFACE axis register both port=siUSIF_Data  name=siUSIF_Data
-    #pragma HLS INTERFACE axis register both port=siUSIF_Meta  name=siUSIF_Meta
-    #pragma HLS DATA_PACK                variable=siUSIF_Meta
-
-    #pragma HLS INTERFACE axis register both port=soUSIF_Data  name=soUSIF_Data
-    #pragma HLS INTERFACE axis register both port=soUSIF_Meta  name=soUSIF_Meta
-    #pragma HLS DATA_PACK                variable=soUSIF_Meta
-    #pragma HLS INTERFACE axis register both port=soUSIF_DLen  name=soUSIF_DLen
-
-#endif
-
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
 
