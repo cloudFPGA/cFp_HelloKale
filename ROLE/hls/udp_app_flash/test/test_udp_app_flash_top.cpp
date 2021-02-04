@@ -15,7 +15,7 @@
  */
 
 /*******************************************************************************
- * @file       : test_udp_app_flash.cpp
+ * @file       : test_udp_app_flash_top.cpp
  * @brief      : Testbench for toplevel of the UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
@@ -53,6 +53,8 @@ void stepSim() {
  *******************************************************************************/
 int main(int argc, char *argv[]) {
 
+    gSimCycCnt = 0;  // Simulation cycle counter as a global variable
+
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
@@ -63,7 +65,7 @@ int main(int argc, char *argv[]) {
     stream<UdpAppDLen>  ssUAF_USIF_DLen  ("ssUAF_USIF_DLen");
 
     printInfo(THIS_NAME, "#####################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH STARTS HERE                           ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_udp_app_flash_top' STARTS HERE  ##\n");
     printInfo(THIS_NAME, "#####################################################\n");
     printInfo(THIS_NAME, "  FYI - This testbench does nothing. \n");
     printInfo(THIS_NAME, "        It is just provided here for compilation purpose.\n\n");
@@ -87,9 +89,9 @@ int main(int argc, char *argv[]) {
     	stepSim();
     }
 
-    printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_udp_app_flash_top' ENDS HERE (RC=0)                    ##\n");
-    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_udp_app_flash_top' ENDS HERE (RC=0)        ##\n");
+    printInfo(THIS_NAME, "################################################################\n");
     stepSim();
 
     return 0;  // Always

@@ -35,13 +35,13 @@
 #ifndef _TAF_H_
 #define _TAF_H_
 
-#include <stdio.h>
-#include <fstream>
-#include <string>
-#include <math.h>
-#include <hls_stream.h>
-#include "ap_int.h"
-#include <stdint.h>
+//OBSOLETE #include <stdio.h>
+//OBSOLETE #include <fstream>
+//OBSOLETE #include <string>
+//OBSOLETE #include <math.h>
+//OBSOLETE #include <hls_stream.h>
+//OBSOLETE #include "ap_int.h"
+//OBSOLETE #include <stdint.h>
 
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
@@ -74,27 +74,22 @@ enum EchoCtrl {
  *
  *******************************************************************************/
 void tcp_app_flash (
-
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
         ap_uint<2>          *piSHL_MmioEchoCtrl,
-        //[NOT_USED] CmdBit              *piSHL_MmioPostSegEn,
-        //[NOT_USED] CmdBit              *piSHL_MmioCaptSegEn,
-
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
-        stream<TcpAppData>  &siSHL_Data,
-        stream<TcpSessId>   &siSHL_SessId,
-        stream<TcpDatLen>   &siSHL_DatLen,
-
+        stream<TcpAppData>  &siTSIF_Data,
+        stream<TcpSessId>   &siTSIF_SessId,
+        stream<TcpDatLen>   &siTSIF_DatLen,
         //------------------------------------------------------
         //-- SHELL / TCP Tx Data Interface
         //------------------------------------------------------
-        stream<TcpAppData>  &soSHL_Data,
-        stream<TcpSessId>   &soSHL_SessId,
-        stream<TcpDatLen>   &soSHL_DatLen
+        stream<TcpAppData>  &soTSIF_Data,
+        stream<TcpSessId>   &soTSIF_SessId,
+        stream<TcpDatLen>   &soTSIF_DatLen
 );
 
 #endif

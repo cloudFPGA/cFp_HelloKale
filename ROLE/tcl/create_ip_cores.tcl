@@ -413,7 +413,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : TCP Application Flash 
 #------------------------------------------------------------------------------
 set ipModName "TcpApplicationFlash"
-set ipName    "tcp_app_flash"
+set ipName    "tcp_app_flash_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

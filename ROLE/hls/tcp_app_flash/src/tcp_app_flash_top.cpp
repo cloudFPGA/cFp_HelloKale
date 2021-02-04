@@ -60,7 +60,6 @@ using namespace std;
  *
  *******************************************************************************/
 void tcp_app_flash_top (
-
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
@@ -82,12 +81,10 @@ void tcp_app_flash_top (
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
-
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
-
     #pragma HLS INTERFACE ap_stable    port=piSHL_MmioEchoCtrl
 
     #pragma HLS resource core=AXI4Stream variable=siTSIF_Data   metadata="-bus_bundle siTSIF_Data"
@@ -97,60 +94,73 @@ void tcp_app_flash_top (
     #pragma HLS resource core=AXI4Stream variable=soTSIF_Data   metadata="-bus_bundle soTSIF_Data"
     #pragma HLS resource core=AXI4Stream variable=soTSIF_SessId metadata="-bus_bundle soTSIF_SessId"
     #pragma HLS resource core=AXI4Stream variable=soTSIF_DatLen metadata="-bus_bundle soTSIF_DatLen"
-
 #else
+    #pragma HLS INTERFACE ap_stable      port=piSHL_MmioEchoCtrl
 
-    #pragma HLS INTERFACE ap_stable          port=piSHL_MmioEchoCtrl
+    #pragma HLS INTERFACE axis register  port=siTSIF_Data   name=siTSIF_Data
+    #pragma HLS INTERFACE axis register  port=siTSIF_SessId name=siTSIF_SessId
+    #pragma HLS INTERFACE axis register  port=siTSIF_DatLen name=siTSIF_DatLen
 
-    // [INFO] Always add "register off" because (default value is "both")
-    #pragma HLS INTERFACE axis register      port=siTSIF_Data
-    #pragma HLS INTERFACE axis register      port=siTSIF_SessId      name=siTSIF_SessId
-    #pragma HLS INTERFACE axis register      port=siTSIF_DatLen      name=siTSIF_DatLen
-    #pragma HLS INTERFACE axis register      port=soTSIF_Data        name=soTSIF_Data
-    #pragma HLS INTERFACE axis register      port=soTSIF_SessId      name=soTSIF_SessId
-    #pragma HLS INTERFACE axis register      port=soTSIF_DatLen      name=soTSIF_DatLen
-
+    #pragma HLS INTERFACE axis register  port=soTSIF_Data   name=soTSIF_Data
+    #pragma HLS INTERFACE axis register  port=soTSIF_SessId name=soTSIF_SessId
+    #pragma HLS INTERFACE axis register  port=soTSIF_DatLen name=soTSIF_DatLen
 #endif
 
-    //-- LOCAL 'AxisRaw' IN and OUT STREAMS ------------------------------------
-    static stream<TcpAppData>   ssiTSIF_Data   ("ssiTSIF_Data");
-    #pragma HLS STREAM variable=ssiTSIF_Data   depth=2
+    //-- LOCAL IN and OUT STREAMS ----------------------------------------------
+    static stream<TcpAppData>   ssiTSIF_Data    ("ssiTSIF_Data");
+    #pragma HLS STREAM variable=ssiTSIF_Data    depth=2
+    static stream<TcpSessId>    ssiTSIF_SessId  ("ssiTSIF_SessId");
+    #pragma HLS STREAM variable=ssiTSIF_SessId  depth=2
+    static stream<TcpDatLen>    ssiTSIF_DatLen  ("ssiTSIF_DatLen");
+    #pragma HLS STREAM variable=ssiTSIF_DatLen  depth=2
 
-    static stream<TcpAppData>   ssoTSIF_Data   ("ssoTSIF_Data");
-    #pragma HLS STREAM variable=ssoTSIF_Data   depth=2
+    static stream<TcpAppData>   ssoTSIF_Data    ("ssoTSIF_Data");
+    #pragma HLS STREAM variable=ssoTSIF_Data    depth=2
+    static stream<TcpSessId>    ssoTSIF_SessId  ("ssoTSIF_SessId");
+    #pragma HLS STREAM variable=ssoTSIF_SessId  depth=2
+    static stream<TcpDatLen>    ssoTSIF_DatLen  ("ssoTSIF_DatLen");
+    #pragma HLS STREAM variable=ssoTSIF_DatLen  depth=2
+
 
     //-- INPUT INTERFACES ------------------------------------------------------
     if (!siTSIF_Data.empty() and !ssiTSIF_Data.full()) {
         ssiTSIF_Data.write(siTSIF_Data.read());
     }
+    if (!siTSIF_SessId.empty() and !ssiTSIF_SessId.full()) {
+        ssiTSIF_SessId.write(siTSIF_SessId.read());
+    }
+    if (!siTSIF_DatLen.empty() and !ssiTSIF_DatLen.full()) {
+        ssiTSIF_DatLen.write(siTSIF_DatLen.read());
+    }
 
 	//-- INSTANTIATE TOPLEVEL --------------------------------------------------
     tcp_app_flash (
-
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          *piSHL_MmioEchoCtrl,
-        //[NOT_USED] CmdBit              *piSHL_MmioPostSegEn,
-        //[NOT_USED] CmdBit              *piSHL_MmioCaptSegEn,
-
+        piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
-        stream<TcpAppData>  &siTSIF_Data,
-        stream<TcpSessId>   &siTSIF_SessId,
-        stream<TcpDatLen>   &siTSIF_DatLen,
-
+        ssiTSIF_Data,
+        ssiTSIF_SessId,
+        ssiTSIF_DatLen,
         //------------------------------------------------------
         //-- SHELL / TCP Tx Data Interface
         //------------------------------------------------------
-        stream<TcpAppData>  &soTSIF_Data,
-        stream<TcpSessId>   &soTSIF_SessId,
-        stream<TcpDatLen>   &soTSIF_DatLen);
+        ssoTSIF_Data,
+        ssoTSIF_SessId,
+        ssoTSIF_DatLen);
 
     //-- OUTPUT INTERFACES -----------------------------------------------------
     if (!ssoTSIF_Data.empty() and !soTSIF_Data.full()) {
         soTSIF_Data.write(ssoTSIF_Data.read());
+    }
+    if (!ssoTSIF_SessId.empty() and !soTSIF_SessId.full()) {
+        soTSIF_SessId.write(ssoTSIF_SessId.read());
+    }
+    if (!ssoTSIF_DatLen.empty() and !soTSIF_DatLen.full()) {
+        soTSIF_DatLen.write(ssoTSIF_DatLen.read());
     }
 
 }

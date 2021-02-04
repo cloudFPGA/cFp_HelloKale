@@ -43,6 +43,7 @@
 //OBSOLETE #include "ap_int.h"
 //OBSOLETE #include <stdint.h>
 
+#include "../src/tcp_app_flash_top.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
@@ -74,28 +75,22 @@ enum EchoCtrl {
  *
  *******************************************************************************/
 void tcp_app_flash_top (
-
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
         ap_uint<2>          *piSHL_MmioEchoCtrl,
-        //[NOT_USED] CmdBit              *piSHL_MmioPostSegEn,
-        //[NOT_USED] CmdBit              *piSHL_MmioCaptSegEn,
-
         //------------------------------------------------------
         //-- TSIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<TcpAppData>  &siSHL_Data,
-        stream<TcpSessId>   &siSHL_SessId,
-        stream<TcpDatLen>   &siSHL_DatLen,
-
+        stream<AxisRaw>     &siTSIF_Data,
+        stream<TcpSessId>   &siTSIF_SessId,
+        stream<TcpDatLen>   &siTSIF_DatLen,
         //------------------------------------------------------
         //-- TSIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<TcpAppData>  &soSHL_Data,
-        stream<TcpSessId>   &soSHL_SessId,
-        stream<TcpDatLen>   &soSHL_DatLen
-
+        stream<AxisRaw>     &soTSIF_Data,
+        stream<TcpSessId>   &soTSIF_SessId,
+        stream<TcpDatLen>   &soTSIF_DatLen
 );
 
 #endif

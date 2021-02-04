@@ -63,9 +63,7 @@ int main(int argc, char *argv[]) {
     //-- DUT SIGNAL INTERFACES
     //------------------------------------------------------
     //-- MMIO/ Configuration Interfaces
-    ap_uint<2>          sMMIO_TAF_EchoCtrl;
-    //[NOT_USED] CmdBit sMMIO_TAF_PostSegEn;
-    //[NOT_USED] CmdBit sMMIO_TAF_CaptSegEn;
+    ap_uint<2>          sMMIO_TAF_EchoCtrl = 0;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
@@ -92,7 +90,7 @@ int main(int argc, char *argv[]) {
     //-- Run DUT simulation
     int tbRun = 42;
     while (tbRun) {
-    	tcp_app_flash_top(
+        tcp_app_flash_top(
             //-- SHELL / MMIO / Configuration Interfaces
             &sMMIO_TAF_EchoCtrl,
             //-- TSIF / Rx Data Interfaces

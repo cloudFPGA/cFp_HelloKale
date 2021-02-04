@@ -422,43 +422,8 @@ void tcp_app_flash (
         stream<TcpDatLen>   &soSHL_DatLen)
 {
 
-    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
-    /*********************************************************************/
-    /*** For the time being, we continue designing with the DEPRECATED ***/
-    /*** directives because the new PRAGMAs do not work for us.        ***/
-    /*********************************************************************/
-
-    #pragma HLS INTERFACE ap_stable    port=piSHL_MmioEchoCtrl
-
-    #pragma HLS resource core=AXI4Stream variable=siSHL_Data   metadata="-bus_bundle siSHL_Data"
-    #pragma HLS resource core=AXI4Stream variable=siSHL_SessId metadata="-bus_bundle siSHL_SessId"
-    #pragma HLS resource core=AXI4Stream variable=siSHL_DatLen metadata="-bus_bundle siSHL_DatLen"
-
-    #pragma HLS resource core=AXI4Stream variable=soSHL_Data   metadata="-bus_bundle soSHL_Data"
-    #pragma HLS resource core=AXI4Stream variable=soSHL_SessId metadata="-bus_bundle soSHL_SessId"
-    #pragma HLS resource core=AXI4Stream variable=soSHL_DatLen metadata="-bus_bundle soSHL_DatLen"
-
-#else
-
-    #pragma HLS INTERFACE ap_stable          port=piSHL_MmioEchoCtrl
-
-    // [INFO] Always add "register off" because (default value is "both")
-    #pragma HLS INTERFACE axis register both port=siSHL_Data
-    #pragma HLS INTERFACE axis register both port=siSHL_SessId      name=siSHL_SessId
-    #pragma HLS INTERFACE axis register both port=siSHL_DatLen      name=siSHL_DatLen
-    #pragma HLS INTERFACE axis register both port=soSHL_Data        name=soSHL_Data
-    #pragma HLS INTERFACE axis register both port=soSHL_SessId      name=soSHL_SessId
-    #pragma HLS INTERFACE axis register both port=soSHL_DatLen      name=soSHL_DatLen
-
-#endif
-
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)

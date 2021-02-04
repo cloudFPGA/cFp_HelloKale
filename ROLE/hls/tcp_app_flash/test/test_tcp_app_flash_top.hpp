@@ -35,7 +35,7 @@
 #include <iostream>
 #include <hls_stream.h>
 
-#include "../src/tcp_app_flash.hpp"
+#include "../src/tcp_app_flash_top.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimAppData.hpp"
 

@@ -23,7 +23,7 @@
 -- *    of the FPGA module. 
 -- *    The current role implements a set of TCP, UDP and DDR4 tests for the  
 -- *    bring-up of the FPGA module FMKU60. This role is typically paired with
--- *    the shell 'Kale' by the cloudFPGA project 'cFp_BringUp'.
+-- *    the shell 'Kale' by the cloudFPGA project 'cFp_Monolithic'.
 -- *
 -- *****************************************************************************
 
@@ -268,7 +268,7 @@ end Role_Kale;
 
 architecture BringUp of Role_Kale is
 
-  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
+  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
   constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
   constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := true;
   constant cUDP_SIF_DEPRECATED_DIRECTIVES  : boolean := true;
@@ -439,51 +439,99 @@ architecture BringUp of Role_Kale is
     );
   end component UdpApplicationFlash;
   
-  component TcpApplicationFlash is
+  component TcpApplicationFlash_Deprecated is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
-      aclk                  : in  std_logic;
-      aresetn               : in  std_logic;    
+      aclk                   : in  std_logic;
+      aresetn                : in  std_logic;    
       ------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       ------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      piSHL_MmioEchoCtrl_V   : in  std_logic_vector(  1 downto 0);
       --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
       --[NOT_USED] piSHL_MmioCaptSegEn_V : in  std_logic;      
       --------------------------------------------------------
       -- From SHELL / Tcp Data Interfaces
       --------------------------------------------------------
-      siSHL_Data_tdata      : in  std_logic_vector( 63 downto 0);
-      siSHL_Data_tkeep      : in  std_logic_vector(  7 downto 0);
-      siSHL_Data_tlast      : in  std_logic;
-      siSHL_Data_tvalid     : in  std_logic;
-      siSHL_Data_tready     : out std_logic;
+      siTSIF_Data_tdata      : in  std_logic_vector( 63 downto 0);
+      siTSIF_Data_tkeep      : in  std_logic_vector(  7 downto 0);
+      siTSIF_Data_tlast      : in  std_logic;
+      siTSIF_Data_tvalid     : in  std_logic;
+      siTSIF_Data_tready     : out std_logic;
       --
-      siSHL_SessId_tdata    : in  std_logic_vector( 15 downto 0);
-      siSHL_SessId_tvalid   : in  std_logic;
-      siSHL_SessId_tready   : out std_logic;
+      siTSIF_SessId_tdata    : in  std_logic_vector( 15 downto 0);
+      siTSIF_SessId_tvalid   : in  std_logic;
+      siTSIF_SessId_tready   : out std_logic;
       --
-      siSHL_DatLen_tdata    : in  std_logic_vector( 15 downto 0);
-      siSHL_DatLen_tvalid   : in  std_logic;
-      siSHL_DatLen_tready   : out std_logic;
+      siTSIF_DatLen_tdata    : in  std_logic_vector( 15 downto 0);
+      siTSIF_DatLen_tvalid   : in  std_logic;
+      siTSIF_DatLen_tready   : out std_logic;
       --------------------------------------------------------
       -- To SHELL / Tcp Data Interfaces
       --------------------------------------------------------
-      soSHL_Data_tdata      : out std_logic_vector( 63 downto 0);
-      soSHL_Data_tkeep      : out std_logic_vector(  7 downto 0);
-      soSHL_Data_tlast      : out std_logic;
-      soSHL_Data_tvalid     : out std_logic;
-      soSHL_Data_tready     : in  std_logic;
+      soTSIF_Data_tdata      : out std_logic_vector( 63 downto 0);
+      soTSIF_Data_tkeep      : out std_logic_vector(  7 downto 0);
+      soTSIF_Data_tlast      : out std_logic;
+      soTSIF_Data_tvalid     : out std_logic;
+      soTSIF_Data_tready     : in  std_logic;
       --
-      soSHL_SessId_tdata    : out std_logic_vector( 15 downto 0);
-      soSHL_SessId_tvalid   : out std_logic;
-      soSHL_SessId_tready   : in  std_logic;
+      soTSIF_SessId_tdata    : out std_logic_vector( 15 downto 0);
+      soTSIF_SessId_tvalid   : out std_logic;
+      soTSIF_SessId_tready   : in  std_logic;
       --
-      soSHL_DatLen_tdata    : out std_logic_vector( 15 downto 0);
-      soSHL_DatLen_tvalid   : out std_logic;
-      soSHL_DatLen_tready   : in  std_logic
+      soTSIF_DatLen_tdata    : out std_logic_vector( 15 downto 0);
+      soTSIF_DatLen_tvalid   : out std_logic;
+      soTSIF_DatLen_tready   : in  std_logic
+    );
+  end component TcpApplicationFlash_Deprecated;
+ 
+  component TcpApplicationFlash is
+    port (
+      ------------------------------------------------------
+      -- From SHELL / Clock and Reset
+      ------------------------------------------------------
+      ap_clk                   : in  std_logic;
+      ap_rst_n                 : in  std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Mmio Interfaces
+      --------------------------------------------------------       
+      piSHL_MmioEchoCtrl_V     : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
+      --[NOT_USED] piSHL_MmioCaptSegEn   : in  std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Tcp Data Interfaces
+      --------------------------------------------------------
+      siTSIF_Data_tdata        : in  std_logic_vector( 63 downto 0);
+      siTSIF_Data_tkeep        : in  std_logic_vector(  7 downto 0);
+      siTSIF_Data_tlast        : in  std_logic;
+      siTSIF_Data_tvalid       : in  std_logic;
+      siTSIF_Data_tready       : out std_logic;
+      --
+      siTSIF_SessId_V_V_tdata  : in  std_logic_vector( 15 downto 0);
+      siTSIF_SessId_V_V_tvalid : in  std_logic;
+      siTSIF_SessId_V_V_tready : out std_logic;
+      --
+      siTSIF_DatLen_V_V_tdata  : in  std_logic_vector( 15 downto 0);
+      siTSIF_DatLen_V_V_tvalid : in  std_logic;
+      siTSIF_DatLen_V_V_tready : out std_logic;
+      --------------------------------------------------------
+      -- To SHELL / Tcp Data Interfaces
+      --------------------------------------------------------
+      soTSIF_Data_tdata        : out std_logic_vector( 63 downto 0);
+      soTSIF_Data_tkeep        : out std_logic_vector(  7 downto 0);
+      soTSIF_Data_tlast        : out std_logic;
+      soTSIF_Data_tvalid       : out std_logic;
+      soTSIF_Data_tready       : in  std_logic;
+      --
+      soTSIF_SessId_V_V_tdata  : out std_logic_vector( 15 downto 0);
+      soTSIF_SessId_V_V_tvalid : out std_logic;
+      soTSIF_SessId_V_V_tready : in  std_logic;
+      --
+      soTSIF_DatLen_V_V_tdata  : out std_logic_vector( 15 downto 0);
+      soTSIF_DatLen_V_V_tvalid : out std_logic;
+      soTSIF_DatLen_V_V_tready : in  std_logic
     );
   end component TcpApplicationFlash;
   
@@ -574,55 +622,7 @@ architecture BringUp of Role_Kale is
       soUAF_Meta_tready     : in  std_logic
     );
   end component UdpShellInterface;
-  
-  component TcpApplicationFlashTodo is
-    port (
-      ------------------------------------------------------
-      -- From SHELL / Clock and Reset
-      ------------------------------------------------------
-      ap_clk                : in  std_logic;
-      ap_rst_n              : in  std_logic;
-      --------------------------------------------------------
-      -- From SHELL / Mmio Interfaces
-      --------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
-      --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
-      --[NOT_USED] piSHL_MmioCaptSegEn   : in  std_logic;
-      --------------------------------------------------------
-      -- From SHELL / Tcp Data Interfaces
-      --------------------------------------------------------
-      siSHL_Data_tdata      : in  std_logic_vector( 63 downto 0);
-      siSHL_Data_tkeep      : in  std_logic_vector(  7 downto 0);
-      siSHL_Data_tlast      : in  std_logic;
-      siSHL_Data_tvalid     : in  std_logic;
-      siSHL_Data_tready     : out std_logic;
-      --
-      siSHL_SessId_tdata    : in  std_logic_vector( 15 downto 0);
-      siSHL_SessId_tvalid   : in  std_logic;
-      siSHL_SessId_tready   : out std_logic;
-      --
-      siSHL_DatLen_tdata    : in  std_logic_vector( 15 downto 0);
-      siSHL_DatLen_tvalid   : in  std_logic;
-      siSHL_DatLen_tready   : out std_logic;
-      --------------------------------------------------------
-      -- To SHELL / Tcp Data Interfaces
-      --------------------------------------------------------
-      soSHL_Data_tdata      : out std_logic_vector( 63 downto 0);
-      soSHL_Data_tkeep      : out std_logic_vector(  7 downto 0);
-      soSHL_Data_tlast      : out std_logic;
-      soSHL_Data_tvalid     : out std_logic;
-      soSHL_Data_tready     : in  std_logic;
-      --
-      soSHL_SessId_tdata    : out std_logic_vector( 15 downto 0);
-      soSHL_SessId_tvalid   : out std_logic;
-      soSHL_SessId_tready   : in  std_logic;
-      --
-      soSHL_DatLen_tdata    : out std_logic_vector( 15 downto 0);
-      soSHL_DatLen_tvalid   : out std_logic;
-      soSHL_DatLen_tready   : in  std_logic
-    );
-  end component TcpApplicationFlashTodo;
- 
+   
   component TcpShellInterface is
     port (
       ------------------------------------------------------
@@ -1307,7 +1307,7 @@ begin
   --################################################################################
   
   --==========================================================================
-  --==  INST: UDP-APPLICATION_FLASH (UAF) for cFp_BringUp
+  --==  INST: UDP-APPLICATION_FLASH (UAF) for cFp_Monolithic
   --==   This application implements a set of UDP-oriented tests. The [UAF]
   --==   connects to the SHELL via a UDP Shell Interface (USIF) block. The
   --==   main purpose of the [USIF] is to provide a placeholder for the 
@@ -1417,113 +1417,112 @@ begin
   --#       #       ####   #         #     # #       #                             #
   --#                                                                              #
   --################################################################################
+  
+  --==========================================================================
+  --==  INST: TCP-APPLICATION_FLASH (TAF) for cFp_Monolithic
+  --==   This application implements a set of TCP-oriented tests. The [TAF]
+  --==   connects to the SHELL via a TCP Shell Interface (TSIF) block. The
+  --==   main purpose of the [TSIF] is to provide a placeholder for the 
+  --==   opening of one or multiple listening port(s). The use of the [TSIF] is
+  --==   not a prerequisite, but it is provided here for sake of simplicity.
+  --==========================================================================
 
   gTcpAppFlash : if cTCP_APP_DEPRECATED_DIRECTIVES = true generate
     
-    --==========================================================================
-    --==  INST: UDP-APPLICATION_FLASH for FMKU60
-    --==   This version of the 'tcp_app_flash' has the following interfaces:
-    --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
-    --==========================================================================
-    TAF : TcpApplicationFlash
+    TAF : TcpApplicationFlash_Deprecated
       port map (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
-        aclk                  => piSHL_156_25Clk,
-        aresetn               => not piSHL_Mmio_Ly7Rst,
+        aclk                 => piSHL_156_25Clk,
+        aresetn              => not piSHL_Mmio_Ly7Rst,
         -------------------- ------------------------------------
         -- From SHELL / Mmio  Interfaces
         -------------------- ------------------------------------
-        piSHL_MmioEchoCtrl_V   => piSHL_Mmio_TcpEchoCtrl,
+        piSHL_MmioEchoCtrl_V => piSHL_Mmio_TcpEchoCtrl,
         --[NOT_USED] piSHL_MmioPostSegEn_V  => piSHL_Mmio_TcpPostSegEn,
         --[NOT_USED] piSHL_MmioCaptSegEn_V  => piSHL_Mmio_TcpCaptSegEn,
         --------------------- -----------------------------------
         -- From SHELL / Tcp Data & Session Id Interfaces
         --------------------- -----------------------------------
-        siSHL_Data_tdata      => ssTSIF_TAF_Data_tdata,
-        siSHL_Data_tkeep      => ssTSIF_TAF_Data_tkeep,
-        siSHL_Data_tlast      => ssTSIF_TAF_Data_tlast,
-        siSHL_Data_tvalid     => ssTSIF_TAF_Data_tvalid,
-        siSHL_Data_tready     => ssTSIF_TAF_Data_tready,
+        siTSIF_Data_tdata    => ssTSIF_TAF_Data_tdata,
+        siTSIF_Data_tkeep    => ssTSIF_TAF_Data_tkeep,
+        siTSIF_Data_tlast    => ssTSIF_TAF_Data_tlast,
+        siTSIF_Data_tvalid   => ssTSIF_TAF_Data_tvalid,
+        siTSIF_Data_tready   => ssTSIF_TAF_Data_tready,
         --
-        siSHL_SessId_tdata    => ssTSIF_TAF_SessId_tdata,
-        siSHL_SessId_tvalid   => ssTSIF_TAF_SessId_tvalid,
-        siSHL_SessId_tready   => ssTSIF_TAF_SessId_tready,
-        --
-        siSHL_DatLen_tdata    => ssTSIF_TAF_DatLen_tdata,
-        siSHL_DatLen_tvalid   => ssTSIF_TAF_DatLen_tvalid,
-        siSHL_DatLen_tready   => ssTSIF_TAF_DatLen_tready,
+        siTSIF_SessId_tdata  => ssTSIF_TAF_SessId_tdata,
+        siTSIF_SessId_tvalid => ssTSIF_TAF_SessId_tvalid,
+        siTSIF_SessId_tready => ssTSIF_TAF_SessId_tready,
+        --TSIF
+        siTSIF_DatLen_tdata  => ssTSIF_TAF_DatLen_tdata,
+        siTSIF_DatLen_tvalid => ssTSIF_TAF_DatLen_tvalid,
+        siTSIF_DatLen_tready => ssTSIF_TAF_DatLen_tready,
         --------------------- -----------------------------------
         -- To SHELL / Tcp Data & Session Id Interfaces
         --------------------- -----------------------------------
-        soSHL_Data_tdata      => ssTAF_TSIF_Data_tdata,
-        soSHL_Data_tkeep      => ssTAF_TSIF_Data_tkeep,
-        soSHL_Data_tlast      => ssTAF_TSIF_Data_tlast,
-        soSHL_Data_tvalid     => ssTAF_TSIF_Data_tvalid,
-        soSHL_Data_tready     => ssTAF_TSIF_Data_tready,
+        soTSIF_Data_tdata    => ssTAF_TSIF_Data_tdata,
+        soTSIF_Data_tkeep    => ssTAF_TSIF_Data_tkeep,
+        soTSIF_Data_tlast    => ssTAF_TSIF_Data_tlast,
+        soTSIF_Data_tvalid   => ssTAF_TSIF_Data_tvalid,
+        soTSIF_Data_tready   => ssTAF_TSIF_Data_tready,
         --
-        soSHL_SessId_tdata    => ssTAF_TSIF_SessId_tdata,
-        soSHL_SessId_tvalid   => ssTAF_TSIF_SessId_tvalid,
-        soSHL_SessId_tready   => ssTAF_TSIF_SessId_tready,
+        soTSIF_SessId_tdata  => ssTAF_TSIF_SessId_tdata,
+        soTSIF_SessId_tvalid => ssTAF_TSIF_SessId_tvalid,
+        soTSIF_SessId_tready => ssTAF_TSIF_SessId_tready,
         --
-        soSHL_DatLen_tdata    => ssTAF_TSIF_DatLen_tdata,
-        soSHL_DatLen_tvalid   => ssTAF_TSIF_DatLen_tvalid,
-        soSHL_DatLen_tready   => ssTAF_TSIF_DatLen_tready
+        soTSIF_DatLen_tdata  => ssTAF_TSIF_DatLen_tdata,
+        soTSIF_DatLen_tvalid => ssTAF_TSIF_DatLen_tvalid,
+        soTSIF_DatLen_tready => ssTAF_TSIF_DatLen_tready
       );
     
   else generate
 
-    --==========================================================================
-    --==  INST: TCP-APPLICATION_FLASH for FMKU60
-    --==   This version of the 'tcp_app_flash' has the following interfaces:
-    --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
-    --==========================================================================
-    TAF : TcpApplicationFlashTodo
+    TAF : TcpApplicationFlash
       port map (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
-        ap_clk                => piSHL_156_25Clk,
-        ap_rst_n              => not (piSHL_Mmio_Ly7Rst),
+        ap_clk                  => piSHL_156_25Clk,
+        ap_rst_n                => not (piSHL_Mmio_Ly7Rst),
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------       
-        piSHL_MmioEchoCtrl_V  => piSHL_Mmio_TcpEchoCtrl,
+        piSHL_MmioEchoCtrl_V    => piSHL_Mmio_TcpEchoCtrl,
         --[NOT_USED] piSHL_MmioPostSegEn_V => piSHL_Mmio_TcpPostSegEn,
         --[NOT_USED] piSHL_MmioCaptSegEn   => piSHL_Mmio_TcpCaptSegEn,
         --------------------------------------------------------
         -- From SHELL / Tcp Interfaces
         --------------------------------------------------------
-        siSHL_Data_tdata      => ssTSIF_TAF_Data_tdata,
-        siSHL_Data_tkeep      => ssTSIF_TAF_Data_tkeep,
-        siSHL_Data_tlast      => ssTSIF_TAF_Data_tlast,
-        siSHL_Data_tvalid     => ssTSIF_TAF_Data_tvalid,
-        siSHL_Data_tready     => ssTSIF_TAF_Data_tready,
+        siTSIF_Data_tdata        => ssTSIF_TAF_Data_tdata,
+        siTSIF_Data_tkeep        => ssTSIF_TAF_Data_tkeep,
+        siTSIF_Data_tlast        => ssTSIF_TAF_Data_tlast,
+        siTSIF_Data_tvalid       => ssTSIF_TAF_Data_tvalid,
+        siTSIF_Data_tready       => ssTSIF_TAF_Data_tready,
         --
-        siSHL_SessId_tdata    => ssTSIF_TAF_SessId_tdata,
-        siSHL_SessId_tvalid   => ssTSIF_TAF_SessId_tvalid,
-        siSHL_SessId_tready   => ssTSIF_TAF_SessId_tready,
+        siTSIF_SessId_V_V_tdata  => ssTSIF_TAF_SessId_tdata,
+        siTSIF_SessId_V_V_tvalid => ssTSIF_TAF_SessId_tvalid,
+        siTSIF_SessId_V_V_tready => ssTSIF_TAF_SessId_tready,
         --
-        siSHL_DatLen_tdata    => ssTSIF_TAF_DatLen_tdata,
-        siSHL_DatLen_tvalid   => ssTSIF_TAF_DatLen_tvalid,
-        siSHL_DatLen_tready   => ssTSIF_TAF_DatLen_tready,
+        siTSIF_DatLen_V_V_tdata  => ssTSIF_TAF_DatLen_tdata,
+        siTSIF_DatLen_V_V_tvalid => ssTSIF_TAF_DatLen_tvalid,
+        siTSIF_DatLen_V_V_tready => ssTSIF_TAF_DatLen_tready,
         --------------------------------------------------------
         -- To SHELL / Tcp Data Interfaces
         --------------------------------------------------------
-        soSHL_Data_tdata      => ssTAF_TSIF_Data_tdata,
-        soSHL_Data_tkeep      => ssTAF_TSIF_Data_tkeep,
-        soSHL_Data_tlast      => ssTAF_TSIF_Data_tlast,
-        soSHL_Data_tvalid     => ssTAF_TSIF_Data_tvalid,
-        soSHL_Data_tready     => ssTAF_TSIF_Data_tready,
+        soTSIF_Data_tdata        => ssTAF_TSIF_Data_tdata,
+        soTSIF_Data_tkeep        => ssTAF_TSIF_Data_tkeep,
+        soTSIF_Data_tlast        => ssTAF_TSIF_Data_tlast,
+        soTSIF_Data_tvalid       => ssTAF_TSIF_Data_tvalid,
+        soTSIF_Data_tready       => ssTAF_TSIF_Data_tready,
         --
-        soSHL_SessId_tdata    => ssTAF_TSIF_SessId_tdata,
-        soSHL_SessId_tvalid   => ssTAF_TSIF_SessId_tvalid,
-        soSHL_SessId_tready   => ssTAF_TSIF_SessId_tready,
+        soTSIF_SessId_V_V_tdata  => ssTAF_TSIF_SessId_tdata,
+        soTSIF_SessId_V_V_tvalid => ssTAF_TSIF_SessId_tvalid,
+        soTSIF_SessId_V_V_tready => ssTAF_TSIF_SessId_tready,
         --
-        soSHL_DatLen_tdata    => ssTAF_TSIF_DatLen_tdata,
-        soSHL_DatLen_tvalid   => ssTAF_TSIF_DatLen_tvalid,
-        soSHL_DatLen_tready   => ssTAF_TSIF_DatLen_tready
+        soTSIF_DatLen_V_V_tdata  => ssTAF_TSIF_DatLen_tdata,
+        soTSIF_DatLen_V_V_tvalid => ssTAF_TSIF_DatLen_tvalid,
+        soTSIF_DatLen_V_V_tready => ssTAF_TSIF_DatLen_tready
       );
 
   end generate;
