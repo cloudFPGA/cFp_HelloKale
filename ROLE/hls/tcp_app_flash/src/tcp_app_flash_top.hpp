@@ -35,26 +35,20 @@
 #ifndef _TAF_TOP_H_
 #define _TAF_TOP_H_
 
-//OBSOLETE #include <stdio.h>
-//OBSOLETE #include <fstream>
-//OBSOLETE #include <string>
-//OBSOLETE #include <math.h>
-//OBSOLETE #include <hls_stream.h>
-//OBSOLETE #include "ap_int.h"
-//OBSOLETE #include <stdint.h>
-
-#include "../src/tcp_app_flash_top.hpp"
+#include "./tcp_app_flash.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
 //---------------------------------------------------------
 /// -- SHELL/MMIO/EchoCtrl - Configuration Register
 //---------------------------------------------------------
-enum EchoCtrl {
+/*** OBSOLETE *********
+ enum EchoCtrl {
     ECHO_PATH_THRU = 0,
     ECHO_STORE_FWD = 1,
     ECHO_OFF       = 2
 };
+***********************/
 
 //-------------------------------------------------------------------
 //-- DEFAULT TESTING PORTS
@@ -66,7 +60,7 @@ enum EchoCtrl {
 //--  --> Others: Traffic received on any port != 8803 is looped back
 //--              and echo to the sender in store-and-forward mode.
 //-------------------------------------------------------------------
-#define ECHO_PATH_THRU_PORT  8803   // 0x2263
+// OBSOLETE #define ECHO_PATH_THRU_PORT  8803   // 0x2263
 
 
 /*******************************************************************************

@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-/*******************************************************************************
- * @file       : test_tcp_app_flash_top.cpp
- * @brief      : Testbench for for toplevel of the TCP Application Flash (TAF).
+/******************************************************************************
+ * @file       : test_tcp_shell_if_top.cpp
+ * @brief      : Testbench for the toplevel of the TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic /ROLE
+ * Component   : cFp_Monolithic / ROLE
  * Language    : Vivado HLS
- *
  *
  * \ingroup ROLE_TAF
  * \addtogroup ROLE_TAF_TEST
  * \{
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "test_tcp_app_flash_top.hpp"
 
@@ -101,13 +100,13 @@ int main(int argc, char *argv[]) {
             ssTAF_TSIF_Data,
             ssTAF_TSIF_SessId,
             ssTAF_TSIF_DatLen);
-    	tbRun--;
-    	stepSim();
+        tbRun--;
+        stepSim();
     }
 
-    printError(THIS_NAME, "###########################################################\n");
-    printError(THIS_NAME, "#### TESTBENCH 'test_tcp_app_flash_top' ENDS HERE (RC=0) ##\n");
-    printError(THIS_NAME, "###########################################################\n\n");
+    printInfo(THIS_NAME, "#########################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_tcp_app_flash_top' ENDS HERE (RC=0) ##\n");
+    printInfo(THIS_NAME, "#########################################################\n\n");
 
     return 0;  // Always
 

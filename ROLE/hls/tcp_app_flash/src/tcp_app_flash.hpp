@@ -35,14 +35,6 @@
 #ifndef _TAF_H_
 #define _TAF_H_
 
-//OBSOLETE #include <stdio.h>
-//OBSOLETE #include <fstream>
-//OBSOLETE #include <string>
-//OBSOLETE #include <math.h>
-//OBSOLETE #include <hls_stream.h>
-//OBSOLETE #include "ap_int.h"
-//OBSOLETE #include <stdint.h>
-
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 

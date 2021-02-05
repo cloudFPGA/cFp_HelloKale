@@ -23,11 +23,11 @@
 # * 
 # * Synopsis:
 # *   make help
-# * 
+# *
 # ******************************************************************************
 
 # Dependencies
-SRC_DEPS := $(shell find ./src -name *.cpp)
+SRC_DEPS := $(shell find ./src/ -type f)
 
 .PHONY: all clean project csim cosim csynth regression help ipClean ipProject ip ipSyn ipImpl
 

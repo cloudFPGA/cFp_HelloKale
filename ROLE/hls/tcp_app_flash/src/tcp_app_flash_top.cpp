@@ -19,7 +19,7 @@
  * @brief    : Top level with I/O ports for TCP Application Flash (TAF)
  *
  * System:   : cloudFPGA
- * Component : cFp_Monolithic/ROLE
+ * Component : cFp_Monolithic / ROLE
  * Language  : Vivado HLS
  *
  *----------------------------------------------------------------------------
@@ -34,7 +34,7 @@
  * \{
  *******************************************************************************/
 
-#include "tcp_app_flash.hpp"
+#include "tcp_app_flash_top.hpp"
 
 using namespace hls;
 using namespace std;
@@ -133,7 +133,7 @@ void tcp_app_flash_top (
         ssiTSIF_DatLen.write(siTSIF_DatLen.read());
     }
 
-	//-- INSTANTIATE TOPLEVEL --------------------------------------------------
+    //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces

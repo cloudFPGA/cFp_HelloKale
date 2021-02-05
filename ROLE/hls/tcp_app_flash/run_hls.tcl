@@ -68,26 +68,26 @@ if { $argc == 2 } {
 
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
-set hlsCSim        $::env(hlsCSim)
-set hlsCSynth      $::env(hlsCSynth)
-set hlsCoSim       $::env(hlsCoSim)
-set hlsRtl         $::env(hlsRtl)
+set hlsCSim      $::env(hlsCSim)
+set hlsCSynth    $::env(hlsCSynth)
+set hlsCoSim     $::env(hlsCoSim)
+set hlsRtl       $::env(hlsRtl)
 
 # Set Project Environment Variables  
 #-------------------------------------------------
-set currDir        [pwd]
-set srcDir         ${currDir}/src
-set testDir        ${currDir}/test
+set currDir      [pwd]
+set srcDir       ${currDir}/src
+set testDir      ${currDir}/test
 
 # Open Project
 #-------------------------------------------------
-open_project  ${ipProjectName}_prj
+open_project     ${ipProjectName}_prj
 
 # Add files
 #-------------------------------------------------
-add_files          ${currDir}/src/${ipName}.cpp
-add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
-add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
+add_files        ${currDir}/src/${ipName}.cpp
+add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
+add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
 
 if { [string equal ${ipProjectName} ip_core] } {
     set_top       ${ipName}
@@ -100,9 +100,9 @@ if { [string equal ${ipProjectName} ip_core] } {
 
 # Create a solution
 #-------------------------------------------------
-open_solution      ${solutionName}
-set_part           ${xilPartName}
-create_clock       -period 6.4 -name default
+open_solution ${solutionName}
+set_part      ${xilPartName}
+create_clock  -period 6.4 -name default
 
 #--------------------------------------------
 # Controlling the Reset Behavior (see UG902)
@@ -254,4 +254,5 @@ if { $hlsRtl } {
 # Exit Vivado HLS
 #-------------------------------------------------
 exit
+
 
