@@ -158,7 +158,7 @@ if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } {
 #  -pipeline_loops : Specify the lower threshold used during pipelining loops automatically. The
 #                    default is '0' for no automatic loop pipelining. 
 #------------------------------------------------------------------------------------------------
-config_compile -name_max_length 128 -pipeline_loops 0
+config_compile -name_max_length 256 -pipeline_loops 0
 
 
 #-------------------------------------------------
