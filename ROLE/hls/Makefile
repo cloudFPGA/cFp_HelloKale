@@ -21,7 +21,7 @@
 # *
 # ******************************************************************************
 
-.PHONY: all clean mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if
+.PHONY: all clean csim cosim regression
 
 
 #-- Targets --------------------------------------------------------------------
@@ -32,6 +32,8 @@ clean:                tcp_app_flash.clean tcp_shell_if.clean udp_app_flash.clean
 csim:                 tcp_app_flash.csim  tcp_shell_if.csim  udp_app_flash.csim  udp_shell_if.csim  ## Runs HLS C simulation on all sub-directories
 
 cosim:                tcp_app_flash.cosim tcp_shell_if.cosim udp_app_flash.cosim udp_shell_if.cosim ## Runs HLS C/RTL cosimulation on all sub-directories
+
+regression:           tcp_app_flash.reg   tcp_shell_if.reg   udp_app_flash.reg   udp_shell_if.reg   ## Runs a sequence of HLS csim, csynth and cosim on all all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 
@@ -48,6 +50,10 @@ cosim:                tcp_app_flash.cosim tcp_shell_if.cosim udp_app_flash.cosim
 %.cosim: 
 	@echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $* cosim
+
+%.reg: 
+	@echo ---- Building [ $@ ] ---------------------------- 
+	@$(MAKE) -C $* regression
 
 
 help:                              ## Shows this help message
