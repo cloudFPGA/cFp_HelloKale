@@ -52,7 +52,9 @@ DELETE_INSTANCE(){
 # test_instance
 PUT_TEST_INSTANCE(){
 	REPLY=$(curl -X PUT --header 'Content-Type: application/x-www-form-urlencoded' --header 'Accept: application/json' -d ${IMAGE_ID_IN} "http://10.12.0.132:8080/administration/test_instance/${RESOURCE_ID}?username=${ZYC2_USER}&password=${ZYC2_PASS}&dont_verify_memory=0")
-	# echo ${REPLY}
+	# echo -e " "
+	# echo "full reply = " ${REPLY}
+	# echo -e " "
 }
 
 # set_status_available
@@ -225,16 +227,19 @@ echo "Programming with " ${IMAGE_ID_IN}
 
 PUT_TEST_INSTANCE
 
-RESOURCE_STATUS=$(echo $REPLY | jq .status)
+if [[ $REPLY == *"WARNING"* ]]; then
+	# echo "Something went wrong" ${REPLY}
+	RESOURCE_STATUS=${REPLY}
+else
+	RESOURCE_STATUS=$(echo $REPLY | jq .status)
+fi
+
 RESOURCE_STATUS="${RESOURCE_STATUS%\"}"
 RESOURCE_STATUS="${RESOURCE_STATUS#\"}"
 
 if [ "$RESOURCE_STATUS" != "Successfully deployed" ]; then 
 	echo -e "#### programming ERROR Resource-Nr ${RESOURCE_ID} ####"
-	FAILURE_MSG=$(echo $REPLY | jq .failure_msg)
-	# FAILURE_MSG="${FAILURE_MSG%\"}"
-	# FAILURE_MSG="${FAILURE_MSG#\"}"
-	echo ${FAILURE_MSG}
+	echo "Something went wrong with Resource-Nr ${RESOURCE_ID} ${RESOURCE_STATUS}"
 	DELETE_INSTANCE
 	exit 1
 else echo -e "#### Resource-Nr ${RESOURCE_ID} is ${RESOURCE_STATUS} ####"
