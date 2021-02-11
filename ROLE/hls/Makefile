@@ -21,27 +21,34 @@
 # *
 # ******************************************************************************
 
-.PHONY: all clean csim cosim regression
+.PHONY: all clean csim cosim regression help ip mem_test_flash tcp_app_flash tcp_shell_if udp_app_flash udp_shell_if 
 
 
 #-- Targets --------------------------------------------------------------------
-all:   mem_test_flash tcp_app_flash       tcp_shell_if       udp_app_flash       udp_shell_if       ## Run the HLS synthesis and IP Core export on all sub-directories
+all:	mem_test_flash        tcp_app_flash       tcp_shell_if       udp_app_flash       udp_shell_if     ## Run the HLS synthesis and IP Core export on all sub-directories
 
-clean:                tcp_app_flash.clean tcp_shell_if.clean udp_app_flash.clean udp_shell_if.clean ## Cleans all the local HLS projects
+ip:    mem_test_flash.ip tcp_app_flash.ip tcp_shell_if.ip udp_app_flash.ip udp_shell_if.ip ## Exports the RTL design and packages it as an IP
 
-csim:                 tcp_app_flash.csim  tcp_shell_if.csim  udp_app_flash.csim  udp_shell_if.csim  ## Runs HLS C simulation on all sub-directories
+clean: mem_test_flash.clean tcp_app_flash.clean tcp_shell_if.clean udp_app_flash.clean udp_shell_if.clean ## Cleans all the local HLS projects
 
-cosim:                tcp_app_flash.cosim tcp_shell_if.cosim udp_app_flash.cosim udp_shell_if.cosim ## Runs HLS C/RTL cosimulation on all sub-directories
+csim:                       tcp_app_flash.csim  tcp_shell_if.csim  udp_app_flash.csim  udp_shell_if.csim  ## Runs HLS C simulation on all sub-directories
 
-regression:           tcp_app_flash.reg   tcp_shell_if.reg   udp_app_flash.reg   udp_shell_if.reg   ## Runs a sequence of HLS csim, csynth and cosim on all all sub-directories
+cosim:                      tcp_app_flash.cosim tcp_shell_if.cosim udp_app_flash.cosim udp_shell_if.cosim ## Runs HLS C/RTL cosimulation on all sub-directories
+
+regression:                 tcp_app_flash.reg   tcp_shell_if.reg   udp_app_flash.reg   udp_shell_if.reg   ## Runs a sequence of HLS csim, csynth and cosim on all all sub-directories
 
 *:
-	@echo ---- Building [ $@ ] ---------------------------- 
+	@echo ---- Building [ $@ ] ----------------------------
+	@$(MAKE) -C $@
+
+%.ip:
+	@echo ---- Building [ $@ ] ----------------------------
 	@$(MAKE) -C $@
 
 %.clean:
-	@echo ---- Cleaning [ $@ ] ---------------------------- 
+	@echo ---- Cleaning [ $@ ] ----------------------------
 	@$(MAKE) -C $* clean
+	@$(MAKE) -C $* ipClean
 
 %.csim: 
 	@echo ---- Building [ $@ ] ---------------------------- 
@@ -55,8 +62,7 @@ regression:           tcp_app_flash.reg   tcp_shell_if.reg   udp_app_flash.reg  
 	@echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $* regression
 
-
-help:                              ## Shows this help message
+help:                      ## Shows this help message
     # This target is for self documentation of the Makefile. 
     # Every text starting with '##' and placed after a target will be considered as helper text.
 	@echo
