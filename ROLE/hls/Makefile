@@ -27,7 +27,7 @@
 #-- Targets --------------------------------------------------------------------
 all:	mem_test_flash        tcp_app_flash       tcp_shell_if       udp_app_flash       udp_shell_if     ## Run the HLS synthesis and IP Core export on all sub-directories
 
-ip:    mem_test_flash.ip tcp_app_flash.ip tcp_shell_if.ip udp_app_flash.ip udp_shell_if.ip ## Exports the RTL design and packages it as an IP
+ip: all  ## Exports the RTL design and packages it as an IP
 
 clean: mem_test_flash.clean tcp_app_flash.clean tcp_shell_if.clean udp_app_flash.clean udp_shell_if.clean ## Cleans all the local HLS projects
 
