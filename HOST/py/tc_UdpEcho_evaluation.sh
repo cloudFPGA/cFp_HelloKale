@@ -111,6 +111,8 @@ filename_PHY_REGS="${filename}_PHY_REGS.txt"
 touch $filename_PHY_REGS
 grep "PHY_REGS" $filename_WARNING > $filename_PHY_REGS
 printf "PHY_REGS WARNING count:        "; grep -c "PHY_REGS" $filename_PHY_REGS
+printf "containing mc0: 0, counts:     "; grep -c "mc0: 0," $filename_PHY_REGS
+printf "containing mc1: 0, counts:     "; grep -c "mc1: 0," $filename_PHY_REGS
 # STOP_HERE   # uncomment to stop execution here
 echo "Rest of programming ERROR count not further defined"
 # if non explainable high programming error count, check filespace on sled manager!

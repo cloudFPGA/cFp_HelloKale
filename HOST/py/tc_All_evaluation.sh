@@ -110,6 +110,8 @@ filename_PHY_REGS="${filename}_PHY_REGS.txt"
 touch $filename_PHY_REGS
 grep "PHY_REGS" $filename_WARNING > $filename_PHY_REGS
 printf "PHY_REGS WARNING count:        "; grep -c "PHY_REGS" $filename_PHY_REGS
+printf "containing mc0: 0, counts:     "; grep -c "mc0: 0," $filename_PHY_REGS
+printf "containing mc1: 0, counts:     "; grep -c "mc1: 0," $filename_PHY_REGS
 # STOP_HERE   # uncomment to stop execution here
 echo "Rest of programming ERROR count not further defined"
 # if non explainable high programming error count, check filespace on sled manager!
@@ -259,6 +261,11 @@ touch $filename_SOCKET_ERROR
 grep -A 6 -B 10 "Socket reading error" temporary_file.txt > $filename_SOCKET_ERROR
 printf "SOCKET ERROR count:            "; grep -c "Socket reading error" $filename_SOCKET_ERROR
 echo "which includes"
+filename_TCP_SEND_2_ERROR="${filename}_TCP_SEND_2_ERROR.txt"
+touch $filename_TCP_SEND_2_ERROR
+grep -A 6 -B 10 "TCP_SEND_2 ERROR" temporary_file.txt > $filename_TCP_SEND_2_ERROR
+printf "TCP_SEND_2 ERROR count:        "; grep -c "TCP_SEND_2 ERROR" $filename_TCP_SEND_2_ERROR
+echo "and"
 filename_UDP_RECV_3_ERROR="${filename}_UDP_RECV_3_ERROR.txt"
 touch $filename_UDP_RECV_3_ERROR
 grep -A 6 -B 10 "UDP_RECV_3 ERROR" temporary_file.txt > $filename_UDP_RECV_3_ERROR
