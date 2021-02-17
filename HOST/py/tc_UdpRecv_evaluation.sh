@@ -53,6 +53,15 @@ then
 fi
 grep -v "STOP_ERROR" $file > temporary_file.txt
 
+# find image_id
+filename_IMAGE_ID="${filename}-IMAGE_ID.txt"
+# echo "filename_IMAGE_ID = ${filename_IMAGE_ID}"
+# STOP_HERE   # uncomment to stop execution here
+touch $filename_IMAGE_ID
+grep "Programming with  image_id=" temporary_file.txt > $filename_IMAGE_ID
+grep -m1 "Programming with  image_id=" $filename_IMAGE_ID
+# STOP_HERE   # uncomment to stop execution here
+
 filename_ROUND_NR="${filename}-ROUND_NR.txt"
 # echo "filename_ROUND_NR = ${filename_ROUND_NR}"
 # STOP_HERE   # uncomment to stop execution here
@@ -141,18 +150,29 @@ touch $filename_UDP_RECV_SUCCESS_BANDWIDTH
 grep "bandwidth = " $filename_UDP_RECV_SUCCESS > $filename_UDP_RECV_SUCCESS_BANDWIDTH
 printf "UDP_RECV BANDWIDTH count:      "; grep -c "bandwidth = " $filename_UDP_RECV_SUCCESS_BANDWIDTH
 
+filename_UDP_RECV_1_ERROR="${filename}_UDP_RECV_1_ERROR.txt"
+touch $filename_UDP_RECV_1_ERROR
+grep -A 6 -B 10 "UDP_RECV_1 ERROR" temporary_file.txt > $filename_UDP_RECV_1_ERROR
+printf "UDP_RECV_1 ERROR count:        "; grep -c "UDP_RECV_1 ERROR" $filename_UDP_RECV_1_ERROR
+
+filename_UDP_RECV_2_ERROR="${filename}_UDP_RECV_2_ERROR.txt"
+touch $filename_UDP_RECV_2_ERROR
+grep -A 6 -B 10 "UDP_RECV_2 ERROR" temporary_file.txt > $filename_UDP_RECV_2_ERROR
+printf "UDP_RECV_2 ERROR count:        "; grep -c "UDP_RECV_2 ERROR" $filename_UDP_RECV_2_ERROR
+
+filename_UDP_RECV_3_ERROR="${filename}_UDP_RECV_3_ERROR.txt"
+touch $filename_UDP_RECV_3_ERROR
+grep -A 6 -B 10 "UDP_RECV_3 ERROR" temporary_file.txt > $filename_UDP_RECV_3_ERROR
+printf "UDP_RECV_3 ERROR count:        "; grep -c "UDP_RECV_3 ERROR" $filename_UDP_RECV_3_ERROR
+
 echo "--------------------------"
 echo "counting SOCKET_ERROR"
 filename_SOCKET_ERROR="${filename}_SOCKET_ERROR.txt"
 touch $filename_SOCKET_ERROR
 grep -A 6 -B 10 "Socket reading error" temporary_file.txt > $filename_SOCKET_ERROR
 printf "SOCKET ERROR count:            "; grep -c "Socket reading error" $filename_SOCKET_ERROR
-echo "which includes"
-filename_UDP_RECV_3_ERROR="${filename}_UDP_RECV_3_ERROR.txt"
-touch $filename_UDP_RECV_3_ERROR
-grep -A 6 -B 10 "UDP_RECV_3 ERROR" temporary_file.txt > $filename_UDP_RECV_3_ERROR
-printf "UDP_RECV_3 ERROR count:        "; grep -c "UDP_RECV_3 ERROR" $filename_UDP_RECV_3_ERROR
-echo "Rest of SOCKET_ERROR count not further defined"
+# echo "which includes"
+# echo "Rest of SOCKET_ERROR count not further defined"
 filename_SOCKET_ERROR_SIZES="${filename}_SOCKET_ERROR_SIZES.txt"
 touch $filename_SOCKET_ERROR_SIZES
 grep "size = " $filename_SOCKET_ERROR > $filename_SOCKET_ERROR_SIZES

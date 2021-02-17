@@ -50,6 +50,15 @@ fi
 
 grep -v "STOP_ERROR" $file > temporary_file.txt
 
+# find image_id
+filename_IMAGE_ID="${filename}-IMAGE_ID.txt"
+# echo "filename_IMAGE_ID = ${filename_IMAGE_ID}"
+# STOP_HERE   # uncomment to stop execution here
+touch $filename_IMAGE_ID
+grep "Programming with  image_id=" temporary_file.txt > $filename_IMAGE_ID
+grep -m1 "Programming with  image_id=" $filename_IMAGE_ID
+# STOP_HERE   # uncomment to stop execution here
+
 filename_ROUND_NR="${filename}-ROUND_NR.txt"
 # echo "filename_ROUND_NR = ${filename_ROUND_NR}"
 # STOP_HERE   # uncomment to stop execution here

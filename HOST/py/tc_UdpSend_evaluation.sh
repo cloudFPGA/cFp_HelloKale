@@ -54,6 +54,15 @@ fi
 
 grep -v "STOP_ERROR" $file > temporary_file.txt
 
+# find image_id
+filename_IMAGE_ID="${filename}-IMAGE_ID.txt"
+# echo "filename_IMAGE_ID = ${filename_IMAGE_ID}"
+# STOP_HERE   # uncomment to stop execution here
+touch $filename_IMAGE_ID
+grep "Programming with  image_id=" temporary_file.txt > $filename_IMAGE_ID
+grep -m1 "Programming with  image_id=" $filename_IMAGE_ID
+# STOP_HERE   # uncomment to stop execution here
+
 filename_ROUND_NR="${filename}-ROUND_NR.txt"
 # echo "filename_ROUND_NR = ${filename_ROUND_NR}"
 # STOP_HERE   # uncomment to stop execution here
@@ -141,6 +150,21 @@ filename_UDP_SEND_SUCCESS_BANDWIDTH="${filename}_UDP_SEND_SUCCESS_BANDWIDTH.txt"
 touch $filename_UDP_SEND_SUCCESS_BANDWIDTH
 grep "bandwidth = " $filename_UDP_SEND_SUCCESS > $filename_UDP_SEND_SUCCESS_BANDWIDTH
 printf "UDP_SEND BANDWIDTH count:  "; grep -c "bandwidth = " $filename_UDP_SEND_SUCCESS_BANDWIDTH
+
+filename_UDP_SEND_1_ERROR="${filename}_UDP_SEND_1_ERROR.txt"
+touch $filename_UDP_SEND_1_ERROR
+grep -A 6 -B 10 "UDP_SEND_1 ERROR" temporary_file.txt > $filename_UDP_SEND_1_ERROR
+printf "UDP_SEND_1 ERROR count:        "; grep -c "UDP_SEND_1 ERROR" $filename_UDP_SEND_1_ERROR
+
+filename_UDP_SEND_2_ERROR="${filename}_UDP_SEND_2_ERROR.txt"
+touch $filename_UDP_SEND_2_ERROR
+grep -A 6 -B 10 "UDP_SEND_2 ERROR" temporary_file.txt > $filename_UDP_SEND_2_ERROR
+printf "UDP_SEND_2 ERROR count:        "; grep -c "UDP_SEND_2 ERROR" $filename_UDP_SEND_2_ERROR
+
+filename_UDP_SEND_3_ERROR="${filename}_UDP_SEND_3_ERROR.txt"
+touch $filename_UDP_SEND_3_ERROR
+grep -A 6 -B 10 "UDP_SEND_3 ERROR" temporary_file.txt > $filename_UDP_SEND_3_ERROR
+printf "UDP_SEND_3 ERROR count:        "; grep -c "UDP_SEND_3 ERROR" $filename_UDP_SEND_3_ERROR
 
 echo "--------------------------"
 echo "counting SOCKET_ERROR"
