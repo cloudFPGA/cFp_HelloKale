@@ -15,11 +15,11 @@
  */
 
 /*******************************************************************************
- * @file       : test_udp_shell_if.hpp
- * @brief      : Testbench for the UDP Shell Interface (USIF).
+ * @file       : test_udp_shell_if_top.hpp
+ * @brief      : Testbench for the toplevel of UDP Shell Interface (USIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_BringUp / ROLE
  * Language    : Vivado HLS
  *
  * \ingroup ROLE
@@ -27,14 +27,13 @@
  * \{
  *******************************************************************************/
 
-#ifndef _TEST_USIF_H_
-#define _TEST_USIF_H_
+#ifndef _TEST_USIF_TOP_H_
+#define _TEST_USIF_TOP_H_
 
-#include <cstdlib>
 #include <hls_stream.h>
 #include <iostream>
 
-#include "../src/udp_shell_if.hpp"
+#include "../src/udp_shell_if_top.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 
@@ -67,13 +66,8 @@ unsigned int    gMaxSimCycles = UOE_INIT_CYCLES + GRACE_TIME;
 #define DEFAULT_HOST_LSN_PORT   0x80        // HOST listens on port      = 128
 #define DEFAULT_HOST_SND_PORT   0x8080      // HOST sends on port        = 32896
 
-#define DEFAULT_DATAGRAM_LEN    32
-
 #endif
 
 /*! \} */
-
-
-
 
 

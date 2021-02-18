@@ -468,7 +468,12 @@ void pUOE(
 /*******************************************************************************
  * @brief Main function for the test of the UDP Shell Interface (USIF).
  *
- * @param[in] The number of bytes to generate in 'Echo' or "Dump' mode [1:65535].
+ * @param[in] The number of bytes to generate in 'Echo' mode [1:65535].
+ * @param[in] The IP4 destination address of the remote host.
+ * @param[in] The UDP destination port of the remote host.
+ * @param[in] The number of bytes to generate in  or "Test' mode [1:65535].
+ *
+ * @info Usage example --> "512 10.11.12.13 2718 1024"
  *******************************************************************************/
 int main(int argc, char *argv[]) {
 

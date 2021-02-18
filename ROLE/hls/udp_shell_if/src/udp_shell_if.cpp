@@ -51,14 +51,6 @@ using namespace hls;
 using namespace std;
 
 /************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we continue designing
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not work for us.
- ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
-
-/************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
  ************************************************/
@@ -115,6 +107,7 @@ void pListen(
         stream<StsBool>      &siSHL_LsnRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName = concat3(THIS_NAME, "/", "LSn");
@@ -237,6 +230,7 @@ void pClose(
         stream<StsBool>      &siSHL_ClsRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName = concat3(THIS_NAME, "/", "CLs");
@@ -330,6 +324,7 @@ void pReadPath(
         stream<UdpAppDLen>  &soWRp_DReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
@@ -379,7 +374,7 @@ void pReadPath(
         }
         break;
     case RDP_STREAM:
-        if (!siSHL_Data.empty() && !soUAF_Data.full()) {
+        if (!siSHL_Data.empty() and !soUAF_Data.full()) {
             siSHL_Data.read(appData);
             if (rdp_keepFlag) {
                 soUAF_Data.write(appData);
@@ -452,6 +447,7 @@ void pWritePath(
         stream<UdpAppDLen>   &soSHL_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "WRp");
@@ -543,7 +539,7 @@ void pWritePath(
 
 
 /*****************************************************************************
- * @brief   Main process of the UDP Shell Interface (USIF)
+ * @brief   Main process of the UDP Shell Interface (USIF).
  *
  * @param[in]  piSHL_Mmio_En Enable signal from [SHELL/MMIO].
  * @param[out] soSHL_LsnReq  Listen port request to [SHELL].
@@ -561,7 +557,14 @@ void pWritePath(
  * @param[out] soUAF_Meta    UDP metadata to [UAF].
  * @param[out] soUAF_DLen    UDP data len to [UAF].
  *
- *****************************************************************************/
+ * @info This core is designed with non-blocking read and write streams in mind.
+ *   FYI, this is the normal way of operation for an internal stream and for an
+ *   interface using the 'ap_fifo' protocol.
+ *
+ * @warning This core will not work properly if operated with a handshake
+ *   interface(ap_hs) or an AXI-Stream interface (axis) because these two
+ *   interfaces do not support non-blocking accesses.
+ *******************************************************************************/
 void udp_shell_if(
 
         //------------------------------------------------------
@@ -603,72 +606,8 @@ void udp_shell_if(
         stream<UdpAppData>  &soUAF_Data,
         stream<UdpAppMeta>  &soUAF_Meta)
 {
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
-    /*********************************************************************/
-    /*** For the time being, we continue designing with the DEPRECATED ***/
-    /*** directives because the new PRAGMAs do not work for us.        ***/
-    /*********************************************************************/
-
-    #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En name=piSHL_Mmio_En
-
-    #pragma HLS resource core=AXI4Stream variable=soSHL_LsnReq  metadata="-bus_bundle soSHL_LsnReq"
-    #pragma HLS resource core=AXI4Stream variable=siSHL_LsnRep  metadata="-bus_bundle siSHL_LsnRep"
-    #pragma HLS resource core=AXI4Stream variable=soSHL_ClsReq  metadata="-bus_bundle soSHL_ClsReq"
-    #pragma HLS resource core=AXI4Stream variable=siSHL_ClsRep  metadata="-bus_bundle siSHL_ClsRep"
-
-    #pragma HLS resource core=AXI4Stream variable=siSHL_Data    metadata="-bus_bundle siSHL_Data"
-    #pragma HLS resource core=AXI4Stream variable=siSHL_Meta    metadata="-bus_bundle siSHL_Meta"
-    #pragma HLS DATA_PACK                variable=siSHL_Meta
-
-    #pragma HLS resource core=AXI4Stream variable=soSHL_Data    metadata="-bus_bundle soSHL_Data"
-    #pragma HLS resource core=AXI4Stream variable=soSHL_Meta    metadata="-bus_bundle soSHL_Meta"
-    #pragma HLS DATA_PACK                variable=soSHL_Meta
-    #pragma HLS resource core=AXI4Stream variable=soSHL_DLen    metadata="-bus_bundle soSHL_DLen"
-
-    #pragma HLS resource core=AXI4Stream variable=siUAF_Data    metadata="-bus_bundle siUAF_Data"
-    #pragma HLS resource core=AXI4Stream variable=siUAF_Meta    metadata="-bus_bundle siUAF_Meta"
-    #pragma HLS DATA_PACK                variable=siUAF_Meta
-    #pragma HLS resource core=AXI4Stream variable=siUAF_DLen    metadata="-bus_bundle siUAF_DLen"
-
-    #pragma HLS resource core=AXI4Stream variable=soUAF_Data    metadata="-bus_bundle soUAF_Data"
-    #pragma HLS resource core=AXI4Stream variable=soUAF_Meta    metadata="-bus_bundle soUAF_Meta"
-    #pragma HLS DATA_PACK                variable=soUAF_Meta
-
-#else
-
-    #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En  name=piSHL_Mmio_En
-
-    #pragma HLS INTERFACE axis register both port=soSHL_LsnReq   name=soSHL_LsnReq
-    #pragma HLS INTERFACE axis register both port=siSHL_LsnRep   name=siSHL_LsnRep
-    #pragma HLS INTERFACE axis register both port=soSHL_ClsReq   name=soSHL_ClsReq
-    #pragma HLS INTERFACE axis register both port=siSHL_ClsRep   name=siSHL_ClsRep
-
-    #pragma HLS INTERFACE axis register both port=siSHL_Data     name=siSHL_Data
-    #pragma HLS INTERFACE axis register both port=siSHL_Meta     name=siSHL_Meta
-    #pragma HLS DATA_PACK                variable=siSHL_Meta
-
-    #pragma HLS INTERFACE axis register both port=soSHL_Data     name=soSHL_Data
-    #pragma HLS INTERFACE axis register both port=soSHL_Meta     name=soSHL_Meta
-    #pragma HLS DATA_PACK                variable=soSHL_Meta
-    #pragma HLS INTERFACE axis register both port=soSHL_DLen     name=soSHL_DLen
-
-    #pragma HLS INTERFACE axis register both port=siUAF_Data     name=siUAF_Data
-    #pragma HLS INTERFACE axis register both port=siUAF_Meta     name=siUAF_Meta
-    #pragma HLS DATA_PACK                variable=siUAF_Meta
-    #pragma HLS INTERFACE axis register both port=siUAF_DLen     name=siUAF_DLen
-
-    #pragma HLS INTERFACE axis register both port=soUAF_Data     name=soUAF_Data
-    #pragma HLS INTERFACE axis register both port=soUAF_Meta     name=soUAF_Meta
-    #pragma HLS DATA_PACK                variable=soUAF_Meta
-
-#endif
-
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW  interval=1
+    #pragma HLS INLINE
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
