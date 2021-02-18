@@ -19,7 +19,7 @@
  * @brief      : UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_BringUp / ROLE
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
@@ -91,7 +91,8 @@ void pEchoStoreAndForward(
         stream<UdpAppDLen>  &soTXp_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ESF_META=0, ESF_STREAM } \
@@ -162,6 +163,7 @@ void pTxPath(
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "TXp");
@@ -411,6 +413,7 @@ void pRxPath(
         stream<UdpAppMeta>   &soESf_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "RXp");
@@ -566,6 +569,13 @@ void pRxPath(
  * @param[out] soUSIF_Meta          UDP metadata to [USIF].
  * @param[out] soUSIF_DLen          UDP data len to [USIF].
  *
+ * @info This core is designed with non-blocking read and write streams in mind.
+ *   FYI, this is the normal way of operation for an internal stream and for an
+ *   interface using the 'ap_fifo' protocol.
+ *
+ * @warning This core will not work properly if operated with a handshake
+ *   interface(ap_hs) or an AXI-Stream interface (axis) because these two
+ *   interfaces do not support non-blocking accesses.
  *******************************************************************************/
 void udp_app_flash (
 
@@ -590,7 +600,7 @@ void udp_app_flash (
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW
+    #pragma HLS INLINE
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)

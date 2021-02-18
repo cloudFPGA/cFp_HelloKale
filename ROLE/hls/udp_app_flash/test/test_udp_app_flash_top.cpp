@@ -68,25 +68,25 @@ int main(int argc, char *argv[]) {
     printInfo(THIS_NAME, "## TESTBENCH 'test_udp_app_flash_top' STARTS HERE  ##\n");
     printInfo(THIS_NAME, "#####################################################\n");
     printInfo(THIS_NAME, "  FYI - This testbench does nothing. \n");
-    printInfo(THIS_NAME, "        It is just provided here for compilation purpose.\n\n");
+    printInfo(THIS_NAME, "        It is just provided here for compilation purpose.\n");
 
     //-- Run DUT simulation
     int tbRun = 42;
-    while (tbRun) {
-    	udp_app_flash_top(
-    			//-- SHELL / Mmio / Configuration Interfaces
-    			//[NOT_USED] sSHL_UAF_Mmio_EchoCtrl,
-    			//[NOT_USED] sSHL_UAF_Mmio_PostPktEn,
-    			//[NOT_USED] sSHL_UAF_Mmio_CaptPktEn,
-    			//-- USIF / Rx Data Interfaces
-    			ssUSIF_UAF_Data,
-				ssUSIF_UAF_Meta,
-				//-- USIF / Tx Data Interfaces
-				ssUAF_USIF_Data,
-				ssUAF_USIF_Meta,
-				ssUAF_USIF_DLen);
-    	tbRun--;
-    	stepSim();
+    while (0) {
+        udp_app_flash_top(
+                //-- SHELL / Mmio / Configuration Interfaces
+                //[NOT_USED] sSHL_UAF_Mmio_EchoCtrl,
+                //[NOT_USED] sSHL_UAF_Mmio_PostPktEn,
+                //[NOT_USED] sSHL_UAF_Mmio_CaptPktEn,
+                //-- USIF / Rx Data Interfaces
+                ssUSIF_UAF_Data,
+                ssUSIF_UAF_Meta,
+                //-- USIF / Tx Data Interfaces
+                ssUAF_USIF_Data,
+                ssUAF_USIF_Meta,
+                ssUAF_USIF_DLen);
+        tbRun--;
+        stepSim();
     }
 
     printInfo(THIS_NAME, "################################################################\n");

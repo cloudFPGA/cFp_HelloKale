@@ -41,7 +41,7 @@ set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
-set ipRtl          "vhdl"
+set ipRtl          "verilog"
 
 # Retrieve the arguments passed to this script
 #-------------------------------------------------

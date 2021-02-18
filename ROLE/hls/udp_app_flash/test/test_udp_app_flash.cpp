@@ -58,7 +58,7 @@ using namespace std;
 #define TRACE_DUMTF  1 <<  4
 #define TRACE_ALL     0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
  * @brief Increment the simulation counter
