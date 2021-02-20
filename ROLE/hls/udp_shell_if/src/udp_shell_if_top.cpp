@@ -49,27 +49,23 @@ using namespace std;
 
 template <class Type>
 void pAxisToFifo(
-        stream<Type>  &siAxisStream,
-        stream<Type>  &soFifoStream)
+        stream<Type>& siAxisStream,
+        stream<Type>& soFifoStream)
 {
     #pragma HLS INLINE off
-    //OBSOLETE_20210216 #pragma HLS pipeline II=1
-
     Type currChunk;
+    siAxisStream.read(currChunk);  // Blocking read
     if (!soFifoStream.full()) {
-        siAxisStream.read(currChunk);  // Blocking read
-        soFifoStream.write(currChunk);
+        soFifoStream.write(currChunk);  // else drop
     }
 }
 
 template <class Type>
 void pFifoToAxis(
-        stream<Type>  &siFifoStream,
-        stream<Type>  &soAxisStream)
+        stream<Type>& siFifoStream,
+        stream<Type>& soAxisStream)
 {
     #pragma HLS INLINE off
-    //OBSOLETE_20210216 #pragma HLS pipeline II=1
-
     Type currChunk;
     if (!siFifoStream.empty()) {
         siFifoStream.read(currChunk);
@@ -183,27 +179,31 @@ void udp_shell_if_top(
 
     #pragma HLS INTERFACE ap_stable             port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
-    #pragma HLS INTERFACE axis register both    port=soSHL_LsnReq   name=soSHL_LsnReq
-    #pragma HLS INTERFACE axis register both    port=siSHL_LsnRep   name=siSHL_LsnRep
-    #pragma HLS INTERFACE axis register both    port=soSHL_ClsReq   name=soSHL_ClsReq
-    #pragma HLS INTERFACE axis register both    port=siSHL_ClsRep   name=siSHL_ClsRep
+	//-- [SHL] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE axis register off     port=soSHL_LsnReq   name=soSHL_LsnReq
+    #pragma HLS INTERFACE axis register off     port=siSHL_LsnRep   name=siSHL_LsnRep
+    #pragma HLS INTERFACE axis register off     port=soSHL_ClsReq   name=soSHL_ClsReq
+    #pragma HLS INTERFACE axis register off     port=siSHL_ClsRep   name=siSHL_ClsRep
 
-    #pragma HLS INTERFACE axis register both    port=siSHL_Data     name=siSHL_Data
-    #pragma HLS INTERFACE axis register both    port=siSHL_Meta     name=siSHL_Meta
+    #pragma HLS INTERFACE axis register off     port=siSHL_Data     name=siSHL_Data
+    #pragma HLS INTERFACE axis register off     port=siSHL_Meta     name=siSHL_Meta
     #pragma HLS DATA_PACK                   variable=siSHL_Meta
 
-    #pragma HLS INTERFACE axis register both    port=soSHL_Data     name=soSHL_Data
-    #pragma HLS INTERFACE axis register both    port=soSHL_Meta     name=soSHL_Meta
+    #pragma HLS INTERFACE axis register off     port=soSHL_Data     name=soSHL_Data
+    #pragma HLS INTERFACE axis register off     port=soSHL_Meta     name=soSHL_Meta
     #pragma HLS DATA_PACK                   variable=soSHL_Meta
-    #pragma HLS INTERFACE axis register both    port=soSHL_DLen     name=soSHL_DLen
+    #pragma HLS INTERFACE axis register off     port=soSHL_DLen     name=soSHL_DLen
 
-    #pragma HLS INTERFACE axis register both    port=siUAF_Data     name=siUAF_Data
-    #pragma HLS INTERFACE axis register both    port=siUAF_Meta     name=siUAF_Meta
+    //-- [UAF] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE ap_fifo               port=siUAF_Data     name=siUAF_Data
+    #pragma HLS DATA_PACK                   variable=siUAF_Data
+    #pragma HLS INTERFACE ap_fifo               port=siUAF_Meta     name=siUAF_Meta
     #pragma HLS DATA_PACK                   variable=siUAF_Meta
-    #pragma HLS INTERFACE axis register both    port=siUAF_DLen     name=siUAF_DLen
+    #pragma HLS INTERFACE ap_fifo               port=siUAF_DLen     name=siUAF_DLen
 
-    #pragma HLS INTERFACE axis register both    port=soUAF_Data     name=soUAF_Data
-    #pragma HLS INTERFACE axis register both    port=soUAF_Meta     name=soUAF_Meta
+    #pragma HLS INTERFACE ap_fifo               port=soUAF_Data     name=soUAF_Data
+    #pragma HLS DATA_PACK                   variable=soUAF_Data
+    #pragma HLS INTERFACE ap_fifo               port=soUAF_Meta     name=soUAF_Meta
     #pragma HLS DATA_PACK                   variable=soUAF_Meta
 
 #endif
@@ -216,6 +216,7 @@ void udp_shell_if_top(
     //--  depth of 2. You may change it with the optimization directive 'STREAM'.
     //--    E.g., #pragma HLS STREAM variable=ssiUAF_Data depth=4
 
+    /*** OBSOLETE_20210219 ******************
     static stream<UdpPort>       ssoSHL_LsnReq  ("ssoSHL_LsnReq");
     static stream<StsBool>       ssiSHL_LsnRep  ("ssiSHL_LsnRep");
     static stream<UdpPort>       ssoSHL_ClsReq  ("ssoSHL_ClsReq");
@@ -231,44 +232,38 @@ void udp_shell_if_top(
     static stream<UdpAppData>    ssoUAF_Data    ("ssoUAF_Data");
     static stream<UdpAppMeta>    ssoUAF_Meta    ("ssoUAF_Meta");
 
-    #pragma HLS STREAM  variable=ssiSHL_Data    depth=4
-    #pragma HLS STREAM  variable=ssoSHL_Data    depth=4
-    #pragma HLS STREAM  variable=ssiUAF_Data    depth=4
-    #pragma HLS STREAM  variable=ssoUAF_Data    depth=4
-
-    //-- INPUT INTERFACES ------------------------------------------------------
+    //-- INPUT AXIS INTERFACES -------------------------------------------------
     pAxisToFifo(siSHL_LsnRep, ssiSHL_LsnRep);
     pAxisToFifo(siSHL_ClsRep, ssiSHL_ClsRep);
     pAxisToFifo(siSHL_Data,   ssiSHL_Data);
     pAxisToFifo(siSHL_Meta,   ssiSHL_Meta);
-    pAxisToFifo(siUAF_Data,   ssiUAF_Data);
-    pAxisToFifo(siUAF_Meta,   ssiUAF_Meta);
-    pAxisToFifo(siUAF_DLen,   ssiUAF_DLen);
+    ***************************/
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_shell_if(
         //-- SHELL / Mmio Interface
         piSHL_Mmio_En,
         //-- SHELL / Control Port Interfaces
-        ssoSHL_LsnReq,
-        ssiSHL_LsnRep,
-        ssoSHL_ClsReq,
-        ssiSHL_ClsRep,
+        soSHL_LsnReq,
+        siSHL_LsnRep,
+        soSHL_ClsReq,
+        siSHL_ClsRep,
         //-- SHELL / Rx Data Interfaces
-        ssiSHL_Data,
-        ssiSHL_Meta,
+        siSHL_Data,
+        siSHL_Meta,
         //-- SHELL / Tx Data Interfaces
-        ssoSHL_Data,
-        ssoSHL_Meta,
-        ssoSHL_DLen,
+        soSHL_Data,
+        soSHL_Meta,
+        soSHL_DLen,
         //-- UAF / Tx Data Interfaces
-        ssiUAF_Data,
-        ssiUAF_Meta,
-        ssiUAF_DLen,
+        siUAF_Data,
+        siUAF_Meta,
+        siUAF_DLen,
         //-- UAF / Rx Data Interfaces
-        ssoUAF_Data,
-        ssoUAF_Meta);
+        soUAF_Data,
+        soUAF_Meta);
 
+    /*** OBSOLETE_20210219 ******************
     //-- OUTPUT INTERFACES -----------------------------------------------------
     pFifoToAxis(ssoSHL_LsnReq, soSHL_LsnReq);
     pFifoToAxis(ssoSHL_ClsReq, soSHL_ClsReq);
@@ -277,6 +272,7 @@ void udp_shell_if_top(
     pFifoToAxis(ssoSHL_DLen,   soSHL_DLen);
     pFifoToAxis(ssoUAF_Data,   soUAF_Data);
     pFifoToAxis(ssoUAF_Meta,   soUAF_Meta);
+    ******************************************/
 
 }
 

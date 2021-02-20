@@ -49,26 +49,23 @@ using namespace std;
 
 template <class Type>
 void pAxisToFifo(
-        stream<Type>  &siAxisStream,
-        stream<Type>  &soFifoStream)
+        stream<Type>& siAxisStream,
+        stream<Type>& soFifoStream)
 {
     #pragma HLS INLINE off
-    //OBSOLETE_20210216 #pragma HLS pipeline II=1
     Type currChunk;
+    siAxisStream.read(currChunk);  // Blocking read
     if (!soFifoStream.full()) {
-        siAxisStream.read(currChunk);  // Blocking read
-        soFifoStream.write(currChunk);
+        soFifoStream.write(currChunk);  // else drop
     }
 }
 
 template <class Type>
 void pFifoToAxis(
-        stream<Type>  &siFifoStream,
-        stream<Type>  &soAxisStream)
+        stream<Type>& siFifoStream,
+        stream<Type>& soAxisStream)
 {
     #pragma HLS INLINE off
-    //OBSOLETE_20210216 #pragma HLS pipeline II=1
-
     Type currChunk;
     if (!siFifoStream.empty()) {
         siFifoStream.read(currChunk);
@@ -146,38 +143,23 @@ void udp_app_flash_top (
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
 
-    #pragma HLS INTERFACE axis register off  port=siUSIF_Data    name=siUSIF_Data
-    #pragma HLS INTERFACE axis register off  port=siUSIF_Meta    name=siUSIF_Meta
-    #pragma HLS DATA_PACK                variable=siUSIF_Meta
+    //-- [USIF] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE ap_fifo   port=siUSIF_Data    name=siUSIF_Data
+    #pragma HLS DATA_PACK       variable=siUSIF_Data
+    #pragma HLS INTERFACE ap_fifo   port=siUSIF_Meta    name=siUSIF_Meta
+    #pragma HLS DATA_PACK       variable=siUSIF_Meta
 
-    #pragma HLS INTERFACE axis register off  port=soUSIF_Data    name=soUSIF_Data
-    #pragma HLS INTERFACE axis register off  port=soUSIF_Meta    name=soUSIF_Meta
-	#pragma HLS DATA_PACK                variable=soUSIF_Meta
-    #pragma HLS INTERFACE axis register off  port=soUSIF_DLen    name=soUSIF_DLen
-    #pragma HLS DATA_PACK                variable=soUSIF_DLen
+    #pragma HLS INTERFACE ap_fifo   port=soUSIF_Data    name=soUSIF_Data
+    #pragma HLS DATA_PACK       variable=soUSIF_Data
+    #pragma HLS INTERFACE ap_fifo   port=soUSIF_Meta    name=soUSIF_Meta
+	#pragma HLS DATA_PACK       variable=soUSIF_Meta
+    #pragma HLS INTERFACE ap_fifo   port=soUSIF_DLen    name=soUSIF_DLen
+    #pragma HLS DATA_PACK       variable=soUSIF_DLen
 
 #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-
-    //-- LOCAL IN and OUT STREAMS ----------------------------------------------
-    //--  FYI, an internal hls::stream<> is implemented as a FIFO with a default
-    //--  depth of 2. You may change it with the optimization directive 'STREAM'.
-    //--    E.g., #pragma HLS STREAM variable=ssiUAF_Data depth=4
-
-    static stream<UdpAppData>       ssiUSIF_Data  ("ssiUSIF_Data");
-    static stream<UdpAppMeta>       ssiUSIF_Meta  ("ssiUSIF_Meta");
-    static stream<UdpAppData>       ssoUSIF_Data  ("ssoUSIF_Data");
-    static stream<UdpAppMeta>       ssoUSIF_Meta  ("ssoUSIF_Meta");
-    static stream<UdpAppDLen>       ssoUSIF_DLen  ("ssoUSIF_DLen");
-
-    #pragma HLS STREAM     variable=ssiUSIF_Data  depth=4
-    #pragma HLS STREAM     variable=ssoUSIF_Data  depth=4
-
-    //-- INPUT INTERFACES ------------------------------------------------------
-    pAxisToFifo(siUSIF_Data, ssiUSIF_Data);
-    pAxisToFifo(siUSIF_Meta, ssiUSIF_Meta);
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_app_flash (
@@ -190,19 +172,14 @@ void udp_app_flash_top (
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
-        ssiUSIF_Data,
-        ssiUSIF_Meta,
+        siUSIF_Data,
+        siUSIF_Meta,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
-        ssoUSIF_Data,
-        ssoUSIF_Meta,
-        ssoUSIF_DLen);
-
-    //-- OUTPUT INTERFACES -----------------------------------------------------
-    pFifoToAxis(ssoUSIF_Data, soUSIF_Data);
-    pFifoToAxis(ssoUSIF_Meta, soUSIF_Meta);
-    pFifoToAxis(ssoUSIF_DLen, soUSIF_DLen);
+        soUSIF_Data,
+        soUSIF_Meta,
+        soUSIF_DLen);
 
 }
 
