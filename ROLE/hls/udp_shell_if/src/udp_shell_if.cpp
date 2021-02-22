@@ -330,11 +330,9 @@ void pReadPath(
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { RDP_READ_META=0, RDP_FWD_META, RDP_STREAM, RDP_8801 } \
-	                           rdp_fsmState = RDP_READ_META;
+    static enum FsmStates { RDP_IDLE=0, RDP_FWD_META, RDP_STREAM, RDP_DROP, RDP_8801 } \
+	                           rdp_fsmState = RDP_IDLE;
     #pragma HLS reset variable=rdp_fsmState
-    static FlagBool            rdp_keepFlag=true;
-    #pragma HLS reset variable=rdp_keepFlag
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static UdpAppMeta  rdp_appMeta;
@@ -343,25 +341,22 @@ void pReadPath(
     UdpAppData  appData;
 
     switch (rdp_fsmState ) {
-    case RDP_READ_META:
+    case RDP_IDLE:
         if (!siSHL_Meta.empty()) {
             siSHL_Meta.read(rdp_appMeta);
             switch (rdp_appMeta.dst.port) {
             case RECV_MODE_LSN_PORT:
                 // (DstPort == 8800) Dump this traffic stream
                 if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Rx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
-                rdp_keepFlag = false;
-                rdp_fsmState  = RDP_STREAM;
+                rdp_fsmState  = RDP_DROP;
                 break;
             case XMIT_MODE_LSN_PORT:
                 // (DstPort == 8801) Retrieve the size of the requested Tx datagram
                 if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Tx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
-                rdp_keepFlag = false;
                 rdp_fsmState  = RDP_8801;
                 break;
             default:
                 // Business as usual
-                rdp_keepFlag = true;
                 rdp_fsmState  = RDP_FWD_META;
                 break;
             }
@@ -376,16 +371,20 @@ void pReadPath(
     case RDP_STREAM:
         if (!siSHL_Data.empty() and !soUAF_Data.full()) {
             siSHL_Data.read(appData);
-            if (rdp_keepFlag) {
-                soUAF_Data.write(appData);
-                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soUAF_Data =", appData); }
-            }
-            else {
-                if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Dropping siSHL_Data =", appData); }
-            }
+            soUAF_Data.write(appData);
             if (appData.getLE_TLast()) {
-                rdp_fsmState  = RDP_READ_META;
+                rdp_fsmState  = RDP_IDLE;
             }
+            if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soUAF_Data =", appData); }
+        }
+        break;
+    case RDP_DROP:
+        if (!siSHL_Data.empty()) {
+            siSHL_Data.read(appData);
+            if (appData.getLE_TLast()) {
+                rdp_fsmState  = RDP_IDLE;
+            }
+            if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Dropping siSHL_Data =", appData); }
         }
         break;
     case RDP_8801:
@@ -406,10 +405,9 @@ void pReadPath(
                 printSockAddr(myName, dstSockAddr);
             }
             if (appData.getLE_TLast()) {
-                rdp_fsmState  = RDP_READ_META;
+                rdp_fsmState  = RDP_IDLE;
             }
             else {
-                rdp_keepFlag = false;
                 rdp_fsmState = RDP_STREAM;
             }
         }
@@ -471,8 +469,7 @@ void pWritePath(
     switch (wrp_fsmState) {
     case WRP_IDLE:
         //-- Always read the metadata and the length provided by [ROLE/UAF]
-        if (!siUAF_Meta.empty() and !siUAF_DLen.empty() and
-            !soSHL_Meta.full()  and !soSHL_DLen.full()) {
+        if (!siUAF_Meta.empty() and !siUAF_DLen.empty() and !soSHL_Meta.full()  and !soSHL_DLen.full()) {
             siUAF_Meta.read(appMeta);
             siUAF_DLen.read(appDLen);
             soSHL_Meta.write(appMeta);
@@ -483,8 +480,7 @@ void pWritePath(
             }
             wrp_fsmState = WRP_STREAM;
         }
-        else if (!siRDp_Meta.empty() and !siRDp_DReq.empty() and
-                 !soSHL_Meta.full()  and !soSHL_DLen.full()) {
+        else if (!siRDp_Meta.empty() and !siRDp_DReq.empty() and !soSHL_Meta.full()  and !soSHL_DLen.full()) {
             siRDp_Meta.read(appMeta);
             siRDp_DReq.read(wrp_appDReq);
             soSHL_Meta.write(appMeta);
@@ -498,7 +494,7 @@ void pWritePath(
         }
         break;
     case WRP_STREAM:
-        if (!siUAF_Data.empty() && !soSHL_Data.full()) {
+        if (!siUAF_Data.empty() and !soSHL_Data.full()) {
             siUAF_Data.read(appData);
             if (DEBUG_LEVEL & TRACE_WRP) {
                  printAxisRaw(myName, "Received data chunk from ROLE: ", appData);
