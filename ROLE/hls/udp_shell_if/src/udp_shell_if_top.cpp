@@ -45,7 +45,8 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not work for us.
  ************************************************/
-#undef USE_DEPRECATED_DIRECTIVES
+#undef  USE_DEPRECATED_DIRECTIVES
+#define USE_AP_FIFO
 
 template <class Type>
 void pAxisToFifo(
@@ -152,6 +153,7 @@ void udp_shell_if_top(
 
     #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En name=piSHL_Mmio_En
 
+    //-- [SHL] INTERFACES ------------------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soSHL_LsnReq  metadata="-bus_bundle soSHL_LsnReq"
     #pragma HLS resource core=AXI4Stream variable=siSHL_LsnRep  metadata="-bus_bundle siSHL_LsnRep"
     #pragma HLS resource core=AXI4Stream variable=soSHL_ClsReq  metadata="-bus_bundle soSHL_ClsReq"
@@ -166,6 +168,7 @@ void udp_shell_if_top(
     #pragma HLS DATA_PACK                variable=soSHL_Meta
     #pragma HLS resource core=AXI4Stream variable=soSHL_DLen    metadata="-bus_bundle soSHL_DLen"
 
+    //-- [UAF] INTERFACES ------------------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siUAF_Data    metadata="-bus_bundle siUAF_Data"
     #pragma HLS resource core=AXI4Stream variable=siUAF_Meta    metadata="-bus_bundle siUAF_Meta"
     #pragma HLS DATA_PACK                variable=siUAF_Meta
@@ -176,10 +179,10 @@ void udp_shell_if_top(
     #pragma HLS DATA_PACK                variable=soUAF_Meta
 
 #else
-
+  #if defined (USE_AP_FIFO)
     #pragma HLS INTERFACE ap_stable             port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
-	//-- [SHL] INTERFACES ------------------------------------------------------
+    //-- [SHL] INTERFACES ------------------------------------------------------
     #pragma HLS INTERFACE axis register off     port=soSHL_LsnReq   name=soSHL_LsnReq
     #pragma HLS INTERFACE axis register off     port=siSHL_LsnRep   name=siSHL_LsnRep
     #pragma HLS INTERFACE axis register off     port=soSHL_ClsReq   name=soSHL_ClsReq
@@ -198,14 +201,43 @@ void udp_shell_if_top(
     #pragma HLS INTERFACE ap_fifo               port=siUAF_Data     name=siUAF_Data
     #pragma HLS DATA_PACK                   variable=siUAF_Data
     #pragma HLS INTERFACE ap_fifo               port=siUAF_Meta     name=siUAF_Meta
-    #pragma HLS DATA_PACK                   variable=siUAF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
     #pragma HLS INTERFACE ap_fifo               port=siUAF_DLen     name=siUAF_DLen
 
     #pragma HLS INTERFACE ap_fifo               port=soUAF_Data     name=soUAF_Data
     #pragma HLS DATA_PACK                   variable=soUAF_Data
     #pragma HLS INTERFACE ap_fifo               port=soUAF_Meta     name=soUAF_Meta
-    #pragma HLS DATA_PACK                   variable=soUAF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
+  #else
+    #pragma HLS INTERFACE ap_stable             port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
+    //-- [SHL] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE axis register off     port=soSHL_LsnReq   name=soSHL_LsnReq
+    #pragma HLS INTERFACE axis register off     port=siSHL_LsnRep   name=siSHL_LsnRep
+    #pragma HLS INTERFACE axis register off     port=soSHL_ClsReq   name=soSHL_ClsReq
+    #pragma HLS INTERFACE axis register off     port=siSHL_ClsRep   name=siSHL_ClsRep
+
+    #pragma HLS INTERFACE axis register off     port=siSHL_Data     name=siSHL_Data
+    #pragma HLS INTERFACE axis register off     port=siSHL_Meta     name=siSHL_Meta
+    #pragma HLS DATA_PACK                   variable=siSHL_Meta
+
+    #pragma HLS INTERFACE axis register off     port=soSHL_Data     name=soSHL_Data
+    #pragma HLS INTERFACE axis register off     port=soSHL_Meta     name=soSHL_Meta
+    #pragma HLS DATA_PACK                   variable=soSHL_Meta
+    #pragma HLS INTERFACE axis register off     port=soSHL_DLen     name=soSHL_DLen
+
+    //-- [UAF] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE axis register off     port=siUAF_Data     name=siUAF_Data
+    #pragma HLS INTERFACE axis register off     port=siUAF_Meta     name=siUAF_Meta
+    #pragma HLS DATA_PACK                   variable=siUAF_Meta
+    #pragma HLS INTERFACE axis register off     port=siUAF_DLen     name=siUAF_DLen
+
+    #pragma HLS INTERFACE axis register off     port=siUAF_Data     name=soUAF_Data
+    #pragma HLS INTERFACE axis register off     port=soUAF_Meta     name=soUAF_Meta
+    #pragma HLS DATA_PACK                   variable=soUAF_Meta
+  #endif
 #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
