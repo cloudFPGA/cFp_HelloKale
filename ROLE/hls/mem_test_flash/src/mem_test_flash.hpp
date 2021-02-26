@@ -26,10 +26,6 @@
 #include <hls_stream.h>
 #include "ap_int.h"
 
-
-using namespace std;
-using namespace hls;
-
 #define FSM_IDLE 0
 #define FSM_WR_PAT_CMD 1
 #define FSM_WR_PAT_DATA 2

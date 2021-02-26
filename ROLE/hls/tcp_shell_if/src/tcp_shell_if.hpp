@@ -36,9 +36,6 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
-
-using namespace hls;
-
 //-------------------------------------------------------------------
 //-- DEFAULT LOCAL-FPGA AND FOREIGN-HOST SOCKETS
 //--  By default, the following sockets and port numbers will be used
@@ -97,11 +94,9 @@ class ForwardCmd {
     CmdBit      action;
     DropCode    dropCode;
     ForwardCmd() {}
-    ForwardCmd(SessionId sessId, TcpDatLen datLen, CmdBit action, DropCode dropCode) :
-            sessId(sessId), datLen(datLen), action(action), dropCode(dropCode) {}
+    ForwardCmd(SessionId _sessId, TcpDatLen _datLen, CmdBit _action, DropCode _dropCode) :
+            sessId(_sessId), datLen(_datLen), action(_action), dropCode(_dropCode) {}
 };
-
-
 
 /*************************************************************************
  *
@@ -118,14 +113,14 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- TAF / Rx Data Interface
         //------------------------------------------------------
-        stream<TcpAppData>    &siTAF_Data,
+        stream<AxisRaw>       &siTAF_Data,  // [FIXME-TcpAppData]
         stream<TcpSessId>     &siTAF_SessId,
         stream<TcpDatLen>     &siTAF_DatLen,
 
         //------------------------------------------------------
         //-- TAF / Tx Data Interface
         //------------------------------------------------------
-        stream<TcpAppData>    &soTAF_Data,
+        stream<AxisRaw>       &soTAF_Data,  // [FIXME-TcpAppData]
         stream<TcpSessId>     &soTAF_SessId,
         stream<TcpDatLen>     &soTAF_DatLen,
 
@@ -134,7 +129,7 @@ void tcp_shell_if(
         //------------------------------------------------------
         stream<TcpAppNotif>   &siSHL_Notif,
         stream<TcpAppRdReq>   &soSHL_DReq,
-        stream<TcpAppData>    &siSHL_Data,
+        stream<AxisRaw>       &siSHL_Data,  // [FIXME-TcpAppData]
         stream<TcpAppMeta>    &siSHL_Meta,
 
         //------------------------------------------------------
@@ -146,7 +141,7 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
-        stream<TcpAppData>    &soSHL_Data,
+        stream<AxisRaw>       &soSHL_Data,  // [FIXME-TcpAppData]
         stream<TcpAppSndReq>  &soSHL_SndReq,
         stream<TcpAppSndRep>  &siSHL_SndRep,
 

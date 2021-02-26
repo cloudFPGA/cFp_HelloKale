@@ -39,8 +39,6 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 
-using namespace hls;
-
 //------------------------------------------------------
 //-- TESTBENCH DEFINITIONS
 //------------------------------------------------------
