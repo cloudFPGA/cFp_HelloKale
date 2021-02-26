@@ -45,8 +45,10 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not always work for us.
  ************************************************/
-#undef USE_DEPRECATED_DIRECTIVES
+#undef  USE_DEPRECATED_DIRECTIVES
+#define USE_AP_FIFO
 
+/*** OBSOLETE_20210222 ****************
 template <class Type>
 void pAxisToFifo(
         stream<Type>& siAxisStream,
@@ -72,6 +74,7 @@ void pFifoToAxis(
         soAxisStream.write(currChunk);  // Blocking write
     }
 }
+***************************************/
 
 /*******************************************************************************
  * @brief   Top of UDP Application Flash (UAF)
@@ -138,24 +141,40 @@ void udp_app_flash_top (
     #pragma HLS resource core=AXI4Stream variable=soUSIF_DLen    metadata="-bus_bundle soUSIF_DLen"
 
 #else
-
+  #if defined (USE_AP_FIFO)
     //[NOT_USED] #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_EchoCtrl  name=piSHL_Mmio_EchoCtrl
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
 
     //-- [USIF] INTERFACES ------------------------------------------------------
     #pragma HLS INTERFACE ap_fifo   port=siUSIF_Data    name=siUSIF_Data
-    #pragma HLS DATA_PACK       variable=siUSIF_Data
+    //OBSOLETE_20210224 #pragma HLS DATA_PACK       variable=siUSIF_Data
     #pragma HLS INTERFACE ap_fifo   port=siUSIF_Meta    name=siUSIF_Meta
-    #pragma HLS DATA_PACK       variable=siUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
 
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_Data    name=soUSIF_Data
     #pragma HLS DATA_PACK       variable=soUSIF_Data
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_Meta    name=soUSIF_Meta
-	#pragma HLS DATA_PACK       variable=soUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_DLen    name=soUSIF_DLen
-    #pragma HLS DATA_PACK       variable=soUSIF_DLen
+  #else
+    //[NOT_USED] #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_EchoCtrl  name=piSHL_Mmio_EchoCtrl
+    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
+    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
 
+    //-- [USIF] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE axis  register off   port=siUSIF_Data    name=siUSIF_Data
+    #pragma HLS INTERFACE axis  register off   port=siUSIF_Meta    name=siUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
+    #pragma HLS INTERFACE axis  register off   port=soUSIF_Data    name=soUSIF_Data
+    #pragma HLS INTERFACE axis  register off   port=soUSIF_Meta    name=soUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
+    #pragma HLS INTERFACE axis  register off   port=soUSIF_DLen    name=soUSIF_DLen
+  #endif
 #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
