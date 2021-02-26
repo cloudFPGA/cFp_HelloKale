@@ -125,25 +125,25 @@ void mem_test_flash_main(
     //-- SHELL / Role / Mem / Mp0 Interface
     //------------------------------------------------------
     //---- Read Path (MM2S) ------------
-    stream<DmCmd>     &soMemRdCmdP0,
-    stream<DmSts>     &siMemRdStsP0,
-    stream<Axis<512> >    &siMemReadP0,
+    hls::stream<DmCmd>       &soMemRdCmdP0,
+    hls::stream<DmSts>       &siMemRdStsP0,
+    hls::stream<Axis<512> >  &siMemReadP0,
     //---- Write Path (S2MM) -----------
-    stream<DmCmd>     &soMemWrCmdP0,
-    stream<DmSts>     &siMemWrStsP0,
-    stream<Axis<512> >    &soMemWriteP0  //,
+    hls::stream<DmCmd>       &soMemWrCmdP0,
+    hls::stream<DmSts>       &siMemWrStsP0,
+    hls::stream<Axis<512> >  &soMemWriteP0
 
-//------------------------------------------------------
-//-- SHELL / Role / Mem / Mp1 Interface
-//------------------------------------------------------
-//---- Read Path (MM2S) ------------
-//stream<DmCmd>     &soMemRdCmdP1,
-//stream<DmSts>     &siMemRdStsP1,
-//stream<Axis<512> >    &siMemReadP1,
-//---- Write Path (S2MM) -----------
-//stream<DmCmd>     &soMemWrCmdP1,
-//stream<DmSts>     &siMemWrStsP1,
-// stream<Axis<512> >   &soMemWriteP1
+    //------------------------------------------------------
+    //-- SHELL / Role / Mem / Mp1 Interface
+    //------------------------------------------------------
+    //---- Read Path (MM2S) ------------
+    //stream<DmCmd>        &soMemRdCmdP1,
+    //stream<DmSts>        &siMemRdStsP1,
+    //stream<Axis<512> >   &siMemReadP1,
+    //---- Write Path (S2MM) -----------
+    //stream<DmCmd>        &soMemWrCmdP1,
+    //stream<DmSts>        &siMemWrStsP1,
+    // stream<Axis<512> >  &soMemWriteP1
 );
 
 #endif
