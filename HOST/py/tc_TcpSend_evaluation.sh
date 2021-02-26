@@ -66,7 +66,7 @@ filename_ROUND_NR="${filename}-ROUND_NR.txt"
 # STOP_HERE   # uncomment to stop execution here
 touch $filename_ROUND_NR
 grep "round nr." temporary_file.txt > $filename_ROUND_NR
-printf "ROUND NR. count:               "; grep -c "round nr." $filename_ROUND_NR
+printf "ROUND NR. count:              , "; grep -c "round nr." $filename_ROUND_NR
 # STOP_HERE   # uncomment to stop execution here
 
 filename_END_OF_TESTS="${filename}-END_OF_TESTS.txt"
@@ -76,19 +76,19 @@ touch $filename_END_OF_TESTS
 grep -A 1 "END OF TESTS" temporary_file.txt > temp_file.txt
 grep "RESOURCE_ID =" temp_file.txt > $filename_END_OF_TESTS
 rm temp_file.txt
-printf "END OF TESTS count:            "; grep -c "RESOURCE_ID" $filename_END_OF_TESTS
+printf "END OF TESTS count:           , "; grep -c "RESOURCE_ID" $filename_END_OF_TESTS
 # STOP_HERE   # uncomment to stop execution here
 
 filename_AVAILABLE="${filename}_AVAILABLE.txt"
 touch $filename_AVAILABLE
 grep "is AVAILABLE" temporary_file.txt > $filename_AVAILABLE
-printf "is AVAILABLE count:            "; grep -c "is AVAILABLE" $filename_AVAILABLE
+printf "is AVAILABLE count:           , "; grep -c "is AVAILABLE" $filename_AVAILABLE
 # STOP_HERE   # uncomment to stop execution here
 
 filename_NO_RESPONSE="${filename}_NO_RESPONSE.txt"
 touch $filename_NO_RESPONSE
 grep "NO RESPONSE" temporary_file.txt > $filename_NO_RESPONSE
-printf "NO RESPONSE count:             "; grep -c "NO RESPONSE" $filename_NO_RESPONSE
+printf "NO RESPONSE count:            , "; grep -c "NO RESPONSE" $filename_NO_RESPONSE
 # STOP_HERE   # uncomment to stop execution here
 
 echo "--------------------------"
@@ -96,31 +96,31 @@ echo "counting programming ERROR"
 filename_ERROR="${filename}_ERROR.txt"
 touch $filename_ERROR
 grep "ERROR " temporary_file.txt > $filename_ERROR
-printf "ERROR count:                   "; grep -c "ERROR" $filename_ERROR
+printf "ERROR count:                  , "; grep -c "ERROR" $filename_ERROR
 # STOP_HERE   # uncomment to stop execution here
 filename_JTAG_ERROR="${filename}_JTAG_ERROR.txt"
 touch $filename_JTAG_ERROR
 grep "JTAG" $filename_ERROR > $filename_JTAG_ERROR
-printf "JTAG ERROR count:              "; grep -c "JTAG" $filename_JTAG_ERROR
+printf "JTAG ERROR count:             , "; grep -c "JTAG" $filename_JTAG_ERROR
 # STOP_HERE   # uncomment to stop execution here
 
 filename_programming_ERROR="${filename}-programming_ERROR.txt"
 grep "programming ERROR" temporary_file.txt > $filename_programming_ERROR
-printf "programming ERROR count:       "; grep -c "programming ERROR" $filename_programming_ERROR
+printf "programming ERROR count:      , "; grep -c "programming ERROR" $filename_programming_ERROR
 # STOP_HERE   # uncomment to stop execution here
 echo "which includes"
 filename_WARNING="${filename}_WARNING.txt"
 touch $filename_WARNING
 grep "WARNING" temporary_file.txt > $filename_WARNING
-printf "WARNING count:                 "; grep -c "WARNING" $filename_WARNING
+printf "WARNING count:                , "; grep -c "WARNING" $filename_WARNING
 # STOP_HERE   # uncomment to stop execution here
 echo "which includes"
 filename_PHY_REGS="${filename}_PHY_REGS.txt"
 touch $filename_PHY_REGS
 grep "PHY_REGS" $filename_WARNING > $filename_PHY_REGS
-printf "PHY_REGS WARNING count:        "; grep -c "PHY_REGS" $filename_PHY_REGS
-printf "containing mc0: 0, counts:     "; grep -c "mc0: 0," $filename_PHY_REGS
-printf "containing mc1: 0, counts:     "; grep -c "mc1: 0," $filename_PHY_REGS
+printf "PHY_REGS WARNING count:       , "; grep -c "PHY_REGS" $filename_PHY_REGS
+printf "containing mc0: 0 counts:     , "; grep -c "mc0: 0," $filename_PHY_REGS
+printf "containing mc1: 0 counts:     , "; grep -c "mc1: 0," $filename_PHY_REGS
 # STOP_HERE   # uncomment to stop execution here
 echo "Rest of programming ERROR count not further defined"
 # if non explainable high programming error count, check filespace on sled manager!
@@ -140,45 +140,40 @@ grep -A 1 -B 10 -P '^(?!.* 0.0 Mb/s).*TCP Tx DONE with bandwidth =' $filename_TC
 filename_TCP_SEND_SUCCESS_SIZES="${filename}_TCP_SEND_SUCCESS_SIZES.txt"
 touch $filename_TCP_SEND_SUCCESS_SIZES
 grep "size = " $filename_TCP_SEND_SUCCESS > $filename_TCP_SEND_SUCCESS_SIZES
-printf "TCP_SEND success count:        "; grep -c "size = " $filename_TCP_SEND_SUCCESS_SIZES
+printf "TCP_SEND success count:       , "; grep -c "size = " $filename_TCP_SEND_SUCCESS_SIZES
 
 filename_TCP_SEND_SUCCESS_BANDWIDTH="${filename}_TCP_SEND_SUCCESS_BANDWIDTH.txt"
 touch $filename_TCP_SEND_SUCCESS_BANDWIDTH
 grep "bandwidth = " $filename_TCP_SEND_SUCCESS > $filename_TCP_SEND_SUCCESS_BANDWIDTH
-printf "TCP_SEND BANDWIDTH count:      "; grep -c "bandwidth = " $filename_TCP_SEND_SUCCESS_BANDWIDTH
+printf "TCP_SEND BANDWIDTH count:     , "; grep -c "bandwidth = " $filename_TCP_SEND_SUCCESS_BANDWIDTH
 
 filename_TCP_SEND_1_ERROR="${filename}_TCP_SEND_1_ERROR.txt"
 touch $filename_TCP_SEND_1_ERROR
 grep -A 6 -B 10 "TCP_SEND_1 ERROR" temporary_file.txt > $filename_TCP_SEND_1_ERROR
-printf "TCP_SEND_1 ERROR count:        "; grep -c "TCP_SEND_1 ERROR" $filename_TCP_SEND_1_ERROR
+printf "TCP_SEND_1 ERROR count:       , "; grep -c "TCP_SEND_1 ERROR" $filename_TCP_SEND_1_ERROR
 
 filename_TCP_SEND_2_ERROR="${filename}_TCP_SEND_2_ERROR.txt"
 touch $filename_TCP_SEND_2_ERROR
 grep -A 6 -B 10 "TCP_SEND_2 ERROR" temporary_file.txt > $filename_TCP_SEND_2_ERROR
-printf "TCP_SEND_2 ERROR count:        "; grep -c "TCP_SEND_2 ERROR" $filename_TCP_SEND_2_ERROR
-
-filename_TCP_SEND_3_ERROR="${filename}_TCP_SEND_3_ERROR.txt"
-touch $filename_TCP_SEND_3_ERROR
-grep -A 6 -B 10 "TCP_SEND_3 ERROR" temporary_file.txt > $filename_TCP_SEND_3_ERROR
-printf "TCP_SEND_3 ERROR count:        "; grep -c "TCP_SEND_3 ERROR" $filename_TCP_SEND_3_ERROR
+printf "TCP_SEND_2 ERROR count:       , "; grep -c "TCP_SEND_2 ERROR" $filename_TCP_SEND_2_ERROR
 
 echo "--------------------------"
 echo "counting SOCKET_ERROR"
 filename_SOCKET_ERROR="${filename}_SOCKET_ERROR.txt"
 touch $filename_SOCKET_ERROR
 grep -A 6 -B 10 "Socket reading error" temporary_file.txt > $filename_SOCKET_ERROR
-printf "SOCKET ERROR count:            "; grep -c "Socket reading error" $filename_SOCKET_ERROR
+printf "SOCKET ERROR count:           , "; grep -c "Socket reading error" $filename_SOCKET_ERROR
 # echo "which includes"
 # echo "Rest of SOCKET_ERROR count not further defined"
 filename_SOCKET_ERROR_SIZES="${filename}_SOCKET_ERROR_SIZES.txt"
 touch $filename_SOCKET_ERROR_SIZES
 grep "size = " $filename_SOCKET_ERROR > $filename_SOCKET_ERROR_SIZES
-printf "SOCKET ERROR SIZES count:      "; grep -c "size = " $filename_SOCKET_ERROR_SIZES
+printf "SOCKET ERROR SIZES count:     , "; grep -c "size = " $filename_SOCKET_ERROR_SIZES
 
 filename_SOCKET_ERROR_SIZE_NUMBERS="${filename}_SOCKET_ERROR_SIZE_NUMBERS.txt"
 touch $filename_SOCKET_ERROR_SIZE_NUMBERS
 # echo "a problem with awk ...."
 awk -F'[=\n]' '{print $2}' $filename_SOCKET_ERROR_SIZES > $filename_SOCKET_ERROR_SIZE_NUMBERS
-# printf "SOCKET_ERROR_SIZES_NUMBERS count:     "; grep -c "size = " $filename_SOCKET_ERROR_SIZE_NUMBERS
+# printf "SOCKET_ERROR_SIZES_NUMBERS count:    , "; grep -c "size = " $filename_SOCKET_ERROR_SIZE_NUMBERS
 
 rm temporary_file.txt
