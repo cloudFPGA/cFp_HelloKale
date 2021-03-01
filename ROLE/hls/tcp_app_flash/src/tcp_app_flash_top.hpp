@@ -50,18 +50,6 @@
 };
 ***********************/
 
-//-------------------------------------------------------------------
-//-- DEFAULT TESTING PORTS
-//--  By default, the following port numbers will be used by the
-//--  TcpApplicationFlash (unless user specifies new ones via TBD).
-//--  Default testing ports:
-//--  --> 8803  : Traffic received on this port is looped back and
-//--              echoed to the sender in path-through mode.
-//--  --> Others: Traffic received on any port != 8803 is looped back
-//--              and echo to the sender in store-and-forward mode.
-//-------------------------------------------------------------------
-// OBSOLETE #define ECHO_PATH_THRU_PORT  8803   // 0x2263
-
 
 /*******************************************************************************
  *
@@ -76,13 +64,13 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- TSIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &siTSIF_Data,
+        stream<AxisRaw>     &siTSIF_Data,  // [FIXME - TcpAppData]
         stream<TcpSessId>   &siTSIF_SessId,
         stream<TcpDatLen>   &siTSIF_DatLen,
         //------------------------------------------------------
         //-- TSIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &soTSIF_Data,
+        stream<AxisRaw>     &soTSIF_Data,    // [FIXME - TcpAppData]
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen
 );

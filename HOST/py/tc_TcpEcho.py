@@ -448,6 +448,8 @@ else:
         tcp_txrx_ramp(tcpSock, message, count, args.verbose)
     else:
         tcp_txrx_loop(tcpSock, message, count, args.verbose)
+
 # STEP-14: Close socket
 # -----------------------
+time.sleep(2)
 tcpSock.close()

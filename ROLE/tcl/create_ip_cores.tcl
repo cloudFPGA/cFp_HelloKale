@@ -336,35 +336,53 @@ set_property target_language Verilog [current_project]
 ###############################################################################
 my_puts ""
 
-# [HOWTO] # VIVADO-IP : AXI Register Slice 
-# [HOWTO] #------------------------------------------------------------------------------
-# [HOWTO] #  Signal Properties
-# [HOWTO] 
-# [HOWTO] # VIVADO-IP : AXI Register Slice 
-# [HOWTO] #------------------------------------------------------------------------------
-# [HOWTO] #  Signal Properties
-# [HOWTO] #    [Yes] : Enable TREADY
-# [HOWTO] #    [8]   : TDATA Width (bytes)
-# [HOWTO] #    [No]  : Enable TSTRB
-# [HOWTO] #    [Yes] : Enable TKEEP
-# [HOWTO] #    [Yes] : Enable TLAST
-# [HOWTO] #    [0]   : TID Width (bits)
-# [HOWTO] #    [0]   : TDEST Width (bits)
-# [HOWTO] #    [0]   : TUSER Width (bits)
-# [HOWTO] #    [No]  : Enable ACLKEN
-# [HOWTO] #------------------------------------------------------------------------------
-# [HOWTO] set ipModName "AxisRegisterSlice_64"
-# [HOWTO] set ipName    "axis_register_slice"
-# [HOWTO] set ipVendor  "xilinx.com"
-# [HOWTO] set ipLibrary "ip"
-# [HOWTO] set ipVersion "1.1"
-# [HOWTO] set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {8} \
-# [HOWTO]                       CONFIG.HAS_TKEEP {1} \
-# [HOWTO]                       CONFIG.HAS_TLAST {1} ]
-# [HOWTO] 
-# [HOWTO] set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-# [HOWTO] 
-# [HOWTO] if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator [Depth-16 x Width-16]
+#------------------------------------------------------------------------------
+set ipModName "Fifo_16x16"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+set ipCfgList [ list CONFIG.Fifo_Implementation {Common_Clock_Shift_Register} \
+                     CONFIG.Input_Data_Width {16} \
+                     CONFIG.Input_Depth {16} \
+                     CONFIG.Output_Data_Width {16} \
+                     CONFIG.Output_Depth {16} \
+                     CONFIG.Use_Embedded_Registers {false} \
+                     CONFIG.Data_Count_Width {4} \
+                     CONFIG.Write_Data_Count_Width {4} \
+                     CONFIG.Read_Data_Count_Width {4} \
+                     CONFIG.Full_Threshold_Assert_Value {14} \
+                     CONFIG.Full_Threshold_Negate_Value {13} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator [Depth-16 x Width-32]
+#------------------------------------------------------------------------------
+set ipModName "Fifo_16x32"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+set ipCfgList [ list CONFIG.Fifo_Implementation {Common_Clock_Shift_Register} \
+                     CONFIG.Input_Data_Width {32} \
+                     CONFIG.Input_Depth {16} \
+                     CONFIG.Output_Data_Width {32} \
+                     CONFIG.Output_Depth {16} \
+                     CONFIG.Use_Embedded_Registers {false} \
+                     CONFIG.Data_Count_Width {4} \
+                     CONFIG.Write_Data_Count_Width {4} \
+                     CONFIG.Read_Data_Count_Width {4} \
+                     CONFIG.Full_Threshold_Assert_Value {14} \
+                     CONFIG.Full_Threshold_Negate_Value {13} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : FIFO Generator [Depth-16 x Width-73]
@@ -417,30 +435,6 @@ set ipCfgList [ list CONFIG.Fifo_Implementation {Common_Clock_Distributed_RAM} \
                      CONFIG.Full_Threshold_Negate_Value {13} \
                      CONFIG.Empty_Threshold_Assert_Value {2} \
                      CONFIG.Empty_Threshold_Negate_Value {3} ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-#------------------------------------------------------------------------------  
-# VIVADO-IP : FIFO Generator [Depth-16 x Width-16]
-#------------------------------------------------------------------------------
-set ipModName "Fifo_16x16"
-set ipName    "fifo_generator"
-set ipVendor  "xilinx.com"
-set ipLibrary "ip"
-set ipVersion "13.2"
-set ipCfgList [ list CONFIG.Fifo_Implementation {Common_Clock_Shift_Register} \
-                     CONFIG.Input_Data_Width {16} \
-                     CONFIG.Input_Depth {16} \
-                     CONFIG.Output_Data_Width {16} \
-                     CONFIG.Output_Depth {16} \
-                     CONFIG.Use_Embedded_Registers {false} \
-                     CONFIG.Data_Count_Width {4} \
-                     CONFIG.Write_Data_Count_Width {4} \
-                     CONFIG.Read_Data_Count_Width {4} \
-                     CONFIG.Full_Threshold_Assert_Value {14} \
-                     CONFIG.Full_Threshold_Negate_Value {13} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -531,6 +525,76 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+
+################################################################################
+##
+##  PHASE-3: Creating HLS-based cores (the deprecated ones)
+##
+################################################################################
+my_puts ""
+
+# Specify the IP Repository Path to add the HLS-based IP implementation paths.
+#   (Must do this because IPs are stored outside of the current project) 
+#-------------------------------------------------------------------------------
+set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
+update_ip_catalog
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Shell Interface 
+#------------------------------------------------------------------------------
+set ipModName "UdpShellInterface_Deprecated"
+set ipName    "udp_shell_if_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Application Flash
+#------------------------------------------------------------------------------
+set ipModName "UdpApplicationFlash_Deprecated"
+set ipName    "udp_app_flash_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : TCP Application Flash 
+#------------------------------------------------------------------------------
+set ipModName "TcpApplicationFlash_Deprecated"
+set ipName    "tcp_app_flash_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : TCP Shell Interface 
+#------------------------------------------------------------------------------
+set ipModName "TcpShellInterface_Deprecated"
+set ipName    "tcp_shell_if_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 puts    ""

@@ -32,6 +32,7 @@ import errno
 import socket
 import struct
 import netifaces as ni
+import time
 
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
@@ -303,6 +304,7 @@ udp_rx_loop(udpClientSock, udpServerSock, size, ipHost, dpHost, count, args.verb
 
 #  STEP-14: Close sockets
 # -----------------------
+time.sleep(2)
 udpClientSock.close()
 udpServerSock.close()
 

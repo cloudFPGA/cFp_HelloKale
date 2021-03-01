@@ -36,8 +36,6 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
-using namespace hls;
-
 //-------------------------------------------------------------------
 //-- DEFAULT LISTENING PORTS
 //--  By default, the following port numbers will be used by the
@@ -113,14 +111,14 @@ void udp_shell_if(
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &siUAF_Data,
-        stream<UdpAppMeta>      &siUAF_Meta,
+        stream<UdpAppMetb>      &siUAF_Meta,
         stream<UdpAppDLen>      &siUAF_DLen,
 
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &soUAF_Data,
-        stream<UdpAppMeta>      &soUAF_Meta
+        stream<UdpAppMetb>      &soUAF_Meta
 
 );
 

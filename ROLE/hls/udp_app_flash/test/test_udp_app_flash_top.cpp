@@ -67,7 +67,7 @@ void stepSim() {
  * @param[in]  myName       The name of the caller process.
  * @param[in]  appDatagram  A reference to the datagram to read.
  * @param[in]  ifsData      The input file stream to read from.
- * @param[out] udpAppMeta   A ref to the current active socket pair.
+ * @param[out] sockPair     A ref to the current active socket pair.
  * @param[out] udpMetaQueue A ref to a container queue which holds the sequence of UDP socket-pairs.
  * @param[out] inpChunks    A ref to the number of processed chunks.
  * @param[out] inptDgrms    A ref to the number of processed datagrams.
@@ -75,8 +75,8 @@ void stepSim() {
  * @return true if successful, otherwise false.
  *******************************************************************************/
 bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
-                          ifstream   &ifsData,    UdpAppMeta     &udpAppMeta,
-                          queue<UdpAppMeta> &udpMetaQueue,  int  &inpChunks,
+                          ifstream   &ifsData,    SocketPair     &sockPair,
+                          queue<UdpAppMetb> &udpMetaQueue,  int  &inpChunks,
                           int        &inpDgrms,   int            &inpBytes) {
 
     string          stringBuffer;
@@ -90,19 +90,19 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
         getline(ifsData, stringBuffer);
         stringVector = myTokenizer(stringBuffer, ' ');
         //-- Read the Host Socket Address from line (if present)
-        rc = readHostSocketFromLine(udpAppMeta.src, stringBuffer);
+        rc = readHostSocketFromLine(sockPair.src, stringBuffer);
         if (rc) {
             if (DEBUG_LEVEL & TRACE_CGTF) {
                 printInfo(myName, "Read a new HOST socket address from DAT file:\n");
-                printSockAddr(myName, udpAppMeta.src);
+                printSockAddr(myName, sockPair.src);
             }
         }
         //-- Read the Fpga Socket Address from line (if present)
-        rc = readFpgaSocketFromLine(udpAppMeta.dst, stringBuffer);
+        rc = readFpgaSocketFromLine(sockPair.dst, stringBuffer);
         if (rc) {
             if (DEBUG_LEVEL & TRACE_CGTF) {
                 printInfo(myName, "Read a new FPGA socket address from DAT file:\n");
-                printSockAddr(myName, udpAppMeta.dst);
+                printSockAddr(myName, sockPair.dst);
             }
         }
         //-- Read an AxiWord from line
@@ -115,7 +115,8 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
             inpBytes += udpAppData.getLen();
             if (udpAppData.getLE_TLast() == 1) {
                 inpDgrms++;
-                udpMetaQueue.push(udpAppMeta);
+                udpMetaQueue.push(UdpAppMetb(sockPair.src.addr, sockPair.src.port,
+                                             sockPair.dst.addr, sockPair.dst.port));
                 endOfDgm = true;
             }
         }
@@ -140,7 +141,7 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
 int createGoldenTxFiles(
         EchoCtrl          tbMode,
         string            inpData_FileName,
-        queue<UdpAppMeta> &udpMetaQueue,
+        queue<UdpAppMetb> &udpMetaQueue,
         string            outData_GoldName,
         string            outMeta_GoldName,
         string            outDLen_GoldName)
@@ -212,31 +213,33 @@ int createGoldenTxFiles(
     SockAddr  fpgaSock = SockAddr(fpgaDefaultIp4Address, fpgaDefaultUdpLsnPort);
     do {
         SimUdpDatagram appDatagram(8);
-
-        UdpAppMeta     udpAppMeta = SocketPair(hostSock, fpgaSock);
+        SocketPair     currSockPair(hostSock, fpgaSock);
+        //OBSOLETE UdpAppMetb     udpAppMeta(hostSock.addr, hostSock.port, fpgaSock.addr, fpgaSock.port);
         UdpAppDLen     udpAppDLen = 0;
         bool           endOfDgm=false;
         //-- Retrieve one APP datagram from input DAT file (can be up to 2^16-1 bytes)
         endOfDgm = readDatagramFromFile(myName, appDatagram, ifsData,
-                                        udpAppMeta, udpMetaQueue,
+                                        currSockPair, udpMetaQueue,
                                         inpChunks, inpDgrms, inpBytes);
         if (endOfDgm) {
             //-- Swap the IP_SA/IP_DA but keep UDP_SP/UDP/DP as is
-            UdpAppMeta udpGldMeta(SockAddr(udpAppMeta.dst.addr, udpAppMeta.src.port),
-                                  SockAddr(udpAppMeta.src.addr, udpAppMeta.dst.port));
+            //OBSOLETE_20210226 UdpAppMetb udpGldMeta(SockAddr(udpAppMeta.dst.addr, udpAppMeta.src.port),
+        	//OBSOLETE_20210226                       SockAddr(udpAppMeta.src.addr, udpAppMeta.dst.port));
+            SocketPair goldSockPair(SockAddr(currSockPair.dst.addr, currSockPair.src.port),
+                                    SockAddr(currSockPair.src.addr, currSockPair.dst.port));
             // Dump the socket pair to file
             if (tbMode != ECHO_OFF) {
-                writeSocketPairToFile(udpGldMeta, ofsMetaGold);
+                writeSocketPairToFile(goldSockPair, ofsMetaGold);
                 if (DEBUG_LEVEL & TRACE_CGTF) {
                     printInfo(myName, "Writing new socket-pair to gold file:\n");
-                    printSockPair(myName, udpGldMeta);
+                    printSockPair(myName, goldSockPair);
                 }
             }
 
             // Dump the data len to file
             if (tbMode != ECHO_OFF) {
                 UdpAppDLen appDLen;
-                if (udpAppMeta.dst.port == ECHO_PATH_THRU_PORT) {
+                if (currSockPair.dst.port == ECHO_PATH_THRU_PORT) {
                     //-- The traffic will be forwarded in 'ECHO-CUT-THRU' mode
                     //--  and in 'STREAMING-MODE' by setting 'DLen' to zero.
                     appDLen = 0;
@@ -304,9 +307,9 @@ int createGoldenTxFiles(
  ******************************************************************************/
 int createUdpRxTraffic(
         stream<AxisApp>    &ssData, const string      ssDataName,
-        stream<UdpAppMeta> &ssMeta, const string      ssMetaName,
+        stream<UdpAppMetb> &ssMeta, const string      ssMetaName,
         string             datFile,
-        queue<UdpAppMeta>  &metaQueue,
+        queue<UdpAppMetb>  &metaQueue,
         int                &nrFeededChunks)
 {
 
@@ -350,11 +353,11 @@ int createUdpRxTraffic(
   *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
-bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
+bool drainUdpMetaStreamToFile(stream<UdpAppMetb> &ss, string ssName,
         string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
     ofstream    outFileStream;
     char        currPath[FILENAME_MAX];
-    SocketPair  udpMeta;
+    UdpAppMetb  udpMeta;
 
     const char *myName  = concat3(THIS_NAME, "/", "DUMTF");
 
@@ -383,10 +386,12 @@ bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
     //-- READ FROM STREAM AND WRITE TO FILE
     while (!(ss.empty())) {
         ss.read(udpMeta);
-        SocketPair socketPair(SockAddr(udpMeta.src.addr,
-                                       udpMeta.src.port),
-                              SockAddr(udpMeta.dst.addr,
-                                       udpMeta.dst.port));
+        //OBSOLETE_20210226 SocketPair socketPair(SockAddr(udpMeta.src.addr,
+        //OBSOLETE_20210226                                udpMeta.src.port),
+        //OBSOLETE_20210226                       SockAddr(udpMeta.dst.addr,
+        //OBSOLETE_20210226                                udpMeta.dst.port));
+        SocketPair socketPair(SockAddr(udpMeta.ip4SrcAddr, udpMeta.udpSrcPort),
+                              SockAddr(udpMeta.ip4DstAddr, udpMeta.udpDstPort));
         writeSocketPairToFile(socketPair, outFileStream);
         nrChunks++;
         nrBytes += 12;
@@ -512,9 +517,9 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     stream<UdpAppData>  ssUSIF_UAF_Data  ("ssUSIF_UAF_Data");
-    stream<UdpAppMeta>  ssUSIF_UAF_Meta  ("ssUSIF_UAF_Meta");
+    stream<UdpAppMetb>  ssUSIF_UAF_Meta  ("ssUSIF_UAF_Meta");
     stream<UdpAppData>  ssUAF_USIF_Data  ("ssUAF_USIF_Data");
-    stream<UdpAppMeta>  ssUAF_USIF_Meta  ("ssUAF_USIF_Meta");
+    stream<UdpAppMetb>  ssUAF_USIF_Meta  ("ssUAF_USIF_Meta");
     stream<UdpAppDLen>  ssUAF_USIF_DLen  ("ssUAF_USIF_DLen");
 
     //------------------------------------------------------
@@ -592,8 +597,8 @@ int main(int argc, char *argv[]) {
         }
 
         //-- STEP-3: Create golden Tx files
-        queue<UdpAppMeta>   udpSocketPairs;
-        if (NTS_OK == createGoldenTxFiles(tbMode, string(argv[2]), udpSocketPairs,
+        queue<UdpAppMetb>   udpMetaQueue;
+        if (NTS_OK == createGoldenTxFiles(tbMode, string(argv[2]), udpMetaQueue,
                 ofsUSIF_Data_Gold_FileName, ofsUSIF_Meta_Gold_FileName, ofsUSIF_DLen_Gold_FileName) != NTS_OK) {
             printError(THIS_NAME, "Failed to create golden Tx files. \n");
             nrErr++;
@@ -604,7 +609,7 @@ int main(int argc, char *argv[]) {
         if (not createUdpRxTraffic(ssUSIF_UAF_Data, "ssUSIF_UAF_Data",
                                    ssUSIF_UAF_Meta, "ssUSIF_UAF_Meta",
                                    string(argv[2]),
-                                   udpSocketPairs,
+                                   udpMetaQueue,
                                    nrUSIF_UAF_Chunks)) {
             printFatal(THIS_NAME, "Failed to create the USIF->UAF traffic as streams.\n");
         }

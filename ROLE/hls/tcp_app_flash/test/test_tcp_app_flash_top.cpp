@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
     //-- Run DUT simulation
     int tbRun = 42;
-    while (tbRun) {
+    while (0) {
         tcp_app_flash_top(
             //-- SHELL / MMIO / Configuration Interfaces
             &sMMIO_TAF_EchoCtrl,

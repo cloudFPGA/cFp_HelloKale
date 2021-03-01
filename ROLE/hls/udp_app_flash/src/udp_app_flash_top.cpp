@@ -37,7 +37,6 @@
 #include "udp_app_flash.hpp"
 
 using namespace hls;
-using namespace std;
 
 /************************************************
  * INTERFACE SYNTHESIS DIRECTIVES
@@ -45,7 +44,7 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not always work for us.
  ************************************************/
-#undef  USE_DEPRECATED_DIRECTIVES
+#define USE_DEPRECATED_DIRECTIVES
 #define USE_AP_FIFO
 
 /*** OBSOLETE_20210222 ****************
@@ -108,13 +107,13 @@ void udp_app_flash_top (
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppMetb>  &siUSIF_Meta,
 
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppMetb>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
@@ -148,7 +147,7 @@ void udp_app_flash_top (
 
     //-- [USIF] INTERFACES ------------------------------------------------------
     #pragma HLS INTERFACE ap_fifo   port=siUSIF_Data    name=siUSIF_Data
-    //OBSOLETE_20210224 #pragma HLS DATA_PACK       variable=siUSIF_Data
+    #pragma HLS DATA_PACK       variable=siUSIF_Data
     #pragma HLS INTERFACE ap_fifo   port=siUSIF_Meta    name=siUSIF_Meta
     // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
     //    does not support packing structs which contain other structs!!!

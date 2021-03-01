@@ -94,10 +94,10 @@ void stepSim() {
 void pUAF(
         //-- USIF / Rx Data Interface
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppMetb>  &siUSIF_Meta,
         //-- USIF / Tx Data Interface
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppMetb>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
 
@@ -107,16 +107,18 @@ void pUAF(
     static enum RxFsmStates { RX_IDLE=0, RX_STREAM } uaf_rxFsmState=RX_IDLE;
 
     UdpAppData      appData;
-    UdpAppMeta      appMeta;
+    UdpAppMetb      appMeta;
 
     switch (uaf_rxFsmState ) {
     case RX_IDLE:
         if (!siUSIF_Meta.empty() and !soUSIF_Meta.full()) {
             siUSIF_Meta.read(appMeta);
             // Swap IP_SA/IP_DA and update UPD_SP/UDP_DP
-            soUSIF_Meta.write(SocketPair(
-                          SockAddr(appMeta.dst.addr, DEFAULT_FPGA_SND_PORT),
-                          SockAddr(appMeta.src.addr, DEFAULT_HOST_LSN_PORT)));
+            //OBSOLETE_20210226 soUSIF_Meta.write(SocketPair(
+            //OBSOLETE_20210226               SockAddr(appMeta.dst.addr, DEFAULT_FPGA_SND_PORT),
+            //OBSOLETE_20210226               SockAddr(appMeta.src.addr, DEFAULT_HOST_LSN_PORT)));
+            soUSIF_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, DEFAULT_FPGA_SND_PORT,
+                                         appMeta.ip4SrcAddr, DEFAULT_HOST_LSN_PORT));
             soUSIF_DLen.write(0);
             uaf_rxFsmState  = RX_STREAM;
         }
@@ -494,7 +496,7 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- UAF->USIF / UDP Tx Data Interface
     stream<UdpAppData>    ssUAF_USIF_Data     ("ssUAF_USIF_Data");
-    stream<UdpAppMeta>    ssUAF_USIF_Meta     ("ssUAF_USIF_Meta");
+    stream<UdpAppMetb>    ssUAF_USIF_Meta     ("ssUAF_USIF_Meta");
     stream<UdpAppDLen>    ssUAF_USIF_DLen     ("ssUAF_USIF_DLen");
     //-- USIF->UOE / UDP Tx Data Interface
     stream<UdpAppData>    ssUSIF_UOE_Data     ("ssUSIF_UOE_Data");
@@ -505,7 +507,7 @@ int main(int argc, char *argv[]) {
     stream<UdpAppMeta>    ssUOE_USIF_Meta     ("ssUOE_USIF_Meta");
     //-- USIF->UAF / UDP Rx Data Interface
     stream<UdpAppData>    ssUSIF_UAF_Data     ("ssUSIF_UAF_Data");
-    stream<UdpAppMeta>    ssUSIF_UAF_Meta     ("ssUSIF_UAF_Meta");
+    stream<UdpAppMetb>    ssUSIF_UAF_Meta     ("ssUSIF_UAF_Meta");
     //-- UOE / Control Port Interfaces
     stream<UdpPort>       ssUSIF_UOE_LsnReq   ("ssUSIF_UOE_LsnReq");
     stream<StsBool>       ssUOE_USIF_LsnRep   ("ssUOE_USIF_LsnRep");

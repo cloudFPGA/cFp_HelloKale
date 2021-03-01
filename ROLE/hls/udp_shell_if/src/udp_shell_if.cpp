@@ -67,7 +67,7 @@ using namespace std;
 #define TRACE_LSN 1 <<  4
 #define TRACE_CLS 1 <<  5
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
@@ -319,8 +319,8 @@ void pReadPath(
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMeta>  &soUAF_Meta,
-        stream<UdpAppMeta>  &soWRp_Meta,
+        stream<UdpAppMetb>  &soUAF_Meta,
+        stream<SocketPair>  &soWRp_SockPair,
         stream<UdpAppDLen>  &soWRp_DReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -364,7 +364,8 @@ void pReadPath(
         break;
     case RDP_FWD_META:
         if (!soUAF_Meta.full()) {
-            soUAF_Meta.write(rdp_appMeta);
+            soUAF_Meta.write(UdpAppMetb(rdp_appMeta.src.addr, rdp_appMeta.src.port,
+                                        rdp_appMeta.dst.addr, rdp_appMeta.dst.port));
             rdp_fsmState  = RDP_STREAM;
         }
         break;
@@ -388,7 +389,7 @@ void pReadPath(
         }
         break;
     case RDP_8801:
-        if (!siSHL_Data.empty() and !soWRp_Meta.full() and !soWRp_DReq.full()) {
+        if (!siSHL_Data.empty() and !soWRp_SockPair.full() and !soWRp_DReq.full()) {
             // Extract the remote socket address and the requested #bytes to transmit
             siSHL_Data.read(appData);
             SockAddr srcSockAddr(rdp_appMeta.dst.addr, rdp_appMeta.dst.port);
@@ -396,7 +397,7 @@ void pReadPath(
                                  byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
             Ly4Len bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
             // Forward socket-pair information to [WRp]
-            soWRp_Meta.write(SocketPair(srcSockAddr, dstSockAddr));
+            soWRp_SockPair.write(SocketPair(srcSockAddr, dstSockAddr));
             // Forward the extracted number of bytes to transmit
             soWRp_DReq.write(bytesToSend);
             if (DEBUG_LEVEL & TRACE_RDP) {
@@ -436,9 +437,9 @@ void pReadPath(
  *******************************************************************************/
 void pWritePath(
         stream<UdpAppData>   &siUAF_Data,
-        stream<UdpAppMeta>   &siUAF_Meta,
+        stream<UdpAppMetb>   &siUAF_Meta,
         stream<UdpAppDLen>   &siUAF_DLen,
-        stream<UdpAppMeta>   &siRDp_Meta,
+        stream<SocketPair>   &siRDp_SockPair,
         stream<UdpAppDLen>   &siRDp_DReq,
         stream<UdpAppData>   &soSHL_Data,
         stream<UdpAppMeta>   &soSHL_Meta,
@@ -462,7 +463,8 @@ void pWritePath(
     static UdpAppDLen wrp_appDReq;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    UdpAppMeta    appMeta;
+    UdpAppMetb    appMeta;
+    SocketPair    tstSockPair;
     UdpAppDLen    appDLen;
     UdpAppData    appData;
 
@@ -472,22 +474,24 @@ void pWritePath(
         if (!siUAF_Meta.empty() and !siUAF_DLen.empty() and !soSHL_Meta.full()  and !soSHL_DLen.full()) {
             siUAF_Meta.read(appMeta);
             siUAF_DLen.read(appDLen);
-            soSHL_Meta.write(appMeta);
+            soSHL_Meta.write(SocketPair(SockAddr(appMeta.ip4SrcAddr, appMeta.udpSrcPort),
+                                        SockAddr(appMeta.ip4DstAddr, appMeta.udpDstPort)));
             soSHL_DLen.write(appDLen);
             if (DEBUG_LEVEL & TRACE_WRP) {
                 printInfo(myName, "Received a datagram of length %d from ROLE.\n", appDLen.to_uint());
-                printSockPair(myName, appMeta);
+                printSockPair(myName, SocketPair(SockAddr(appMeta.ip4SrcAddr, appMeta.udpSrcPort),
+                                                 SockAddr(appMeta.ip4DstAddr, appMeta.udpDstPort)));
             }
             wrp_fsmState = WRP_STREAM;
         }
-        else if (!siRDp_Meta.empty() and !siRDp_DReq.empty() and !soSHL_Meta.full()  and !soSHL_DLen.full()) {
-            siRDp_Meta.read(appMeta);
+        else if (!siRDp_SockPair.empty() and !siRDp_DReq.empty() and !soSHL_Meta.full()  and !soSHL_DLen.full()) {
+            siRDp_SockPair.read(tstSockPair);
             siRDp_DReq.read(wrp_appDReq);
-            soSHL_Meta.write(appMeta);
+            soSHL_Meta.write(tstSockPair);
             soSHL_DLen.write(wrp_appDReq);
             if (DEBUG_LEVEL & TRACE_WRP) {
                 printInfo(myName, "Received a Tx test request of length %d from RDp.\n", wrp_appDReq.to_uint());
-                printSockPair(myName, appMeta);
+                printSockPair(myName, tstSockPair);
             }
             wrp_fsmState = WRP_8801;
             wrp_genChunk = CHK0;
@@ -593,16 +597,17 @@ void udp_shell_if(
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUAF_Data,
-        stream<UdpAppMeta>  &siUAF_Meta,
+        stream<UdpAppMetb>  &siUAF_Meta,
         stream<UdpAppDLen>  &siUAF_DLen,
 
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMeta>  &soUAF_Meta)
+        stream<UdpAppMetb>  &soUAF_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS DATAFLOW
     #pragma HLS INLINE
 
     //-------------------------------------------------------------------------
@@ -610,10 +615,10 @@ void udp_shell_if(
     //-------------------------------------------------------------------------
 
     //-- Read Path (RDp)
-    static stream<UdpAppMeta>      ssRDpToWRp_Meta    ("ssRDpToWRp_Meta");
-    #pragma HLS STREAM    variable=ssRDpToWRp_Meta    depth=2
-    static stream<UdpAppDLen>      ssRDpToWRp_DReq    ("ssRDpToWRp_DReq");
-    #pragma HLS STREAM    variable=ssRDpToWRp_DReq    depth=2
+    static stream<SocketPair>      ssRDpToWRp_SockPair ("ssRDpToWRp_SockPair");
+    #pragma HLS STREAM    variable=ssRDpToWRp_SockPair depth=2
+    static stream<UdpAppDLen>      ssRDpToWRp_DReq     ("ssRDpToWRp_DReq");
+    #pragma HLS STREAM    variable=ssRDpToWRp_DReq     depth=2
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pListen(
@@ -631,14 +636,14 @@ void udp_shell_if(
             siSHL_Meta,
             soUAF_Data,
             soUAF_Meta,
-            ssRDpToWRp_Meta,
+            ssRDpToWRp_SockPair,
             ssRDpToWRp_DReq);
 
     pWritePath(
             siUAF_Data,
             siUAF_Meta,
             siUAF_DLen,
-            ssRDpToWRp_Meta,
+            ssRDpToWRp_SockPair,
             ssRDpToWRp_DReq,
             soSHL_Data,
             soSHL_Meta,

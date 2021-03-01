@@ -56,12 +56,30 @@ _cFp_Monolithic_ project.
 * Follow this <[link](./py/README.md)> if you want to read about these scripts.  
 
 
-## Step-4: How To iPerf 
+## Step-4: How To Socat
+_Socat_ is considered an advanced version of the _Netcat_ tool. It offers more functionality, such
+as permitting multiple clients to listen on a port, or reusing connections.
+
+##### Step-4.1: To test the establishment of a TCP connection
+Enter the following command and type in a stream of characters at the console. That stream will be 
+echoed back by the FPGA instance.
+```
+    $ socat - TCP4:<image_ip>:8803    (e.g. socat - TCP4:10.12.200.163 8803)
+```
+
+##### Step-4.2: To test the establishment of a UDP connection
+Enter the following command and type in a stream of characters at the console. That stream will be 
+echoed back by the FPGA instance.
+```
+    $ socat - UDP4 <image_ip> 8803    (e.g. socat - UDP4 10.12.200.163 8803)
+```
+
+## Step-5: How To iPerf 
 _Iperf_ is a tool for network performance measurement and tuning. If the tool is installed on your 
 machine, you can use it to measure the throughput between the host and an FPGA instance that is 
 programmed with a _cFp_Monolithic_ bitstream. 
 
-##### Step-4.1: To run iPerf in TCP client mode
+##### Step-5.1: To run iPerf in TCP client mode
 Enter the following command to connect with your FPGA instance on TCP port *8800*.
 ```
     $ iperf --help
@@ -75,7 +93,7 @@ Enter the following command to connect with your FPGA instance on TCP port *8800
     [  3]  0.0-30.0 sec  1.20 GBytes   345 Mbits/sec
 ```
 
-##### Step-4.2: To run iPerf in UDP client mode
+##### Step-5.2: To run iPerf in UDP client mode
 Enter the following command to connect with your FPGA instance on UDP port *8800*.
 ```
     $ iperf --help
