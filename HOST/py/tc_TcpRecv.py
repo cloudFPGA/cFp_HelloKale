@@ -33,6 +33,7 @@ import netifaces as ni
 import socket
 import struct
 import time
+import faulthandler
 
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
@@ -412,7 +413,21 @@ finally:
 # STEP-9: Block and wait for incoming connection from remote FPGA client(s).
 # -----------------------------------------------------------------------------
 print("[INFO] Waiting for a connection from remote FPGA")
-tcpServerSock, fpgaClientAssociation = tcpListenSock.accept()
+# faulthandler.enable()
+try:
+    # print("[INFO] Faulthandler enabled with timeout=5")
+    # faulthandler.dump_traceback_later(5)   # if faulthandler expires, kill tcpListenSock
+    # tcpListenSock.setblocking(0)
+    tcpListenSock.settimeout(10)
+    print("[INFO] tcpListenSock.timeout=10")
+    tcpServerSock, fpgaClientAssociation = tcpListenSock.accept()
+except socket.error as exception:
+    # Any exception
+    print("[EXCEPTION] Socket error while waiting for a connection from remote FPGA :: %s" % exception)
+    exit(1)
+# finally:
+    # faulthandler.cancel_dump_traceback_later() # cancel the last call to dump_traceback_later
+    # print("[INFO] Faulthandler disabled")
 print("[INFO] Received a connection from FPGA socket address ",  fpgaClientAssociation)
 print()
 
