@@ -51,14 +51,14 @@ void tcp_shell_if_top(
         //------------------------------------------------------
         //-- TAF / Rx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>       &siTAF_Data,
+        stream<TcpAppData>    &siTAF_Data,
         stream<TcpSessId>     &siTAF_SessId,
         stream<TcpDatLen>     &siTAF_DatLen,
 
         //------------------------------------------------------
         //-- TAF / Tx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>       &soTAF_Data,
+        stream<TcpAppData>    &soTAF_Data,
         stream<TcpSessId>     &soTAF_SessId,
         stream<TcpDatLen>     &soTAF_DatLen,
 
@@ -67,7 +67,7 @@ void tcp_shell_if_top(
         //------------------------------------------------------
         stream<TcpAppNotif>   &siSHL_Notif,
         stream<TcpAppRdReq>   &soSHL_DReq,
-        stream<AxisRaw>       &siSHL_Data,
+        stream<TcpAppData>    &siSHL_Data,
         stream<TcpAppMeta>    &siSHL_Meta,
 
         //------------------------------------------------------
@@ -79,7 +79,7 @@ void tcp_shell_if_top(
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>       &soSHL_Data,
+        stream<TcpAppData>    &soSHL_Data,
         stream<TcpAppSndReq>  &soSHL_SndReq,
         stream<TcpAppSndRep>  &siSHL_SndRep,
 

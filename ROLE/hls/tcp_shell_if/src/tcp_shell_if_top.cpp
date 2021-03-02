@@ -87,14 +87,14 @@ void tcp_shell_if_top(
         //------------------------------------------------------
         //-- TAF / TxP Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>       &siTAF_Data,    // [FIXME-TcpAppData]
+        stream<TcpAppData>    &siTAF_Data,
         stream<TcpSessId>     &siTAF_SessId,
         stream<TcpDatLen>     &siTAF_DatLen,
 
         //------------------------------------------------------
         //-- TAF / RxP Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>       &soTAF_Data,   // [FIXME-TcpAppData]
+        stream<TcpAppData>    &soTAF_Data,
         stream<TcpSessId>     &soTAF_SessId,
         stream<TcpDatLen>     &soTAF_DatLen,
 
@@ -103,7 +103,7 @@ void tcp_shell_if_top(
         //------------------------------------------------------
         stream<TcpAppNotif>   &siSHL_Notif,
         stream<TcpAppRdReq>   &soSHL_DReq,
-        stream<AxisRaw>       &siSHL_Data,   // [FIXME-TcpAppData]
+        stream<TcpAppData>    &siSHL_Data,
         stream<TcpAppMeta>    &siSHL_Meta,
 
         //------------------------------------------------------
@@ -115,7 +115,7 @@ void tcp_shell_if_top(
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>       &soSHL_Data,   // [FIXME-TcpAppData]
+        stream<TcpAppData>    &soSHL_Data,
         stream<TcpAppSndReq>  &soSHL_SndReq,
         stream<TcpAppSndRep>  &siSHL_SndRep,
 
@@ -214,10 +214,10 @@ void tcp_shell_if_top(
     #pragma HLS DATAFLOW
 
     //-- LOCAL IN and OUT STREAMS ----------------------------------------------
-    static stream<TcpSessId>     ssiTAF_SessId  ("ssiTAF_SessId");
-    #pragma HLS STREAM  variable=ssiTAF_SessId  depth=2
-    static stream<TcpDatLen>     ssiTAF_DatLen  ("ssiTAF_DatLen");
-    #pragma HLS STREAM  variable=ssiTAF_DatLen  depth=2
+    //OBSOLETE static stream<TcpSessId>     ssiTAF_SessId  ("ssiTAF_SessId");
+    //OBSOLETE #pragma HLS STREAM  variable=ssiTAF_SessId  depth=2
+    //OBSOLETE static stream<TcpDatLen>     ssiTAF_DatLen  ("ssiTAF_DatLen");
+    //OBSOLETE #pragma HLS STREAM  variable=ssiTAF_DatLen  depth=2
 
     //-- INPUT INTERFACES ------------------------------------------------------
     //OBSOLETE pAxisToFifo(siTAF_SessId, ssiTAF_SessId);

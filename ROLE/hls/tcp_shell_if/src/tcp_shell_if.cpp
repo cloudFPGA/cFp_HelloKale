@@ -459,12 +459,12 @@ void pReadRequestHandler(
  *       the extracted fields to the Connect (COn) process.
  *******************************************************************************/
 void pReadPath(
-        stream<AxisRaw>     &siSHL_Data,  // [FIXME - TcpAppData]
+        stream<TcpAppData>  &siSHL_Data,
         stream<TcpAppMeta>  &siSHL_Meta,
         stream<ForwardCmd>  &siRRh_FwdCmd,
         stream<SockAddr>    &soCOn_OpnSockReq,
         stream<TcpDatLen>   &soCOn_TxCountReq,
-        stream<AxisRaw>     &soTAF_Data,    // [FIXME - TcpAppData]
+        stream<TcpAppData>  &soTAF_Data,
         stream<TcpSessId>   &soTAF_SessId,
         stream<TcpDatLen>   &soTAF_DatLen)
 {
@@ -514,8 +514,7 @@ void pReadPath(
         }
         break;
     case RDP_FWD_STREAM:
-        //OBSOLETE-20210213 if (!siSHL_Data.empty() and !soTAF_Data.full()) {
-        if (!soTAF_Data.full()) {
+        if (!siSHL_Data.empty() and !soTAF_Data.full()) {
             siSHL_Data.read(appData);
             soTAF_Data.write(appData);
             if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", appData); }
@@ -536,18 +535,17 @@ void pReadPath(
         }
         break;
     case RDP_SINK_STREAM:
-        //OBSOLETE-20210213 if (!siSHL_Data.empty()) {
+        if (!siSHL_Data.empty()) {
             siSHL_Data.read(appData);
             if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Sink Data =", appData); }
             if (appData.getTLast()) {
                 rdp_fsmState  = RDP_IDLE;
             }
-        //OBSOLETE-20210213 }
+        }
         break;
     case RDP_8801:
-        //OBSOLETE_20210213 if (!siSHL_Data.empty() and !soCOn_OpnSockReq.full() and !soCOn_TxCountReq.full()) {
-        if (!soCOn_OpnSockReq.full() and !soCOn_TxCountReq.full()) {
-        // Extract the remote socket address and the requested #bytes to transmit
+        if (!siSHL_Data.empty() and !soCOn_OpnSockReq.full() and !soCOn_TxCountReq.full()) {
+            // Extract the remote socket address and the requested #bytes to transmit
             siSHL_Data.read(appData);
             SockAddr sockToOpen(byteSwap32(appData.getLE_TData(31,  0)),   // IP4 address
                                 byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
@@ -599,12 +597,12 @@ void pReadPath(
  *
  *******************************************************************************/
 void pWritePath(
-        stream<AxisRaw>      &siTAF_Data,    // [FIXME - TcpAppData]
+        stream<TcpAppData>   &siTAF_Data,
         stream<TcpSessId>    &siTAF_SessId,
         stream<TcpDatLen>    &siTAF_DatLen,
         stream<TcpDatLen>    &siCOn_TxBytesReq,
         stream<SessionId>    &siCOn_TxSessId,
-        stream<AxisRaw>      &soSHL_Data,    // [FIXME - TcpAppData]
+        stream<TcpAppData>   &soSHL_Data,
         stream<TcpAppSndReq> &soSHL_SndReq,
         stream<TcpAppSndRep> &siSHL_SndRep)
 {
@@ -716,8 +714,7 @@ void pWritePath(
         }
         break;
     case WRP_STREAM:
-        //OBSOLETE-20210213 if (!siTAF_Data.empty() and !soSHL_Data.full()) {
-        if (!soSHL_Data.full()) {
+        if (!siTAF_Data.empty() and !soSHL_Data.full()) {
             siTAF_Data.read(appData);
             soSHL_Data.write(appData);
             if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data =", appData); }
@@ -754,13 +751,13 @@ void pWritePath(
         }
         break;
     case WRP_DRAIN:
-        //OBSOLETE-20210213 if (!siTAF_Data.empty()) {
+        if (!siTAF_Data.empty()) {
             siTAF_Data.read(appData);
             if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "Draining siTAF_Data =", appData); }
             if(appData.getTLast()) {
                 wrp_fsmState = WRP_IDLE;
             }
-        //OBSOLETE-20210213 }
+        }
         break;
     } // End-of: switch
 
@@ -797,14 +794,14 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- TAF / TxP Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>       &siTAF_Data,  // [FIXME-TcpAppData]
+        stream<TcpAppData>    &siTAF_Data,
         stream<TcpSessId>     &siTAF_SessId,
         stream<TcpDatLen>     &siTAF_DatLen,
 
         //------------------------------------------------------
         //-- TAF / RxP Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>       &soTAF_Data,  // [FIXME-TcpAppData]
+        stream<TcpAppData>    &soTAF_Data,
         stream<TcpSessId>     &soTAF_SessId,
         stream<TcpDatLen>     &soTAF_DatLen,
 
@@ -813,7 +810,7 @@ void tcp_shell_if(
         //------------------------------------------------------
         stream<TcpAppNotif>   &siSHL_Notif,
         stream<TcpAppRdReq>   &soSHL_DReq,
-        stream<AxisRaw>       &siSHL_Data,  // [FIXME-TcpAppData]
+        stream<TcpAppData>    &siSHL_Data,
         stream<TcpAppMeta>    &siSHL_Meta,
 
         //------------------------------------------------------
@@ -825,7 +822,7 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>       &soSHL_Data,  // [FIXME-TcpAppData]
+        stream<TcpAppData>    &soSHL_Data,
         stream<TcpAppSndReq>  &soSHL_SndReq,
         stream<TcpAppSndRep>  &siSHL_SndRep,
 
@@ -841,6 +838,7 @@ void tcp_shell_if(
         stream<TcpAppClsReq>  &soSHL_ClsReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW interval=1
     #pragma HLS INLINE
 
     //--------------------------------------------------------------------------
