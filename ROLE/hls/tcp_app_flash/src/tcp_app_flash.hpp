@@ -73,13 +73,13 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>     &siTSIF_Data,    // [FIXME - TcpAppData]
+        stream<TcpAppData>  &siTSIF_Data,
         stream<TcpSessId>   &siTSIF_SessId,
         stream<TcpDatLen>   &siTSIF_DatLen,
         //------------------------------------------------------
         //-- SHELL / TCP Tx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>     &soTSIF_Data,    // [FIXME - TcpAppData]
+        stream<TcpAppData>  &soTSIF_Data,
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen
 );

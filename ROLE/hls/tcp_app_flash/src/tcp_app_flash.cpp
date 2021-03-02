@@ -159,7 +159,7 @@ void pTcpTxPath(
         stream<TcpAppData>  &siESf_Data,
         stream<TcpSessId>   &siESf_SessId,
         stream<TcpDatLen>   &siESf_DatLen,
-        stream<AxisRaw>     &soTSIF_Data,  // [FIXME - TcpAppData]
+        stream<TcpAppData>  &soTSIF_Data,
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen)
 {
@@ -291,7 +291,7 @@ void pTcpTxPath(
  *******************************************************************************/
 void pTcpRxPath(
         ap_uint<2>           *piSHL_MmioEchoCtrl,
-        stream<AxisRaw>      &siTSIF_Data,    // [FIXME - TcpAppData]
+        stream<TcpAppData>   &siTSIF_Data,
         stream<TcpSessId>    &siTSIF_SessId,
         stream<TcpDatLen>    &siTSIF_DatLen,
         stream<TcpAppData>   &soEPt_Data,
@@ -323,8 +323,7 @@ void pTcpRxPath(
         switch(*piSHL_MmioEchoCtrl) {
         case ECHO_PATH_THRU:
             //-- Read incoming metadata and forward to pEchoPathThrough
-            //OBSOLETE-20210213 if ( !siTSIF_SessId.empty() and !soEPt_SessId.full() and !siTSIF_DatLen.empty() and !soEPt_DatLen.full() ) {
-            if (!soEPt_SessId.full() and !soEPt_DatLen.full() ) {
+            if ( !siTSIF_SessId.empty() and !soEPt_SessId.full() and !siTSIF_DatLen.empty() and !soEPt_DatLen.full() ) {
                 siTSIF_SessId.read(sessId);
                 siTSIF_DatLen.read(datLen);
                 soEPt_SessId.write(sessId);
@@ -334,8 +333,7 @@ void pTcpRxPath(
             break;
           case ECHO_STORE_FWD:
             //-- Read incoming metadata and forward to pTcpEchoStoreAndForward
-            //OBSOLETE-20210213 if ( !siTSIF_SessId.empty() and !soESf_SessId.full() and !siTSIF_DatLen.empty() and !soEPt_DatLen.full()) {
-            if (!soESf_SessId.full() and !soEPt_DatLen.full()) {
+            if ( !siTSIF_SessId.empty() and !soESf_SessId.full() and !siTSIF_DatLen.empty() and !soEPt_DatLen.full()) {
                 soESf_SessId.write(siTSIF_SessId.read());
                 soESf_DatLen.write(siTSIF_DatLen.read());
                 rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
@@ -344,11 +342,11 @@ void pTcpRxPath(
           case ECHO_OFF:
           default:
             // Drain and drop the TCP data
-            //OBSOLETE-20210213 if ( !siTSIF_SessId.empty() and !siTSIF_DatLen.empty()) {
+            if ( !siTSIF_SessId.empty() and !siTSIF_DatLen.empty()) {
                 siTSIF_SessId.read();
                 siTSIF_DatLen.read();
                 rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
-            //OBSOLETE-20210213 }
+            }
             break;
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
@@ -356,8 +354,7 @@ void pTcpRxPath(
         switch(*piSHL_MmioEchoCtrl) {
           case ECHO_PATH_THRU:
             //-- Read incoming data and forward to pEchoPathThrough
-            //OBSOLETE-20210213 if (!siTSIF_Data.empty() and !soEPt_Data.full()) {
-            if (!soEPt_Data.full()) {
+            if (!siTSIF_Data.empty() and !soEPt_Data.full()) {
                 siTSIF_Data.read(appData);
                 soEPt_Data.write(appData);
                 // Update FSM state
@@ -368,8 +365,7 @@ void pTcpRxPath(
             break;
           case ECHO_STORE_FWD:
             //-- Read incoming data and forward to pTcpEchoStoreAndForward
-            //OBSOLETE-20210213 if ( !siTSIF_Data.empty() and !soESf_Data.full()) {
-            if (!soESf_Data.full()) {
+            if ( !siTSIF_Data.empty() and !soESf_Data.full()) {
                 siTSIF_Data.read(appData);
                 soESf_Data.write(appData);
                 // Update FSM state
@@ -381,9 +377,9 @@ void pTcpRxPath(
           case ECHO_OFF:
           default:
             // Drain and drop the incoming data stream
-            //OBSOLETE-20210213 if ( !siTSIF_Data.empty() ) {
+            if ( !siTSIF_Data.empty() ) {
                 siTSIF_Data.read(appData);
-            //OBSOLETE-20210213 }
+            }
             // Always alternate between START and CONTINUATION to drain all streams
             rxp_fsmState = RXP_START_OF_STREAM;
             break;
@@ -413,13 +409,13 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>     &siTSIF_Data,  // [FIXME - TcpAppData]
+        stream<TcpAppData>  &siTSIF_Data,
         stream<TcpSessId>   &siSHL_SessId,
         stream<TcpDatLen>   &siSHL_DatLen,
         //------------------------------------------------------
         //-- SHELL / TCP Tx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>     &soTSIF_Data,  // [FIXME - TcpAppData]
+        stream<TcpAppData>  &soTSIF_Data,
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen)
 {

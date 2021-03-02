@@ -89,13 +89,13 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- TSIF / Rx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>     &siTSIF_Data,      // [FIXME - TcpAppData]
+        stream<TcpAppData>  &siTSIF_Data,
         stream<TcpSessId>   &siTSIF_SessId,
         stream<TcpDatLen>   &siTSIF_DatLen,
         //------------------------------------------------------
         //-- TSIF / Tx Data Interface
         //------------------------------------------------------
-        stream<AxisRaw>     &soTSIF_Data,      // [FIXME - TcpAppData]
+        stream<TcpAppData>  &soTSIF_Data,
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen)
 {
@@ -132,11 +132,11 @@ void tcp_app_flash_top (
     #pragma HLS DATAFLOW
 
     //-- LOCAL IN and OUT STREAMS ----------------------------------------------
-    static stream<TcpAppData>   ssiTSIF_Data    ("ssiTSIF_Data");
-    #pragma HLS STREAM variable=ssiTSIF_Data    depth=2
+	//OBSOLETE-20210213 static stream<TcpAppData>   ssiTSIF_Data    ("ssiTSIF_Data");
+	//OBSOLETE-20210213 #pragma HLS STREAM variable=ssiTSIF_Data    depth=2
 
-    static stream<TcpAppData>   ssoTSIF_Data    ("ssoTSIF_Data");
-    #pragma HLS STREAM variable=ssoTSIF_Data    depth=2
+	//OBSOLETE-20210213 static stream<TcpAppData>   ssoTSIF_Data    ("ssoTSIF_Data");
+	//OBSOLETE-20210213 #pragma HLS STREAM variable=ssoTSIF_Data    depth=2
 
     //-- INPUT INTERFACES ------------------------------------------------------
     //OBSOLETE-20210213 pAxisRawToAxisApp(siTSIF_Data, ssiTSIF_Data);
