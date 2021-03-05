@@ -60,13 +60,14 @@ using namespace std;
 #define THIS_NAME "TSIF"  // TcpShellInterface
 
 #define TRACE_OFF  0x0000
-#define TRACE_RDP 1 <<  1
-#define TRACE_WRP 1 <<  2
-#define TRACE_SAM 1 <<  3
-#define TRACE_LSN 1 <<  4
-#define TRACE_CON 1 <<  5
+#define TRACE_IRB 1 <<  1
+#define TRACE_RDP 1 <<  2
+#define TRACE_WRP 1 <<  3
+#define TRACE_RRH 1 <<  4
+#define TRACE_LSN 1 <<  5
+#define TRACE_CON 1 <<  6
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -350,11 +351,273 @@ void pListen(
 }  // End-of: pListen()
 
 /*******************************************************************************
+ * @brief Updates the counter which tracks the occupancy of the input read buffer.
+ *
+ * @param[in] siEnqueueSig  Signals the enqueue of a chunk in the buffer.
+ * @param[in] siEnqueueSig  Signals the dequeue of a chunk from the buffer.
+ * @param[in,out]  counter  A ref. to the counter to increment/decrement.
+ *
+ * @warning The
+ *******************************************************************************/
+void pInputBufferOccupancy(
+        stream<SigBit>                     &siEnqueueSig,
+        stream<SigBit>                     &siDequeueSig,
+        ap_uint<log2Ceil<cIBuffSize>::val> &counter)
+{
+    const char *myName  = concat3(THIS_NAME, "/", "RRh/Ibo");
+
+    bool inc = false;
+    bool dec = false;
+
+    if (!siEnqueueSig.empty() and siDequeueSig.empty()) {
+        siEnqueueSig.read();
+        counter += 1;
+        inc = true;
+    } else if (siEnqueueSig.empty() and !siDequeueSig.empty()) {
+        siDequeueSig.read();
+        counter -= 1;
+        dec = true;
+    } else if (!siEnqueueSig.empty() and !siDequeueSig.empty()) {
+        siEnqueueSig.read();
+        siDequeueSig.read();
+        inc = true;
+        dec = true;
+    }
+
+    if (DEBUG_LEVEL & TRACE_RRH) {
+        if (inc or dec) {
+            printInfo(myName, "Input buffer occupancy = %d chunks (%c|%c)\n",
+                     (cIBuffSize - 1 - counter.to_uint()),
+                     (inc ? '+' : ' '), (dec ? '-' : ' '));
+        }
+    }
+}
+
+/*******************************************************************************
+ * @brief Receive Interrupt Table (Rit).
+ *
+ * @param[in] siSHL_Notif A new Rx data notification from [SHELL].
+ * @param[in,out]  bitmap A bitmap encoded vector of pending interrupts.
+ *
+ *  @details
+ *   This process reads the incoming notification and updates a local interrupt
+ *    table accordingly. The interrupt table is used here to keep track of the
+ *    total amount of pending bytes for a given session.
+ *   The process also updates a bitmap encoded vector that represents the
+ *    sessions that have pending bytes to be read. For example, if bitmap[0] is
+ *    set, it indicates that session #0 has pending bytes.
+ ********************************************************************************/
+void pReceiveInterruptTable(
+        stream<TcpAppNotif>     &siSHL_Notif,
+        stream<InterruptQuery>  &siPdr_IntQry,
+        stream<InterruptEntry>  &soPdr_IntRep,
+        ap_uint<cMaxSessions>   &bitmap)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
+
+    const char *myName = concat3(THIS_NAME, "/", "RRh/Rit");
+
+    //-- STATIC ARRAYS ---------------------------------------------------------
+    static InterruptEntry                     INTERRUPT_TABLE[cMaxSessions];
+    #pragma HLS RESOURCE             variable=INTERRUPT_TABLE core=RAM_2P_BRAM
+    #pragma HLS DEPENDENCE           variable=INTERRUPT_TABLE inter false
+
+    //-- STATIC VARIABLES W/ RESET ---------------------------------------------
+    static bool                                 rit_isInit=false;
+    #pragma HLS reset                  variable=rit_isInit
+    static ap_uint<log2Ceil<cMaxSessions>::val> rit_sessId=0;
+    #pragma HLS reset                  variable=rit_sessId
+    static enum FsmStates { RIT_IDLE, RIT_INC, RIT_DEC, RIT_REP } \
+                                                rit_fsmState=RIT_IDLE;
+    #pragma HLS reset                  variable=rit_fsmState
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static TcpAppNotif     rit_notif;
+    static InterruptEntry  rit_currEnrty;
+    static InterruptQuery  rit_query;
+
+    // This table must be cleared upon reset
+    if (!rit_isInit) {
+        INTERRUPT_TABLE[rit_sessId] = InterruptEntry(0, 0);
+        if (rit_sessId < cMaxSessions) {
+            rit_isInit = true;
+            if (DEBUG_LEVEL & TRACE_RRH) {
+                printInfo(myName, "Done with initialization of INTERRUPT_TABLE.\n");
+            }
+        }
+        rit_sessId += 1;
+    }
+    else {
+        TcpDatLen newByteCnt;
+        switch (rit_fsmState) {
+            case RIT_IDLE:
+                if (!siSHL_Notif.empty()) {
+                    rit_notif = siSHL_Notif.read();
+                    rit_currEnrty = INTERRUPT_TABLE[rit_notif.sessionID];
+                    rit_fsmState = RIT_INC;
+                }
+                else if (!siPdr_IntQry.empty()) {
+                    rit_query = siPdr_IntQry.read();
+                    switch (rit_query.action) {
+                        case GET:
+                            rit_currEnrty = INTERRUPT_TABLE[rit_query.sessId];
+                            rit_fsmState = RIT_REP;
+                            break;
+                        case PUT:
+                            rit_currEnrty = INTERRUPT_TABLE[rit_query.sessId];
+                            rit_fsmState = RIT_DEC;
+                            break;
+                        case POST:
+                            INTERRUPT_TABLE[rit_query.sessId] = rit_query.entry;
+                            rit_fsmState = RIT_IDLE;
+                            break;
+                    }
+                }
+                break;
+            case RIT_INC:
+                newByteCnt = rit_currEnrty.byteCnt + rit_notif.tcpDatLen;
+                INTERRUPT_TABLE[rit_notif.sessionID] = InterruptEntry(newByteCnt, rit_notif.tcpDstPort);
+                bitmap[rit_notif.sessionID] = 1;
+                rit_fsmState = RIT_IDLE;
+                break;
+            case RIT_DEC:
+                newByteCnt = rit_currEnrty.byteCnt - rit_query.entry.byteCnt;
+                INTERRUPT_TABLE[rit_query.sessId] = InterruptEntry(newByteCnt, rit_currEnrty.dstPort);
+                bitmap[rit_notif.sessionID] = 1;
+                rit_fsmState = RIT_IDLE;
+                break;
+            case RIT_REP:
+                if (!soPdr_IntRep.full()) {
+                    soPdr_IntRep.write(rit_currEnrty);
+                    rit_fsmState = RIT_IDLE;
+                }
+                break;
+        }
+    }
+}
+
+/*******************************************************************************
+ * @brief Request to pull new data from [TOE].
+ *
+ * @param[in]  bitmap       A bitmap encoded vector of pending interrupts.
+ * @param[in]  buffSpace    The available space in the input buffer (in chunks).
+ * @param[out] soRit_IntQry Query to the ReceiveInterruptTable (Rit).
+ * @param[in]  siRit_IntRep Reply from the [Rit].
+ * @param[out] soSHL_DReq   A data pull request to [SHELL].
+ * @param[out] soRDp_FwdCmd A command telling the ReadPath (RDp) to keep/drop the next stream that will come in.
+ *
+ * @details
+ *  This process implements a round-robin scheduler that generates data
+ *   requests based on a bitmap encoded vector that represents the sessions
+ *   that have pending bytes to be read. For example, if bitmap[0] is
+ *   set, it indicates that session #0 has pending bytes.
+ *  The number of bytes requested to TOE is the maximum of the pending bytes in
+ *   the interrupt table and space available in the receive buffer.
+ *  After sending the request to TOE, the pending byte count of the interrupt
+ *   table is decreased accordingly.
+ *
+ * @warning The buffer space is given number of chunks (1 chunk = 8B for 10GbE).
+ *******************************************************************************/
+void pPullDataRequest(
+        const ap_uint<cMaxSessions>                   &bitmap,
+        const ap_uint<log2Ceil<cIBuffSize>::val>      &buffSpace,
+        stream<InterruptQuery>                        &soRit_IntQry,
+        stream<InterruptEntry>                        &siRit_IntRep,
+        stream<TcpAppRdReq>                           &soSHL_DReq,
+        stream<ForwardCmd>                            &soRDp_FwdCmd)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "RRh/Pdr");
+
+    //-- STATIC VARIABLES W/ RESET ---------------------------------------------
+    static enum FsmStates { PDR_IDLE, PDR_INT_QRY, PDR_INT_REP, PDR_SND_DREQ } \
+                               pdr_fsmState=PDR_IDLE;
+    #pragma HLS reset variable=pdr_fsmState
+    static SessionId           pdr_currSess=0;
+    #pragma HLS reset variable=pdr_currSess
+    static BoolFlag            pdr_XXXX
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static TcpDatLen      pdr_datLenReq;
+    static InterruptEntry pdr_interrupt;
+
+    switch(pdr_fsmState) {
+        case PDR_IDLE:
+            if (bitmap) {
+                //-- Search for next active request in round-robin mode
+                SessionId    nextSess=0;
+                ValBool      nextSessValid=false;
+                //-- Search highest pending request in between 'currSess' and 'cMaxSessions'.
+                for (uint8_t i=0; i<cMaxSessions; ++i) {
+                    if (bitmap[i] == 1) {
+                        nextSess = i;
+                        nextSessValid = true;
+                    }
+                }
+                //-- Search highest pending request in between 0 and 'currSess'
+                for (uint8_t i=0; i<cMaxSessions; ++i) {
+                    if (i < pdr_currSess) {
+                        if (bitmap[i] == 1) {
+                            nextSess = i;
+                            nextSessValid = true;
+                        }
+                    }
+                }
+                if (nextSessValid) {
+                    pdr_currSess <= nextSess;
+                    pdr_fsmState = PDR_INT_QRY;
+                }
+            }
+            break;
+        case PDR_INT_QRY:
+            if (!soRit_IntQry.full()) {
+                soRit_IntQry.write(InterruptQuery(pdr_currSess)); // GET
+                pdr_fsmState = PDR_INT_REP;
+            }
+            break;
+        case PDR_INT_REP:
+            if (!siRit_IntRep.empty() and !soRDp_FwdCmd.full()) {
+                InterruptEntry intReply = siRit_IntRep.read();
+                // Request to TOE = max(intReply.byteCnt, buffSpace)
+                TcpDatLen buffSpaceInBytes = buffSpace << 3;
+                pdr_datLenReq = (buffSpaceInBytes < intReply.byteCnt) ? (buffSpaceInBytes) : (intReply.byteCnt);
+                switch (intReply.dstPort) {
+                    case RECV_MODE_LSN_PORT: // 8800
+                        soRDp_FwdCmd.write(ForwardCmd(pdr_currSess, pdr_datLenReq, CMD_DROP, NOP));
+                        break;
+                    case XMIT_MODE_LSN_PORT: // 8801
+                        soRDp_FwdCmd.write(ForwardCmd(pdr_currSess, pdr_datLenReq, CMD_DROP, GEN));
+                        break;
+                    default:
+                        soRDp_FwdCmd.write(ForwardCmd(pdr_currSess, pdr_datLenReq, CMD_KEEP, NOP));
+                        break;
+                }
+                pdr_fsmState = PDR_SND_DREQ;
+            }
+            break;
+        case PDR_SND_DREQ:
+            if (!soSHL_DReq.full() and !soRit_IntQry.full()) {
+                soSHL_DReq.write(TcpAppRdReq(pdr_currSess, pdr_datLenReq));
+                soRit_IntQry.write(InterruptQuery(pdr_currSess, pdr_datLenReq)); // PUT
+                pdr_fsmState = PDR_IDLE;
+            }
+            break;
+    }
+}
+
+/*******************************************************************************
  * @brief Read Request Handler (RRh)
  *
- * @param[in]  siSHL_Notif  A new Rx data notification from [SHELL].
- * @param[out] soSHL_DReq   An Rx data request to [SHELL].
- * @param[out] soRDp_FwdCmd A command telling the ReadPath (RDp) to keep/drop a stream.
+ * @param[in]  siSHL_Notif   A new Rx data notification from [SHELL].
+ * @param[out] soSHL_DReq    An Rx data request to [SHELL].
+ * @param[in]  siIRb_EnquSig Signals the enqueue of a chunk from InputReadBuffer (IRb).
+ * @param[in]  siRDp_EnquSig Signals the dequeue of a chunk from ReadPath (RDp).
+ * @param[out] soRDp_FwdCmd  A command telling the ReadPath (RDp) to keep/drop a stream.
  *
  * @details
  *  This process waits for a notification from [TOE] indicating the availability
@@ -382,23 +645,55 @@ void pListen(
 void pReadRequestHandler(
         stream<TcpAppNotif>    &siSHL_Notif,
         stream<TcpAppRdReq>    &soSHL_DReq,
+        stream<SigBit>         &siIRb_EnquSig,
+        stream<SigBit>         &siRDp_DequSig,
         stream<ForwardCmd>     &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
-
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
 
     //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
     static enum FsmStates { RRH_IDLE, RRH_SEND_DREQ } \
-                               rrh_fsmState=RRH_IDLE;
-    #pragma HLS reset variable=rrh_fsmState
+                                              rrh_fsmState=RRH_IDLE;
+    #pragma HLS reset                variable=rrh_fsmState
+    static ap_uint<log2Ceil<cIBuffSize>::val> rrh_bufSpace=(cIBuffSize-1);
+    #pragma HLS reset                variable=rrh_bufSpace
+    static ap_uint<cMaxSessions>              rrh_pendingInterrupts;
+    #pragma HLS reset                variable=rrh_pendingInterrupts
 
-    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static   TcpAppNotif rrh_notif;
+    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //-- Pull Data Request (Pdr)
+    static stream<InterruptQuery>   ssPdrToRit_IntQry ("ssPdrToRit_IntQry");
+    //-- Receive Interrupt Table (Rit)
+    static stream<InterruptEntry>   ssRitToPdr_IntRep ("ssRittoPdr_IntRep");
 
+    //-- SUB-PROCESS: Input buffer space management
+    pInputBufferOccupancy(
+            siIRb_EnquSig,
+            siRDp_DequSig,
+            rrh_bufSpace);
+
+    //-- SUB-PROCESS: Notification management
+    pReceiveInterruptTable(
+            siSHL_Notif,
+            ssPdrToRit_IntQry,
+            ssRitToPdr_IntRep,
+            rrh_pendingInterrupts);
+
+    //-- SUB-PROCESS: Round-Robin Scheduler
+    pPullDataRequest(
+           rrh_pendingInterrupts,
+           rrh_bufSpace,
+           ssPdrToRit_IntQry,
+           ssRitToPdr_IntRep,
+           soSHL_DReq,
+           soRDp_FwdCmd);
+
+    //-- SUB-PROCESS: Handle notifications from TOE
+    /*** OBSOLETE_20210304 ************
     switch(rrh_fsmState) {
     case RRH_IDLE:
         if (!siSHL_Notif.empty() and !soRDp_FwdCmd.full()) {
@@ -430,19 +725,77 @@ void pReadRequestHandler(
         }
         break;
     }
+    ***********************************/
+
+}
+
+/*******************************************************************************
+ * @brief Input Read Buffer (IRb)
+ *
+ * @param[in]  siSHL_Data    Data stream from [SHELL].
+ * @param[in]  siSHL_Meta    Session Id from [SHELL].
+ * @param[out] soRRh_EnquSig Signals the enqueue of a new chunk to ReadRequestHandler (RRh).
+ * @param[out] soRDp_Data    Data stream to ReadPath (RDp).
+ * @param[out] soRDp_Meta    Metadata stream [RDp].
+ *
+ * @details
+ *  This process counts and enqueues the incoming data segments and their meta-
+ *  data into two FIFOs. The goal is to provision a buffer to store all the
+ *  bytes that were requested from the TCP Rx buffer by the ReadRequestHandler
+ *  (RRh) process. If this process does not absorb the incoming data stream fast
+ *  enough, the [TOE] will start dropping segments on his side to avoid any
+ *  blocking situation.
+ *******************************************************************************/
+void pInputReadBuffer(
+        stream<TcpAppData>  &siSHL_Data,
+        stream<TcpAppMeta>  &siSHL_Meta,
+        stream<SigBit>      &soRRh_EnquSig,
+        stream<TcpAppData>  &soRDp_Data,
+        stream<TcpAppMeta>  &soRDp_Meta)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "IRb");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { IRB_IDLE=0,    IRB_STREAM } \
+                               irb_fsmState=IRB_IDLE;
+    #pragma HLS reset variable=irb_fsmState
+
+    switch (irb_fsmState ) {
+     case IRB_IDLE:
+         if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
+             soRDp_Meta.write(siSHL_Meta.read());
+             irb_fsmState = IRB_STREAM;
+         }
+         break;
+     case IRB_STREAM:
+         if (!siSHL_Data.empty() and !soRDp_Data.full()) {
+             TcpAppData currChunk = siSHL_Data.read();
+             soRDp_Data.write(currChunk);
+             soRRh_EnquSig.write(1);
+             if (currChunk.getTLast()) {
+                irb_fsmState = IRB_IDLE;
+             }
+         }
+         break;
+    }
 }
 
 /*******************************************************************************
  * @brief Read Path (RDp)
  *
- * @param[in]  siSHL_Data   Data stream from [SHELL].
- * @param[in]  siSHL_Meta   Session Id from [SHELL].
- * @param[in]  siRRh_FwdCmd A command to keep/drop a stream from ReadRequestHandler (RRh).
+ * @param[in]  siSHL_Data    Data stream from [SHELL].
+ * @param[in]  siSHL_Meta    Session Id from [SHELL].
+ * @param[in]  siRRh_FwdCmd  A command to keep/drop a stream from ReadRequestHandler (RRh).
  * @param[out] soCOn_OpnSockReq The remote socket to open to Connect (COn).
  * @param[out] soCOn_TxCountReq The #bytes to be transmitted once connection is opened by [COn].
- * @param[out] soTAF_Data   Data stream to [TAF].
- * @param[out] soTAF_SessId The session-id to [TAF].
- * @param[out] soTAF_DatLen The data-lengthto [TAF].
+ * @param[out] soRRh_DequSig Signals the dequeue of a chunk to ReadRequestHandler (RRh).
+ * @param[out] soTAF_Data    Data stream to [TAF].
+ * @param[out] soTAF_SessId  The session-id to [TAF].
+ * @param[out] soTAF_DatLen  The data-length to [TAF].
  *
  * @details
  *  This process waits for new data to read and either forwards them to the
@@ -464,6 +817,7 @@ void pReadPath(
         stream<ForwardCmd>  &siRRh_FwdCmd,
         stream<SockAddr>    &soCOn_OpnSockReq,
         stream<TcpDatLen>   &soCOn_TxCountReq,
+        stream<SigBit>      &soRRh_DequSig,
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpSessId>   &soTAF_SessId,
         stream<TcpDatLen>   &soTAF_DatLen)
@@ -516,6 +870,7 @@ void pReadPath(
     case RDP_FWD_STREAM:
         if (!siSHL_Data.empty() and !soTAF_Data.full()) {
             siSHL_Data.read(appData);
+            soRRh_DequSig.write(1);
             soTAF_Data.write(appData);
             if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soTAF_Data =", appData); }
             if (appData.getTLast()) {
@@ -537,6 +892,7 @@ void pReadPath(
     case RDP_SINK_STREAM:
         if (!siSHL_Data.empty()) {
             siSHL_Data.read(appData);
+            soRRh_DequSig.write(1);
             if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Sink Data =", appData); }
             if (appData.getTLast()) {
                 rdp_fsmState  = RDP_IDLE;
@@ -547,6 +903,7 @@ void pReadPath(
         if (!siSHL_Data.empty() and !soCOn_OpnSockReq.full() and !soCOn_TxCountReq.full()) {
             // Extract the remote socket address and the requested #bytes to transmit
             siSHL_Data.read(appData);
+            soRRh_DequSig.write(1);
             SockAddr sockToOpen(byteSwap32(appData.getLE_TData(31,  0)),   // IP4 address
                                 byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
             TcpDatLen bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
@@ -845,7 +1202,17 @@ void tcp_shell_if(
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
     //--------------------------------------------------------------------------
 
+    //-- Input Read Buffer (IRb)
+    static stream<SigBit>          ssIRbToRRh_Enqueue    ("ssIRbToRRh_Enqueue");
+    #pragma HLS stream    variable=ssIRbToRRh_Enqueue    depth=2
+    static stream<TcpAppData>      ssIRbToRDp_Data       ("ssIRbToRDp_Data");
+    #pragma HLS stream    variable=ssIRbToRDp_Data       depth=cIBuffSize
+    static stream<TcpAppMeta>      ssIRbToRDp_Meta       ("ssIRbToRDp_Meta");
+    #pragma HLS stream    variable=ssIRbToRDp_Meta       depth=cIBuffSize
+
     //-- Read Path (RDp)
+    static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpbToRRh_Dequeue");
+    #pragma HLS stream    variable=ssRDpToRRh_Dequeue    depth=2
     static stream<SockAddr>        ssRDpToCOn_OpnSockReq ("ssRDpToCOn_OpnSockReq");
     #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=2
     static stream<TcpDatLen>       ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
@@ -881,14 +1248,25 @@ void tcp_shell_if(
     pReadRequestHandler(
             siSHL_Notif,
             soSHL_DReq,
+            ssIRbToRRh_Enqueue,
+            ssRDpToRRh_Dequeue,
             ssRRhToRDp_FwdCmd);
 
-    pReadPath(
+    pInputReadBuffer(
             siSHL_Data,
             siSHL_Meta,
+            ssIRbToRRh_Enqueue,
+            ssIRbToRDp_Data,
+            ssIRbToRDp_Meta
+    );
+
+    pReadPath(
+            ssIRbToRDp_Data,
+            ssIRbToRDp_Meta,
             ssRRhToRDp_FwdCmd,
             ssRDpToCOn_OpnSockReq,
             ssRDpToCOn_TxCountReq,
+            ssRDpToRRh_Dequeue,
             soTAF_Data,
             soTAF_SessId,
             soTAF_DatLen);

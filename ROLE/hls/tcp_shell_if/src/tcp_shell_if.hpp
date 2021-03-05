@@ -37,6 +37,12 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
 //-------------------------------------------------------------------
+//-- CONSTANTS FOR THE TCp SHELL INTERFACE
+//-------------------------------------------------------------------
+const int cIBuffSize   = 256;  // Size of the input read buffer (2KB and/or up to 256 segments of 8B)
+const int cMaxSessions = TOE_MAX_SESSIONS;
+
+//-------------------------------------------------------------------
 //-- DEFAULT LOCAL-FPGA AND FOREIGN-HOST SOCKETS
 //--  By default, the following sockets and port numbers will be used
 //--  by the TcpShellInterface (unless user specifies new ones via TBD).
@@ -81,12 +87,12 @@ enum DropCode {
     GEN     // Generate traffic towards producer
 };
 
-/*******************************************************************************
- * Forward Command
- *  Indicates if a received stream with session Id 'sessId' must be forwarded
- *  or dropped. If the action is 'CMD_DROP' the field 'DropCOde' is meaningful,
- *  otherwise void.
- *******************************************************************************/
+//=========================================================
+//== Forward Command
+//==  Indicates if a received stream must be forwarded or
+//==  dropped. If the action is 'CMD_DROP' the field
+//==  'DropCOde' is meaningful, otherwise void.
+//=========================================================
 class ForwardCmd {
   public:
     SessionId   sessId;
@@ -96,6 +102,45 @@ class ForwardCmd {
     ForwardCmd() {}
     ForwardCmd(SessionId _sessId, TcpDatLen _datLen, CmdBit _action, DropCode _dropCode) :
             sessId(_sessId), datLen(_datLen), action(_action), dropCode(_dropCode) {}
+};
+
+//=========================================================
+//== Interrupt Table Entry
+//==  The interrupt table keeps track of the received
+//==  notifications. It maintains a counter of received
+//==  bytes per sessions as well as the TCP destination
+//==  port number.
+//=========================================================
+class InterruptEntry {
+  public:
+    TcpDatLen   byteCnt;
+    TcpPort     dstPort;
+    InterruptEntry() {}
+    InterruptEntry(TcpDatLen _byteCnt, TcpPort _dstPort) :
+            byteCnt(_byteCnt), dstPort(_dstPort) {}
+};
+
+enum QueryCmd {
+    GET=0,  // Retrieve a table entry
+    PUT,    // Modify an entry of the table
+    POST,   // Create a new entry in the table
+};
+
+//=========================================================
+//== Interrupt Table Query
+//=========================================================
+class InterruptQuery {
+  public:
+    SessionId       sessId;
+    InterruptEntry  entry;
+    QueryCmd        action;
+    InterruptQuery () {}
+    InterruptQuery(SessionId _sessId) : // GET Query
+        sessId(_sessId), action(GET) {}
+    InterruptQuery(SessionId _sessId, TcpDatLen _byteCnt) : // PUT Query: 'byteCnt'
+        sessId(_sessId), entry(_byteCnt, 0), action(PUT) {}
+    InterruptQuery(SessionId _sessId, InterruptEntry _entry) : // POST Query
+        sessId(_sessId), entry(_entry), action(POST) {}
 };
 
 /*************************************************************************
