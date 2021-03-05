@@ -65,7 +65,8 @@ unsigned int    gMaxSimCycles = 0x8000 + 500;
 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
 #define DEFAULT_HOST_TCP_SRC_PORT 0x80      // TB source port          = 128
 
-#define DEFAULT_SESSION_ID      42
+//OBSOLETE_20210305 #define DEFAULT_SESSION_ID      42
+#define DEFAULT_SESSION_ID       0
 #define DEFAULT_SESSION_LEN     32
 
 #endif

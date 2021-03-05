@@ -397,21 +397,32 @@ void pInputBufferOccupancy(
  * @brief Receive Interrupt Table (Rit).
  *
  * @param[in] siSHL_Notif A new Rx data notification from [SHELL].
- * @param[in,out]  bitmap A bitmap encoded vector of pending interrupts.
+ * @param[in]  buffSpace    The available space in the input buffer (in chunks).
+ * @param[out] soSHL_DReq   A data pull request to [SHELL].
+ * @param[out] soRDp_FwdCmd A command telling the ReadPath (RDp) to keep/drop the next stream that will come in.
  *
- *  @details
- *   This process reads the incoming notification and updates a local interrupt
- *    table accordingly. The interrupt table is used here to keep track of the
- *    total amount of pending bytes for a given session.
- *   The process also updates a bitmap encoded vector that represents the
- *    sessions that have pending bytes to be read. For example, if bitmap[0] is
- *    set, it indicates that session #0 has pending bytes.
+ * @details
+ *  A 1st process 'POST' reads the incoming notification and updates a local
+ *  interrupt table accordingly. The interrupt table is used here to keep
+ *   track of the total amount of pending bytes for a given session. The 'POST'
+ *   process also updates a bitmap encoded vector that represents the
+ *   sessions that have pending bytes to be read. For example, if bitmap[0] is
+ *   set, it indicates that session #0 has pending bytes.
+ *  A 2nd process 'MUTEX' grants exclusive access to the dual-port shared
+ *   memory.
+ *  A 3rd process 'SCHED' implements a round-robin scheduler that generates data
+ *   requests based on the bitmap encoded vector of pending interrupts. The
+ *   number of bytes requested to TOE is the maximum of the pending bytes in
+ *   the interrupt table and the space available in the receive buffer. After
+ *   sending the request to TOE, the pending byte count of the interrupt table
+ *   is decreased accordingly. Warning, the buffer space is given in number of
+ *   chunks (i.e., 1 chunk = 8B for 10GbE).
  ********************************************************************************/
 void pReceiveInterruptTable(
-        stream<TcpAppNotif>     &siSHL_Notif,
-        stream<InterruptQuery>  &siPdr_IntQry,
-        stream<InterruptEntry>  &soPdr_IntRep,
-        ap_uint<cMaxSessions>   &bitmap)
+        stream<TcpAppNotif>                      &siSHL_Notif,
+        const ap_uint<log2Ceil<cIBuffSize>::val> &buffSpace,
+        stream<TcpAppRdReq>                      &soSHL_DReq,
+        stream<ForwardCmd>                       &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -427,185 +438,183 @@ void pReceiveInterruptTable(
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
     static bool                                 rit_isInit=false;
     #pragma HLS reset                  variable=rit_isInit
-    static ap_uint<log2Ceil<cMaxSessions>::val> rit_sessId=0;
-    #pragma HLS reset                  variable=rit_sessId
-    static enum FsmStates { RIT_IDLE, RIT_INC, RIT_DEC, RIT_REP } \
-                                                rit_fsmState=RIT_IDLE;
-    #pragma HLS reset                  variable=rit_fsmState
+    static ap_uint<log2Ceil<cMaxSessions>::val> rit_initEntry=0;
+    #pragma HLS reset                  variable=rit_initEntry
+    static ap_uint<cMaxSessions>                rit_pendingInterrupts=0;
+    #pragma HLS reset                  variable=rrh_pendingInterrupts
+    static SessionId                            rit_currSess=0;
+    #pragma HLS reset                  variable=rit_currSess
+    static bool                                 rit_mutexPostReq = false;
+    #pragma HLS reset                  variable=rit_mutexPostReq
+    static bool                                 rit_mutexPostGrt = false;
+    #pragma HLS reset                  variable=rit_mutexPostGrt
+    static bool                                 rit_mutexSchedReq = false;
+    #pragma HLS reset                  variable=rit_mutexSchedReq
+    static bool                                 rit_mutexSchedGrt = false;
+    #pragma HLS reset                  variable=rit_mutexSchedGrt
+    static enum PostFsmStates { RIT_POST_IDLE, RIT_POST_GET, RIT_POST_INC } \
+                                                rit_postFsmState=RIT_POST_IDLE;
+    #pragma HLS reset                  variable=rit_postFsmState
+    static enum SchedFsmStates { RIT_SCHED_IDLE, RIT_SCHED_GET, RIT_SCHED_PUT, RIT_SCHED_FWD } \
+                                                rit_schedFsmState=RIT_SCHED_IDLE;
+    #pragma HLS reset                  variable=rit_schedFsmState
+    static enum MutexFsmStates { RIT_MUTEX_IDLE, RIT_MUTEX_POST, RIT_MUTEX_SCHED } \
+                                                rit_mutexFsmState=RIT_MUTEX_IDLE;
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static TcpAppNotif     rit_notif;
-    static InterruptEntry  rit_currEnrty;
-    static InterruptQuery  rit_query;
+    static InterruptEntry  rit_postEntry;
+    static InterruptEntry  rit_schedEntry;
+    static TcpDatLen       rit_datLenReq;
 
-    // This table must be cleared upon reset
+    //=====================================================
+    //== PROCESS POST (and INIT)
+    //==  Warning: This process must always be available
+    //==   for handling an incoming notification w/o delay.
+    //=====================================================
     if (!rit_isInit) {
-        INTERRUPT_TABLE[rit_sessId] = InterruptEntry(0, 0);
-        if (rit_sessId < cMaxSessions) {
+        //-- This the table must be cleared upon reset
+        INTERRUPT_TABLE[rit_initEntry] = InterruptEntry(0, 0);
+        if (rit_initEntry == (cMaxSessions-1)) {
             rit_isInit = true;
             if (DEBUG_LEVEL & TRACE_RRH) {
                 printInfo(myName, "Done with initialization of INTERRUPT_TABLE.\n");
             }
+        } else {
+            rit_initEntry += 1;
         }
-        rit_sessId += 1;
     }
     else {
-        TcpDatLen newByteCnt;
-        switch (rit_fsmState) {
-            case RIT_IDLE:
+        TcpDatLen newPostByteCnt;
+        switch (rit_postFsmState) {
+            case RIT_POST_IDLE:
                 if (!siSHL_Notif.empty()) {
                     rit_notif = siSHL_Notif.read();
-                    rit_currEnrty = INTERRUPT_TABLE[rit_notif.sessionID];
-                    rit_fsmState = RIT_INC;
-                }
-                else if (!siPdr_IntQry.empty()) {
-                    rit_query = siPdr_IntQry.read();
-                    switch (rit_query.action) {
-                        case GET:
-                            rit_currEnrty = INTERRUPT_TABLE[rit_query.sessId];
-                            rit_fsmState = RIT_REP;
-                            break;
-                        case PUT:
-                            rit_currEnrty = INTERRUPT_TABLE[rit_query.sessId];
-                            rit_fsmState = RIT_DEC;
-                            break;
-                        case POST:
-                            INTERRUPT_TABLE[rit_query.sessId] = rit_query.entry;
-                            rit_fsmState = RIT_IDLE;
-                            break;
-                    }
+                    rit_mutexPostReq = true;
+                    rit_postFsmState = RIT_POST_GET;
                 }
                 break;
-            case RIT_INC:
-                newByteCnt = rit_currEnrty.byteCnt + rit_notif.tcpDatLen;
-                INTERRUPT_TABLE[rit_notif.sessionID] = InterruptEntry(newByteCnt, rit_notif.tcpDstPort);
-                bitmap[rit_notif.sessionID] = 1;
-                rit_fsmState = RIT_IDLE;
-                break;
-            case RIT_DEC:
-                newByteCnt = rit_currEnrty.byteCnt - rit_query.entry.byteCnt;
-                INTERRUPT_TABLE[rit_query.sessId] = InterruptEntry(newByteCnt, rit_currEnrty.dstPort);
-                bitmap[rit_notif.sessionID] = 1;
-                rit_fsmState = RIT_IDLE;
-                break;
-            case RIT_REP:
-                if (!soPdr_IntRep.full()) {
-                    soPdr_IntRep.write(rit_currEnrty);
-                    rit_fsmState = RIT_IDLE;
+            case RIT_POST_GET:
+               if (rit_mutexPostGrt) {
+                    rit_postEntry = INTERRUPT_TABLE[rit_notif.sessionID];
+                    rit_postFsmState = RIT_POST_INC;
                 }
+                break;
+            case RIT_POST_INC:
+                newPostByteCnt = rit_postEntry.byteCnt + rit_notif.tcpDatLen;
+                INTERRUPT_TABLE[rit_notif.sessionID] = InterruptEntry(newPostByteCnt, rit_notif.tcpDstPort);
+                rit_pendingInterrupts[rit_notif.sessionID] = 1;
+                rit_mutexPostReq = false;
+                rit_postFsmState = RIT_POST_IDLE;
                 break;
         }
     }
-}
 
-/*******************************************************************************
- * @brief Request to pull new data from [TOE].
- *
- * @param[in]  bitmap       A bitmap encoded vector of pending interrupts.
- * @param[in]  buffSpace    The available space in the input buffer (in chunks).
- * @param[out] soRit_IntQry Query to the ReceiveInterruptTable (Rit).
- * @param[in]  siRit_IntRep Reply from the [Rit].
- * @param[out] soSHL_DReq   A data pull request to [SHELL].
- * @param[out] soRDp_FwdCmd A command telling the ReadPath (RDp) to keep/drop the next stream that will come in.
- *
- * @details
- *  This process implements a round-robin scheduler that generates data
- *   requests based on a bitmap encoded vector that represents the sessions
- *   that have pending bytes to be read. For example, if bitmap[0] is
- *   set, it indicates that session #0 has pending bytes.
- *  The number of bytes requested to TOE is the maximum of the pending bytes in
- *   the interrupt table and space available in the receive buffer.
- *  After sending the request to TOE, the pending byte count of the interrupt
- *   table is decreased accordingly.
- *
- * @warning The buffer space is given number of chunks (1 chunk = 8B for 10GbE).
- *******************************************************************************/
-void pPullDataRequest(
-        const ap_uint<cMaxSessions>                   &bitmap,
-        const ap_uint<log2Ceil<cIBuffSize>::val>      &buffSpace,
-        stream<InterruptQuery>                        &soRit_IntQry,
-        stream<InterruptEntry>                        &siRit_IntRep,
-        stream<TcpAppRdReq>                           &soSHL_DReq,
-        stream<ForwardCmd>                            &soRDp_FwdCmd)
-{
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    //=====================================================
+    //== PROCESS MUTEX
+    //==  This process grants access to the dual-port shared
+    //==   memory. Priority is always given to the POST
+    //==   process.
+    //=====================================================
+    switch (rit_mutexFsmState) {
+        case RIT_MUTEX_IDLE:
+            rit_mutexPostGrt = false;
+            rit_mutexSchedGrt = false;
+            if (rit_mutexPostReq) {
+               rit_mutexFsmState = RIT_MUTEX_POST;
+            } else if (rit_mutexSchedReq) {
+                rit_mutexFsmState = RIT_MUTEX_SCHED;
+            }
+            break;
+        case RIT_MUTEX_POST:
+            rit_mutexPostGrt = true;
+            if (not rit_mutexPostReq) {
+                rit_mutexFsmState = RIT_MUTEX_IDLE;
+            }
+            break;
+        case RIT_MUTEX_SCHED:
+            rit_mutexSchedGrt = true;
+            if (not rit_mutexSchedReq) {
+                rit_mutexFsmState = RIT_MUTEX_IDLE;
+            }
+            break;
+    }
 
-    const char *myName  = concat3(THIS_NAME, "/", "RRh/Pdr");
-
-    //-- STATIC VARIABLES W/ RESET ---------------------------------------------
-    static enum FsmStates { PDR_IDLE, PDR_INT_QRY, PDR_INT_REP, PDR_SND_DREQ } \
-                               pdr_fsmState=PDR_IDLE;
-    #pragma HLS reset variable=pdr_fsmState
-    static SessionId           pdr_currSess=0;
-    #pragma HLS reset variable=pdr_currSess
-    static BoolFlag            pdr_XXXX
-
-    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static TcpDatLen      pdr_datLenReq;
-    static InterruptEntry pdr_interrupt;
-
-    switch(pdr_fsmState) {
-        case PDR_IDLE:
-            if (bitmap) {
+    //=====================================================
+    //== PROCESS SHEDULE
+    //==  This process implements a round-robin scheduler
+    //==  that generates data requests to TOE based on a
+    //==  bitmap encoded vector that represents the sessions
+    //==  that have pending bytes to be read. For example,
+    //==  if 'rit_pendingInterrupts[0]' is set, it indicates
+    //==  that session #0 has pending bytes.
+    //=====================================================
+    TcpDatLen newSchedByteCnt;
+    switch(rit_schedFsmState) {
+        case RIT_SCHED_IDLE:
+            if (rit_pendingInterrupts) {
                 //-- Search for next active request in round-robin mode
                 SessionId    nextSess=0;
                 ValBool      nextSessValid=false;
                 //-- Search highest pending request in between 'currSess' and 'cMaxSessions'.
                 for (uint8_t i=0; i<cMaxSessions; ++i) {
-                    if (bitmap[i] == 1) {
+                    if (rit_pendingInterrupts[i] == 1) {
                         nextSess = i;
                         nextSessValid = true;
                     }
                 }
                 //-- Search highest pending request in between 0 and 'currSess'
                 for (uint8_t i=0; i<cMaxSessions; ++i) {
-                    if (i < pdr_currSess) {
-                        if (bitmap[i] == 1) {
+                    if (i < rit_currSess) {
+                        if (rit_pendingInterrupts[i] == 1) {
                             nextSess = i;
                             nextSessValid = true;
                         }
                     }
                 }
                 if (nextSessValid) {
-                    pdr_currSess <= nextSess;
-                    pdr_fsmState = PDR_INT_QRY;
+                    rit_currSess = nextSess;
+                    rit_mutexSchedReq = true;
+                    rit_schedFsmState = RIT_SCHED_GET;
                 }
             }
             break;
-        case PDR_INT_QRY:
-            if (!soRit_IntQry.full()) {
-                soRit_IntQry.write(InterruptQuery(pdr_currSess)); // GET
-                pdr_fsmState = PDR_INT_REP;
+        case RIT_SCHED_GET:
+            if (rit_mutexSchedGrt) {
+                rit_schedEntry = INTERRUPT_TABLE[rit_currSess];
+                // Request to TOE = max(rit_schedEntry.byteCnt, buffSpace)
+                TcpDatLen buffSpaceInBytes = buffSpace << 3;
+                rit_datLenReq = (buffSpaceInBytes < rit_schedEntry.byteCnt) ? (buffSpaceInBytes) : (rit_schedEntry.byteCnt);
+                rit_schedFsmState = RIT_SCHED_PUT;
             }
             break;
-        case PDR_INT_REP:
-            if (!siRit_IntRep.empty() and !soRDp_FwdCmd.full()) {
-                InterruptEntry intReply = siRit_IntRep.read();
-                // Request to TOE = max(intReply.byteCnt, buffSpace)
-                TcpDatLen buffSpaceInBytes = buffSpace << 3;
-                pdr_datLenReq = (buffSpaceInBytes < intReply.byteCnt) ? (buffSpaceInBytes) : (intReply.byteCnt);
-                switch (intReply.dstPort) {
+        case RIT_SCHED_PUT:
+            // Decrement counter and put it back in the table
+            newSchedByteCnt = rit_schedEntry.byteCnt - rit_datLenReq;
+            INTERRUPT_TABLE[rit_currSess] = InterruptEntry(newSchedByteCnt, rit_schedEntry.dstPort);
+            // Release the lock
+            rit_mutexSchedReq = false;
+            if (newSchedByteCnt == 0) {
+                rit_pendingInterrupts[rit_currSess] = 0;
+            }
+            rit_schedFsmState = RIT_SCHED_FWD;
+            break;
+        case RIT_SCHED_FWD:
+            if (!soSHL_DReq.full() and !soRDp_FwdCmd.full()) {
+                soSHL_DReq.write(TcpAppRdReq(rit_currSess, rit_datLenReq));
+                switch (rit_schedEntry.dstPort) {
                     case RECV_MODE_LSN_PORT: // 8800
-                        soRDp_FwdCmd.write(ForwardCmd(pdr_currSess, pdr_datLenReq, CMD_DROP, NOP));
+                        soRDp_FwdCmd.write(ForwardCmd(rit_currSess, rit_datLenReq, CMD_DROP, NOP));
                         break;
                     case XMIT_MODE_LSN_PORT: // 8801
-                        soRDp_FwdCmd.write(ForwardCmd(pdr_currSess, pdr_datLenReq, CMD_DROP, GEN));
+                        soRDp_FwdCmd.write(ForwardCmd(rit_currSess, rit_datLenReq, CMD_DROP, GEN));
                         break;
                     default:
-                        soRDp_FwdCmd.write(ForwardCmd(pdr_currSess, pdr_datLenReq, CMD_KEEP, NOP));
+                        soRDp_FwdCmd.write(ForwardCmd(rit_currSess, rit_datLenReq, CMD_KEEP, NOP));
                         break;
                 }
-                pdr_fsmState = PDR_SND_DREQ;
             }
-            break;
-        case PDR_SND_DREQ:
-            if (!soSHL_DReq.full() and !soRit_IntQry.full()) {
-                soSHL_DReq.write(TcpAppRdReq(pdr_currSess, pdr_datLenReq));
-                soRit_IntQry.write(InterruptQuery(pdr_currSess, pdr_datLenReq)); // PUT
-                pdr_fsmState = PDR_IDLE;
-            }
+            rit_schedFsmState = RIT_SCHED_IDLE;
             break;
     }
 }
@@ -661,14 +670,6 @@ void pReadRequestHandler(
     #pragma HLS reset                variable=rrh_fsmState
     static ap_uint<log2Ceil<cIBuffSize>::val> rrh_bufSpace=(cIBuffSize-1);
     #pragma HLS reset                variable=rrh_bufSpace
-    static ap_uint<cMaxSessions>              rrh_pendingInterrupts;
-    #pragma HLS reset                variable=rrh_pendingInterrupts
-
-    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
-    //-- Pull Data Request (Pdr)
-    static stream<InterruptQuery>   ssPdrToRit_IntQry ("ssPdrToRit_IntQry");
-    //-- Receive Interrupt Table (Rit)
-    static stream<InterruptEntry>   ssRitToPdr_IntRep ("ssRittoPdr_IntRep");
 
     //-- SUB-PROCESS: Input buffer space management
     pInputBufferOccupancy(
@@ -676,23 +677,14 @@ void pReadRequestHandler(
             siRDp_DequSig,
             rrh_bufSpace);
 
-    //-- SUB-PROCESS: Notification management
+    //-- SUB-PROCESS: Notification management and data request scheduling
     pReceiveInterruptTable(
             siSHL_Notif,
-            ssPdrToRit_IntQry,
-            ssRitToPdr_IntRep,
-            rrh_pendingInterrupts);
+            rrh_bufSpace,
+            soSHL_DReq,
+            soRDp_FwdCmd);
 
-    //-- SUB-PROCESS: Round-Robin Scheduler
-    pPullDataRequest(
-           rrh_pendingInterrupts,
-           rrh_bufSpace,
-           ssPdrToRit_IntQry,
-           ssRitToPdr_IntRep,
-           soSHL_DReq,
-           soRDp_FwdCmd);
-
-    //-- SUB-PROCESS: Handle notifications from TOE
+    //OBSOLETE -- SUB-PROCESS: Handle notifications from TOE
     /*** OBSOLETE_20210304 ************
     switch(rrh_fsmState) {
     case RRH_IDLE:
@@ -726,7 +718,6 @@ void pReadRequestHandler(
         break;
     }
     ***********************************/
-
 }
 
 /*******************************************************************************
