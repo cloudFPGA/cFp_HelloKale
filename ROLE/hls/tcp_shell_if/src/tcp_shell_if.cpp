@@ -160,8 +160,9 @@ void pConnect(
             }
             else {
                 con_fsmState = CON_RD_RDp;
-                printFatal(myName, "Client is requesting the FPGA to send traffic to a none opened connection:\n");
+                printInfo(myName, "Client is requesting the FPGA to send traffic to a none opened connection:\n");
                 printSockAddr(myName, currSockAddr);
+                printFatal(myName, "Error.\n");
             }
         }
         break;
@@ -583,7 +584,7 @@ void pReceiveInterruptTable(
             if (rit_mutexSchedGrt) {
                 rit_schedEntry = INTERRUPT_TABLE[rit_currSess];
                 // Request to TOE = max(rit_schedEntry.byteCnt, buffSpace)
-                TcpDatLen buffSpaceInBytes = buffSpace << 3;
+                TcpDatLen buffSpaceInBytes = (buffSpace + 1) << 3;
                 rit_datLenReq = (buffSpaceInBytes < rit_schedEntry.byteCnt) ? (buffSpaceInBytes) : (rit_schedEntry.byteCnt);
                 rit_schedFsmState = RIT_SCHED_PUT;
             }
@@ -612,6 +613,10 @@ void pReceiveInterruptTable(
                     default:
                         soRDp_FwdCmd.write(ForwardCmd(rit_currSess, rit_datLenReq, CMD_KEEP, NOP));
                         break;
+                }
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "Sending DReq(%2d, %4d) to TOE (expected TcpDstPort=%4d).\n",
+                              rit_currSess.to_uint(), rit_datLenReq.to_uint(), rit_schedEntry.dstPort.to_uint());
                 }
             }
             rit_schedFsmState = RIT_SCHED_IDLE;

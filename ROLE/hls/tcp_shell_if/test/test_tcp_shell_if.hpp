@@ -32,6 +32,7 @@
 
 #include <hls_stream.h>
 #include <iostream>
+#include <map>
 #include <set>
 
 #include "../src/tcp_shell_if.hpp"
@@ -42,7 +43,13 @@
 //------------------------------------------------------
 //-- TESTBENCH DEFINITIONS
 //------------------------------------------------------
-#define MAX_SIM_CYCLES   500
+const int cSimToeStartupDelay = 1000;
+const int cSimToeRxStartDelay =  100;
+const int cSimToeTxStartDelay =  100;
+const int cGraceTime          = 2500;
+
+const int cNrSegToSend  = 5;
+const int cNrSessToSend = 2;
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -52,7 +59,8 @@
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = 0x8000 + 500;
+unsigned int    gMaxSimCycles = cSimToeStartupDelay + cSimToeRxStartDelay +
+                                cSimToeTxStartDelay + cGraceTime;
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS

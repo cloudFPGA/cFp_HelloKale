@@ -47,7 +47,7 @@ using namespace std;
 #define TRACE_TAF     1 <<  6
 #define TRACE_MMIO    1 <<  7
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -197,7 +197,8 @@ void pTOE(
     static TcpPort  toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
     static int      toe_loop        = 1;
 
-    static set<SessionId> toe_openedSess;  // A set to keep track of the opened sessions
+    static map<SessionId, TcpDstPort> toe_openedSess; // A map to keep track of the opened sessions
+    //OBSOLETE_20210306 static set<SessionId> toe_openedSess;  // A set to keep track of the opened sessions
     static TcpAppSndReq   toe_appSndReq;
 
     static enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_REP}  toe_lsnState=LSN_WAIT_REQ;
@@ -209,9 +210,9 @@ void pTOE(
     static enum TxpStates { TXP_READ_REQUEST, TXP_REPLY_REQUEST,
                             TXP_RECV_DATA}                 toe_txpState=TXP_READ_REQUEST;
 
-    static int  toe_startupDelay = 0x8000;
-    static int  toe_rxpStartupDelay = 100;
-    static int  toe_txpStartupDelay = 100;
+    static int  toe_startupDelay    = cSimToeStartupDelay;
+    static int  toe_rxpStartupDelay = cSimToeRxStartDelay;
+    static int  toe_txpStartupDelay = cSimToeTxStartDelay;
     static bool toe_isReady = false;
     static bool toe_rxpIsReady = false;
     static bool toe_txpIsReady = false;
@@ -287,8 +288,10 @@ void pTOE(
         case OPN_SEND_REP:
             if (!soTSIF_OpnRep.full()) {
                 soTSIF_OpnRep.write(opnReply);
-                // Add the current session # to the set of opened sessions
-                toe_openedSess.insert(opnReply.sessId);
+                //OBSOLETE_20210306 // Add the current session # to the set of opened sessions
+                //OBSOLETE_20210306 toe_openedSess.insert(opnReply.sessId);
+                // Create a new entry in the map (with TcpDstPort = 0)
+                toe_openedSess[opnReply.sessId] = 0;
                 printInfo(myOpnName, "Session #%d is now established.\n", opnReply.sessId.to_uint());
                 toe_opnState = OPN_WAIT_REQ;
             }
@@ -310,8 +313,6 @@ void pTOE(
     static int         toe_sessCnt=0;
     static int         toe_segCnt=0;
     static int         toe_waitEndOfTxTest=0;
-    const  int         nrSegToSend=5;
-    const  int         nrSessToSend=2;
 
     if (toe_rxpIsReady) {
         switch (toe_rxpState) {
@@ -353,8 +354,10 @@ void pTOE(
             }
             toe_hostIp4Addr    = DEFAULT_HOST_IP4_ADDR;
             toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
-            // Add the current session # to the set of opened sessions
-            toe_openedSess.insert(toe_sessId);
+            //OBSOLETE_20210306 // Add the current session # to the set of opened sessions
+            //OBSOLETE_20210306 toe_openedSess.insert(toe_sessId);
+            // Set the TCP destination port of the current session
+            toe_openedSess[toe_sessId] = toe_hostTcpDstPort;
             if (!soTSIF_Notif.full()) {
                 soTSIF_Notif.write(TcpAppNotif(toe_sessId,  toe_rxByteCnt, toe_hostIp4Addr,
                                             toe_hostTcpSrcPort, toe_hostTcpDstPort));
@@ -377,8 +380,10 @@ void pTOE(
            break;
         case RXP_SEND_META: // FORWARD METADATA TO [TSIF]
             if (!soTSIF_Meta.full()) {
-                soTSIF_Meta.write(toe_sessId);
-                if (toe_hostTcpDstPort == XMIT_MODE_LSN_PORT) {
+                //OBSOLETE_20210306 soTSIF_Meta.write(toe_sessId);
+                soTSIF_Meta.write(toe_appRdReq.sessionID);
+                //OBSOLETE_20210306 if (toe_hostTcpDstPort == XMIT_MODE_LSN_PORT) {
+                if (toe_openedSess[toe_appRdReq.sessionID] == XMIT_MODE_LSN_PORT) {
                     toe_rxpState = RXP_SEND_8801;
                 }
                 else {
@@ -398,7 +403,7 @@ void pTOE(
                     appData.setTKeep(lenTotKeep(toe_rxByteCnt));
                     appData.setTLast(TLAST);
                     toe_segCnt += 1;
-                    if (toe_segCnt == nrSegToSend) {
+                    if (toe_segCnt == cNrSegToSend) {
                         toe_rxpState = RXP_NEXT_SESS;
                     }
                     else {
@@ -469,7 +474,7 @@ void pTOE(
                     int bytes = writeAxisRawToFile(goldChunk, ofTOE_Gold);
                 }
                 toe_segCnt += 1;
-                if (toe_segCnt == nrSegToSend) {
+                if (toe_segCnt == cNrSegToSend) {
                     toe_rxpState = RXP_NEXT_SESS;
                 }
                 else {
@@ -480,7 +485,7 @@ void pTOE(
         case RXP_NEXT_SESS:
             toe_segCnt = 0;
             toe_sessCnt += 1;
-            if (toe_sessCnt == nrSessToSend) {
+            if (toe_sessCnt == cNrSessToSend) {
                 toe_rxpState = RXP_DONE;
             }
             else {
@@ -509,6 +514,7 @@ void pTOE(
         case TXP_REPLY_REQUEST:
            if (!soTSIF_SndRep.full()) {
                // Check if session is established
+               //OBSOLETE_20210306 if (toe_openedSess.find(toe_appSndReq.sessId) == toe_openedSess.end()) {
                if (toe_openedSess.find(toe_appSndReq.sessId) == toe_openedSess.end()) {
                    // Notify APP about the none-established connection
                    soTSIF_SndRep.write(TcpAppSndRep(toe_appSndReq.sessId, toe_appSndReq.length, 0, NO_CONNECTION));
@@ -624,7 +630,7 @@ int main(int argc, char *argv[]) {
     const int   defaultDestHostPortTest = 2718;
     const int   defaultLenOfSegmentTest = 43;
 
-    ap_uint<16> echoLenOfSegment = defaultLenOfSegmentEcho;
+    int         echoLenOfSegment = defaultLenOfSegmentEcho;
     ap_uint<32> testDestHostIpv4 = defaultDestHostIpv4Test;
     ap_uint<16> testDestHostPort = defaultDestHostIpv4Test;
     int         testLenOfSegment = defaultLenOfSegmentTest;
@@ -668,7 +674,13 @@ int main(int argc, char *argv[]) {
             }
     }
 
+    //------------------------------------------------------
+    //-- UPDATE THE LOCAL VARIABLES ACCORDINGLY
+    //------------------------------------------------------
     SockAddr testSock(testDestHostIpv4, testDestHostPort);
+    gMaxSimCycles += cNrSessToSend *
+                     (((echoLenOfSegment * (cNrSegToSend/2 + 1)) +
+                       (testLenOfSegment * (cNrSegToSend/2)   )));
 
     //------------------------------------------------------
     //-- REMOVE PREVIOUS OLD SIM FILES and OPEN NEW ONES

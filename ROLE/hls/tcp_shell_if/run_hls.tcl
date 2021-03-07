@@ -176,6 +176,8 @@ if { $hlsCSim} {
     csim_design -argv "   6 10.11.12.13 32768   6"
     csim_design -argv "   7 10.11.12.13 32768   7"
     csim_design -argv "   8 10.11.12.13 32768   8"
+    csim_design -argv " 128 10.11.12.13 32768  16"
+    csim_design -argv " 256 10.11.12.13 32768  32"
     csim_design -argv "1024 10.11.12.13 32768 512"
     csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(      32768))}] [expr {1 + int(rand()*65535)}]"
     csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {32768 + int(rand()*(65535-32768))}] [expr {1 + int(rand()*65535)}]"
