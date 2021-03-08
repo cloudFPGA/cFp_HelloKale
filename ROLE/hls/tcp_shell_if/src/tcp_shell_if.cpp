@@ -67,7 +67,7 @@ using namespace std;
 #define TRACE_LSN 1 <<  5
 #define TRACE_CON 1 <<  6
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -442,7 +442,7 @@ void pReceiveInterruptTable(
     static ap_uint<log2Ceil<cMaxSessions>::val> rit_initEntry=0;
     #pragma HLS reset                  variable=rit_initEntry
     static ap_uint<cMaxSessions>                rit_pendingInterrupts=0;
-    #pragma HLS reset                  variable=rrh_pendingInterrupts
+    #pragma HLS reset                  variable=rit_pendingInterrupts
     static SessionId                            rit_currSess=0;
     #pragma HLS reset                  variable=rit_currSess
     static bool                                 rit_mutexPostReq = false;
@@ -615,7 +615,7 @@ void pReceiveInterruptTable(
                         break;
                 }
                 if (DEBUG_LEVEL & TRACE_RRH) {
-                    printInfo(myName, "Sending DReq(%2d, %4d) to TOE (expected TcpDstPort=%4d).\n",
+                    printInfo(myName, "Sending DReq(SessId=%2d, DatLen=%4d) to RDp (expected TcpDstPort=%4d).\n",
                               rit_currSess.to_uint(), rit_datLenReq.to_uint(), rit_schedEntry.dstPort.to_uint());
                 }
             }
