@@ -566,7 +566,7 @@ architecture BringUp of Role_Kale is
       --------------------------------------------------------
       -- SHELL / Mmio Interface
       --------------------------------------------------------
-      piSHL_Mmio_En_V       : in  std_logic;
+      piSHL_Mmio_En_V       : in  std_logic_vector( 0 downto 0);
       --------------------------------------------------------
       -- SHELL / UDP Control Port Interfaces
       --------------------------------------------------------
@@ -1251,12 +1251,12 @@ begin
           ------------------------------------------------------
           -- From SHELL / Clock and Reset
           ------------------------------------------------------
-          aclk                    => piSHL_156_25Clk,
-          aresetn                 => not piSHL_Mmio_Ly7Rst,
+          aclk                   => piSHL_156_25Clk,
+          aresetn                => not piSHL_Mmio_Ly7Rst,
           --------------------------------------------------------
           -- SHELL / Mmio Interface
           --------------------------------------------------------
-          piSHL_Mmio_En_V        => piSHL_Mmio_Ly7En,
+          piSHL_Mmio_En_V(0)     => piSHL_Mmio_Ly7En,
           --------------------------------------------------------
           -- SHELL / UDP Control Port Interfaces
           --------------------------------------------------------

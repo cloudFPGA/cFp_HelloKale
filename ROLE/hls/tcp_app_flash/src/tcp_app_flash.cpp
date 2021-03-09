@@ -103,7 +103,8 @@ void pTcpEchoStoreAndForward(
         stream<TcpDatLen>    &soTXp_DatLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    //OBSOLETE_20210309 #pragma HLS PIPELINE II=1
+    #pragma HLS DATAFLOW
 
     const char *myName  = concat3(THIS_NAME, "/", "ESf");
 
@@ -118,6 +119,9 @@ void pTcpEchoStoreAndForward(
     static  Ly4Len             esf_byteCnt;
     #pragma HLS reset variable=esf_byteCnt
 
+    //=====================================================
+    //== PROCESS DATA FORWARDING
+    //=====================================================
     if ( !siRXp_Data.empty() and !soTXp_Data.full() ) {
         TcpAppData appData = siRXp_Data.read();
         soTXp_Data.write(appData);
@@ -127,6 +131,9 @@ void pTcpEchoStoreAndForward(
         }
     }
 
+    //=====================================================
+    //== PROCESS META FORWARDING
+    //=====================================================
     if ( !siRXp_SessId.empty() and !soTXp_SessId.full() and
          !siRXp_DatLen.empty() and !soTXp_DatLen.full() ) {
         TcpSessId sessId = siRXp_SessId.read();

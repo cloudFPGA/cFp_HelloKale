@@ -91,8 +91,9 @@ void pEchoStoreAndForward(
         stream<UdpAppDLen>  &soTXp_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    //OBSOLETE_20210309     #pragma HLS INLINE off
+    //OBSOLETE_20210309 #pragma HLS PIPELINE II=1
+    #pragma HLS DATAFLOW
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ESF_META=0, ESF_STREAM } \
@@ -101,6 +102,9 @@ void pEchoStoreAndForward(
     static UdpAppDLen          esf_byteCnt;
     #pragma HLS reset variable=esf_byteCnt
 
+    //=====================================================
+    //== PROCESS DATA FORWARDING
+    //=====================================================
     if ( !siRXp_Data.empty() and !soTXp_Data.full() ) {
         UdpAppData appData = siRXp_Data.read();
         soTXp_Data.write(appData);
@@ -111,6 +115,9 @@ void pEchoStoreAndForward(
         }
     }
 
+    //=====================================================
+    //== PROCESS META FORWARDING
+    //=====================================================
     if ( !siRXp_Meta.empty() and !soTXp_Meta.full() ) {
         UdpAppMetb appMeta = siRXp_Meta.read();
         // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP

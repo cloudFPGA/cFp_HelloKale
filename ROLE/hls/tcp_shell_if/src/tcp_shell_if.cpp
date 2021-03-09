@@ -354,42 +354,49 @@ void pListen(
 /*******************************************************************************
  * @brief Updates the counter which tracks the occupancy of the input read buffer.
  *
- * @param[in] siEnqueueSig  Signals the enqueue of a chunk in the buffer.
- * @param[in] siEnqueueSig  Signals the dequeue of a chunk from the buffer.
- * @param[in,out]  counter  A ref. to the counter to increment/decrement.
- *
- * @warning The
+ * @param[in]  siEnqueueSig Signals the enqueue of a chunk in the buffer.
+ * @param[in]  siEnqueueSig Signals the dequeue of a chunk from the buffer.
+ * @param[out] soFreeSpace  The available space in the input buffer (in bytes).
  *******************************************************************************/
 void pInputBufferOccupancy(
-        stream<SigBit>                     &siEnqueueSig,
-        stream<SigBit>                     &siDequeueSig,
-        ap_uint<log2Ceil<cIBuffSize>::val> &counter)
+        stream<SigBit>                                        &siEnqueueSig,
+        stream<SigBit>                                        &siDequeueSig,
+        stream<ap_uint<log2Ceil<(cIBuffSize*(ARW/8))>::val> > &soFreeSpace)
 {
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
+
     const char *myName  = concat3(THIS_NAME, "/", "RRh/Ibo");
 
-    bool inc = false;
-    bool dec = false;
+    static ap_uint<log2Ceil<(cIBuffSize*(ARW/8))>::val>  rrh_freeSpace=(cIBuffSize*(ARW/8)-1);
+    #pragma HLS reset                           variable=rrh_freeSpace
+
+    bool traceInc = false;
+    bool traceDec = false;
 
     if (!siEnqueueSig.empty() and siDequeueSig.empty()) {
         siEnqueueSig.read();
-        counter += 1;
-        inc = true;
+        rrh_freeSpace += 1;
+        traceInc = true;
     } else if (siEnqueueSig.empty() and !siDequeueSig.empty()) {
         siDequeueSig.read();
-        counter -= 1;
-        dec = true;
+        rrh_freeSpace -= 1;
+        traceDec = true;
     } else if (!siEnqueueSig.empty() and !siDequeueSig.empty()) {
         siEnqueueSig.read();
         siDequeueSig.read();
-        inc = true;
-        dec = true;
+        traceInc = true;
+        traceDec = true;
     }
+    //-- Always
+    soFreeSpace.write(rrh_freeSpace);
 
     if (DEBUG_LEVEL & TRACE_RRH) {
-        if (inc or dec) {
-            printInfo(myName, "Input buffer occupancy = %d chunks (%c|%c)\n",
-                     (cIBuffSize - 1 - counter.to_uint()),
-                     (inc ? '+' : ' '), (dec ? '-' : ' '));
+        if (traceInc or traceDec) {
+            printInfo(myName, "Input buffer occupancy = %d bytes (%c|%c)\n",
+                     (cIBuffSize - 1 - rrh_freeSpace.to_uint()),
+                     (traceInc ? '+' : ' '), (traceDec ? '-' : ' '));
         }
     }
 }
@@ -397,8 +404,8 @@ void pInputBufferOccupancy(
 /*******************************************************************************
  * @brief Receive Interrupt Table (Rit).
  *
- * @param[in] siSHL_Notif A new Rx data notification from [SHELL].
- * @param[in]  buffSpace    The available space in the input buffer (in chunks).
+ * @param[in]  siSHL_Notif  A new Rx data notification from [SHELL].
+ * @param[in]  siIbo_Space  The available space in the input buffer (in bytes).
  * @param[out] soSHL_DReq   A data pull request to [SHELL].
  * @param[out] soRDp_FwdCmd A command telling the ReadPath (RDp) to keep/drop the next stream that will come in.
  *
@@ -420,14 +427,16 @@ void pInputBufferOccupancy(
  *   chunks (i.e., 1 chunk = 8B for 10GbE).
  ********************************************************************************/
 void pReceiveInterruptTable(
-        stream<TcpAppNotif>                      &siSHL_Notif,
-        const ap_uint<log2Ceil<cIBuffSize>::val> &buffSpace,
-        stream<TcpAppRdReq>                      &soSHL_DReq,
-        stream<ForwardCmd>                       &soRDp_FwdCmd)
+        stream<TcpAppNotif>                                   &siSHL_Notif,
+        stream<ap_uint<log2Ceil<(cIBuffSize*(ARW/8))>::val> > &siIbo_Space,
+        stream<TcpAppRdReq>                                   &soSHL_DReq,
+        stream<ForwardCmd>                                    &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
-    #pragma HLS INLINE off
+    //OBSOLETE_20210309 #pragma HLS PIPELINE II=1
+    //OBSOLETE_20210309 #pragma HLS INLINE off
+    #pragma HLS DATAFLOW
+    #pragma HLS INLINE
 
     const char *myName = concat3(THIS_NAME, "/", "RRh/Rit");
 
@@ -467,6 +476,16 @@ void pReceiveInterruptTable(
     static InterruptEntry  rit_postEntry;
     static InterruptEntry  rit_schedEntry;
     static TcpDatLen       rit_datLenReq;
+    static TcpDatLen       rit_freeSpace;
+
+    //=====================================================
+    //== PROCESS IBUF
+    //==  Always read and store any change in the input
+    //==   buffer occupancy.
+    //=====================================================
+    if (!siIbo_Space.empty()) {
+        rit_freeSpace = siIbo_Space.read();
+    }
 
     //=====================================================
     //== PROCESS POST (and INIT)
@@ -583,9 +602,8 @@ void pReceiveInterruptTable(
         case RIT_SCHED_GET:
             if (rit_mutexSchedGrt) {
                 rit_schedEntry = INTERRUPT_TABLE[rit_currSess];
-                // Request to TOE = max(rit_schedEntry.byteCnt, buffSpace)
-                TcpDatLen buffSpaceInBytes = (buffSpace + 1) << 3;
-                rit_datLenReq = (buffSpaceInBytes < rit_schedEntry.byteCnt) ? (buffSpaceInBytes) : (rit_schedEntry.byteCnt);
+                // Request to TOE = max(rit_schedEntry.byteCnt, rit_freeSSpace)
+                rit_datLenReq = (rit_freeSpace < rit_schedEntry.byteCnt) ? (rit_freeSpace) : (rit_schedEntry.byteCnt);
                 rit_schedFsmState = RIT_SCHED_PUT;
             }
             break;
@@ -664,8 +682,10 @@ void pReadRequestHandler(
         stream<ForwardCmd>     &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    //OBSOLETE_20210309 #pragma HLS INLINE off
+    //OBSOLETE_20210309 #pragma HLS PIPELINE II=1
+    #pragma HLS DATAFLOW
+    #pragma HLS INLINE
 
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
 
@@ -673,19 +693,21 @@ void pReadRequestHandler(
     static enum FsmStates { RRH_IDLE, RRH_SEND_DREQ } \
                                               rrh_fsmState=RRH_IDLE;
     #pragma HLS reset                variable=rrh_fsmState
-    static ap_uint<log2Ceil<cIBuffSize>::val> rrh_bufSpace=(cIBuffSize-1);
-    #pragma HLS reset                variable=rrh_bufSpace
+
+    //-- LOCAL STREAM
+    static stream<ap_uint<log2Ceil<(cIBuffSize*(ARW/8))>::val> >  ssIboToRit_BufSpace ("ssIboToRit_BufSpace");
+    #pragma HLS stream                                   variable=ssIboToRit_BufSpace  depth=2
 
     //-- SUB-PROCESS: Input buffer space management
     pInputBufferOccupancy(
             siIRb_EnquSig,
             siRDp_DequSig,
-            rrh_bufSpace);
+            ssIboToRit_BufSpace);
 
     //-- SUB-PROCESS: Notification management and data request scheduling
     pReceiveInterruptTable(
             siSHL_Notif,
-            rrh_bufSpace,
+            ssIboToRit_BufSpace,
             soSHL_DReq,
             soRDp_FwdCmd);
 

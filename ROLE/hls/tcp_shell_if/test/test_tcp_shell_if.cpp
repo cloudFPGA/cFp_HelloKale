@@ -437,7 +437,7 @@ void pTOE(
                     toe_drqState = DRQ_WAIT_DREQ;
                 }
                 if (toe_openedSess[toe_appRdReq.sessionID].byteCnt < appData.getLen()) {
-                    printFatal(myDrqName, "About to send more data to session #%d than notified!\n", toe_appRdReq.sessionID);
+                    printFatal(myDrqName, "About to send more data to session #%d than notified!\n", toe_appRdReq.sessionID.to_uint());
                 }
                 soTSIF_Data.write(appData);
                 if (DEBUG_LEVEL & TRACE_TOE) {
