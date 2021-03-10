@@ -80,13 +80,13 @@ void udp_app_flash (
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppMetb>  &siUSIF_Meta,
 
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppMetb>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen
 
 );

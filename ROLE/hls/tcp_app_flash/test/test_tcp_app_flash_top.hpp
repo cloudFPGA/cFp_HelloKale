@@ -15,34 +15,30 @@
  */
 
 /*****************************************************************************
- * @file       : test_tcp_shell_if.hpp
- * @brief      : Testbench for the TCP Shell Interface (TSIF).
+ * @file       : test_tcp_app_flash.hpp
+ * @brief      : Testbench for the toplevel of TCP Application Flash.
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_Monolithic / ROLE
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TSIF
+ * \ingroup ROLE_TAF
+ * \addtogroup ROLE_TAF_TEST
  * \{
  *****************************************************************************/
 
-#ifndef _TEST_TSIF_H_
-#define _TEST_TSIF_H_
+#ifndef _TEST_TAF_TOP_H_
+#define _TEST_TAF_TOP_H_
 
 #include <hls_stream.h>
 #include <iostream>
-#include <set>
+#include <stdio.h>
+#include <fstream>
 
-#include "../src/tcp_shell_if.hpp"
+#include "../src/tcp_app_flash_top.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
-
-//------------------------------------------------------
-//-- TESTBENCH DEFINITIONS
-//------------------------------------------------------
-#define MAX_SIM_CYCLES   500
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -52,21 +48,6 @@
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = 0x8000 + 500;
-
-//---------------------------------------------------------
-//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
-//--  By default, the following sockets will be used by the
-//--  testbench, unless the user specifies new ones via one
-//--  of the test vector files.
-//---------------------------------------------------------
-#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
-#define DEFAULT_FPGA_LSN_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
-#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
-#define DEFAULT_HOST_TCP_SRC_PORT 0x80      // TB source port          = 128
-
-#define DEFAULT_SESSION_ID      42
-#define DEFAULT_SESSION_LEN     32
 
 #endif
 

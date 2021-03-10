@@ -19,7 +19,7 @@
  * @brief      : Top level with I/O ports for UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic/ROLE
+ * Component   : cFp_Monolithic / ROLE
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
@@ -37,7 +37,6 @@
 #include "udp_app_flash.hpp"
 
 using namespace hls;
-using namespace std;
 
 /************************************************
  * INTERFACE SYNTHESIS DIRECTIVES
@@ -45,8 +44,36 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not always work for us.
  ************************************************/
-#undef USE_DEPRECATED_DIRECTIVES
+#define USE_DEPRECATED_DIRECTIVES
+#define USE_AP_FIFO
 
+/*** OBSOLETE_20210222 ****************
+template <class Type>
+void pAxisToFifo(
+        stream<Type>& siAxisStream,
+        stream<Type>& soFifoStream)
+{
+    #pragma HLS INLINE off
+    Type currChunk;
+    siAxisStream.read(currChunk);  // Blocking read
+    if (!soFifoStream.full()) {
+        soFifoStream.write(currChunk);  // else drop
+    }
+}
+
+template <class Type>
+void pFifoToAxis(
+        stream<Type>& siFifoStream,
+        stream<Type>& soAxisStream)
+{
+    #pragma HLS INLINE off
+    Type currChunk;
+    if (!siFifoStream.empty()) {
+        siFifoStream.read(currChunk);
+        soAxisStream.write(currChunk);  // Blocking write
+    }
+}
+***************************************/
 
 /*******************************************************************************
  * @brief   Top of UDP Application Flash (UAF)
@@ -60,6 +87,12 @@ using namespace std;
  * @param[out] soUSIF_Meta          UDP metadata to [USIF].
  * @param[out] soUSIF_DLen          UDP data len to [USIF].
  *
+ * @info This toplevel exemplifies the instantiation of a core that was designed
+ *   for non-blocking read and write streams, but which needs to be exported as
+ *   an IP with AXI-Stream interfaces (axis).
+ *   Because the 'axis' interface does not support non-blocking accesses, this
+ *   toplevel implements a shim layer between the 'axis' and the 'ap_fifo'
+ *   interfaces and vice versa.
  *******************************************************************************/
 void udp_app_flash_top (
 
@@ -73,14 +106,14 @@ void udp_app_flash_top (
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &siUSIF_Data,
-        stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppData>  &siUSIF_Data,
+        stream<UdpAppMetb>  &siUSIF_Meta,
 
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &soUSIF_Data,
-        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppData>  &soUSIF_Data,
+        stream<UdpAppMetb>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
@@ -107,47 +140,47 @@ void udp_app_flash_top (
     #pragma HLS resource core=AXI4Stream variable=soUSIF_DLen    metadata="-bus_bundle soUSIF_DLen"
 
 #else
-
+  #if defined (USE_AP_FIFO)
     //[NOT_USED] #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_EchoCtrl  name=piSHL_Mmio_EchoCtrl
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
 
-    #pragma HLS INTERFACE axis register      port=siUSIF_Data     name=siUSIF_Data
-    #pragma HLS INTERFACE axis register      port=siUSIF_Meta     name=siUSIF_Meta
-    #pragma HLS DATA_PACK                variable=siUSIF_Meta instance=siUSIF_Meta
+    //-- [USIF] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE ap_fifo   port=siUSIF_Data    name=siUSIF_Data
+    #pragma HLS DATA_PACK       variable=siUSIF_Data
+    #pragma HLS INTERFACE ap_fifo   port=siUSIF_Meta    name=siUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
 
-    #pragma HLS INTERFACE axis register      port=soUSIF_Data     name=soUSIF_Data
-    #pragma HLS INTERFACE axis register      port=soUSIF_Meta     name=soUSIF_Meta
-	#pragma HLS DATA_PACK                variable=soUSIF_Meta instance=soUSIF_Meta
-    #pragma HLS INTERFACE axis register      port=soUSIF_DLen     name=soUSIF_DLen
-    #pragma HLS DATA_PACK                variable=soUSIF_DLen instance=soUSIF_DLen
+    #pragma HLS INTERFACE ap_fifo   port=soUSIF_Data    name=soUSIF_Data
+    #pragma HLS DATA_PACK       variable=soUSIF_Data
+    #pragma HLS INTERFACE ap_fifo   port=soUSIF_Meta    name=soUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
+    #pragma HLS INTERFACE ap_fifo   port=soUSIF_DLen    name=soUSIF_DLen
+  #else
+    //[NOT_USED] #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_EchoCtrl  name=piSHL_Mmio_EchoCtrl
+    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
+    //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_CaptPktEn
 
+    //-- [USIF] INTERFACES ------------------------------------------------------
+    #pragma HLS INTERFACE axis  register off   port=siUSIF_Data    name=siUSIF_Data
+    #pragma HLS INTERFACE axis  register off   port=siUSIF_Meta    name=siUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
+    #pragma HLS INTERFACE axis  register off   port=soUSIF_Data    name=soUSIF_Data
+    #pragma HLS INTERFACE axis  register off   port=soUSIF_Meta    name=soUSIF_Meta
+    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
+    //    does not support packing structs which contain other structs!!!
+    #pragma HLS INTERFACE axis  register off   port=soUSIF_DLen    name=soUSIF_DLen
+  #endif
 #endif
 
-	//-- LOCAL IN and OUT STREAMS ----------------------------------------------
-    static stream<UdpAppData>       ssiUSIF_Data  ("ssiUSIF_Data");
-    #pragma HLS STREAM     variable=ssiUSIF_Data  depth=2
-    static stream<UdpAppMeta>       ssiUSIF_Meta  ("ssiUSIF_Meta");
-    #pragma HLS STREAM     variable=ssiUSIF_Meta  depth=2
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
 
-    static stream<UdpAppData>       ssoUSIF_Data  ("ssoUSIF_Data");
-    #pragma HLS STREAM     variable=ssoUSIF_Data  depth=2
-    static stream<UdpAppMeta>       ssoUSIF_Meta  ("ssoUSIF_Meta");
-    #pragma HLS STREAM     variable=ssoUSIF_Meta  depth=2
-    static stream<UdpAppDLen>       ssoUSIF_DLen  ("ssoUSIF_DLen");
-    #pragma HLS STREAM     variable=ssoUSIF_DLen  depth=2
-
-    //-- INPUT INTERFACES ------------------------------------------------------
-    if (!siUSIF_Data.empty() and !ssiUSIF_Data.full()) {
-        ssiUSIF_Data.write(siUSIF_Data.read());
-    }
-    if (!siUSIF_Meta.empty() and !ssiUSIF_Meta.full()) {
-        ssiUSIF_Meta.write(siUSIF_Meta.read());
-    }
-
-	//-- INSTANTIATE TOPLEVEL --------------------------------------------------
+    //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_app_flash (
-
         //------------------------------------------------------
         //-- SHELL / Mmio / Configuration Interfaces
         //------------------------------------------------------
@@ -157,25 +190,14 @@ void udp_app_flash_top (
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
-        ssiUSIF_Data,
-        ssiUSIF_Meta,
+        siUSIF_Data,
+        siUSIF_Meta,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
-        ssoUSIF_Data,
-        ssoUSIF_Meta,
-        ssoUSIF_DLen);
-
-    //-- OUTPUT INTERFACES -----------------------------------------------------
-    if (!ssoUSIF_Data.empty() and !soUSIF_Data.full()) {
-        soUSIF_Data.write(ssoUSIF_Data.read());
-    }
-    if (!ssoUSIF_Meta.empty() and !soUSIF_Meta.full()) {
-        soUSIF_Meta.write(ssoUSIF_Meta.read());
-    }
-    if (!ssoUSIF_DLen.empty() and !soUSIF_DLen.full()) {
-        soUSIF_DLen.write(ssoUSIF_DLen.read());
-    }
+        soUSIF_Data,
+        soUSIF_Meta,
+        soUSIF_DLen);
 
 }
 

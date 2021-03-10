@@ -15,8 +15,8 @@
  */
 
 /*******************************************************************************
- * @file     : tcp_app_flash.cpp
- * @brief    : TCP Application Flash (TAF)
+ * @file     : tcp_app_flash_top.cpp
+ * @brief    : Top of TCP Application Flash (TAF)
  *
  * System:   : cloudFPGA
  * Component : cFp_BringUp / ROLE
@@ -24,62 +24,53 @@
  *
  *----------------------------------------------------------------------------
  *
- * @details  : This application implements a set of TCP-oriented tests and
- *  functions for the bring-up of a cloudFPGA module.
+ * @details  :  Data structures, types and prototypes definitions for the TCP
+ *                application embedded in the role of the cFp_BringUp.
  *
  * \ingroup ROLE
  * \addtogroup ROLE_TAF
  * \{
  *******************************************************************************/
 
-#ifndef _TAF_H_
-#define _TAF_H_
+#ifndef _TAF_TOP_H_
+#define _TAF_TOP_H_
 
+#include "./tcp_app_flash.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
 //---------------------------------------------------------
 /// -- SHELL/MMIO/EchoCtrl - Configuration Register
 //---------------------------------------------------------
-enum EchoCtrl {
+/*** OBSOLETE *********
+ enum EchoCtrl {
     ECHO_PATH_THRU = 0,
     ECHO_STORE_FWD = 1,
     ECHO_OFF       = 2
 };
-
-//-------------------------------------------------------------------
-//-- DEFAULT TESTING PORTS
-//--  By default, the following port numbers will be used by the
-//--  TcpApplicationFlash (unless user specifies new ones via TBD).
-//--  Default testing ports:
-//--  --> 8803  : Traffic received on this port is looped back and
-//--              echoed to the sender in path-through mode.
-//--  --> Others: Traffic received on any port != 8803 is looped back
-//--              and echo to the sender in store-and-forward mode.
-//-------------------------------------------------------------------
-#define ECHO_PATH_THRU_PORT  8803   // 0x2263
+***********************/
 
 
 /*******************************************************************************
  *
- * ENTITY - TCP APPLICATION FLASH (TAF)
+ * ENTITY - TCP APPLICATION FLASH TOP (TAF_TOP)
  *
  *******************************************************************************/
-void tcp_app_flash (
+void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
         ap_uint<2>          *piSHL_MmioEchoCtrl,
         //------------------------------------------------------
-        //-- SHELL / TCP Rx Data Interface
+        //-- TSIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<TcpAppData>  &siTSIF_Data,
+        stream<AxisRaw>     &siTSIF_Data,  // [FIXME - TcpAppData]
         stream<TcpSessId>   &siTSIF_SessId,
         stream<TcpDatLen>   &siTSIF_DatLen,
         //------------------------------------------------------
-        //-- SHELL / TCP Tx Data Interface
+        //-- TSIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<TcpAppData>  &soTSIF_Data,
+        stream<AxisRaw>     &soTSIF_Data,    // [FIXME - TcpAppData]
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen
 );

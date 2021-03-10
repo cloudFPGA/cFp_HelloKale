@@ -1,78 +1,102 @@
-# *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Jan 2018
-# * Authors : Francois Abel, Burkhard Ringlein
 # *
-# * Description : A makefile that synthesizes and packages the current HLS core
-# *                as an IP.
+# * Copyright 2016 -- 2020 IBM Corporation
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *
+
+# *****************************************************************************
+# *
+# * Description : A makefile to simulate, synthesize and package the current
+# *   HLS core as an IP. This build consist of two projects:
+# *     1) 'ip_core' which is used to csim, csynth and cosim, 
+# *     2) 'ip_top'  which is used to export and package the IP.
 # * 
 # * Synopsis:
-# *   make help    : Displays a help message.
-# *   make clean   : Cleanup of the current directory.
-# *   make         : Runs the default build for this core.
+# *   make help
 # *
 # ******************************************************************************
-
-# Name of the HLS core to build
-ipName = udp_shell_if
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean csim cosim csynth export help project regression rtlSyn rtlImpl 
+.PHONY:  all clean project csim cosim csynth regression help ipClean ipProject ip ipSyn ipImpl
 
-${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
+.csim_guard: $(SRC_DEPS)
 	$(MAKE) clean
-	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
-	@touch ../../../ROLE/.ip_guard
 
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
-	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
 	@touch $@
+
+ip_top_prj/solution1/impl/ip: $(SRC_DEPS)
+	$(MAKE) ipClean
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl ip_top
+	@touch $@
+	@touch ../../../ROLE/.ip_guard
 
 #-- Targets --------------------------------------------------------------------
 
-all: ${ipName}_prj/solution1/impl/ip
+all: ip
 
-clean:                    ## Cleans the current project
-	${RM} -rf ${ipName}_prj
+clean:                   ## Cleans the IP-CORE project
+	${RM} -rf ip_core_prj
 	${RM} vivado*.log
+	@${RM} .csim_guard
 	@${RM} .synth_guard
 
-csim:                     ## Runs the HLS C simulation
+project:                 ## Creates the IP-CORE project for simulation, synthesis and co-simulation
+	$(MAKE) clean
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
+
+csim: .csim_guard        ## Runs the HLS C simulation of the IP-CORE project
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-csynth: .synth_guard      ## Runs the HLS C synthesis
+csynth: .synth_guard     ## Runs the HLS C synthesis of the IP-CORE project
 
-cosim: .synth_guard       ## Runs the HLS C/RTL cosimulation
+cosim: .synth_guard      ## Runs the HLS C/RTL cosimulation of the IP-CORE project 
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-export:                  ## Exports the RTL as IP
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
+regression: .synth_guard ## Runs a sequence of HLS csim, csynth and cosim over the IP-CORE project
+	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-project:                  ## Creates the HLS project
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
-
-regression: .synth_guard  ## Runs HLS csim, csynth and cosim in sequence
-	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
-
-rtlSyn:                   ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl
-
-rtlImpl:                  ## Performs both RTL synthesis and implementation including detailed palce and route
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl
-
-help:                     ## Shows this help message
+help:                    ## Shows this help message
     # This target is for self documentation of the Makefile. 
     # Every text starting with '##' and placed after a target will be considered as helper text.
 	@echo
 	@echo 'Usage:'
 	@echo '    make [target]'
-	@echo	
-	@echo 'Targets:'
-	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
 	@echo
+	@echo 'Targets:'
+	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /'
+	@echo
+
+ipClean:                 ## Cleans the IP-TOP project
+	${RM} -rf ip_top_prj
+	${RM} vivado*.log
+
+ipProject:               ## Creates the IP-TOP project for exporting and packaging
+	$(MAKE) ipClean
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
+
+ip:                      ## Exports the RTL design and packages it as an IP
+	$(MAKE) ip_top_prj/solution1/impl/ip
+
+ipSyn:                   ## Exports the RTL design and executes logic synthesis to obtain more accurate numbers
+	$(MAKE) ipClean
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl ip_top
+
+ipImpl:                  ## Exports the RTL design and performs both RTL synthesis and implementation
+	$(MAKE) ipClean
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl ip_top

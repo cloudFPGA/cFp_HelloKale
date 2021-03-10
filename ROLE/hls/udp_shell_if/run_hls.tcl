@@ -1,16 +1,28 @@
+# *
+# * Copyright 2016 -- 2020 IBM Corporation
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *
 
 # *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Dec 2017
-# * Authors : Francois Abel, Burkhaard Ringlein  
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the UDP interface 
-# *   between the cloudFPGA shell 'Kale' and the user application embedded into
-# *   the bring-up role of the cloudFPGA module FMKU60.
+# * Description : A Tcl script to simulate, synthesize and package the current
+# *   HLS core as an IP. This script handles two projects:
+# *     1) 'ip_core' which is used to csim, csynth and cosim, 
+# *     2) 'ip_top'  which is used to export and package the IP. 
 # * 
-# * Synopsis : vivado_hls -f <this_file>
+# * Synopsis: 
+# *    vivado_hls -f <this_file> [ip_core|ip_top]
 # *
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
@@ -19,25 +31,40 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "udp_shell_if"
+set ipName         "udp_shell_if"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
-set ipName         ${projectName}
 set ipDisplayName  "UDP Shell Interface"
-set ipDescription  "An interface between the bring-up role of the FMKU60 role and the UDP offload engine of the shell Kale."
+set ipDescription  "An interface between the bring-up role of the FMKU60 and the UDP offload engine of the shell Kale."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
+set ipRtl          "verilog"
 
-# Set Project Environment Variables  
+# Retrieve the arguments passed to this script
 #-------------------------------------------------
-set currDir      [pwd]
-set srcDir       ${currDir}/src
-set testDir      ${currDir}/test
-set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir      ${currDir}/../../ip
+if { $argc == 2 } {
+    set ipProjectName "ip_core"
+} elseif { $argc == 3 } {
+    set ipProjectName [lindex $argv 2]
+    if { ![string equal ${ipProjectName} ip_core] && ![string equal ${ipProjectName} ip_top] } {
+        puts "####"
+        puts "####  ERROR: Unknown project name passed as 3rd argument."
+        puts "####    Expected: -f run_hls.tcl [ip_core|ip_top]"
+        puts "####    Received: $argv"
+        puts "####"
+        exit 2  
+    }
+} else {
+    puts "####"
+    puts "####  ERROR: This script requires 2 or 3 arguments."
+    puts "####    Expected: -f run_hls.tcl [a-project-name]"
+    puts "####    Received: $argv"
+    puts "####"
+    exit 2
+}
 
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
@@ -46,26 +73,36 @@ set hlsCSynth    $::env(hlsCSynth)
 set hlsCoSim     $::env(hlsCoSim)
 set hlsRtl       $::env(hlsRtl)
 
-# Open and Setup Project
+# Set Project Environment Variables  
 #-------------------------------------------------
-open_project  ${projectName}_prj
-set_top       ${projectName}
+set currDir      [pwd]
+set srcDir       ${currDir}/src
+set testDir      ${currDir}/test
+
+# Open Project
+#-------------------------------------------------
+open_project     ${ipProjectName}_prj
 
 # Add files
 #-------------------------------------------------
-add_files     ${currDir}/src/${projectName}.cpp
-add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
-add_files     ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
+add_files        ${currDir}/src/${ipName}.cpp
+add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
+add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
 
-add_files -tb ${currDir}/test/test_${projectName}.cpp
-
+if { [string equal ${ipProjectName} ip_core] } {
+    set_top       ${ipName}
+    add_files -tb ${testDir}/test_${ipName}.cpp
+} elseif { [string equal ${ipProjectName} ip_top] } {
+    set_top       ${ipName}_top
+    add_files     ${srcDir}/${ipName}_top.cpp
+    add_files -tb ${testDir}/test_${ipName}_top.cpp 
+}
 
 # Create a solution
 #-------------------------------------------------
 open_solution ${solutionName}
-
 set_part      ${xilPartName}
-create_clock -period 6.4 -name default
+create_clock  -period 6.4 -name default
 
 #--------------------------------------------
 # Controlling the Reset Behavior (see UG902)
@@ -92,8 +129,23 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-# [TODO - Check vivado_hls version and only enable this command if >= 2018]
-# config_rtl -disable_start_propagation
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } { 
+	config_rtl -disable_start_propagation
+}
+
+#---------------------------------------------------------------
+# Configuring the behavior of the dataflow checking (see UG902)
+#---------------------------------------------------------------
+# -strict_mode: Vivado HLS has a dataflow checker which, when enabled, checks the code to see if it
+#               is in the recommended canonical form. Otherwise it will emit an error/warning
+#               message to the user. By default this checker is set to 'warning'. It can be set to
+#               'error' or can be disabled by selecting the 'off' mode.
+#-------------------------------------------------------------------------------------------------
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+if { [format "%.1f" ${VIVADO_VERSION}] > 2018.1 } { 
+	config_dataflow -strict_mode  error
+}
 
 #----------------------------------------------------
 # Configuring the behavior of the front-end compiler
@@ -103,13 +155,18 @@ config_rtl -reset control
 #  -pipeline_loops : Specify the lower threshold used during pipelining loops automatically. The
 #                    default is '0' for no automatic loop pipelining. 
 #------------------------------------------------------------------------------------------------
-config_compile -name_max_length 128 -pipeline_loops 0
+config_compile -name_max_length 256 -pipeline_loops 0
 
-
+#-------------------------------------------------
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF COMPILATION              ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
     csim_design
     csim_design -argv "    1 10.11.12.13 2718     1"
     csim_design -argv "    2 10.11.12.13 2718     2"
@@ -139,6 +196,7 @@ if { $hlsCSim} {
     puts "#############################################################"
 }  
 
+#-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} { 
@@ -150,6 +208,7 @@ if { $hlsCSynth} {
     puts "#############################################################"
 }
 
+#-------------------------------------------------
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
@@ -195,13 +254,13 @@ if { $hlsCoSim } {
 if { $hlsRtl } {
     switch $hlsRtl {
         1 {
-            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design                          -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         2 {
-            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow syn  -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         3 {
-            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow impl -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         default { 
             puts "####  INVALID VALUE ($hlsRtl) ####"
@@ -213,10 +272,11 @@ if { $hlsRtl } {
     puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
     puts "####                                                     ####"
     puts "#############################################################"
-
 }
 
+#-------------------------------------------------
 # Exit Vivado HLS
-#--------------------------------------------------
+#-------------------------------------------------
 exit
+
 

@@ -41,7 +41,7 @@ set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
-set ipRtl          "vhdl"
+set ipRtl          "verilog"
 
 # Retrieve the arguments passed to this script
 #-------------------------------------------------
@@ -158,9 +158,10 @@ if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } {
 #  -pipeline_loops : Specify the lower threshold used during pipelining loops automatically. The
 #                    default is '0' for no automatic loop pipelining. 
 #------------------------------------------------------------------------------------------------
-config_compile -name_max_length 128 -pipeline_loops 0
+config_compile -name_max_length 256 -pipeline_loops 0
 
 
+#-------------------------------------------------
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
@@ -180,6 +181,7 @@ if { $hlsCSim} {
     puts "#############################################################"
 }  
 
+#-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} { 
@@ -191,6 +193,7 @@ if { $hlsCSynth} {
     puts "#############################################################"
 }
 
+#-------------------------------------------------
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
@@ -235,7 +238,7 @@ if { $hlsCoSim } {
 if { $hlsRtl } {
     switch $hlsRtl {
         1 {
-            export_design            -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design                          -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         2 {
             export_design -flow syn  -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
@@ -256,8 +259,9 @@ if { $hlsRtl } {
 
 }
 
+#-------------------------------------------------
 # Exit Vivado HLS
-#--------------------------------------------------
+#-------------------------------------------------
 exit
 
 

@@ -15,11 +15,11 @@
  */
 
 /*******************************************************************************
- * @file       : udp_app_flash.cpp
- * @brief      : UDP Application Flash (UAF)
+ * @file       : udp_app_flash_top.cpp
+ * @brief      : Top of UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_BringUp / ROLE
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
@@ -32,8 +32,8 @@
  * \{
  *******************************************************************************/
 
-#ifndef _UAF_H_
-#define _UAF_H_
+#ifndef _UAF_TOP_H_
+#define _UAF_TOP_H_
 
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
@@ -68,20 +68,17 @@ enum EchoCtrl {
  *
  *******************************************************************************/
 void udp_app_flash_top (
-
         //------------------------------------------------------
         //-- SHELL / Mmio / Configuration Interfaces
         //------------------------------------------------------
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         //[NOT_USED] CmdBit      piSHL_Mmio_PostPktEn,
         //[NOT_USED] CmdBit      piSHL_Mmio_CaptPktEn,
-
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<AxisRaw>     &siUSIF_Data,
         stream<UdpAppMeta>  &siUSIF_Meta,
-
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------

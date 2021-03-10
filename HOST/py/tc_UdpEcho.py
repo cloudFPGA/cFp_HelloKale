@@ -31,6 +31,7 @@ import datetime
 import errno
 import socket
 import threading
+import time
 
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
@@ -451,6 +452,7 @@ else:
 
 #  STEP-14: Close socket
 # -----------------------
+time.sleep(2)
 udpSock.close()
 
 

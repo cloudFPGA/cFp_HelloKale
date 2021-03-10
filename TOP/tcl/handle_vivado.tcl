@@ -367,7 +367,6 @@ if { ${create} } {
         #set ipDirShell  ${rootDir}/cFDK/SRA/LIB/SHELL/${usedShellType}/ip/
         set ipDirShell  ${ipDir}
         set hlsDirShell ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hls/
-        #OBSOLETE-20180917 set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/${usedShellType}/hls" [ current_project ]
         set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
                                           ${ipDirShell} ${hlsDirShell} ] [current_project]
         update_ip_catalog
@@ -390,8 +389,6 @@ if { ${create} } {
         
         # Add Constraints Files SHELL
         #---------------------------------------------------------------------------
-        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/${usedShellType}/xdc/*.xdc ]
-        
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 
     } else {
@@ -462,7 +459,7 @@ if { ${create} } {
     set ipDirRole  ${usedRoleDir}/ip
     set hlsDirRole ${usedRoleDir}/hls
     set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
-    ${ipDirRole} ${hlsDirRole} ] [current_project]
+                                        ${ipDirRole} ${hlsDirRole} ] [current_project]
 
     # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
     #---------------------------------------------------------------------------
@@ -485,7 +482,7 @@ if { ${create} } {
 
 
 
-  #===============================================================================
+    #===============================================================================
     #
     # STEP-3 : Create and Specify CONSTRAINTS Settings
     #
@@ -587,14 +584,11 @@ if { ${create} } {
     # TODO: add SIM 
     #if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
     #    set_property SOURCE_SET sources_1 [ get_filesets sim_1 ]
-    #    #OBSOLETE-20180705 add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
     #    add_files -fileset sim_1 -norecurse  ${rootDir}/sim
 
     #    # Turn the VHDL-2008 mode on 
     #    #---------------------------------------------------------------------------
     #    set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/*.vhd* ]
-    #    #OBSOLETE-20180705 set_property file_type {VHDL 2008} [ get_files  ${hdlDir}/*.vhd* ]
-
     #    set_property source_mgmt_mode All [ current_project ]
     #    update_compile_order -fileset sim_1
     #}

@@ -19,7 +19,7 @@
  * @brief      : UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_BringUp / ROLE
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
@@ -85,13 +85,14 @@ using namespace std;
  *******************************************************************************/
 void pEchoStoreAndForward(
         stream<UdpAppData>  &siRXp_Data,
-        stream<UdpAppMeta>  &siRXp_Meta,
+        stream<UdpAppMetb>  &siRXp_Meta,
         stream<UdpAppData>  &soTXp_Data,
-        stream<UdpAppMeta>  &soTXp_Meta,
+        stream<UdpAppMetb>  &soTXp_Meta,
         stream<UdpAppDLen>  &soTXp_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ESF_META=0, ESF_STREAM } \
@@ -111,11 +112,13 @@ void pEchoStoreAndForward(
     }
 
     if ( !siRXp_Meta.empty() and !soTXp_Meta.full() ) {
-        UdpAppMeta appMeta = siRXp_Meta.read();
+        UdpAppMetb appMeta = siRXp_Meta.read();
         // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-        soTXp_Meta.write(SocketPair(
-                         SockAddr(appMeta.dst.addr, appMeta.dst.port),
-                         SockAddr(appMeta.src.addr, appMeta.src.port)));
+        //OBSOLETE_20210226 soTXp_Meta.write(SocketPair(
+        //OBSOLETE_20210226                  SockAddr(appMeta.dst.addr, appMeta.dst.port),
+        //OBSOLETE_20210226                  SockAddr(appMeta.src.addr, appMeta.src.port)));
+        soTXp_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, appMeta.udpDstPort,
+                                    appMeta.ip4SrcAddr, appMeta.udpSrcPort));
     }
 }    // End-of: pEchoStoreAndForward()
 
@@ -152,16 +155,17 @@ void pEchoStoreAndForward(
 void pTxPath(
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
-        stream<UdpAppMeta>  &siEPt_Meta,
+        stream<UdpAppMetb>  &siEPt_Meta,
         stream<UdpAppDLen>  &siEPt_DLen,
         stream<UdpAppData>  &siESf_Data,
-        stream<UdpAppMeta>  &siESf_Meta,
+        stream<UdpAppMetb>  &siESf_Meta,
         stream<UdpAppDLen>  &siESf_DLen,
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppMetb>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "TXp");
@@ -178,20 +182,23 @@ void pTxPath(
     static ap_int<17>  txp_lenCnt;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    UdpAppMeta    appMeta;
+    UdpAppMetb    appMeta;
     UdpAppDLen    appDLen;
     UdpAppData    appData;
 
     switch (txp_fsmState) {
     case TXP_IDLE:
-        if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and
-            !siEPt_DLen.empty() and !soUSIF_DLen.full()) {
+        if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and !soUSIF_DLen.full()) {
+            /*!siEPt_DLen.empty() and*/
             appMeta = siEPt_Meta.read();
-            appDLen = siEPt_DLen.read();
+            //BUG_20210227 appDLen = siEPt_DLen.read();
+            appDLen = 0;
             // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-            soUSIF_Meta.write(SocketPair(
-                              SockAddr(appMeta.dst.addr, appMeta.dst.port),
-                              SockAddr(appMeta.src.addr, appMeta.src.port)));
+            //OBSOLETE_20210226 soUSIF_Meta.write(SocketPair(
+            //OBSOLETE_20210226                   SockAddr(appMeta.dst.addr, appMeta.dst.port),
+            //OBSOLETE_20210226                   SockAddr(appMeta.src.addr, appMeta.src.port)));
+            soUSIF_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, appMeta.udpDstPort,
+                                         appMeta.ip4SrcAddr, appMeta.udpSrcPort));
             soUSIF_DLen.write(appDLen);
             txp_fsmState = TXP_DATA_EPT;
         }
@@ -216,7 +223,7 @@ void pTxPath(
         if (!siEPt_Data.empty() and !soUSIF_Data.full()) {
             appData = siEPt_Data.read();
             if (txp_fwdMode == STRM_MODE) {
-                soUSIF_Data.write(appData);
+                //OBSOLETE_20210228 soUSIF_Data.write(appData);
                 txp_lenCnt = txp_lenCnt + appData.getLen();
                 if (appData.getTLast()) {
                     txp_fsmState = TXP_IDLE;
@@ -234,15 +241,16 @@ void pTxPath(
                 else {
                     appData.setTLast(0);
                 }
-                soUSIF_Data.write(appData);
+                //OBSOLETE_20210228 soUSIF_Data.write(appData);
             }
+            soUSIF_Data.write(appData);
         }
         break;
     case TXP_DATA_ESF:
         if (!siESf_Data.empty() and !soUSIF_Data.full()) {
             appData = siESf_Data.read();
             if (txp_fwdMode == STRM_MODE) {
-                soUSIF_Data.write(appData);
+                //OBSOLETE_20210228 soUSIF_Data.write(appData);
                 if (appData.getTLast()) {
                         txp_fsmState = TXP_IDLE;
                 }
@@ -256,8 +264,9 @@ void pTxPath(
                 else {
                     appData.setTLast(0);
                 }
-                soUSIF_Data.write(appData);
+                //OBSOLETE_20210228 soUSIF_Data.write(appData);
             }
+            soUSIF_Data.write(appData);
         }
         break;
     }  // End-of: switch (txp_fsmState) {
@@ -269,7 +278,7 @@ void pTxPath(
         case ECHO_PATH_THRU:
             if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and
                 !siEPt_DLen.empty() and !soUSIF_DLen.full()) {
-                UdpAppMeta appMeta = siEPt_Meta.read();
+                UdpAppMetb appMeta = siEPt_Meta.read();
                 UdpAppDLen appDLen = siEPt_DLen.read();
                 // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
                 soUSIF_Meta.write(SocketPair(
@@ -290,7 +299,7 @@ void pTxPath(
         case ECHO_STORE_FWD:
             if (!siESf_Meta.empty() and !soUSIF_Meta.full() and
                 !siESf_DLen.empty() and !soUSIF_DLen.full()) {
-                UdpAppMeta appMeta = siESf_Meta.read();
+                UdpAppMetb appMeta = siESf_Meta.read();
                 UdpAppDLen appDLen = siESf_DLen.read();
                 soUSIF_Meta.write(appMeta);
                 soUSIF_DLen.write(appDLen);
@@ -403,14 +412,15 @@ void pTxPath(
 void pRxPath(
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
-        stream<UdpAppMeta>   &siUSIF_Meta,
+        stream<UdpAppMetb>   &siUSIF_Meta,
         stream<UdpAppData>   &soEPt_Data,
-        stream<UdpAppMeta>   &soEPt_Meta,
+        stream<UdpAppMetb>   &soEPt_Meta,
         stream<UdpAppDLen>   &soEPt_DLen,
         stream<UdpAppData>   &soESf_Data,
-        stream<UdpAppMeta>   &soESf_Meta)
+        stream<UdpAppMetb>   &soESf_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "RXp");
@@ -422,7 +432,7 @@ void pRxPath(
     #pragma HLS reset variable=rxp_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static UdpAppMeta rxp_appMeta;
+    static UdpAppMetb rxp_appMeta;
     static UdpAppDLen rxp_byteCnt;  // Just for debug
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
@@ -433,26 +443,26 @@ void pRxPath(
         if (!siUSIF_Meta.empty()) {
             siUSIF_Meta.read(rxp_appMeta);
             rxp_byteCnt = 0;
-            switch (rxp_appMeta.dst.port) {
+            switch (rxp_appMeta.udpDstPort) {
             case ECHO_PATH_THRU_PORT:
                 // (DstPort == 8803) Echo this traffic in path-through mode
-                if (DEBUG_LEVEL & TRACE_RXP) { printInfo(myName, "Entering Rx path-through mode (DstPort=%4.4d)\n", rxp_appMeta.dst.port.to_uint()); }
+                if (DEBUG_LEVEL & TRACE_RXP) { printInfo(myName, "Entering Rx path-through mode (DstPort=%4.4d)\n", rxp_appMeta.udpDstPort.to_uint()); }
                 rxp_fsmState  = RXP_META_EPT;
                 break;
             default:
                 // (DstPort != 8803) Echo this traffic in store-and-forward mode
-                if (DEBUG_LEVEL & TRACE_RXP) { printInfo(myName, "Entering Rx store-and-forward mode (DstPort=%4.4d)\n", rxp_appMeta.dst.port.to_uint()); }
+                if (DEBUG_LEVEL & TRACE_RXP) { printInfo(myName, "Entering Rx store-and-forward mode (DstPort=%4.4d)\n", rxp_appMeta.udpDstPort.to_uint()); }
                 rxp_fsmState  = RXP_META_ESF;
                 break;
             }
         }
         break;
     case RXP_META_EPT:
-        if (!soEPt_Meta.full() and !soEPt_DLen.full()) {
+        if (!soEPt_Meta.full()) { //BUG_20210227 and !soEPt_DLen.full()) {
             //-- Forward incoming metadata to pEchoPathThrough while requesting
             //-- [TXp] to operate in STREAMING-MODE by setting 'DLen' to zero.
             soEPt_Meta.write(rxp_appMeta);
-            soEPt_DLen.write(0);
+            //BUG_20210227 soEPt_DLen.write(0);
             rxp_fsmState = RXP_DATA_EPT;
         }
         break;
@@ -484,6 +494,7 @@ void pRxPath(
                 rxp_fsmState = RXP_IDLE;
             }
         }
+        break;
     }  // End-of: switch (rxp_fsmState) {
 
     /*** UNUSED_VERSION_BASED_ON_MMIO_ECHO_CTRL_BITS *****************
@@ -566,6 +577,13 @@ void pRxPath(
  * @param[out] soUSIF_Meta          UDP metadata to [USIF].
  * @param[out] soUSIF_DLen          UDP data len to [USIF].
  *
+ * @info This core is designed with non-blocking read and write streams in mind.
+ *   FYI, this is the normal way of operation for an internal stream and for an
+ *   interface using the 'ap_fifo' protocol.
+ *
+ * @warning This core will not work properly if operated with a handshake
+ *   interface(ap_hs) or an AXI-Stream interface (axis) because these two
+ *   interfaces do not support non-blocking accesses.
  *******************************************************************************/
 void udp_app_flash (
 
@@ -580,17 +598,18 @@ void udp_app_flash (
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppMetb>  &siUSIF_Meta,
 
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppMetb>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+    #pragma HLS INLINE
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -599,20 +618,20 @@ void udp_app_flash (
     //-- Rx Path (RXp) ---------------------------------------------------------
     static stream<UdpAppData>     ssRXpToTXp_Data    ("ssRXpToTXp_Data");
     #pragma HLS STREAM   variable=ssRXpToTXp_Data    depth=2048
-    static stream<UdpAppMeta>     ssRXpToTXp_Meta    ("ssRXpToTXp_Meta");
+    static stream<UdpAppMetb>     ssRXpToTXp_Meta    ("ssRXpToTXp_Meta");
     #pragma HLS STREAM   variable=ssRXpToTXp_Meta    depth=64
     static stream<UdpAppDLen>     ssRXpToTXp_DLen    ("ssRXpToTXp_DLen");
     #pragma HLS STREAM   variable=ssRXpToTXp_DLen    depth=64
 
     static stream<UdpAppData>     ssRXpToESf_Data    ("ssRXpToESf_Data");
     #pragma HLS STREAM   variable=ssRXpToESf_Data    depth=1024
-    static stream<UdpAppMeta>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
+    static stream<UdpAppMetb>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
     #pragma HLS STREAM   variable=ssRXpToESf_Meta    depth=32
 
     //-- Echo Store and Forward (ESf) ------------------------------------------
     static stream<UdpAppData>     ssESfToTXp_Data    ("ssESfToTXp_Data");
     #pragma HLS STREAM   variable=ssESfToTXp_Data    depth=1024
-    static stream<UdpAppMeta>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
+    static stream<UdpAppMetb>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
     #pragma HLS STREAM   variable=ssESfToTXp_Meta    depth=32
     static stream<UdpAppDLen>     ssESfToTXp_DLen    ("ssESfToTXp_DLen");
     #pragma HLS STREAM   variable=ssESfToTXp_DLen    depth=32
