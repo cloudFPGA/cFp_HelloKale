@@ -39,7 +39,8 @@
 //-------------------------------------------------------------------
 //-- CONSTANTS FOR THE TCp SHELL INTERFACE
 //-------------------------------------------------------------------
-const int cIBuffSize   = 256;  // Size of the input read buffer (2KB and/or up to 256 segments of 8B)
+const int cIBuffChunks = 256;  // Size of the input read buffer (in chunks)
+const int cIBuffBytes  = cIBuffChunks * (ARW/8);
 const int cMaxSessions = TOE_MAX_SESSIONS;
 
 //-------------------------------------------------------------------
