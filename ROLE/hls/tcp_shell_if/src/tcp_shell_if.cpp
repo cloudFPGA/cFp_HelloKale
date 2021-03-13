@@ -67,7 +67,7 @@ using namespace std;
 #define TRACE_LSN 1 <<  5
 #define TRACE_CON 1 <<  6
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_RRH)
 
 
 /*******************************************************************************
@@ -416,6 +416,10 @@ void pInputBufferOccupancy(
  *   bytes for a given session.
  *  After that, the session Id of the incoming notification is forwarded to the
  *   RxSchedulerRequest (Rsr).
+ *
+ * @warning
+ *  The incoming notification is only added to the interrupt table when the TCP
+ *   segment length is greater than 0.
  *******************************************************************************/
 void pRxPostNotification(
         stream<TcpAppNotif>     &siSHL_Notif,
@@ -428,7 +432,7 @@ void pRxPostNotification(
     #pragma HLS PIPELINE II=1
 
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
-    static enum PostFsmStates { RPN_IDLE, RPN_INC, RPN_PUT } \
+    static enum PostFsmStates { RPN_IDLE, RPN_INC, RPN_POST } \
                                   rpn_fsmState=RPN_IDLE;
     #pragma HLS reset    variable=rpn_fsmState
 
@@ -437,32 +441,34 @@ void pRxPostNotification(
     static TcpDatLen       rpn_newPendingByteCnt;
 
     //-- PROCESS FUNCTION ------------------------------------------------------
-    InterruptEntry currEntry;
 
     switch (rpn_fsmState) {
-        case RPN_IDLE:
-            if (!siSHL_Notif.empty() and soRit_InterruptQry.full()) {
-                rpn_notif = siSHL_Notif.read();
-                soRit_InterruptQry.write(rpn_notif.sessionID);
+    case RPN_IDLE:
+        if (!siSHL_Notif.empty() and !soRit_InterruptQry.full()) {
+            rpn_notif = siSHL_Notif.read();
+            if (rpn_notif.tcpDatLen != 0) {
+                InterruptQuery getQuery(rpn_notif.sessionID, GET);
+                soRit_InterruptQry.write(getQuery);
                 rpn_fsmState = RPN_INC;
             }
-            break;
-        case RPN_INC:
-            if (!siRit_InterruptRep.empty()) {
-                currEntry = siRit_InterruptRep.read();
-                rpn_newPendingByteCnt = currEntry.byteCnt + rpn_notif.tcpDatLen;
-                rpn_fsmState = RPN_PUT;
-            }
-            break;
-        case RPN_PUT:
-            if (!soRit_InterruptQry.full() and !soRst_SessId.full()) {
-            	InterruptQuery newQuery(rpn_notif.sessionID,
-            			InterruptEntry(rpn_newPendingByteCnt, rpn_notif.tcpDstPort));
-            	soRit_InterruptQry.write(newQuery);
-            	soRst_SessId.write(rpn_notif.sessionID);
-            	rpn_fsmState = RPN_IDLE;
-            	break;
-            }
+        }
+        break;
+    case RPN_INC:
+        if (!siRit_InterruptRep.empty()) {
+            InterruptEntry currEntry = siRit_InterruptRep.read();
+            rpn_newPendingByteCnt = currEntry.byteCnt + rpn_notif.tcpDatLen;
+            rpn_fsmState = RPN_POST;
+        }
+        break;
+    case RPN_POST:
+        if (!soRit_InterruptQry.full() and !soRst_SessId.full()) {
+            InterruptEntry currEntry(rpn_newPendingByteCnt, rpn_notif.tcpDstPort);
+            InterruptQuery postQuery(rpn_notif.sessionID, currEntry);
+            soRit_InterruptQry.write(postQuery);
+            soRst_SessId.write(rpn_notif.sessionID);
+            rpn_fsmState = RPN_IDLE;
+        }
+        break;
     }
 }
 
@@ -511,7 +517,7 @@ void pRxInterruptTable(
                                       RIT_SCHED_REP, RIT_SCHED_UPDATE } rit_fsmState=RIT_IDLE;
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    InterruptEntry  rit_intEntry;
+    static InterruptEntry  rit_intEntry;
 
     //-- PROCESS FUNCTION ------------------------------------------------------
     if (!rit_isInit) {
@@ -542,7 +548,7 @@ void pRxInterruptTable(
                 else if (!siRsr_InterruptQry.empty()) {
                     InterruptQuery schedQry = siRsr_InterruptQry.read();
                     if (schedQry.action == GET) {
-                    	rit_intEntry = INTERRUPT_TABLE[schedQry.sessId];
+                        rit_intEntry = INTERRUPT_TABLE[schedQry.sessId];
                         rit_fsmState = RIT_SCHED_REP;
                     }
                     else {
@@ -551,17 +557,17 @@ void pRxInterruptTable(
                 }
                 break;
             case RIT_NOTIF_REP:
-            	if (!soRpn_InterruptRep.full()) {
-            		soRpn_InterruptRep.write(rit_intEntry);
-            		rit_fsmState = RIT_NOTIF_UPDATE;
-            	}
-            	break;
+                if (!soRpn_InterruptRep.full()) {
+                    soRpn_InterruptRep.write(rit_intEntry);
+                    rit_fsmState = RIT_NOTIF_UPDATE;
+                }
+                break;
             case RIT_SCHED_REP:
-            	if (!soRsr_InterruptRep.full()) {
-            		soRsr_InterruptRep.write(rit_intEntry);
-            		rit_fsmState = RIT_SCHED_UPDATE;
-            	}
-            	break;
+                if (!soRsr_InterruptRep.full()) {
+                    soRsr_InterruptRep.write(rit_intEntry);
+                    rit_fsmState = RIT_SCHED_UPDATE;
+                }
+                break;
             case RIT_NOTIF_UPDATE:
                 if (!siRpn_InterruptQry.empty()) {
                     InterruptQuery notifQry = siRpn_InterruptQry.read();
@@ -623,6 +629,8 @@ void pRsr_InterruptHandler(
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
 
+    const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr/Handl");
+
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
     static ap_uint<cMaxSessions>    rsrih_Vec;
     #pragma HLS reset      variable=rsrih_Vec
@@ -637,6 +645,9 @@ void pRsr_InterruptHandler(
     if (!siScheduler_Done.empty()) {
         SessionId sessId = siScheduler_Done.read();
         clrVec[sessId] = 1;
+        if (DEBUG_LEVEL & TRACE_RRH) {
+            printInfo(myName, "Done with all interrupts of session #%d.\n", sessId.to_uint());
+        }
     }
     rsrih_Vec = (rsrih_Vec xor clrVec) | setVec;
     rsr_pendingInterrupts = rsrih_Vec;
@@ -668,7 +679,7 @@ void pRsr_Scheduler(
         stream<InterruptEntry>      &siRit_InterruptRep,
         stream<TcpAppRdReq>         &soSHL_DReq,
         stream<ForwardCmd>          &soRDp_FwdCmd,
-		stream<SessionId>           &soHandler_Done)
+        stream<SessionId>           &soHandler_Done)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
@@ -685,9 +696,9 @@ void pRsr_Scheduler(
     static InterruptEntry  rsr_intEntry;
     static TcpDatLen       rsr_datLenReq;
 
-    TcpDatLen newByteCnt;
-    SessionId    nextSess=0;
-    ValBool      nextSessValid=false;
+    TcpDatLen                            newByteCnt;
+    ap_uint<log2Ceil<cMaxSessions>::val> nextSess=0;
+    ValBool                              nextSessValid=false;
 
     switch(rsr_fsmState) {
         //-- Search for next active request in round-robin mode
@@ -727,6 +738,10 @@ void pRsr_Scheduler(
             }
             if (nextSessValid) {
                 rsr_fsmState = RSR_GET;
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "Round-Robin arbiter has scheduled session #%d.\n",
+                              rsr_currSess.to_uint());
+                }
             }
             break;
         case RSR_GET:
@@ -734,19 +749,26 @@ void pRsr_Scheduler(
             rsr_fsmState = RSR_DEC;
             break;
         case RSR_DEC:
-            // Decrement counter and put it back in the table
-            rsr_intEntry = siRit_InterruptRep.read();
-            // Request to TOE = max(rit_schedEntry.byteCnt, rit_freeSSpace)
-            rsr_datLenReq = (rsr_freeSpace < rsr_intEntry.byteCnt) ? (rsr_freeSpace) : (rsr_intEntry.byteCnt);
-            rsr_fsmState = RSR_PUT;
+            if (!siRit_InterruptRep.empty()) {
+                // Decrement counter and put it back in the table
+                rsr_intEntry = siRit_InterruptRep.read();
+                // Request to TOE = max(rit_schedEntry.byteCnt, rit_freeSSpace)
+                rsr_datLenReq = (rsr_freeSpace < rsr_intEntry.byteCnt) ? (rsr_freeSpace) : (rsr_intEntry.byteCnt);
+                rsr_fsmState = RSR_PUT;
+            }
             break;
         case RSR_PUT:
-            newByteCnt = rsr_intEntry.byteCnt - rsr_datLenReq;
-            soRit_InterruptQry.write(InterruptQuery(rsr_currSess, newByteCnt));
-            if (newByteCnt == 0) {
-                soHandler_Done.write(rsr_currSess);
+            if (!soRit_InterruptQry.full()) {
+                newByteCnt = rsr_intEntry.byteCnt - rsr_datLenReq;
+                soRit_InterruptQry.write(InterruptQuery(rsr_currSess, newByteCnt));
+                if (newByteCnt == 0) {
+                    soHandler_Done.write(rsr_currSess);
+                    if (DEBUG_LEVEL & TRACE_RRH) {
+                        printInfo(myName, "Done with all bytes of session #%d.\n", rsr_currSess.to_uint());
+                    }
+                }
+                rsr_fsmState = RSR_FWD;
             }
-            rsr_fsmState = RSR_FWD;
             break;
         case RSR_FWD:
             if (!soSHL_DReq.full() and !soRDp_FwdCmd.full()) {
@@ -821,22 +843,22 @@ void pRxSchedulerRequest(
     //-- PROCESS FUNCTIONS -----------------------------------------------------
 
     pRsr_GetFreeSpace(
-    		siIbo_Space,
-			rsr_freeSpace);
+            siIbo_Space,
+            rsr_freeSpace);
 
     pRsr_InterruptHandler(
-    		siRpn_SessId,
-			rsr_pendingInterrupts,
-			ssSchedulerToHandler_Done);
+            siRpn_SessId,
+            rsr_pendingInterrupts,
+            ssSchedulerToHandler_Done);
 
     pRsr_Scheduler(
             rsr_pendingInterrupts,
-			rsr_freeSpace,
-			soRit_InterruptQry,
+            rsr_freeSpace,
+            soRit_InterruptQry,
             siRit_InterruptRep,
-	        soSHL_DReq,
-	        soRDp_FwdCmd,
-			ssSchedulerToHandler_Done);
+            soSHL_DReq,
+            soRDp_FwdCmd,
+            ssSchedulerToHandler_Done);
 
     /*** OBSOLETE ***
     switch(rsr_fsmState) {
@@ -1047,21 +1069,21 @@ void pInputReadBuffer(
 
     switch (irb_fsmState ) {
     case IRB_IDLE:
-    	if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
-    		soRDp_Meta.write(siSHL_Meta.read());
-    		irb_fsmState = IRB_STREAM;
-    	}
-    	break;
+        if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
+            soRDp_Meta.write(siSHL_Meta.read());
+            irb_fsmState = IRB_STREAM;
+        }
+        break;
     case IRB_STREAM:
-    	if (!siSHL_Data.empty() and !soRDp_Data.full() and !soRRh_EnquSig.full()) {
-    		TcpAppData currChunk = siSHL_Data.read();
-    		soRDp_Data.write(currChunk);
-    		soRRh_EnquSig.write(1);
-    		if (currChunk.getTLast()) {
-    			irb_fsmState = IRB_IDLE;
-    		}
-    	}
-    	break;
+        if (!siSHL_Data.empty() and !soRDp_Data.full() and !soRRh_EnquSig.full()) {
+            TcpAppData currChunk = siSHL_Data.read();
+            soRDp_Data.write(currChunk);
+            soRRh_EnquSig.write(1);
+            if (currChunk.getTLast()) {
+                irb_fsmState = IRB_IDLE;
+            }
+        }
+        break;
     }
 }
 
@@ -1489,9 +1511,9 @@ void tcp_shell_if(
     static stream<SigBit>          ssIRbToRRh_Enqueue    ("ssIRbToRRh_Enqueue");
     #pragma HLS stream    variable=ssIRbToRRh_Enqueue    depth=2
     static stream<TcpAppData>      ssIRbToRDp_Data       ("ssIRbToRDp_Data");
-    #pragma HLS stream    variable=ssIRbToRDp_Data       depth=cIBuffSize
+    #pragma HLS stream    variable=ssIRbToRDp_Data       depth=cIBuffChunks
     static stream<TcpAppMeta>      ssIRbToRDp_Meta       ("ssIRbToRDp_Meta");
-    #pragma HLS stream    variable=ssIRbToRDp_Meta       depth=cIBuffSize
+    #pragma HLS stream    variable=ssIRbToRDp_Meta       depth=cIBuffChunks
 
     //-- Read Path (RDp)
     static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpbToRRh_Dequeue");

@@ -32,6 +32,7 @@
 
 #include <hls_stream.h>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <set>
 

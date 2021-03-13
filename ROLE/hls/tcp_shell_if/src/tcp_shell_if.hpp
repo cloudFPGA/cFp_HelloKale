@@ -136,11 +136,11 @@ class InterruptQuery {
     InterruptEntry  entry;
     QueryCmd        action;
     InterruptQuery () {}
-    InterruptQuery(SessionId _sessId) : // GET Query
+    InterruptQuery(SessionId _sessId, QueryCmd _action=GET) : // GET Query
         sessId(_sessId), action(GET) {}
     InterruptQuery(SessionId _sessId, TcpDatLen _byteCnt) : // PUT Query: 'byteCnt'
         sessId(_sessId), entry(_byteCnt, 0), action(PUT) {}
-    InterruptQuery(SessionId _sessId, InterruptEntry _entry) : // POST Query
+    InterruptQuery(SessionId _sessId, InterruptEntry _entry, QueryCmd _action=POST) : // POST Query
         sessId(_sessId), entry(_entry), action(POST) {}
 };
 

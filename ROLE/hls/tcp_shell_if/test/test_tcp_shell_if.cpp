@@ -47,7 +47,7 @@ using namespace std;
 #define TRACE_TAF     1 <<  6
 #define TRACE_MMIO    1 <<  7
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_OFF | TRACE_TOE_RXP)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -325,28 +325,35 @@ void pTOE(
                 notifByteCnt   = echoDatLen;
                 toe_sessId     = 1;
                 gMaxSimCycles += (echoDatLen / 8);
-                toe_waitEndOfTxTest = (echoDatLen / 8) + 25;
+                toe_waitEndOfTxTest = 0;
                 break;
-            case 2: //-- Request TSIF to open an active port (with byteCnt==0)
+            case 2: //-- Request TSIF to open an active port
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
-                notifByteCnt   = 0;
+                notifByteCnt   = 8;
                 toe_sessId     = 2;
                 gMaxSimCycles += (tcpDataLen / 8);
                 toe_waitEndOfTxTest = (tcpDataLen / 8) + 25;
                 break;
             case 3: //-- Set TSIF in transmit mode and execute test
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
-                notifByteCnt   = tcpDataLen;
+                notifByteCnt   = 8;
                 toe_sessId     = 3;
                 gMaxSimCycles += (tcpDataLen / 8);
                 toe_waitEndOfTxTest = (tcpDataLen / 8) + 25;
                 break;
+            case 4:
+                toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
+                notifByteCnt   = echoDatLen;
+                toe_sessId     = 4;
+                gMaxSimCycles += (echoDatLen / 8);
+                toe_waitEndOfTxTest = 0;
+                break;
             default:
                 toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
                 notifByteCnt   = echoDatLen;
-                toe_sessId     = DEFAULT_SESSION_ID + toe_sessCnt;
+                toe_sessId     = 0;
                 gMaxSimCycles += (echoDatLen / 8);
-                toe_waitEndOfTxTest = (echoDatLen / 8) + 25;
+                toe_waitEndOfTxTest = 0;
                 break;
             }
             toe_hostIp4Addr    = DEFAULT_HOST_IP4_ADDR;
@@ -358,8 +365,8 @@ void pTOE(
                 soTSIF_Notif.write(TcpAppNotif(toe_sessId,  notifByteCnt, toe_hostIp4Addr,
                                                toe_hostTcpSrcPort, toe_hostTcpDstPort));
                 if (DEBUG_LEVEL & TRACE_TOE_RXP) {
-                    printInfo(myNtfName, "Sending notification #%d to [TSIF] (sessId=%d, datLen=%d, dstPort=%d).\n",
-                              toe_sessId.to_int(), toe_sessId.to_int(), notifByteCnt.to_int(), toe_hostTcpDstPort.to_uint());
+                    printInfo(myNtfName, "Sending Notif to [TSIF] (sessId=%2d, datLen=%4d, dstPort=%4d).\n",
+                              toe_sessId.to_int(), notifByteCnt.to_int(), toe_hostTcpDstPort.to_uint());
                 }
                 toe_segCnt += 1;
                 toe_waitEndOfPause = notifByteCnt;  // [TODO - Randomize]
@@ -368,7 +375,11 @@ void pTOE(
             break;
         case NTF_PAUSE: // PAUSE BEFORE SENDING NEXT NOTIFICATION TO [TSIF]
             if (toe_waitEndOfPause) {
-                toe_waitEndOfPause--;
+                if (notifByteCnt < 128) {  // Enable/Disable the PAUSE mechanism
+                    toe_waitEndOfPause--;
+                } else {
+                    toe_waitEndOfPause = 0;
+                }
             }
             else {
                 if (toe_segCnt == cNrSegToSend) {
@@ -455,54 +466,63 @@ void pTOE(
         case DRQ_SEND_8801: // FORWARD TX SOCKET ADDRESS AND TX DATA LENGTH REQUEST TO [TSIF]
             if (!soTSIF_Data.full()) {
                 TcpDatLen *txByteCnt = &toe_openedSess[toe_appRdReq.sessionID].byteCnt;
-                if (*txByteCnt == 0) {
+                if (toe_appRdReq.sessionID == 2) {
                     printInfo(myDrqName, "Requesting TSIF to connect to socket: \n");
                     printSockAddr(myDrqName, testSock);
+                    appData.setTData(0);
+                    appData.setLE_TData(byteSwap32(testSock.addr), 31,  0);
+                    appData.setLE_TData(byteSwap16(testSock.port), 47, 32);
+                    appData.setLE_TData(byteSwap16(0),             63, 48);
+                    appData.setLE_TKeep(0xFF);   // Always
+                    appData.setLE_TLast(TLAST);  // Always
+                    soTSIF_Data.write(appData);
                 }
                 else {
                     printInfo(myDrqName, "Requesting TSIF to generate a TCP payload of length=%d and to send it to socket: \n",
                               (*txByteCnt).to_uint());
                     printSockAddr(myDrqName, testSock);
-                }
-                appData.setTData(0);
-                appData.setLE_TData(byteSwap32(testSock.addr), 31,  0);
-                appData.setLE_TData(byteSwap16(testSock.port), 47, 32);
-                appData.setLE_TData(byteSwap16(*txByteCnt),    63, 48);
-                appData.setLE_TKeep(0xFF);   // Always
-                appData.setLE_TLast(TLAST);  // Always
-                soTSIF_Data.write(appData);
-                if (DEBUG_LEVEL & TRACE_TOE) {
-                    printAxisRaw(myDrqName, "Sending Tx data length request to [TSIF]: ", appData);
-                }
-                bool firstChunk=true;
-                while (*txByteCnt) {
-                    TcpAppData goldChunk(0,0,0);
-                    if (firstChunk) {
-                        for (int i=0; i<8; i++) {
-                            if (*txByteCnt) {
-                                unsigned char byte = (GEN_CHK0 >> ((7-i)*8)) & 0xFF;
-                                goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
-                                goldChunk.setLE_TKeep(1, i, i);
-                                (*txByteCnt)--;
-                            }
-                        }
-                        firstChunk = !firstChunk;
-                    }
-                    else {  // Second Chunk
-                        for (int i=0; i<8; i++) {
-                            if (*txByteCnt) {
-                                unsigned char byte = (GEN_CHK1 >> ((7-i)*8)) & 0xFF;
-                                goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
-                                goldChunk.setLE_TKeep(1, i, i);
-                                (*txByteCnt)--;
-                            }
-                        }
-                        firstChunk = !firstChunk;
-                    }
-                    if (*txByteCnt == 0) {
-                        goldChunk.setLE_TLast(TLAST);
-                    }
-                    int bytes = writeAxisRawToFile(goldChunk, ofTOE_Gold);
+                    appData.setTData(0);
+                    appData.setLE_TData(byteSwap32(testSock.addr), 31,  0);
+                    appData.setLE_TData(byteSwap16(testSock.port), 47, 32);
+                    appData.setLE_TData(byteSwap16(*txByteCnt),    63, 48);
+                    appData.setLE_TKeep(0xFF);   // Always
+                    appData.setLE_TLast(TLAST);  // Always
+                    soTSIF_Data.write(appData);
+
+					if (DEBUG_LEVEL & TRACE_TOE) {
+						printAxisRaw(myDrqName, "Sending Tx data length request to [TSIF]: ", appData);
+					}
+					//-- Generate content of the golden file
+					bool firstChunk=true;
+					while (*txByteCnt) {
+						TcpAppData goldChunk(0,0,0);
+						if (firstChunk) {
+							for (int i=0; i<8; i++) {
+								if (*txByteCnt) {
+									unsigned char byte = (GEN_CHK0 >> ((7-i)*8)) & 0xFF;
+									goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
+									goldChunk.setLE_TKeep(1, i, i);
+									(*txByteCnt)--;
+								}
+							}
+							firstChunk = !firstChunk;
+						}
+						else {  // Second Chunk
+							for (int i=0; i<8; i++) {
+								if (*txByteCnt) {
+									unsigned char byte = (GEN_CHK1 >> ((7-i)*8)) & 0xFF;
+									goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
+									goldChunk.setLE_TKeep(1, i, i);
+									(*txByteCnt)--;
+								}
+							}
+							firstChunk = !firstChunk;
+						}
+						if (*txByteCnt == 0) {
+							goldChunk.setLE_TLast(TLAST);
+						}
+						int bytes = writeAxisRawToFile(goldChunk, ofTOE_Gold);
+					}
                 }
                 toe_drqState = DRQ_WAIT_DREQ;
             }
@@ -828,14 +848,6 @@ int main(int argc, char *argv[]) {
 
     } while ((gSimCycCnt < gMaxSimCycles) and (!gFatalError) and (nrErr < 10));
 
-    //---------------------------------
-    //-- CLOSING OPEN FILES
-    //---------------------------------
-    ofTAF_Data.close();
-    ofTAF_Gold.close();
-    ofTOE_Data.close();
-    ofTOE_Gold.close();
-
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_tcp_shell_if' ENDS HERE                                ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
@@ -844,16 +856,28 @@ int main(int argc, char *argv[]) {
     //---------------------------------------------------------------
     //-- COMPARE RESULT DATA FILE WITH GOLDEN FILE
     //---------------------------------------------------------------
-    int res = system(("diff --brief -w " + std::string(ofTAF_DataName) + " " + std::string(ofTAF_GoldName) + " ").c_str());
-    if (res != 0) {
-    printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAF_DataName, ofTAF_GoldName);
+    if (ofTAF_Data.tellp() != 0) {
+        int res = system(("diff --brief -w " + std::string(ofTAF_DataName) + " " + std::string(ofTAF_GoldName) + " ").c_str());
+        if (res != 0) {
+            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAF_DataName, ofTAF_GoldName);
+            nrErr++;
+        }
+    }
+    else {
+        printError(THIS_NAME, "File \"%s\" is empty.\n", ofTAF_DataName);
         nrErr++;
     }
-    res = system(("diff --brief -w " + std::string(ofTOE_DataName) + " " + std::string(ofTOE_GoldName) + " ").c_str());
-    if (res != 0) {
-    printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTOE_DataName, ofTOE_GoldName);
-        nrErr++;
+    if (ofTOE_Data.tellp() != 0) {
+        int res = system(("diff --brief -w " + std::string(ofTOE_DataName) + " " + std::string(ofTOE_GoldName) + " ").c_str());
+        if (res != 0) {
+            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTOE_DataName, ofTOE_GoldName);
+            nrErr++;
+        }
     }
+    else {
+         printError(THIS_NAME, "File \"%s\" is empty.\n", ofTOE_DataName);
+         nrErr++;
+     }
 
     //---------------------------------------------------------------
     //-- PRINT TESTBENCH STATUS
@@ -876,8 +900,15 @@ int main(int argc, char *argv[]) {
          printInfo(THIS_NAME, "#############################################################\n");
      }
 
-    return(nrErr);
+    //---------------------------------
+    //-- CLOSING OPEN FILES
+    //---------------------------------
+    ofTAF_Data.close();
+    ofTAF_Gold.close();
+    ofTOE_Data.close();
+    ofTOE_Gold.close();
 
+    return(nrErr);
 }
 
 /*! \} */
