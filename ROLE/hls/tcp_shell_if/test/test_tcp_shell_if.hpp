@@ -52,6 +52,8 @@ const int cGraceTime          = 2500;
 const int cNrSegToSend  = 5;
 const int cNrSessToSend = 2;
 
+const int cMinWAIT = cMaxSessions;  // To avoid that TSIF accumulates the byte counts of the Notifs
+
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //--  These variables might be updated/overwritten by the
