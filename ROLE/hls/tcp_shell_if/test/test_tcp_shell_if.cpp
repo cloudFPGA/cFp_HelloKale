@@ -171,7 +171,7 @@ void pTOE(
         ofstream              &ofTOE_Data,
         TcpDatLen              echoDatLen,
         SockAddr               testSock,
-        int                    tcpDataLen,
+        TcpDatLen              testDatLen,
         //-- MMIO / Ready Signal
         StsBit                *poMMIO_Ready,
         //-- TSIF / Tx Data Interfaces
@@ -331,15 +331,15 @@ void pTOE(
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
                 notifByteCnt   = 8;
                 toe_sessId     = 2;
-                gMaxSimCycles += (tcpDataLen / 8);
-                toe_waitEndOfTxTest = (tcpDataLen / 8) + 25;
+                gMaxSimCycles += (8 / 8);
+                toe_waitEndOfTxTest = (8 / 8) + 25;
                 break;
             case 3: //-- Set TSIF in transmit mode and execute test
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
-                notifByteCnt   = 8;
+                notifByteCnt   = testDatLen;
                 toe_sessId     = 3;
-                gMaxSimCycles += (tcpDataLen / 8);
-                toe_waitEndOfTxTest = (tcpDataLen / 8) + 25;
+                gMaxSimCycles += (testDatLen / 8);
+                toe_waitEndOfTxTest = (testDatLen / 8) + 25;
                 break;
             case 4:
                 toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
@@ -489,40 +489,40 @@ void pTOE(
                     appData.setLE_TLast(TLAST);  // Always
                     soTSIF_Data.write(appData);
 
-					if (DEBUG_LEVEL & TRACE_TOE) {
-						printAxisRaw(myDrqName, "Sending Tx data length request to [TSIF]: ", appData);
-					}
-					//-- Generate content of the golden file
-					bool firstChunk=true;
-					while (*txByteCnt) {
-						TcpAppData goldChunk(0,0,0);
-						if (firstChunk) {
-							for (int i=0; i<8; i++) {
-								if (*txByteCnt) {
-									unsigned char byte = (GEN_CHK0 >> ((7-i)*8)) & 0xFF;
-									goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
-									goldChunk.setLE_TKeep(1, i, i);
-									(*txByteCnt)--;
-								}
-							}
-							firstChunk = !firstChunk;
-						}
-						else {  // Second Chunk
-							for (int i=0; i<8; i++) {
-								if (*txByteCnt) {
-									unsigned char byte = (GEN_CHK1 >> ((7-i)*8)) & 0xFF;
-									goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
-									goldChunk.setLE_TKeep(1, i, i);
-									(*txByteCnt)--;
-								}
-							}
-							firstChunk = !firstChunk;
-						}
-						if (*txByteCnt == 0) {
-							goldChunk.setLE_TLast(TLAST);
-						}
-						int bytes = writeAxisRawToFile(goldChunk, ofTOE_Gold);
-					}
+                    if (DEBUG_LEVEL & TRACE_TOE) {
+                        printAxisRaw(myDrqName, "Sending Tx data length request to [TSIF]: ", appData);
+                    }
+                    //-- Generate content of the golden file
+                    bool firstChunk=true;
+                    while (*txByteCnt) {
+                        TcpAppData goldChunk(0,0,0);
+                        if (firstChunk) {
+                            for (int i=0; i<8; i++) {
+                                if (*txByteCnt) {
+                                    unsigned char byte = (GEN_CHK0 >> ((7-i)*8)) & 0xFF;
+                                    goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
+                                    goldChunk.setLE_TKeep(1, i, i);
+                                    (*txByteCnt)--;
+                                }
+                            }
+                            firstChunk = !firstChunk;
+                        }
+                        else {  // Second Chunk
+                            for (int i=0; i<8; i++) {
+                                if (*txByteCnt) {
+                                    unsigned char byte = (GEN_CHK1 >> ((7-i)*8)) & 0xFF;
+                                    goldChunk.setLE_TData(byte, (i*8)+7, (i*8)+0);
+                                    goldChunk.setLE_TKeep(1, i, i);
+                                    (*txByteCnt)--;
+                                }
+                            }
+                            firstChunk = !firstChunk;
+                        }
+                        if (*txByteCnt == 0) {
+                            goldChunk.setLE_TLast(TLAST);
+                        }
+                        int bytes = writeAxisRawToFile(goldChunk, ofTOE_Gold);
+                    }
                 }
                 toe_drqState = DRQ_WAIT_DREQ;
             }
