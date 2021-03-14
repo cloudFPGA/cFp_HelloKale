@@ -605,15 +605,22 @@ void pRxInterruptTable(
 /*******************************************************************************
  * @brief Always read the incoming buffer space occupancy w/ II=1.
  *******************************************************************************/
-void pRsr_GetFreeSpace(
+void pRsr_Getter(
         stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &siIbo_Space,
-        TcpDatLen                                        &rsr_freeSpace)
+        stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &soSched_FreeSpace)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
 
+    //-- STATIC VARIABLES W/ RESET ---------------------------------------------
+    static ap_uint<log2Ceil<cIBuffBytes>::val + 1>  rsr_freeSpace;
+	#pragma HLS reset                      variable=rsr_freeSpace
+
     if (!siIbo_Space.empty()) {
         rsr_freeSpace = siIbo_Space.read();
+    }
+    if (!soSched_FreeSpace.full()) {
+        soSched_FreeSpace.write(rsr_freeSpace);
     }
 }
 
@@ -621,48 +628,82 @@ void pRsr_GetFreeSpace(
  * @brief Always read the incoming session Id (w/ II=1) and update the vector
  *  of pending interrupts.
  *******************************************************************************/
-void pRsr_InterruptHandler(
-        stream<SessionId>       &siRpn_SessId,
-        ap_uint<cMaxSessions>   &rsr_pendingInterrupts,
-        stream<SessionId>       &siScheduler_Done)
+void pRsr_Handler(
+        stream<SessionId>              &siRpn_SessId,
+        stream<ReqBit>                 &siScheduler_SessIdReq,
+        stream<SessionId>              &soScheduler_SessIdRep,
+        stream<SessionId>              &siScheduler_ClrInt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
+    #pragma HLS PIPELINE II=1
 
     const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr/Handl");
 
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
-    static ap_uint<cMaxSessions>    rsrih_Vec;
-    #pragma HLS reset      variable=rsrih_Vec
+    static ap_uint<cMaxSessions>    rsr_pendingInterrupts=0;
+    #pragma HLS reset      variable=rsr_pendingInterrupts
+    static SessionId                rsr_currSess=0;
+    #pragma HLS reset      variable=rsr_currSess
+    //OBSOLETE static ValBool                  rsr_currSessValid=true;
+    //OBSOLETE #pragma HLS reset      variable=rsr_currSessValid
 
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    ap_uint<log2Ceil<cMaxSessions>::val> nextSess=0;
     ap_uint<cMaxSessions>   setVec=0;
     ap_uint<cMaxSessions>   clrVec=0;
 
+    //-- Set interrupt ----------------
     if (!siRpn_SessId.empty()) {
         SessionId sessId = siRpn_SessId.read();
         setVec[sessId] = 1;
-    }
-    if (!siScheduler_Done.empty()) {
-        SessionId sessId = siScheduler_Done.read();
-        clrVec[sessId] = 1;
         if (DEBUG_LEVEL & TRACE_RRH) {
-            printInfo(myName, "Done with all interrupts of session #%d.\n", sessId.to_uint());
+            printInfo(myName, "Set   interrupt for session #%d.\n", sessId.to_uint());
         }
     }
-    rsrih_Vec = (rsrih_Vec xor clrVec) | setVec;
-    rsr_pendingInterrupts = rsrih_Vec;
+    //-- Clear interrupt --------------
+    if (!siScheduler_ClrInt.empty()) {
+        SessionId sessId = siScheduler_ClrInt.read();
+        clrVec[sessId] = 1;
+        if (DEBUG_LEVEL & TRACE_RRH) {
+            printInfo(myName, "Clear interrupt for session #%d.\n", sessId.to_uint());
+        }
+    }
+    //-- Update interrupt vector ------
+    rsr_pendingInterrupts = (rsr_pendingInterrupts xor clrVec) | setVec;
 
+    //-- Forward interrupt
+    bool currSessValid = false;
+    if (!siScheduler_SessIdReq.empty() and !soScheduler_SessIdRep.full()) {
+        //-- Round-robin scheduler
+    	for (uint8_t i=0; i<cMaxSessions; ++i) {
+    		nextSess = rsr_currSess + i + 1;
+    		if (rsr_pendingInterrupts[nextSess] == 1) {
+    			rsr_currSess = nextSess;
+    			currSessValid = true;
+    			if (DEBUG_LEVEL & TRACE_RRH) {
+    				printInfo(myName, "RR-Arbiter has scheduled session #%d.\n", nextSess.to_uint());
+    			}
+    		}
+    	}
+        if (currSessValid == true) {
+        	siScheduler_SessIdReq.read();
+        	soScheduler_SessIdRep.write(nextSess);
+        }
+    }
 }
 
 /*******************************************************************************
  * @brief Always round-robin scheduler.
  *
- * @param[in]  rsr_pendingInterrupts A ref. to the bitmap encoded interrupt vector.
+ * @param[out] soHandler_SessIdReq Request a session id from the RsrInterruptHandler.
+ * @param[in]  siHandler_SessIdRep A session id to the RsrScheduler.
+ * @param[in]  siGetter_FreeSpace  The available space in the input buffer (in bytes).
  * @param[out] soRit_InterruptQry  Interrupt query to RxInterruptTable(Rit).
  * @param[in]  siRit_InterruptRep  Interrupt reply from [Rit].
- * @param[out] soSHL_DReq      An Rx data request to [SHELL].
- * @param[out] soRDp_FwdCmd    A command telling the ReadPath (RDp) to keep/drop a stream.
- * @param[out] soHandler_Done  The session which pending bytes count reached zero.
+ * @param[out] soSHL_DReq          An Rx data request to [SHELL].
+ * @param[out] soRDp_FwdCmd        A command telling the ReadPath (RDp) to keep/drop a stream.
+ * @param[out] soHandler_ClrInt    A request to clear an interrupt to RsrInterruptHandler.
  *
  * @detail
  *  This process implements a round-robin scheduler that generates data requests
@@ -673,13 +714,14 @@ void pRsr_InterruptHandler(
  *   table is decreased accordingly.
  *******************************************************************************/
 void pRsr_Scheduler(
-        const ap_uint<cMaxSessions> &rsr_pendingInterrupts,
-        TcpDatLen                   &rsr_freeSpace,
-        stream<InterruptQuery>      &soRit_InterruptQry,
-        stream<InterruptEntry>      &siRit_InterruptRep,
-        stream<TcpAppRdReq>         &soSHL_DReq,
-        stream<ForwardCmd>          &soRDp_FwdCmd,
-        stream<SessionId>           &soHandler_Done)
+        stream<ReqBit>                 &soHandler_SessIdReq,
+        stream<SessionId>              &siHandler_SessIdRep,
+        stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &siGetter_FreeSpace,
+        stream<InterruptQuery>         &soRit_InterruptQry,
+        stream<InterruptEntry>         &siRit_InterruptRep,
+        stream<TcpAppRdReq>            &soSHL_DReq,
+        stream<ForwardCmd>             &soRDp_FwdCmd,
+        stream<SessionId>              &soHandler_ClrReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
@@ -687,23 +729,28 @@ void pRsr_Scheduler(
     const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr/Sched");
 
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
-    static SessionId                        rsr_currSess=0;
-    #pragma HLS reset              variable=rsr_currSess
-    static enum FsmStates { RSR_IDLE, RSR_GET, RSR_DEC, RSR_PUT, RSR_FWD } \
-                                            rsr_fsmState=RSR_IDLE;
+    static enum FsmStates { RSR_SREQ, RSR_SREP, RSR_DEC, RSR_PUT, RSR_FWD } \
+                                            rsr_fsmState=RSR_SREQ;
     #pragma HLS reset              variable=rsr_fsmState
 
-    static InterruptEntry  rsr_intEntry;
-    static TcpDatLen       rsr_datLenReq;
+    //-- STATIC VARIABLES ------------------------------------------------------
+    static SessionId              rsr_currSess;
+    static InterruptEntry         rsr_intEntry;
+    static TcpDatLen              rsr_datLenReq;
+    static ap_uint<cMaxSessions>  rsr_pendingInterrupts;
 
-    TcpDatLen                            newByteCnt;
-    ap_uint<log2Ceil<cMaxSessions>::val> nextSess=0;
-    ValBool                              nextSessValid=false;
+    TcpDatLen                     newByteCnt;
+    TcpDatLen                     freeSpace;
 
     switch(rsr_fsmState) {
-        //-- Search for next active request in round-robin mode
-        case RSR_IDLE:
-            /*** OBSOLETE ***
+        case RSR_SREQ:
+            if (!soHandler_SessIdReq.full()) {
+            	soHandler_SessIdReq.write(1);
+                rsr_fsmState = RSR_SREP;
+            }
+        	break;
+        case RSR_SREP:
+            /*** OBSOLETE-1 ***
             if (rsr_pendingInterrupts) {
                 //-- Search highest pending request in between 'currSess' and 'cMaxSessions'.
                 for (uint8_t i=0; i<cMaxSessions; ++i) {
@@ -727,7 +774,8 @@ void pRsr_Scheduler(
                 }
             }
             *******************/
-            if (rsr_pendingInterrupts) {
+            /*** OBSOLETE-2 ***
+        	if (rsr_pendingInterrupts) {
                 for (uint8_t i=0; i<cMaxSessions; ++i) {
                     nextSess = rsr_currSess + i + 1;
                     if (rsr_pendingInterrupts[nextSess] == 1) {
@@ -736,35 +784,46 @@ void pRsr_Scheduler(
                    }
                 }
             }
-            if (nextSessValid) {
-                rsr_fsmState = RSR_GET;
-                if (DEBUG_LEVEL & TRACE_RRH) {
-                    printInfo(myName, "Round-Robin arbiter has scheduled session #%d.\n",
-                              rsr_currSess.to_uint());
+            ***********************/
+            /*** OBSOLETE-3 ***
+            if (!siInterruptVecRep.empty()) {
+                rsr_pendingInterrupts = siInterruptVecRep.read();
+                for (uint8_t i=0; i<cMaxSessions; ++i) {
+                	nextSess = rsr_currSess + i + 1;
+                	if (rsr_pendingInterrupts[nextSess] == 1) {
+                		rsr_currSess = nextSess;
+                		nextSessValid = true;
+                	}
                 }
             }
-            break;
-        case RSR_GET:
-            soRit_InterruptQry.write(rsr_currSess);
-            rsr_fsmState = RSR_DEC;
+            *************************/
+            if (!siHandler_SessIdRep.empty() and !soRit_InterruptQry.full()) {
+                rsr_currSess = siHandler_SessIdRep.read();
+                soRit_InterruptQry.write(rsr_currSess);
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "Querying [Rit] for session #%d.\n", rsr_currSess.to_uint());
+                }
+                rsr_fsmState = RSR_DEC;
+            }
             break;
         case RSR_DEC:
-            if (!siRit_InterruptRep.empty()) {
+            if (!siRit_InterruptRep.empty() and !siGetter_FreeSpace.empty()) {
                 // Decrement counter and put it back in the table
-                rsr_intEntry = siRit_InterruptRep.read();
+                rsr_intEntry  = siRit_InterruptRep.read();
+                freeSpace = siGetter_FreeSpace.read();
                 // Request to TOE = max(rit_schedEntry.byteCnt, rit_freeSSpace)
-                rsr_datLenReq = (rsr_freeSpace < rsr_intEntry.byteCnt) ? (rsr_freeSpace) : (rsr_intEntry.byteCnt);
+                rsr_datLenReq = (freeSpace < rsr_intEntry.byteCnt) ? (freeSpace) : (rsr_intEntry.byteCnt);
                 rsr_fsmState = RSR_PUT;
             }
             break;
         case RSR_PUT:
-            if (!soRit_InterruptQry.full()) {
+            if (!soRit_InterruptQry.full() and !soHandler_ClrReq.full()) {
                 newByteCnt = rsr_intEntry.byteCnt - rsr_datLenReq;
                 soRit_InterruptQry.write(InterruptQuery(rsr_currSess, newByteCnt));
                 if (newByteCnt == 0) {
-                    soHandler_Done.write(rsr_currSess);
+                    soHandler_ClrReq.write(rsr_currSess);
                     if (DEBUG_LEVEL & TRACE_RRH) {
-                        printInfo(myName, "Done with all bytes of session #%d.\n", rsr_currSess.to_uint());
+                        printInfo(myName, "Request to clear interrupt #%d.\n", rsr_currSess.to_uint());
                     }
                 }
                 rsr_fsmState = RSR_FWD;
@@ -789,7 +848,7 @@ void pRsr_Scheduler(
                               rsr_currSess.to_uint(), rsr_datLenReq.to_uint(), rsr_intEntry.dstPort.to_uint());
                 }
             }
-            rsr_fsmState = RSR_IDLE;
+            rsr_fsmState = RSR_SREQ;
             break;
     }
 }
@@ -827,38 +886,36 @@ void pRxSchedulerRequest(
     const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr");
 
     //-- LOCAL STREAM ----------------------------------------------------------
-    static stream<SessionId>    ssSchedulerToHandler_Done ("ssSchedulerToHandler_Done");
-    #pragma HLS stream variable=ssSchedulerToHandler_Done depth=2
-
-    //-- STATIC VARIABLES W/ RESET ---------------------------------------------
-    static ap_uint<cMaxSessions>    rsr_pendingInterrupts=0;
-    #pragma HLS reset      variable=rsr_pendingInterrupts
-
-    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static TcpDatLen                rsr_freeSpace;
-
-    //-- DYNAMIC VARIABLES -----------------------------------------------------
-    TcpDatLen newByteCnt;
+    static stream<SessionId>              ssSchedulerToHandler_ClearInt ("ssSchedulerToHandler_ClearInt");
+    #pragma HLS stream           variable=ssSchedulerToHandler_ClearInt depth=2
+    static stream<ReqBit>                 ssSchedulerToHandler_SessIdReq ("ssSchedulerToHandler_SessIdReq");
+    #pragma HLS stream           variable=ssSchedulerToHandler_SessIdReq depth=2
+    static stream<SessionId>              ssHandlerToScheduler_SessIdRep ("ssHandlerToScheduler_SessIdRep");
+    #pragma HLS stream           variable=ssHandlerToScheduler_SessIdRep depth=2
+    static stream <ap_uint<log2Ceil<cIBuffBytes>::val + 1> > ssGetterToScheduler_FreeSpace ("ssGetterToScheduler_FreeSpace");
+    #pragma HLS stream           variable=ssGetterToScheduler_FreeSpace
 
     //-- PROCESS FUNCTIONS -----------------------------------------------------
 
-    pRsr_GetFreeSpace(
+    pRsr_Getter(
             siIbo_Space,
-            rsr_freeSpace);
+            ssGetterToScheduler_FreeSpace);
 
-    pRsr_InterruptHandler(
+    pRsr_Handler(
             siRpn_SessId,
-            rsr_pendingInterrupts,
-            ssSchedulerToHandler_Done);
+			ssSchedulerToHandler_SessIdReq,
+			ssHandlerToScheduler_SessIdRep,
+            ssSchedulerToHandler_ClearInt);
 
     pRsr_Scheduler(
-            rsr_pendingInterrupts,
-            rsr_freeSpace,
+            ssSchedulerToHandler_SessIdReq,
+            ssHandlerToScheduler_SessIdRep,
+            ssGetterToScheduler_FreeSpace,
             soRit_InterruptQry,
             siRit_InterruptRep,
             soSHL_DReq,
             soRDp_FwdCmd,
-            ssSchedulerToHandler_Done);
+            ssSchedulerToHandler_ClearInt);
 
     /*** OBSOLETE ***
     switch(rsr_fsmState) {
