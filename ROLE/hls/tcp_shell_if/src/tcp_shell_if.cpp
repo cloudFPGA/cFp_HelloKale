@@ -513,12 +513,14 @@ void pRxInterruptTable(
     static ap_uint<log2Ceil<cMaxSessions>::val> rit_initEntry=0;
     #pragma HLS reset                  variable=rit_initEntry
 
-    static enum FsmStates { RIT_IDLE, RIT_NOTIF_REP, RIT_NOTIF_UPDATE, \
-                                      RIT_SCHED_REP, RIT_SCHED_UPDATE } rit_fsmState=RIT_IDLE;
+    static enum FsmStates { RIT_IDLE, RIT_NOTIF_REQ, RIT_NOTIF_REP, RIT_NOTIF_UPDATE, \
+                                      RIT_SCHED_REQ, RIT_SCHED_REP, RIT_SCHED_UPDATE } rit_fsmState=RIT_IDLE;
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static InterruptEntry  rit_notifEntry;
     static InterruptEntry  rit_schedEntry;
+    static InterruptQuery  rit_notifQuery;
+    static InterruptQuery  rit_schedQuery;
 
     //-- PROCESS FUNCTION ------------------------------------------------------
     if (!rit_isInit) {
@@ -537,31 +539,33 @@ void pRxInterruptTable(
         switch (rit_fsmState) {
             case RIT_IDLE:
                 if (!siRpn_InterruptQry.empty()) {
-                    InterruptQuery notifQry = siRpn_InterruptQry.read();
-                    if (notifQry.action == GET) {
-                        rit_notifEntry = INTERRUPT_TABLE[notifQry.sessId];
-                        rit_fsmState = RIT_NOTIF_REP;
-                    }
-                    else {
+                    rit_notifQuery = siRpn_InterruptQry.read();
+                    if (rit_notifQuery.action != GET) {
                         printFatal(myName, "Expecting a query 'GET' request!\n");
                     }
+                    rit_fsmState = RIT_NOTIF_REQ;
                 }
                 else if (!siRsr_InterruptQry.empty()) {
-                    InterruptQuery schedQry = siRsr_InterruptQry.read();
-                    if (schedQry.action == GET) {
-                        rit_schedEntry = INTERRUPT_TABLE[schedQry.sessId];
-                        rit_fsmState = RIT_SCHED_REP;
-                    }
-                    else {
+                	rit_schedQuery = siRsr_InterruptQry.read();
+                    if (rit_schedQuery.action != GET) {
                         printFatal(myName, "Expecting a query 'GET' request!\n");
                     }
+                    rit_fsmState = RIT_SCHED_REQ;
                 }
+                break;
+            case RIT_NOTIF_REQ:
+                rit_notifEntry = INTERRUPT_TABLE[rit_notifQuery.sessId];
+                rit_fsmState = RIT_NOTIF_REP;
                 break;
             case RIT_NOTIF_REP:
                 if (!soRpn_InterruptRep.full()) {
                     soRpn_InterruptRep.write(rit_notifEntry);
                     rit_fsmState = RIT_NOTIF_UPDATE;
                 }
+                break;
+            case RIT_SCHED_REQ:
+                rit_schedEntry = INTERRUPT_TABLE[rit_schedQuery.sessId];
+                rit_fsmState = RIT_SCHED_REP;
                 break;
             case RIT_SCHED_REP:
                 if (!soRsr_InterruptRep.full()) {
