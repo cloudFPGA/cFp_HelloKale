@@ -245,8 +245,19 @@ if 0:
 hostname  = socket.gethostname()
 ipHostStr = socket.gethostbyname(hostname)
 if ipHostStr.startswith('9.4.'):
-    # Use the IP address of 'tun0' (.e.g 10.2.0.18)
-    ipHostStr = ni.ifaddresses('tun0')[2][0]['addr']
+    # Search the IP address of the OpenVPN tunnel (FYI: the user-VPN always starts with 10.2.X.X)
+    for itf in ni.interfaces():
+        # DEBUG print("[INFO] Itf=%s " % itf)
+        if itf.startswith('tun'):
+            ip4Str = ni.ifaddresses(itf)[AF_INET][0]['addr']
+            if ip4Str.startswith('10.2.'):
+                ipHostStr = ip4Str
+                break
+            else:
+                ipHostStr = ""
+    if ipHostStr == "":
+        print("[ERROR] Could not find IPv4 address of the tunnel associated with the user-VPN.\n")
+        exit(1)
 ipHost = int(ipaddress.IPv4Address(ipHostStr))
 if args.verbose:
     print("[INFO] Hostname = %s | IP is %s (0x%8.8X) \n" % (hostname, ipHostStr, ipHost))
