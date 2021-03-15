@@ -90,6 +90,64 @@ def tcp_tx_loop(sock, message, count, verbose=False):
     print()
 
 
+def tcp_tx_long(sock, message, count, verbose=False):
+    """TCP Tx Single-Thread Loop.
+     :param sock     The socket to send/receive to/from.
+     :param message  The message string to sent.
+     :param count    The number of segments to send.
+     :param verbose  Enables verbosity.
+     :return         None"""
+    if verbose:
+        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
+              (len(message), count, message.decode()))
+    nrErr = 0
+    loop  = 0
+    totalByteCnt = 0
+    txWinByteCnt = 0
+    startTime = datetime.datetime.now()
+    while loop < count:
+        #  Send segment
+        # -------------------
+        try:
+            sock.sendall(message)
+        except socket.error as exc:
+            # Any exception
+            print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
+            exit(1)
+        finally:
+            pass
+        txWinByteCnt += len(message)
+        totalByteCnt += len(message)
+        if verbose:
+            print("Loop=%d | TotalTxBytes=%d" % (loop, totalByteCnt))
+        if txWinByteCnt > 32*1024:
+            time.sleep(1)
+            txWinByteCnt = 0
+            print("Pause | TotalTxBytes=%d" % totalByteCnt)
+        loop += 1
+    endTime = datetime.datetime.now()
+    elapseTime = endTime - startTime
+
+    if totalByteCnt < 1000000:
+        print("[INFO] Transferred a total of %d bytes." % totalByteCnt)
+    elif totalByteCnt < 1000000000:
+        megaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f MB." % megaBytes)
+    else:
+        gigaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
+
+    bandwidth = (totalByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+    print("#####################################################")
+    if bandwidth < 1000:
+        print("#### TCP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
+    else:
+        bandwidth = bandwidth / 1000
+        print("#### TCP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+    print("#####################################################")
+    print()
+
+
 def tcp_tx_ramp(sock, message, count, verbose=False):
     """TCP Tx Single-Thread Ramp. Send an incremental number of bytes from 1 to len(message).
      :param sock     The socket to send/receive to/from.
@@ -301,7 +359,10 @@ print("[INFO] It is run in single-threading mode.\n")
 if seed == 0:
     tcp_tx_ramp(tcpSock, message, count, args.verbose)
 else:
-    tcp_tx_loop(tcpSock, message, count, args.verbose)
+    if count*len(message) < 64*1024:
+        tcp_tx_loop(tcpSock, message, count, args.verbose)
+    else:
+        tcp_tx_long(tcpSock, message, count, args.verbose)
 
 #  STEP-14: Close socket
 # -----------------------
