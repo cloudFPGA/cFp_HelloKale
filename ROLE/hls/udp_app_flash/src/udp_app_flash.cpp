@@ -91,9 +91,9 @@ void pEchoStoreAndForward(
         stream<UdpAppDLen>  &soTXp_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    //OBSOLETE_20210309     #pragma HLS INLINE off
-    //OBSOLETE_20210309 #pragma HLS PIPELINE II=1
-    #pragma HLS DATAFLOW
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
+    //#pragma HLS DATAFLOW
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ESF_META=0, ESF_STREAM } \
@@ -173,7 +173,7 @@ void pTxPath(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "TXp");
 
@@ -428,7 +428,7 @@ void pRxPath(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RXp");
 
