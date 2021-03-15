@@ -204,10 +204,10 @@ void pTOE(int &nrErr, ofstream &ofTAF_Gold, ofstream &ofTOE_Gold,
         TXP_READ_REQ, TXP_REPLY_REQ, TXP_RECV_DATA
     } toe_txpState = TXP_READ_REQ;
 
-    static int toe_startupDelay = cSimToeStartupDelay;
+    static int toe_startupDelay    = cSimToeStartupDelay;
     static int toe_rxpStartupDelay = cSimToeRxStartDelay;
     static int toe_txpStartupDelay = cSimToeTxStartDelay;
-    static bool toe_isReady = false;
+    static bool toe_isReady    = false;
     static bool toe_rxpIsReady = false;
     static bool toe_txpIsReady = false;
 
@@ -640,19 +640,19 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
     //-- TAF / Rx Data Interface
-    stream<TcpAppData> ssTAF_TSIF_Data("ssTAF_TSIF_Data");
-    stream<TcpSessId> ssTAF_TSIF_SessId("ssTAF_TSIF_SessId");
-    stream<TcpDatLen> ssTAF_TSIF_DatLen("ssTAF_TSIF_DatLen");
+    stream<TcpAppData>   ssTAF_TSIF_Data  ("ssTAF_TSIF_Data");
+    stream<TcpSessId>    ssTAF_TSIF_SessId("ssTAF_TSIF_SessId");
+    stream<TcpDatLen>    ssTAF_TSIF_DatLen("ssTAF_TSIF_DatLen");
     //-- TSIF / Tx Data Interface
-    stream<TcpAppData> ssTSIF_TAF_Data("ssTSIF_TAF_Data");
-    stream<TcpSessId> ssTSIF_TAF_SessId("ssTSIF_TAF_SessId");
-    stream<TcpDatLen> ssTSIF_TAF_DatLen("ssTSIF_TAF_DatLen");
+    stream<TcpAppData>   ssTSIF_TAF_Data  ("ssTSIF_TAF_Data");
+    stream<TcpSessId>    ssTSIF_TAF_SessId("ssTSIF_TAF_SessId");
+    stream<TcpDatLen>    ssTSIF_TAF_DatLen("ssTSIF_TAF_DatLen");
     //-- TOE  / Rx Data Interfaces
-    stream<TcpAppNotif> ssTOE_TSIF_Notif("ssTOE_TSIF_Notif");
-    stream<TcpAppData> ssTOE_TSIF_Data("ssTOE_TSIF_Data");
-    stream<TcpAppMeta> ssTOE_TSIF_Meta("ssTOE_TSIF_Meta");
+    stream<TcpAppNotif>  ssTOE_TSIF_Notif ("ssTOE_TSIF_Notif");
+    stream<TcpAppData>   ssTOE_TSIF_Data  ("ssTOE_TSIF_Data");
+    stream<TcpAppMeta>   ssTOE_TSIF_Meta  ("ssTOE_TSIF_Meta");
     //-- TSIF / Rx Data Interface
-    stream<TcpAppRdReq> ssTSIF_TOE_DReq("ssTSIF_TOE_DReq");
+    stream<TcpAppRdReq>  ssTSIF_TOE_DReq  ("ssTSIF_TOE_DReq");
     //-- TOE  / Listen Interface
     stream<TcpAppLsnRep> ssTOE_TSIF_LsnRep("ssTOE_TSIF_LsnRep");
     //-- TSIF / Listen Interface
@@ -660,7 +660,7 @@ int main(int argc, char *argv[]) {
     //-- TOE  / Tx Data Interfaces
     stream<TcpAppSndRep> ssTOE_TSIF_SndRep("ssTOE_TSIF_SndRep");
     //-- TSIF  / Tx Data Interfaces
-    stream<TcpAppData> ssTSIF_TOE_Data("ssTSIF_TOE_Data");
+    stream<TcpAppData>   ssTSIF_TOE_Data  ("ssTSIF_TOE_Data");
     stream<TcpAppSndReq> ssTSIF_TOE_SndReq("ssTSIF_TOE_SndReq");
     //-- TOE  / Connect Interfaces
     stream<TcpAppOpnRep> ssTOE_TSIF_OpnRep("ssTOE_TSIF_OpnRep");
@@ -817,7 +817,7 @@ int main(int argc, char *argv[]) {
         //-- EMULATE SHELL/MMIO
         //-------------------------------------------------
         pMMIO(
-        //-- TOE / Ready Signal
+                //-- TOE / Ready Signal
                 &sTOE_MMIO_Ready,
                 //-- MMIO / Enable Layer-7 (.i.e APP alias ROLE)
                 &sMMIO_TSIF_Enable);
