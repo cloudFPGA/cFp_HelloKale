@@ -45,7 +45,7 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not always work for us.
  ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
+#undef USE_DEPRECATED_DIRECTIVES
 
 /*** OBSOLETE *************************
 void pAxisRawToAxisApp(
@@ -85,7 +85,7 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          *piSHL_MmioEchoCtrl,
+        ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- TSIF / Rx Data Interface
         //------------------------------------------------------
@@ -99,10 +99,12 @@ void tcp_app_flash_top (
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen)
 {
+
+#if defined(USE_DEPRECATED_DIRECTIVES)
+
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-#if defined(USE_DEPRECATED_DIRECTIVES)
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
@@ -116,20 +118,28 @@ void tcp_app_flash_top (
     #pragma HLS resource core=AXI4Stream variable=soTSIF_Data   metadata="-bus_bundle soTSIF_Data"
     #pragma HLS resource core=AXI4Stream variable=soTSIF_SessId metadata="-bus_bundle soTSIF_SessId"
     #pragma HLS resource core=AXI4Stream variable=soTSIF_DatLen metadata="-bus_bundle soTSIF_DatLen"
-#else
-    #pragma HLS INTERFACE ap_stable             port=piSHL_MmioEchoCtrl
-
-    #pragma HLS INTERFACE axis register both    port=siTSIF_Data    name=siTSIF_Data
-    #pragma HLS INTERFACE axis register both    port=siTSIF_SessId  name=siTSIF_SessId
-    #pragma HLS INTERFACE axis register both    port=siTSIF_DatLen  name=siTSIF_DatLen
-
-    #pragma HLS INTERFACE axis register both    port=soTSIF_Data    name=soTSIF_Data
-    #pragma HLS INTERFACE axis register both    port=soTSIF_SessId  name=soTSIF_SessId
-    #pragma HLS INTERFACE axis register both    port=soTSIF_DatLen  name=soTSIF_DatLen
-#endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+
+#else
+
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_stable register port=piSHL_MmioEchoCtrl
+
+    #pragma HLS INTERFACE axis off           port=siTSIF_Data name=siTSIF_Data
+    #pragma HLS INTERFACE axis off           port=siTSIF_SessId  name=siTSIF_SessId
+    #pragma HLS INTERFACE axis off           port=siTSIF_DatLen  name=siTSIF_DatLen
+
+    #pragma HLS INTERFACE axis off           port=soTSIF_Data    name=soTSIF_Data
+    #pragma HLS INTERFACE axis off           port=soTSIF_SessId  name=soTSIF_SessId
+    #pragma HLS INTERFACE axis off           port=soTSIF_DatLen  name=soTSIF_DatLen
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW  disable_start_propagation
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #endif
 
     //-- LOCAL IN and OUT STREAMS ----------------------------------------------
 	//OBSOLETE-20210213 static stream<TcpAppData>   ssiTSIF_Data    ("ssiTSIF_Data");

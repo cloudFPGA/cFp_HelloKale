@@ -304,7 +304,7 @@ bool pTSIF_Send(
 void pTSIF(
         int                 &nrErr,
         //-- MMIO/ Configuration Interfaces
-        ap_uint<2>          *poTAF_EchoCtrl,
+        ap_uint<2>          poTAF_EchoCtrl,
         //-- TAF / TCP Data Interfaces
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpSessId>   &soTAF_SessId,
@@ -355,7 +355,7 @@ void pTSIF(
     if (gSimCycCnt == STARTUP_DELAY) {
         printf("\n## PART-1 : TEST OF THE PASS-THROUGH MODE ####################\n");
         tsif_rxSegCnt = 0;
-        *poTAF_EchoCtrl  = ECHO_PATH_THRU;
+        poTAF_EchoCtrl  = ECHO_PATH_THRU;
 
         //-- STEP-2.0 : REMOVE PREVIOUS OUTPUT FILES
         std::remove(ofRawFileName1.c_str());
@@ -501,7 +501,7 @@ int main(int argc, char *argv[]) {
         pTSIF(
             nrErr,
             //-- MMIO / Configuration Interfaces
-            &sMMIO_TAF_EchoCtrl,
+            sMMIO_TAF_EchoCtrl,
             //-- TAF / TCP Data Interfaces
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,
@@ -516,7 +516,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         tcp_app_flash(
             //-- MMIO / Configuration Interfaces
-            &sMMIO_TAF_EchoCtrl,
+            sMMIO_TAF_EchoCtrl,
             //-- TSIF / TCP Rx Data Interface
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,

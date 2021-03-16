@@ -39,6 +39,17 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimAppData.hpp"
+
+//------------------------------------------------------
+//-- TESTBENCH DEFINES
+//------------------------------------------------------
+#define MAX_SIM_CYCLES  500
+#define TB_GRACE_TIME   1000  // Give the TB some time to finish
+#define STARTUP_DELAY   25
+
+#define DEFAULT_SESS_ID         42
+#define DEFAULT_DATAGRAM_LEN    32
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -48,6 +59,7 @@
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
+unsigned int    gMaxSimCycles = MAX_SIM_CYCLES + TB_GRACE_TIME;
 
 #endif
 

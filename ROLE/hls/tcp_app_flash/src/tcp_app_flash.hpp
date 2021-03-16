@@ -69,7 +69,7 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          *piSHL_MmioEchoCtrl,
+        ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------

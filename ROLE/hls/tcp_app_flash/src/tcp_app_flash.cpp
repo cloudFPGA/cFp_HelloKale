@@ -103,8 +103,8 @@ void pTcpEchoStoreAndForward(
         stream<TcpDatLen>    &soTXp_DatLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    //OBSOLETE_20210309 #pragma HLS PIPELINE II=1
-    #pragma HLS DATAFLOW
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "ESf");
 
@@ -159,7 +159,7 @@ void pTcpEchoStoreAndForward(
  * @param[out] soTSIF_DatLen       TCP data-length to [SHL].
  *******************************************************************************/
 void pTcpTxPath(
-        ap_uint<2>          *piSHL_MmioEchoCtrl,
+        ap_uint<2>           piSHL_MmioEchoCtrl,
         stream<TcpAppData>  &siEPt_Data,
         stream<TcpSessId>   &siEPt_SessId,
         stream<TcpDatLen>   &siEPt_DatLen,
@@ -171,14 +171,14 @@ void pTcpTxPath(
         stream<TcpDatLen>   &soTSIF_DatLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "TXp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { TXP_START_OF_STREAM=0, TXP_CONTINUATION_OF_STREAM } \
                                txp_fsmState=TXP_START_OF_STREAM;
-    #pragma HLS reset variable=txp_fsmState
+    #pragma HLS RESET variable=txp_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ap_uint<16> txp_msgGapSize;
@@ -189,7 +189,7 @@ void pTcpTxPath(
 
     switch (txp_fsmState ) {
     case TXP_START_OF_STREAM:
-        switch(*piSHL_MmioEchoCtrl) {
+        switch(piSHL_MmioEchoCtrl) {
         case ECHO_PATH_THRU:
             // Read session Id from pEchoPassThrough and forward to [SHL]
             if ( !siEPt_SessId.empty() and !soTSIF_SessId.full() and
@@ -237,7 +237,7 @@ void pTcpTxPath(
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
     case TXP_CONTINUATION_OF_STREAM:
-        switch(*piSHL_MmioEchoCtrl) {
+        switch(piSHL_MmioEchoCtrl) {
         case ECHO_PATH_THRU:
             //-- Read incoming data from pEchoPathThrough and forward to [SHL]
             if (!siEPt_Data.empty() and !soTSIF_Data.full()) {
@@ -297,7 +297,7 @@ void pTcpTxPath(
  *   (FYI-This function used to be performed by the 'piSHL_Mmio_EchoCtrl' bits).
  *******************************************************************************/
 void pTcpRxPath(
-        ap_uint<2>           *piSHL_MmioEchoCtrl,
+        ap_uint<2>            piSHL_MmioEchoCtrl,
         stream<TcpAppData>   &siTSIF_Data,
         stream<TcpSessId>    &siTSIF_SessId,
         stream<TcpDatLen>    &siTSIF_DatLen,
@@ -309,7 +309,7 @@ void pTcpRxPath(
         stream<TcpDatLen>    &soESf_DatLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RXp");
 
@@ -323,24 +323,27 @@ void pTcpRxPath(
     //-- LOCAL VARIABLES -------------------------------------------------------
     TcpAppData        appData;
     TcpSessId         sessId;
-    TcpDatLen         datLen;
+    TcpDatLen         datLenEpt;
+    TcpDatLen         datLenEsf;
 
     switch (rxp_fsmState ) {
-    case RXP_START_OF_STREAM:
-        switch(*piSHL_MmioEchoCtrl) {
-        case ECHO_PATH_THRU:
+      case RXP_START_OF_STREAM:
+        switch(piSHL_MmioEchoCtrl) {
+          case ECHO_PATH_THRU:
             //-- Read incoming metadata and forward to pEchoPathThrough
-            if ( !siTSIF_SessId.empty() and !soEPt_SessId.full() and !siTSIF_DatLen.empty() and !soEPt_DatLen.full() ) {
+            if ( !siTSIF_SessId.empty() and !soEPt_SessId.full() and
+                 !siTSIF_DatLen.empty() and !soEPt_DatLen.full() ) {
                 siTSIF_SessId.read(sessId);
-                siTSIF_DatLen.read(datLen);
+                siTSIF_DatLen.read(datLenEpt);
                 soEPt_SessId.write(sessId);
-                soEPt_DatLen.write(datLen);
+                soEPt_DatLen.write(datLenEpt);
                 rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
             }
             break;
           case ECHO_STORE_FWD:
             //-- Read incoming metadata and forward to pTcpEchoStoreAndForward
-            if ( !siTSIF_SessId.empty() and !soESf_SessId.full() and !siTSIF_DatLen.empty() and !soEPt_DatLen.full()) {
+            if ( !siTSIF_SessId.empty() and !soESf_SessId.full() and
+                 !siTSIF_DatLen.empty() and !soEPt_DatLen.full()) {
                 soESf_SessId.write(siTSIF_SessId.read());
                 soESf_DatLen.write(siTSIF_DatLen.read());
                 rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
@@ -358,7 +361,7 @@ void pTcpRxPath(
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
       case RXP_CONTINUATION_OF_STREAM:
-        switch(*piSHL_MmioEchoCtrl) {
+        switch(piSHL_MmioEchoCtrl) {
           case ECHO_PATH_THRU:
             //-- Read incoming data and forward to pEchoPathThrough
             if (!siTSIF_Data.empty() and !soEPt_Data.full()) {
@@ -385,7 +388,7 @@ void pTcpRxPath(
           default:
             // Drain and drop the incoming data stream
             if ( !siTSIF_Data.empty() ) {
-                siTSIF_Data.read(appData);
+                siTSIF_Data.read();
             }
             // Always alternate between START and CONTINUATION to drain all streams
             rxp_fsmState = RXP_START_OF_STREAM;
@@ -412,7 +415,7 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          *piSHL_MmioEchoCtrl,
+        ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
@@ -428,8 +431,9 @@ void tcp_app_flash (
 {
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW interval=1
-    #pragma HLS INLINE
+    #pragma HLS DATAFLOW
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+    #pragma HLS STABLE variable=piSHL_MmioEchoCtrl
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -437,7 +441,7 @@ void tcp_app_flash (
 
     //-- Rx Path (RXp) ---------------------------------------------------------
     static stream<TcpAppData>   ssRXpToTXp_Data   ("ssRXpToTXp_Data");
-    #pragma HLS STREAM variable=ssRXpToTXp_Data   depth=2048
+    #pragma HLS STREAM variable=ssRXpToTXp_Data   depth=1024
     static stream<TcpSessId>    ssRXpToTXp_SessId ("ssRXpToTXp_SessId");
     #pragma HLS STREAM variable=ssRXpToTXp_SessId depth=64
     static stream<TcpDatLen>    ssRXpToTXp_DatLen ("ssRXpToTXp_DatLen");

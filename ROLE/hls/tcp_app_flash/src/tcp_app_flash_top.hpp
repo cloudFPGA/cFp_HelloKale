@@ -60,17 +60,17 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          *piSHL_MmioEchoCtrl,
+        ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- TSIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &siTSIF_Data,  // [FIXME - TcpAppData]
+        stream<TcpAppData>  &siTSIF_Data,
         stream<TcpSessId>   &siTSIF_SessId,
         stream<TcpDatLen>   &siTSIF_DatLen,
         //------------------------------------------------------
         //-- TSIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &soTSIF_Data,    // [FIXME - TcpAppData]
+        stream<TcpAppData>  &soTSIF_Data,
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen
 );
