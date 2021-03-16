@@ -29,7 +29,7 @@
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean project csim cosim csynth regression help ipClean ipProject ip ipSyn ipImpl
+.PHONY: all clean project csim cosim csynth regression help ipClean ipCsim ipCosim ipProject ip ipSyn ipImpl
 
 .csim_guard: $(SRC_DEPS)
 	$(MAKE) clean
@@ -38,6 +38,11 @@ SRC_DEPS := $(shell find ./src/ -type f)
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
+	@touch $@
+
+.ipCynth_guard: $(SRC_DEPS)
+	$(MAKE) clean
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
 	@touch $@
 
 ip_top_prj/solution1/impl/ip: $(SRC_DEPS)
@@ -86,9 +91,18 @@ ipClean:                 ## Cleans the IP-TOP project
 	${RM} -rf ip_top_prj
 	${RM} vivado*.log
 
+ipCsim: .csim_guard      ## Runs the HLS C simulation of the IP-TOP project
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
+
+ipCosim: .ipCynth_guard  ## Runs the HLS C/RTL cosimulation of the IP-TOP project 
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
+
 ipProject:               ## Creates the IP-TOP project for exporting and packaging
 	$(MAKE) ipClean
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
+
+ipRegression: .synth_guard ## Runs a sequence of HLS ipCsim, ipCsynth and ipCosim over the IP-TOP project
+	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
 
 ip:                      ## Exports the RTL design and packages it as an IP
 	$(MAKE) ip_top_prj/solution1/impl/ip
