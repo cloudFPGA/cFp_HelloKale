@@ -292,7 +292,7 @@ bool pTSIF_Send(
  * @brief Emulate the behavior of TSIF.
  *
  * @param[in/out] nrErr           A ref to the error counter of the [TB].
- * @param[out]    poTAF_EchoCtrl  A ptr to set the ECHO mode.
+ * @param[out]    poTAF_EchoCtrl  A scalar to set the ECHO mode.
  * @param[out]    soTAF_Data      Data stream from TcpAppFlash (TAF).
  * @param[out]    soTAF_SessId    TCP session-id from [TAF].
  * @param[out]    soTAF_DatLen    TCP data-length from [TAF].
@@ -304,7 +304,7 @@ bool pTSIF_Send(
 void pTSIF(
         int                 &nrErr,
         //-- MMIO/ Configuration Interfaces
-        ap_uint<2>          poTAF_EchoCtrl,
+        //OBSOLETE_20210316 ap_uint<2>           poTAF_EchoCtrl,
         //-- TAF / TCP Data Interfaces
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpSessId>   &soTAF_SessId,
@@ -355,7 +355,7 @@ void pTSIF(
     if (gSimCycCnt == STARTUP_DELAY) {
         printf("\n## PART-1 : TEST OF THE PASS-THROUGH MODE ####################\n");
         tsif_rxSegCnt = 0;
-        poTAF_EchoCtrl  = ECHO_PATH_THRU;
+        //OBSOLETE_20210316 poTAF_EchoCtrl  = ECHO_PATH_THRU;
 
         //-- STEP-2.0 : REMOVE PREVIOUS OUTPUT FILES
         std::remove(ofRawFileName1.c_str());
@@ -432,16 +432,23 @@ void pTSIF(
     //-- STEP-3 : VERIFY THE PASS-THROUGH MODE
     //------------------------------------------------------
     if (tsif_graceTime1 == 0) {
+        if (ofRawFile1.tellp() != 0) {
+            int rc1 = system(("diff --brief -w " + std::string(ofRawFileName1) + " " + std::string(ofRawGoldName1) + " ").c_str());
+            if (rc1) {
+                printError(myName, "File '%s' does not match '%s'.\n", ofRawFileName1.c_str(), ofRawGoldName1.c_str());
+                nrErr += 1;
+            }
+            tsif_doneWithPassThroughTest1 = true;
+        }
+        else {
+            printError(THIS_NAME, "File \"%s\" is empty.\n", ofRawFileName1);
+            nrErr += 1;
+        }
+        //-- Closing open files
         ifSHL_Data.close();
         ofRawFile1.close();
         ofRawGold1.close();
         ofTcpFile1.close();
-        int rc1 = system(("diff --brief -w " + std::string(ofRawFileName1) + " " + std::string(ofRawGoldName1) + " ").c_str());
-        if (rc1) {
-            printError(myName, "File '%s' does not match '%s'.\n", ofRawFileName1.c_str(), ofRawGoldName1.c_str());
-            nrErr += 1;
-        }
-        tsif_doneWithPassThroughTest1 = true;
     }
 }
 
@@ -461,9 +468,9 @@ int main(int argc, char *argv[]) {
     //-- DUT SIGNAL INTERFACES
     //------------------------------------------------------
     //-- MMIO/ Configuration Interfaces
-    ap_uint<2>          sMMIO_TAF_EchoCtrl;
-    //[NOT_USED] CmdBit sMMIO_TAF_PostSegEn;
-    //[NOT_USED] CmdBit sMMIO_TAF_CaptSegEn;
+    //[NOT_USED] ap_uint<2> sMMIO_TAF_EchoCtrl;
+    //[NOT_USED] CmdBit     sMMIO_TAF_PostSegEn;
+    //[NOT_USED] CmdBit     sMMIO_TAF_CaptSegEn;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES
@@ -501,7 +508,7 @@ int main(int argc, char *argv[]) {
         pTSIF(
             nrErr,
             //-- MMIO / Configuration Interfaces
-            sMMIO_TAF_EchoCtrl,
+            //OBSOLETE_20210316 sMMIO_TAF_EchoCtrl,
             //-- TAF / TCP Data Interfaces
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,
@@ -516,7 +523,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         tcp_app_flash(
             //-- MMIO / Configuration Interfaces
-            sMMIO_TAF_EchoCtrl,
+            //OBSOLETE_20210316 sMMIO_TAF_EchoCtrl,
             //-- TSIF / TCP Rx Data Interface
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,

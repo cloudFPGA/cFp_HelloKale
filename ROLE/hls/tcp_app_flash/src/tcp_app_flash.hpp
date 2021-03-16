@@ -42,8 +42,8 @@
 /// -- SHELL/MMIO/EchoCtrl - Configuration Register
 //---------------------------------------------------------
 enum EchoCtrl {
-    ECHO_PATH_THRU = 0,
-    ECHO_STORE_FWD = 1,
+    ECHO_STORE_FWD = 0,
+    ECHO_PATH_THRU = 1,
     ECHO_OFF       = 2
 };
 
@@ -69,7 +69,7 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>           piSHL_MmioEchoCtrl,
+		//OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------

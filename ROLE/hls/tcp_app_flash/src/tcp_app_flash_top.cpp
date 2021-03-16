@@ -85,7 +85,7 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>           piSHL_MmioEchoCtrl,
+        //OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- TSIF / Rx Data Interface
         //------------------------------------------------------
@@ -125,7 +125,7 @@ void tcp_app_flash_top (
 #else
 
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-    #pragma HLS INTERFACE ap_stable register port=piSHL_MmioEchoCtrl
+	//OBSOLETE_20210316 #pragma HLS INTERFACE ap_stable register port=piSHL_MmioEchoCtrl
 
     #pragma HLS INTERFACE axis off           port=siTSIF_Data name=siTSIF_Data
     #pragma HLS INTERFACE axis off           port=siTSIF_SessId  name=siTSIF_SessId
@@ -156,7 +156,7 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        piSHL_MmioEchoCtrl,
+    		//OBSOLETE_20210316 piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------

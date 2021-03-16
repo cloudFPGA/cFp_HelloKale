@@ -159,7 +159,7 @@ void pTcpEchoStoreAndForward(
  * @param[out] soTSIF_DatLen       TCP data-length to [SHL].
  *******************************************************************************/
 void pTcpTxPath(
-        ap_uint<2>           piSHL_MmioEchoCtrl,
+        //OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
         stream<TcpAppData>  &siEPt_Data,
         stream<TcpSessId>   &siEPt_SessId,
         stream<TcpDatLen>   &siEPt_DatLen,
@@ -179,6 +179,8 @@ void pTcpTxPath(
     static enum FsmStates { TXP_START_OF_STREAM=0, TXP_CONTINUATION_OF_STREAM } \
                                txp_fsmState=TXP_START_OF_STREAM;
     #pragma HLS RESET variable=txp_fsmState
+    static EchoCtrl            txp_EchoCtrl=ECHO_PATH_THRU;
+    #pragma HLS RESET variable=txp_EchoCtrl
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ap_uint<16> txp_msgGapSize;
@@ -187,6 +189,7 @@ void pTcpTxPath(
     TcpAppData     appData;
     TcpAppMeta     tcpSessId;
 
+    /*** OBSOLETE_20210316 ************
     switch (txp_fsmState ) {
     case TXP_START_OF_STREAM:
         switch(piSHL_MmioEchoCtrl) {
@@ -275,6 +278,63 @@ void pTcpTxPath(
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
     }  // End-of: switch (txp_fsmState ) {
+	***********************************/
+
+    switch (txp_fsmState ) {
+    case TXP_START_OF_STREAM:
+        if (!siEPt_SessId.empty() and !siESf_SessId.empty() and
+            !siEPt_DatLen.empty() and !siESf_DatLen.empty() and
+            !soTSIF_SessId.full() and !soTSIF_DatLen.full()) {
+            if (txp_EchoCtrl == ECHO_PATH_THRU) {
+                soTSIF_SessId.write(siEPt_SessId.read());
+                soTSIF_DatLen.write(siEPt_DatLen.read());
+            }
+            else {
+                soTSIF_SessId.write(siESf_SessId.read());
+                soTSIF_DatLen.write(siESf_DatLen.read());
+            }
+            txp_fsmState = TXP_CONTINUATION_OF_STREAM;
+        }
+        else if (!siEPt_SessId.empty() and
+                 !siEPt_DatLen.empty() and
+                 !soTSIF_SessId.full() and !soTSIF_DatLen.full()) {
+            soTSIF_SessId.write(siEPt_SessId.read());
+            soTSIF_DatLen.write(siEPt_DatLen.read());
+            txp_EchoCtrl = ECHO_PATH_THRU;
+            txp_fsmState = TXP_CONTINUATION_OF_STREAM;
+        }
+        else if (!siESf_SessId.empty() and
+                 !siESf_DatLen.empty() and
+                 !soTSIF_SessId.full() and !soTSIF_DatLen.full()) {
+            soTSIF_SessId.write(siESf_SessId.read());
+            soTSIF_DatLen.write(siESf_DatLen.read());
+            txp_EchoCtrl = ECHO_STORE_FWD;
+            txp_fsmState = TXP_CONTINUATION_OF_STREAM;
+        }
+        break;
+    case TXP_CONTINUATION_OF_STREAM:
+        if (txp_EchoCtrl == ECHO_PATH_THRU) {
+           if(!siEPt_Data.empty() and !soTSIF_Data.full()) {
+               siEPt_Data.read(appData);
+               soTSIF_Data.write(appData);
+               if (appData.getTLast()) {
+                   txp_fsmState = TXP_START_OF_STREAM;
+                   txp_EchoCtrl = ECHO_STORE_FWD; // Toggle
+               }
+            }
+        }
+        else {
+            if(!siESf_Data.empty() and !soTSIF_Data.full()) {
+                siESf_Data.read(appData);
+                soTSIF_Data.write(appData);
+                if (appData.getTLast()) {
+                    txp_fsmState = TXP_START_OF_STREAM;
+                    txp_EchoCtrl = ECHO_PATH_THRU; // Toggle
+                }
+             }
+        }
+        break;
+    }  // End-of: switch (txp_fsmState ) {
 } // End of: pTcpTxPath()
 
 /*******************************************************************************
@@ -297,7 +357,7 @@ void pTcpTxPath(
  *   (FYI-This function used to be performed by the 'piSHL_Mmio_EchoCtrl' bits).
  *******************************************************************************/
 void pTcpRxPath(
-        ap_uint<2>            piSHL_MmioEchoCtrl,
+        //OBSOLETE_20210316 ap_uint<2>            piSHL_MmioEchoCtrl,
         stream<TcpAppData>   &siTSIF_Data,
         stream<TcpSessId>    &siTSIF_SessId,
         stream<TcpDatLen>    &siTSIF_DatLen,
@@ -317,15 +377,15 @@ void pTcpRxPath(
     static enum FsmStates { RXP_START_OF_STREAM=0, RXP_CONTINUATION_OF_STREAM } \
                                rxp_fsmState=RXP_START_OF_STREAM;
     #pragma HLS reset variable=rxp_fsmState
-
-    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static EchoCtrl            rxp_EchoCtrl=ECHO_PATH_THRU;
+    #pragma HLS RESET variable=rxp_EchoCtrl
 
     //-- LOCAL VARIABLES -------------------------------------------------------
     TcpAppData        appData;
     TcpSessId         sessId;
-    TcpDatLen         datLenEpt;
-    TcpDatLen         datLenEsf;
+    TcpDatLen         datLen;
 
+    /*** OBSOLETE_20210316 ************
     switch (rxp_fsmState ) {
       case RXP_START_OF_STREAM:
         switch(piSHL_MmioEchoCtrl) {
@@ -351,7 +411,7 @@ void pTcpRxPath(
             break;
           case ECHO_OFF:
           default:
-            // Drain and drop the TCP data
+            // Drain and drop the TCP metadata
             if ( !siTSIF_SessId.empty() and !siTSIF_DatLen.empty()) {
                 siTSIF_SessId.read();
                 siTSIF_DatLen.read();
@@ -396,6 +456,124 @@ void pTcpRxPath(
         }  // End-of: switch(piSHL_MmioEchoCtrl) {
         break;
     }  // End-of: switch (rxpFsmState ) {
+    ***********************************/
+    /*** OBSOLETE_20210316 ************
+    switch(piSHL_MmioEchoCtrl) {
+    case ECHO_PATH_THRU:
+        switch (rxp_fsmState ) {
+        case RXP_START_OF_STREAM:
+            //-- Read incoming metadata and forward to pEchoPathThrough
+            if ( !siTSIF_SessId.empty() and !soEPt_SessId.full() and
+                 !siTSIF_DatLen.empty() and !soEPt_DatLen.full() ) {
+                siTSIF_SessId.read(sessId);
+                siTSIF_DatLen.read(datLenEpt);
+                soEPt_SessId.write(sessId);
+                soEPt_DatLen.write(datLenEpt);
+                rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
+            }
+            break;
+        case RXP_CONTINUATION_OF_STREAM:
+            //-- Read incoming data and forward to pEchoPathThrough
+            if (!siTSIF_Data.empty() and !soEPt_Data.full()) {
+                siTSIF_Data.read(appData);
+                soEPt_Data.write(appData);
+                // Update FSM state
+                if (appData.getTLast()) {
+                    rxp_fsmState = RXP_START_OF_STREAM;
+                }
+            }
+            break;
+        }
+        break;
+    case ECHO_STORE_FWD:
+        switch (rxp_fsmState ) {
+        case RXP_START_OF_STREAM:
+            //-- Read incoming metadata and forward to pTcpEchoStoreAndForward
+            if ( !siTSIF_SessId.empty() and !soESf_SessId.full() and
+                 !siTSIF_DatLen.empty() and !soEPt_DatLen.full()) {
+                soESf_SessId.write(siTSIF_SessId.read());
+                soESf_DatLen.write(siTSIF_DatLen.read());
+                rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
+            }
+            break;
+        case RXP_CONTINUATION_OF_STREAM:
+            //-- Read incoming data and forward to pTcpEchoStoreAndForward
+            if ( !siTSIF_Data.empty() and !soESf_Data.full()) {
+                siTSIF_Data.read(appData);
+                soESf_Data.write(appData);
+                // Update FSM state
+                if (appData.getTLast()) {
+                    rxp_fsmState = RXP_START_OF_STREAM;
+                }
+            }
+            break;
+        }
+        break;
+    case ECHO_OFF:
+    default:
+        switch (rxp_fsmState ) {
+        case RXP_START_OF_STREAM:
+            // Drain and drop the TCP metadata
+            if ( !siTSIF_SessId.empty() and !siTSIF_DatLen.empty()) {
+                siTSIF_SessId.read();
+                siTSIF_DatLen.read();
+                rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
+            }
+            break;
+        case RXP_CONTINUATION_OF_STREAM:
+            // Drain and drop the TCP data
+            if ( !siTSIF_Data.empty() ) {
+                siTSIF_Data.read();
+            }
+            // Always alternate between START and CONTINUATION to drain all streams
+            rxp_fsmState = RXP_START_OF_STREAM;
+            break;
+        }
+        break;
+    }
+    ***********************************/
+
+    switch (rxp_fsmState ) {
+    case RXP_START_OF_STREAM:
+        if (!siTSIF_SessId.empty() and !siTSIF_DatLen.empty() and
+            !soEPt_SessId.full()   and !soEPt_DatLen.full()   and
+            !soESf_SessId.full()   and !soESf_DatLen.full()) {
+            siTSIF_SessId.read(sessId);
+            siTSIF_DatLen.read(datLen);
+            if ((sessId%2) == ECHO_PATH_THRU) {
+            	soEPt_SessId.write(sessId);
+            	soEPt_DatLen.write(datLen);
+            	rxp_EchoCtrl = ECHO_PATH_THRU;
+            }
+            else {
+            	// Forward to pEchoStoreAndForward
+            	soESf_SessId.write(sessId);
+            	soESf_DatLen.write(datLen);
+            	rxp_EchoCtrl = ECHO_STORE_FWD;
+            }
+            rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
+        }
+        break;
+    case RXP_CONTINUATION_OF_STREAM:
+        if (!siTSIF_Data.empty()) {
+            if ((rxp_EchoCtrl == ECHO_PATH_THRU) and !soEPt_Data.full()) {
+                siTSIF_Data.read(appData);
+                soEPt_Data.write(appData);
+                if (appData.getTLast()) {
+                   rxp_fsmState = RXP_START_OF_STREAM;
+                }
+            }
+            else if ((rxp_EchoCtrl == ECHO_STORE_FWD) and !soESf_Data.full()) {
+                siTSIF_Data.read(appData);
+                soESf_Data.write(appData);
+                if (appData.getTLast()) {
+                   rxp_fsmState = RXP_START_OF_STREAM;
+                }
+            }
+        }
+        break;
+    }
+
 } // End of: pTcpRxPath()
 
 /*******************************************************************************
@@ -415,7 +593,7 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>           piSHL_MmioEchoCtrl,
+        //OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
@@ -433,7 +611,7 @@ void tcp_app_flash (
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
     #pragma HLS INTERFACE ap_ctrl_none port=return
-    #pragma HLS STABLE variable=piSHL_MmioEchoCtrl
+    //OBSOLETE_20210316 #pragma HLS STABLE variable=piSHL_MmioEchoCtrl
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -480,7 +658,7 @@ void tcp_app_flash (
     //
     //--------------------------------------------------------------------------
     pTcpRxPath(
-            piSHL_MmioEchoCtrl,
+            //OBSOLETE_20210316 piSHL_MmioEchoCtrl,
             siTSIF_Data,
             siSHL_SessId,
             siSHL_DatLen,
@@ -500,7 +678,7 @@ void tcp_app_flash (
             ssESfToTXp_DatLen);
 
     pTcpTxPath(
-            piSHL_MmioEchoCtrl,
+            //OBSOLETE_20210316 piSHL_MmioEchoCtrl,
             ssRXpToTXp_Data,
             ssRXpToTXp_SessId,
             ssRXpToTXp_DatLen,

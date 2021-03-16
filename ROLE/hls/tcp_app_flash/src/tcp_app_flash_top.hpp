@@ -60,7 +60,7 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>           piSHL_MmioEchoCtrl,
+		//OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
         //------------------------------------------------------
         //-- TSIF / Rx Data Interfaces
         //------------------------------------------------------
