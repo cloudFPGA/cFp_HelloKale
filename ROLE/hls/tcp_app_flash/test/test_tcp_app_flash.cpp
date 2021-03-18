@@ -40,8 +40,6 @@
  * \{
  *******************************************************************************/
 
-//OBSOLETE #include "../src/tcp_app_flash.hpp"
-//OBSOLETE #include "./simu_tcp_app_flash_env.hpp"
 #include "test_tcp_app_flash.hpp"
 
 using namespace hls;
@@ -50,17 +48,15 @@ using namespace std;
 //---------------------------------------------------------
 // HELPERS FOR THE DEBUGGING TRACES
 //---------------------------------------------------------
-#define THIS_NAME "TB"
+#define THIS_NAME "TB_TAF"
 
 #ifndef __SYNTHESIS__
   extern unsigned int gSimCycCnt;
   extern unsigned int gMaxSimCycles;
 #endif
 
-
-
 /******************************************************************************
- * @brief Main function.
+ * @brief Main function for the test of the TCP Application Flash (TAF).
  ******************************************************************************/
 int main(int argc, char *argv[]) {
 

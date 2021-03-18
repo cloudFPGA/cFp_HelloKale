@@ -451,7 +451,7 @@ void pTSIF(
             tsif_doneWithPassThroughTest1 = true;
         }
         else {
-            printError(THIS_NAME, "File \"%s\" is empty.\n", ofRawFileName1);
+            printError(THIS_NAME, "File \"%s\" is empty.\n", ofRawFileName1.c_str());
             nrErr += 1;
         }
         //-- Closing open files
