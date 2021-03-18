@@ -92,7 +92,6 @@ open_project     ${ipProjectName}_prj
 #-------------------------------------------------
 add_files        ${currDir}/src/${ipName}.cpp
 add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
-add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
 
 if { [string equal ${ipProjectName} ip_core] } {
     set_top       ${ipName}
@@ -102,6 +101,9 @@ if { [string equal ${ipProjectName} ip_core] } {
     add_files     ${srcDir}/${ipName}_top.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
     add_files -tb ${testDir}/test_${ipName}_top.cpp
 }
+add_files -tb ${testDir}/simu_${ipName}_env.cpp
+add_files -tb ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
+
 
 # Create a solution
 #-------------------------------------------------

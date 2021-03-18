@@ -51,12 +51,8 @@ using namespace std;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (LSN_TRACE | ESF_TRACE)
+ *  .e.g: DEBUG_LEVEL = (TRACE_RXP | TRACE_TXP)
  ************************************************/
-#ifndef __SYNTHESIS__
-  extern bool gTraceEvent;
-#endif
-
 #define THIS_NAME "TAF"  // TcpAppFlash
 
 #define TRACE_OFF  0x0000
@@ -66,6 +62,9 @@ using namespace std;
 #define TRACE_ALL  0xFFFF
 #define DEBUG_LEVEL (TRACE_OFF)
 
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
 
 /*******************************************************************************
  * @brief Echo Store and Forward (ESf)
@@ -540,12 +539,18 @@ void pTcpRxPath(
                 soEPt_SessId.write(sessId);
                 soEPt_DatLen.write(datLen);
                 rxp_EchoCtrl = ECHO_PATH_THRU;
+                if (DEBUG_LEVEL & TRACE_RXP) {
+                    printInfo(myName, "SessId=%d --> Forwarding segment in ECHO_PATH_THRU mode.\n", sessId.to_ushort());
+                }
             }
             else {
                 // Forward to pEchoStoreAndForward
                 soESf_SessId.write(sessId);
                 soESf_DatLen.write(datLen);
                 rxp_EchoCtrl = ECHO_STORE_FWD;
+                if (DEBUG_LEVEL & TRACE_RXP) {
+                    printInfo(myName, "SessId=%d --> Forwarding segment in ECHO_STORE_FWD mode.\n", sessId.to_ushort());
+                }
             }
             rxp_fsmState = RXP_CONTINUATION_OF_STREAM;
         }
@@ -626,7 +631,7 @@ void tcp_app_flash (
     #pragma HLS STREAM variable=ssRXpToTXp_DatLen depth=64
 
     static stream<TcpAppData>   ssRXpToESf_Data   ("ssRXpToESf_Data");
-    #pragma HLS STREAM variable=ssRXpToESf_Data   depth=1024
+    #pragma HLS STREAM variable=ssRXpToESf_Data   depth=2048
     static stream<TcpSessId>    ssRXpToESf_SessId ("ssRXpToESf_SessId");
     #pragma HLS STREAM variable=ssRXpToESf_SessId depth=32
     static stream<TcpDatLen>    ssRXpToESf_DatLen ("ssRXpToESf_DatLen");
