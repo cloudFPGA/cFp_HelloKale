@@ -66,6 +66,11 @@ if { $argc == 2 } {
     exit 2
 }
 
+# Retreive the Vivado version 
+#-------------------------------------------------
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+set HLS_VERSION    [expr entier(${VIVADO_VERSION})]
+
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
 set hlsCSim      $::env(hlsCSim)
@@ -94,8 +99,8 @@ if { [string equal ${ipProjectName} ip_core] } {
     add_files -tb ${testDir}/test_${ipName}.cpp
 } elseif { [string equal ${ipProjectName} ip_top] } {
     set_top       ${ipName}_top
-    add_files     ${srcDir}/${ipName}_top.cpp
-    add_files -tb ${testDir}/test_${ipName}_top.cpp 
+    add_files     ${srcDir}/${ipName}_top.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
+    add_files -tb ${testDir}/test_${ipName}_top.cpp
 }
 
 # Create a solution
@@ -129,7 +134,6 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
 if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } { 
 	config_rtl -disable_start_propagation
 }
@@ -142,7 +146,6 @@ if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } {
 #               message to the user. By default this checker is set to 'warning'. It can be set to
 #               'error' or can be disabled by selecting the 'off' mode.
 #-------------------------------------------------------------------------------------------------
-set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
 if { [format "%.1f" ${VIVADO_VERSION}] > 2018.1 } { 
 	config_dataflow -strict_mode  error
 }
