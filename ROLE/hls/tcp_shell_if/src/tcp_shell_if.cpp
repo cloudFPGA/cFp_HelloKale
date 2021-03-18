@@ -377,11 +377,11 @@ void pInputBufferOccupancy(
 
     if (!siEnqueueSig.empty() and siDequeueSig.empty()) {
         siEnqueueSig.read();
-        rrh_freeSpace += (ARW/8);
+        rrh_freeSpace -= (ARW/8);
         traceInc = true;
     } else if (siEnqueueSig.empty() and !siDequeueSig.empty()) {
         siDequeueSig.read();
-        rrh_freeSpace -= (ARW/8);
+        rrh_freeSpace += (ARW/8);
         traceDec = true;
     } else if (!siEnqueueSig.empty() and !siDequeueSig.empty()) {
         siEnqueueSig.read();
