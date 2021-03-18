@@ -39,6 +39,13 @@
 using namespace hls;
 using namespace std;
 
+/************************************************
+ * INTERFACE SYNTHESIS DIRECTIVES
+ *  For the time being, we may continue to design
+ *  with the DEPRECATED directives because the
+ *  new PRAGMAs do not always work for us.
+ ************************************************/
+#undef USE_DEPRECATED_DIRECTIVES
 
 /*******************************************************************************
  * @brief   Top of TCP Application Flash (TAF)
@@ -111,11 +118,6 @@ void tcp_app_flash_top (
     #pragma HLS INTERFACE axis off           port=soTSIF_DatLen  name=soTSIF_DatLen
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    //#if defined (HLS_VERSION_2017)
-    //    #pragma HLS DATAFLOW
-    //#else
-    //    #pragma HLS DATAFLOW disable_start_propagation
-    //#endif
   #if HLS_VERSION == 2017
     #pragma HLS DATAFLOW
   #else

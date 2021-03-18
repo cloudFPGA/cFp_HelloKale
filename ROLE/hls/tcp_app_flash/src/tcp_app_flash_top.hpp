@@ -39,16 +39,6 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
-/************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we may continue to design
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not always work for us.
- ************************************************/
-#define HLS_VERSION_2017
-#if defined HLS_VERSION_2017
-    #undef USE_DEPRECATED_DIRECTIVES
-#endif
 
 /*******************************************************************************
  *
