@@ -291,7 +291,9 @@ bool pTSIF_Send(
 void pTSIF(
         int                 &nrErr,
         //-- MMIO/ Configuration Interfaces
-        //OBSOLETE_20210316 ap_uint<2>           poTAF_EchoCtrl,
+      #if defined USE_NON_FIFO_IO
+        ap_uint<2>           poTAF_EchoCtrl,
+      #endif
         //-- TAF / TCP Data Interfaces
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpSessId>   &soTAF_SessId,
@@ -428,7 +430,7 @@ void pTSIF(
             tsif_doneWithPassThroughTest1 = true;
         }
         else {
-            printError(THIS_NAME, "File \"%s\" is empty.\n", ofRawFileName1);
+            printError(THIS_NAME, "File \"%s\" is empty.\n", ofRawFileName1.c_str());
             nrErr += 1;
         }
         //-- Closing open files
@@ -438,7 +440,6 @@ void pTSIF(
         ofTcpFile1.close();
     }
 }
-
 
 /******************************************************************************
  * @brief Main function for the test of the TCP Application Flash (TAF) TOP.
@@ -482,8 +483,10 @@ int old_stuff(int argc, char *argv[]) {
     int tbRun = 42;
     while (0) {
         tcp_app_flash_top(
+          #if defined USE_NON_FIFO_IO
             //-- SHELL / MMIO / Configuration Interfaces
-            //OBSOLETE_20210316 sMMIO_TAF_EchoCtrl,
+            sMMIO_TAF_EchoCtrl,
+          #endif
             //-- TSIF / Rx Data Interfaces
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,
@@ -517,8 +520,10 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- DUT SIGNAL INTERFACES
     //------------------------------------------------------
+  #if defined USE_NON_FIFO_IO
     //-- MMIO/ Configuration Interfaces
-    //[NOT_USED] ap_uint<2> sMMIO_TAF_EchoCtrl;
+    ap_uint<2> sMMIO_TAF_EchoCtrl;
+  #endif
     //[NOT_USED] CmdBit     sMMIO_TAF_PostSegEn;
     //[NOT_USED] CmdBit     sMMIO_TAF_CaptSegEn;
 
@@ -557,8 +562,10 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         pTSIF(
             nrErr,
+          #if defined USE_NON_FIFO_IO
             //-- MMIO / Configuration Interfaces
-            //OBSOLETE_20210316 sMMIO_TAF_EchoCtrl,
+            sMMIO_TAF_EchoCtrl,
+          #endif
             //-- TAF / TCP Data Interfaces
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,
@@ -572,8 +579,10 @@ int main(int argc, char *argv[]) {
         //-- RUN DUT
         //-------------------------------------------------
         tcp_app_flash_top(
+          #if defined USE_NON_FIFO_IO
             //-- MMIO / Configuration Interfaces
-            //OBSOLETE_20210316 sMMIO_TAF_EchoCtrl,
+            sMMIO_TAF_EchoCtrl,
+          #endif
             //-- TSIF / TCP Rx Data Interface
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,

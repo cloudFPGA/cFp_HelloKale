@@ -38,8 +38,21 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
+/********************************************************************
+ * IMPLEMENTATION DIRECTIVES
+ *
+ * [TAF_USE_NON_FIFO_IO] This conditional compilation directive is
+ *  used to enable/disable the implementation of non-FIFO-IOs
+ *  interfaces on the current toplevel function. FYI, the use of non-
+ *  FIFO-IOs generates the following warning message during the C
+ *  synthesis:
+ *    WARNING: [HLS 200-631] Ignoring ap_ctrl_none interface for
+ *           tcp_shell_if_top due to tcp_shell_if with non-FIFO I/O.
+ ********************************************************************/
+#undef TAF_USE_NON_FIFO_IO
+
 //---------------------------------------------------------
-/// -- SHELL/MMIO/EchoCtrl - Configuration Register
+//-- SHELL/MMIO/EchoCtrl - Configuration Register
 //---------------------------------------------------------
 enum EchoCtrl {
     ECHO_STORE_FWD = 0,
@@ -69,7 +82,9 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-		//OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
+    #if defined TAF_USE_NON_FIFO_IO
+        ap_uint<2>           piSHL_MmioEchoCtrl,
+    #endif
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------

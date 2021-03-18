@@ -304,7 +304,9 @@ bool pTSIF_Send(
 void pTSIF(
         int                 &nrErr,
         //-- MMIO/ Configuration Interfaces
-        //OBSOLETE_20210316 ap_uint<2>           poTAF_EchoCtrl,
+      #if defined TAF_USE_NON_FIFO_IO
+        ap_uint<2>           poTAF_EchoCtrl,
+      #endif
         //-- TAF / TCP Data Interfaces
         stream<TcpAppData>  &soTAF_Data,
         stream<TcpSessId>   &soTAF_SessId,
@@ -468,7 +470,9 @@ int main(int argc, char *argv[]) {
     //-- DUT SIGNAL INTERFACES
     //------------------------------------------------------
     //-- MMIO/ Configuration Interfaces
-    //[NOT_USED] ap_uint<2> sMMIO_TAF_EchoCtrl;
+  #if defined TAF_USE_NON_FIFO_IO
+    ap_uint<2> sMMIO_TAF_EchoCtrl;
+  #endif
     //[NOT_USED] CmdBit     sMMIO_TAF_PostSegEn;
     //[NOT_USED] CmdBit     sMMIO_TAF_CaptSegEn;
 
@@ -508,7 +512,9 @@ int main(int argc, char *argv[]) {
         pTSIF(
             nrErr,
             //-- MMIO / Configuration Interfaces
-            //OBSOLETE_20210316 sMMIO_TAF_EchoCtrl,
+          #if defined TAF_USE_NON_FIFO_IO
+            sMMIO_TAF_EchoCtrl,
+          #endif
             //-- TAF / TCP Data Interfaces
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,
@@ -522,8 +528,10 @@ int main(int argc, char *argv[]) {
         //-- RUN DUT
         //-------------------------------------------------
         tcp_app_flash(
+          #if defined TAF_USE_NON_FIFO_IO
             //-- MMIO / Configuration Interfaces
-            //OBSOLETE_20210316 sMMIO_TAF_EchoCtrl,
+            sMMIO_TAF_EchoCtrl,
+          #endif
             //-- TSIF / TCP Rx Data Interface
             ssTSIF_TAF_Data,
             ssTSIF_TAF_SessId,

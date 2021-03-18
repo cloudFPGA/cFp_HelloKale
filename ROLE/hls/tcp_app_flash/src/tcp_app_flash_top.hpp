@@ -39,17 +39,16 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
-//---------------------------------------------------------
-/// -- SHELL/MMIO/EchoCtrl - Configuration Register
-//---------------------------------------------------------
-/*** OBSOLETE *********
- enum EchoCtrl {
-    ECHO_PATH_THRU = 0,
-    ECHO_STORE_FWD = 1,
-    ECHO_OFF       = 2
-};
-***********************/
-
+/************************************************
+ * INTERFACE SYNTHESIS DIRECTIVES
+ *  For the time being, we may continue to design
+ *  with the DEPRECATED directives because the
+ *  new PRAGMAs do not always work for us.
+ ************************************************/
+#define HLS_VERSION_2017
+#if defined HLS_VERSION_2017
+    #undef USE_DEPRECATED_DIRECTIVES
+#endif
 
 /*******************************************************************************
  *
@@ -60,7 +59,9 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-		//OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
+      #if defined TAF_USE_NON_FIFO_IO
+        ap_uint<2>           piSHL_MmioEchoCtrl,
+      #endif
         //------------------------------------------------------
         //-- TSIF / Rx Data Interfaces
         //------------------------------------------------------

@@ -39,35 +39,6 @@
 using namespace hls;
 using namespace std;
 
-/************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we may continue to design
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not always work for us.
- ************************************************/
-#undef USE_DEPRECATED_DIRECTIVES
-
-/*** OBSOLETE *************************
-void pAxisRawToAxisApp(
-        stream<AxisRaw>     &siRawData,
-        stream<AxisApp>     &soAppData)
-{
-    //OBSOLETE_20210212 if (!siRawData.empty() and !soAppData.full()) {
-        if (!soAppData.full()) {
-        soAppData.write(siRawData.read());
-    }
-}
-
-void pAxisAppToAxisRaw(
-        stream<AxisApp>     &siAppData,
-        stream<AxisRaw>     &soRawData)
-{
-        //OBSOLETE_20210212 if (!siAppData.empty() and !soRawData.full()) {
-    if (!siAppData.empty()) {
-        soRawData.write(siAppData.read());
-    }
-}
-***************************************/
 
 /*******************************************************************************
  * @brief   Top of TCP Application Flash (TAF)
@@ -85,7 +56,9 @@ void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        //OBSOLETE_20210316 ap_uint<2>           piSHL_MmioEchoCtrl,
+      #if defined TAF_USE_NON_FIFO_IO
+        ap_uint<2>           piSHL_MmioEchoCtrl,
+      #endif
         //------------------------------------------------------
         //-- TSIF / Rx Data Interface
         //------------------------------------------------------
@@ -109,8 +82,9 @@ void tcp_app_flash_top (
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
+  #if defined TAF_USE_NON_FIFO_IO
     #pragma HLS INTERFACE ap_stable    port=piSHL_MmioEchoCtrl
-
+  #endif
     #pragma HLS resource core=AXI4Stream variable=siTSIF_Data   metadata="-bus_bundle siTSIF_Data"
     #pragma HLS resource core=AXI4Stream variable=siTSIF_SessId metadata="-bus_bundle siTSIF_SessId"
     #pragma HLS resource core=AXI4Stream variable=siTSIF_DatLen metadata="-bus_bundle siTSIF_DatLen"
@@ -123,9 +97,10 @@ void tcp_app_flash_top (
     #pragma HLS DATAFLOW
 
 #else
-
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-	//OBSOLETE_20210316 #pragma HLS INTERFACE ap_stable register port=piSHL_MmioEchoCtrl
+  #if defined TAF_USE_NON_FIFO_IO
+    #pragma HLS INTERFACE ap_stable register port=piSHL_MmioEchoCtrl
+  #endif
 
     #pragma HLS INTERFACE axis off           port=siTSIF_Data name=siTSIF_Data
     #pragma HLS INTERFACE axis off           port=siTSIF_SessId  name=siTSIF_SessId
@@ -136,27 +111,27 @@ void tcp_app_flash_top (
     #pragma HLS INTERFACE axis off           port=soTSIF_DatLen  name=soTSIF_DatLen
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW  disable_start_propagation
+    //#if defined (HLS_VERSION_2017)
+    //    #pragma HLS DATAFLOW
+    //#else
+    //    #pragma HLS DATAFLOW disable_start_propagation
+    //#endif
+  #if HLS_VERSION == 2017
+    #pragma HLS DATAFLOW
+  #else
+    #pragma HLS DATAFLOW disable_start_propagation
+#endif
     #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    #endif
-
-    //-- LOCAL IN and OUT STREAMS ----------------------------------------------
-	//OBSOLETE-20210213 static stream<TcpAppData>   ssiTSIF_Data    ("ssiTSIF_Data");
-	//OBSOLETE-20210213 #pragma HLS STREAM variable=ssiTSIF_Data    depth=2
-
-	//OBSOLETE-20210213 static stream<TcpAppData>   ssoTSIF_Data    ("ssoTSIF_Data");
-	//OBSOLETE-20210213 #pragma HLS STREAM variable=ssoTSIF_Data    depth=2
-
-    //-- INPUT INTERFACES ------------------------------------------------------
-    //OBSOLETE-20210213 pAxisRawToAxisApp(siTSIF_Data, ssiTSIF_Data);
+#endif
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-    		//OBSOLETE_20210316 piSHL_MmioEchoCtrl,
+      #if defined TAF_USE_NON_FIFO_IO
+        piSHL_MmioEchoCtrl,
+      #endif
         //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
@@ -169,9 +144,6 @@ void tcp_app_flash_top (
         soTSIF_Data,
         soTSIF_SessId,
         soTSIF_DatLen);
-
-    //-- OUTPUT INTERFACES -----------------------------------------------------
-    //OBSOLETE-20210213 pAxisAppToAxisRaw(ssoTSIF_Data, soTSIF_Data);
 
 }
 
