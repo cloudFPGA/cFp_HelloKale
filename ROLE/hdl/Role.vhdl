@@ -250,7 +250,7 @@ entity Role_Kale is
     --[NOT_USED] piSHL_Mmio_UdpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
     --[NOT_USED] piSHL_Mmio_UdpPostDgmEn  : in    std_ulogic;
     --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn  : in    std_ulogic;
-    piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
+    --[NOT_USED] piSHL_Mmio_TcpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
     --[NOT_USED] piSHL_Mmio_TcpPostSegEn  : in    std_ulogic;
     --[NOT_USED] piSHL_Mmio_TcpCaptSegEn  : in    std_ulogic;
     ---- [APP_RDROL] -------------------
@@ -1207,16 +1207,16 @@ architecture BringUp of Role_Kale is
     port (
       aclk          : in  std_logic;
       aresetn       : in  std_logic;
-      s_axis_tvalid : in  std_logic;
-      s_axis_tready : out std_logic;
       s_axis_tdata  : in  std_logic_vector(63 downto 0);
       s_axis_tkeep  : in  std_logic_vector( 7 downto 0);
       s_axis_tlast  : in  std_logic;
-      m_axis_tvalid : out std_logic;
-      m_axis_tready : in  std_logic;
+      s_axis_tvalid : in  std_logic;
+      s_axis_tready : out std_logic;
       m_axis_tdata  : out std_logic_vector(63 downto 0);
       m_axis_tkeep  : out std_logic_vector( 7 downto 0);
-      m_axis_tlast  : out std_logic
+      m_axis_tlast  : out std_logic;
+      m_axis_tvalid : out std_logic;
+      m_axis_tready : in  std_logic
     );
   end component AxisRegisterSlice_64;
 
@@ -2143,7 +2143,6 @@ begin
           m_axis_tvalid => ssTARS_TAF_DatLen_tvalid,
           m_axis_tready => ssTARS_TAF_DatLen_tready
         );
-      --
       ARS_TCP_TX_DATA   : AxisRegisterSlice_64
         port map (
           aclk          => piSHL_156_25Clk,
