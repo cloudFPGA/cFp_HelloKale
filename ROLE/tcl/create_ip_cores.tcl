@@ -337,6 +337,60 @@ set_property target_language Verilog [current_project]
 my_puts ""
 
 #------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [16]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_16"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {2} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [64]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [8]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [Yes] : Enable TKEEP
+#    [Yes] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_64"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {8} \
+                      CONFIG.HAS_TKEEP {1} \
+                      CONFIG.HAS_TLAST {1} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
 # VIVADO-IP : FIFO Generator [Depth-16 x Width-16]
 #------------------------------------------------------------------------------
 set ipModName "Fifo_16x16"
