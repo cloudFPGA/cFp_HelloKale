@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- RUN DUT
         //-------------------------------------------------
-        tcp_app_flash(
+        tcp_app_flash_top(
           #if defined TAF_USE_NON_FIFO_IO
             //-- MMIO / Configuration Interfaces
             sMMIO_TAF_EchoCtrl,

@@ -287,16 +287,14 @@ void pTcpTxPath(
             }
             txp_fsmState = TXP_CONTINUATION_OF_STREAM;
         }
-        else if (!siEPt_SessId.empty() and
-                 !siEPt_DatLen.empty() and
+        else if (!siEPt_SessId.empty() and !siEPt_DatLen.empty() and
                  !soTSIF_SessId.full() and !soTSIF_DatLen.full()) {
             soTSIF_SessId.write(siEPt_SessId.read());
             soTSIF_DatLen.write(siEPt_DatLen.read());
             txp_EchoCtrl = ECHO_PATH_THRU;
             txp_fsmState = TXP_CONTINUATION_OF_STREAM;
         }
-        else if (!siESf_SessId.empty() and
-                 !siESf_DatLen.empty() and
+        else if (!siESf_SessId.empty() and !siESf_DatLen.empty() and
                  !soTSIF_SessId.full() and !soTSIF_DatLen.full()) {
             soTSIF_SessId.write(siESf_SessId.read());
             soTSIF_DatLen.write(siESf_DatLen.read());
@@ -535,7 +533,7 @@ void pTcpRxPath(
             !soESf_SessId.full()   and !soESf_DatLen.full()) {
             siTSIF_SessId.read(sessId);
             siTSIF_DatLen.read(datLen);
-            if ((sessId%2) == ECHO_PATH_THRU) {
+            if (sessId.get_bit(0)) {
                 soEPt_SessId.write(sessId);
                 soEPt_DatLen.write(datLen);
                 rxp_EchoCtrl = ECHO_PATH_THRU;

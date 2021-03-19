@@ -180,12 +180,12 @@ bool pTSIF_Send(
     static unsigned int tss_idleCycReq = 0;  // The requested number of idle cycles
     static unsigned int tss_idleCycCnt = 0;  // The count of idle cycles
     static SimAppData   tss_simAppData;
+    static TcpSessId    tss_tcpSessId = DEFAULT_SESS_ID;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string          strLine;
     vector<string>  stringVector;
     TcpAppData      currChunk;
-    TcpSessId       tcpSessId = DEFAULT_SESS_ID;
     char           *pEnd;
 
     //-----------------------------------------------------
@@ -284,8 +284,9 @@ bool pTSIF_Send(
                         rc = writeAxisRawToFile(currChunk, outGoldStream);
                         if (currChunk.getTLast()) {
                             // Send metadata to [TAF]
-                            soTAF_SessId.write(TcpSessId(tcpSessId));
+                            soTAF_SessId.write(TcpSessId(tss_tcpSessId));
                             soTAF_DatLen.write(TcpDatLen(tss_simAppData.length()));
+                            tss_tcpSessId++;
                             return OK;
                         }
                     } while (not currChunk.getTLast());
