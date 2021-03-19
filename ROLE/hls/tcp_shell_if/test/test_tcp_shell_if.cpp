@@ -94,8 +94,8 @@ void pTAF(ofstream &ofTAF_Data, stream<TcpAppData> &siTSIF_Data,
 
     switch (taf_fsmState) {
     case RX_IDLE:
-        if (!siTSIF_SessId.empty() and !soTSIF_SessId.full()
-                and !siTSIF_DatLen.empty() and !soTSIF_DatLen.full()) {
+        if (!siTSIF_SessId.empty() and !soTSIF_SessId.full() and
+            !siTSIF_DatLen.empty() and !soTSIF_DatLen.full()) {
             siTSIF_SessId.read(sessId);
             siTSIF_DatLen.read(datLen);
             soTSIF_SessId.write(sessId);
@@ -126,7 +126,9 @@ void pTAF(ofstream &ofTAF_Data, stream<TcpAppData> &siTSIF_Data,
  * @param[out] poTSIF_Enable  Enable signal to [TSIF] (.i.e, Enable Layer-7).
  *
  *******************************************************************************/
-void pMMIO(StsBit *piSHL_Ready, CmdBit *poTSIF_Enable) {
+void pMMIO(
+		StsBit *piSHL_Ready,
+		CmdBit *poTSIF_Enable) {
     const char *myName = concat3(THIS_NAME, "/", "MMIO");
 
     static bool printOnce = true;
@@ -161,19 +163,27 @@ void pMMIO(StsBit *piSHL_Ready, CmdBit *poTSIF_Enable) {
  * @param[in]  siTSIF_LsnReq Listen port request from [TSIF].
  * @param[out] soTSIF_LsnRep Listen port reply to [TSIF].
  *******************************************************************************/
-void pTOE(int &nrErr, ofstream &ofTAF_Gold, ofstream &ofTOE_Gold,
-        ofstream &ofTOE_Data, TcpDatLen echoDatLen, SockAddr testSock,
-        TcpDatLen testDatLen,
+void pTOE(
+		int                  &nrErr,
+		ofstream             &ofTAF_Gold,
+		ofstream             &ofTOE_Gold,
+        ofstream             &ofTOE_Data,
+		TcpDatLen             echoDatLen,
+		SockAddr              testSock,
+        TcpDatLen             testDatLen,
         //-- MMIO / Ready Signal
-        StsBit *poMMIO_Ready,
+        StsBit               *poMMIO_Ready,
         //-- TSIF / Tx Data Interfaces
-        stream<TcpAppNotif> &soTSIF_Notif, stream<TcpAppRdReq> &siTSIF_DReq,
-        stream<TcpAppData> &soTSIF_Data, stream<TcpAppMeta> &soTSIF_Meta,
+        stream<TcpAppNotif>  &soTSIF_Notif,
+		stream<TcpAppRdReq>  &siTSIF_DReq,
+        stream<TcpAppData>   &soTSIF_Data,
+		stream<TcpAppMeta>   &soTSIF_Meta,
         //-- TSIF / Listen Interfaces
         stream<TcpAppLsnReq> &siTSIF_LsnReq,
         stream<TcpAppLsnRep> &soTSIF_LsnRep,
         //-- TSIF / Rx Data Interfaces
-        stream<TcpAppData> &siTSIF_Data, stream<TcpAppSndReq> &siTSIF_SndReq,
+        stream<TcpAppData>   &siTSIF_Data,
+		stream<TcpAppSndReq> &siTSIF_SndReq,
         stream<TcpAppSndRep> &soTSIF_SndRep,
         //-- TSIF / Open Interfaces
         stream<TcpAppOpnReq> &siTSIF_OpnReq,
@@ -220,19 +230,36 @@ void pTOE(int &nrErr, ofstream &ofTAF_Gold, ofstream &ofTOE_Gold,
     //------------------------------------------------------
     //-- FSM #0 - STARTUP DELAYS
     //------------------------------------------------------
+    /**** OBSOLET ******
     if (toe_startupDelay) {
         *poMMIO_Ready = 0;
         toe_startupDelay--;
     } else {
-        *poMMIO_Ready = 1;
-        if (toe_rxpStartupDelay)
+        if (toe_rxpStartupDelay) {
             toe_rxpStartupDelay--;
-        else
+        }
+        else {
             toe_rxpIsReady = true;
-        if (toe_txpStartupDelay)
+        }
+        if (toe_txpStartupDelay) {
             toe_txpStartupDelay--;
+        }
         else
             toe_txpIsReady = true;
+    }
+    *poMMIO_Ready = (toe_rxpIsReady and toe_txpIsReady) ? 1 : 0;
+	********************/
+    if (toe_startupDelay) {
+        *poMMIO_Ready = 0;
+        if (toe_startupDelay < cSimToeRxStartDelay) {
+            toe_rxpIsReady = true;
+        }
+        if (toe_startupDelay < cSimToeTxStartDelay) {
+            toe_txpIsReady = true;
+        }
+        toe_startupDelay--;
+    } else {
+        *poMMIO_Ready = 1;
     }
 
     //------------------------------------------------------
@@ -307,7 +334,6 @@ void pTOE(int &nrErr, ofstream &ofTAF_Gold, ofstream &ofTOE_Gold,
     static int toe_sessCnt = 0;
     static int toe_segCnt = 0;
     static int toe_sendPause = 0;
-
     if (toe_rxpIsReady) {
         switch (toe_ntfState) {
         case NTF_SEND:  // SEND A DATA NOTIFICATION TO [TSIF]
@@ -417,16 +443,14 @@ void pTOE(int &nrErr, ofstream &ofTAF_Gold, ofstream &ofTOE_Gold,
                             toe_appRdReq.length.to_int());
                 }
                 //-- Decrement the byte counter of the session
-                int sessByteCnt =
-                        toe_openedSess[toe_appRdReq.sessionID].byteCnt.to_int();
+                int sessByteCnt = toe_openedSess[toe_appRdReq.sessionID].byteCnt.to_int();
                 if (toe_appRdReq.length.to_int() > sessByteCnt) {
                     printFatal(myDrqName,
                             "TOE is requesting more data (%d) than notified (%d) for session #%d !\n",
                             toe_appRdReq.length.to_int(), sessByteCnt,
                             toe_appRdReq.sessionID.to_uint());
                 } else {
-                    toe_openedSess[toe_appRdReq.sessionID].byteCnt -=
-                            toe_appRdReq.length;
+                    toe_openedSess[toe_appRdReq.sessionID].byteCnt -= toe_appRdReq.length;
                     if (DEBUG_LEVEL & TRACE_ALL) {
                         printf("[---] toe_openedSess[%d].byteCnt = %d\n",
                                 toe_appRdReq.sessionID.to_int(),
