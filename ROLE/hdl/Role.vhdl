@@ -2101,7 +2101,7 @@ begin
   --#       #       ####   #         #   #  #  #  ####                            #
   --#                                                                             #
   --###############################################################################
-  gArsTcpRx : if cTCP_SIF_DEPRECATED_DIRECTIVES = true
+  gArsTcpRx : if cTCP_SIF_DEPRECATED_DIRECTIVES /= true
     generate
       ARS_TCP_RX_DATA   : AxisRegisterSlice_64
         port map (
