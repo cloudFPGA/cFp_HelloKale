@@ -317,7 +317,7 @@ void pTOE(int &nrErr, ofstream &ofTAF_Gold, ofstream &ofTOE_Gold,
                 notifByteCnt = echoDatLen;
                 toe_sessId = 1;
                 gMaxSimCycles += (echoDatLen / 8);
-                toe_sendPause = cMinWAIT;
+                toe_sendPause = cMinWAIT + (notifByteCnt/2);
                 break;
             case 2: //-- Request TSIF to open an active port
                 toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
@@ -348,7 +348,7 @@ void pTOE(int &nrErr, ofstream &ofTAF_Gold, ofstream &ofTOE_Gold,
                 notifByteCnt = echoDatLen;
                 toe_sessId = 0;
                 gMaxSimCycles += (echoDatLen / 8);
-                toe_sendPause = cMinWAIT;
+                toe_sendPause = cMinWAIT + (notifByteCnt/2);
                 break;
             }
             toe_segCnt += 1;

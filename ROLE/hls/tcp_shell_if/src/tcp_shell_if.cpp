@@ -59,15 +59,16 @@ using namespace std;
 
 #define THIS_NAME "TSIF"  // TcpShellInterface
 
-#define TRACE_OFF  0x0000
-#define TRACE_IRB 1 <<  1
-#define TRACE_RDP 1 <<  2
-#define TRACE_WRP 1 <<  3
-#define TRACE_RRH 1 <<  4
-#define TRACE_LSN 1 <<  5
-#define TRACE_CON 1 <<  6
-#define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define TRACE_OFF      0x0000
+#define TRACE_IRB 1     <<  1
+#define TRACE_RDP 1     <<  2
+#define TRACE_WRP 1     <<  3
+#define TRACE_LSN 1     <<  4
+#define TRACE_CON 1     <<  5
+#define TRACE_RRH 1     <<  6
+#define TRACE_RRH_IBO 1 <<  7
+#define TRACE_ALL      0xFFFF
+#define DEBUG_LEVEL (TRACE_RRH)
 
 
 /*******************************************************************************
@@ -392,7 +393,7 @@ void pInputBufferOccupancy(
     //-- Always
     soFreeSpace.write(rrh_freeSpace);
 
-    if (DEBUG_LEVEL & TRACE_RRH) {
+    if (DEBUG_LEVEL & TRACE_RRH_IBO) {
         if (traceInc or traceDec) {
             printInfo(myName, "Input buffer occupancy = %d bytes (%c|%c)\n",
                      (cIBuffBytes - rrh_freeSpace.to_uint()),
@@ -642,7 +643,7 @@ void pRsr_Handler(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr/Handl");
 
@@ -681,6 +682,7 @@ void pRsr_Handler(
     if (!siScheduler_SessIdReq.empty() and !soScheduler_SessIdRep.full()) {
         //-- Round-robin scheduler
         for (uint8_t i=0; i<cMaxSessions; ++i) {
+            #pragma HLS UNROLL
             nextSess = rsr_currSess + i + 1;
             if (rsr_pendingInterrupts[nextSess] == 1) {
                 rsr_currSess = nextSess;

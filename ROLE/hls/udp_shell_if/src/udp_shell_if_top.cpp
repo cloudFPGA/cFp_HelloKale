@@ -45,9 +45,10 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not work for us.
  ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
+#undef  USE_DEPRECATED_DIRECTIVES
 #define USE_AP_FIFO
 
+/*** [NOT-USED] ***********************
 template <class Type>
 void pAxisToFifo(
         stream<Type>& siAxisStream,
@@ -73,6 +74,7 @@ void pFifoToAxis(
         soAxisStream.write(currChunk);  // Blocking write
     }
 }
+***************************************/
 
 /*****************************************************************************
  * @brief   Top of UDP Shell Interface (USIF)
@@ -141,17 +143,15 @@ void udp_shell_if_top(
         stream<UdpAppData>  &soUAF_Data,
         stream<UdpAppMetb>  &soUAF_Meta)
 {
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
-
-    #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En name=piSHL_Mmio_En
+    #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_En name=piSHL_Mmio_En
 
     //-- [SHL] INTERFACES ------------------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soSHL_LsnReq  metadata="-bus_bundle soSHL_LsnReq"
@@ -177,10 +177,10 @@ void udp_shell_if_top(
     #pragma HLS resource core=AXI4Stream variable=soUAF_Data    metadata="-bus_bundle soUAF_Data"
     #pragma HLS resource core=AXI4Stream variable=soUAF_Meta    metadata="-bus_bundle soUAF_Meta"
     #pragma HLS DATA_PACK                variable=soUAF_Meta
-
 #else
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
   #if defined (USE_AP_FIFO)
-    #pragma HLS INTERFACE ap_stable             port=piSHL_Mmio_En  name=piSHL_Mmio_En
+    #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     //-- [SHL] INTERFACES ------------------------------------------------------
     #pragma HLS INTERFACE axis register off     port=soSHL_LsnReq   name=soSHL_LsnReq
@@ -211,7 +211,7 @@ void udp_shell_if_top(
     // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
     //    does not support packing structs which contain other structs!!!
   #else
-    #pragma HLS INTERFACE ap_stable             port=piSHL_Mmio_En  name=piSHL_Mmio_En
+    #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     //-- [SHL] INTERFACES ------------------------------------------------------
     #pragma HLS INTERFACE axis register off     port=soSHL_LsnReq   name=soSHL_LsnReq
@@ -241,14 +241,19 @@ void udp_shell_if_top(
 #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+  #if HLS_VERSION == 2017
     #pragma HLS DATAFLOW
+  #else
+    #pragma HLS DATAFLOW disable_start_propagation
+  #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    /*** [NOT-USED] ************************
 
     //-- LOCAL IN and OUT STREAMS ----------------------------------------------
     //--  FYI, an internal hls::stream<> is implemented as a FIFO with a default
     //--  depth of 2. You may change it with the optimization directive 'STREAM'.
     //--    E.g., #pragma HLS STREAM variable=ssiUAF_Data depth=4
-
-    /*** OBSOLETE_20210219 ******************
     static stream<UdpPort>       ssoSHL_LsnReq  ("ssoSHL_LsnReq");
     static stream<StsBool>       ssiSHL_LsnRep  ("ssiSHL_LsnRep");
     static stream<UdpPort>       ssoSHL_ClsReq  ("ssoSHL_ClsReq");
@@ -269,7 +274,7 @@ void udp_shell_if_top(
     pAxisToFifo(siSHL_ClsRep, ssiSHL_ClsRep);
     pAxisToFifo(siSHL_Data,   ssiSHL_Data);
     pAxisToFifo(siSHL_Meta,   ssiSHL_Meta);
-    ***************************/
+    ****************************************/
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_shell_if(
@@ -295,7 +300,7 @@ void udp_shell_if_top(
         soUAF_Data,
         soUAF_Meta);
 
-    /*** OBSOLETE_20210219 ******************
+    /*** [NOT-USED] ************************
     //-- OUTPUT INTERFACES -----------------------------------------------------
     pFifoToAxis(ssoSHL_LsnReq, soSHL_LsnReq);
     pFifoToAxis(ssoSHL_ClsReq, soSHL_ClsReq);
@@ -304,7 +309,7 @@ void udp_shell_if_top(
     pFifoToAxis(ssoSHL_DLen,   soSHL_DLen);
     pFifoToAxis(ssoUAF_Data,   soUAF_Data);
     pFifoToAxis(ssoUAF_Meta,   soUAF_Meta);
-    ******************************************/
+    ****************************************/
 
 }
 

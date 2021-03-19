@@ -66,18 +66,23 @@ if { $argc == 2 } {
     exit 2
 }
 
+# Retreive the Vivado version 
+#-------------------------------------------------
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+set HLS_VERSION    [expr entier(${VIVADO_VERSION})]
+
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
-set hlsCSim        $::env(hlsCSim)
-set hlsCSynth      $::env(hlsCSynth)
-set hlsCoSim       $::env(hlsCoSim)
-set hlsRtl         $::env(hlsRtl)
+set hlsCSim      $::env(hlsCSim)
+set hlsCSynth    $::env(hlsCSynth)
+set hlsCoSim     $::env(hlsCoSim)
+set hlsRtl       $::env(hlsRtl)
 
 # Set Project Environment Variables  
 #-------------------------------------------------
-set currDir        [pwd]
-set srcDir         ${currDir}/src
-set testDir        ${currDir}/test
+set currDir      [pwd]
+set srcDir       ${currDir}/src
+set testDir      ${currDir}/test
 
 #-------------------------------------------------
 # Retrieve the HLS testbench mode from ENV
@@ -101,24 +106,26 @@ open_project  ${ipProjectName}_prj
 
 # Add files
 #-------------------------------------------------
-add_files          ${currDir}/src/${ipName}.cpp
-add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
-add_files          ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
+add_files        ${currDir}/src/${ipName}.cpp
+add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
 
 if { [string equal ${ipProjectName} ip_core] } {
     set_top       ${ipName}
-    add_files -tb ${testDir}/test_${ipName}.cpp -cflags -DTB_MODE=${hlsTbMode}
+    add_files -tb ${testDir}/test_${ipName}.cpp -cflags "-DTB_MODE=${hlsTbMode}"
 } elseif { [string equal ${ipProjectName} ip_top] } {
     set_top       ${ipName}_top
-    add_files     ${srcDir}/${ipName}_top.cpp
-    add_files -tb ${testDir}/test_${ipName}_top.cpp -cflags -DTB_MODE=${hlsTbMode} 
+    add_files     ${srcDir}/${ipName}_top.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
+    add_files -tb ${testDir}/test_${ipName}_top.cpp -cflags "-DTB_MODE=${hlsTbMode}" 
 }
+#[TODO] add_files -tb ${testDir}/simu_${ipName}_env.cpp
+add_files -tb ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
+
 
 # Create a solution
 #-------------------------------------------------
-open_solution      ${solutionName}
-set_part           ${xilPartName}
-create_clock       -period 6.4 -name default
+open_solution ${solutionName}
+set_part      ${xilPartName}
+create_clock  -period 6.4 -name default
 
 #--------------------------------------------
 # Controlling the Reset Behavior (see UG902)
@@ -145,9 +152,20 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
 if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } { 
 	config_rtl -disable_start_propagation
+}
+
+#---------------------------------------------------------------
+# Configuring the behavior of the dataflow checking (see UG902)
+#---------------------------------------------------------------
+# -strict_mode: Vivado HLS has a dataflow checker which, when enabled, checks the code to see if it
+#               is in the recommended canonical form. Otherwise it will emit an error/warning
+#               message to the user. By default this checker is set to 'warning'. It can be set to
+#               'error' or can be disabled by selecting the 'off' mode.
+#-------------------------------------------------------------------------------------------------
+if { [format "%.1f" ${VIVADO_VERSION}] > 2018.1 } { 
+	config_dataflow -strict_mode  error
 }
 
 #----------------------------------------------------
@@ -159,7 +177,6 @@ if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } {
 #                    default is '0' for no automatic loop pipelining. 
 #------------------------------------------------------------------------------------------------
 config_compile -name_max_length 256 -pipeline_loops 0
-
 
 #-------------------------------------------------
 # Run C Simulation (refer to UG902)

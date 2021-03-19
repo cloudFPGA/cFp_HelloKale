@@ -45,8 +45,9 @@ using namespace std;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not work for us.
  ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
+#undef USE_DEPRECATED_DIRECTIVES
 
+/*** [NOT-USED] ***********************
 void pAxisToFifo(
         stream<ap_uint<16> >  &siAxisType,
         stream<ap_uint<16> >  &soFifoType)
@@ -55,6 +56,7 @@ void pAxisToFifo(
     #pragma HLS pipeline
     if (!soFifoType.full()) { soFifoType.write(siAxisType.read()); }
 }
+***************************************/
 
 /*******************************************************************************
  * @brief Top of TCP Shell Interface (TSIF)
@@ -130,17 +132,15 @@ void tcp_shell_if_top(
         //------------------------------------------------------
         stream<TcpAppClsReq>  &soSHL_ClsReq)
 {
-    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
 
   #if defined(USE_DEPRECATED_DIRECTIVES)
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
-
-    #pragma HLS INTERFACE ap_stable          port=piSHL_Mmio_En    name=piSHL_Mmio_En
+    #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_En    name=piSHL_Mmio_En
 
     #pragma HLS resource core=AXI4Stream variable=siTAF_Data   metadata="-bus_bundle siTAF_Data"
     #pragma HLS resource core=AXI4Stream variable=siTAF_SessId metadata="-bus_bundle siTAF_SessId"
@@ -172,56 +172,61 @@ void tcp_shell_if_top(
     #pragma HLS DATA_PACK                variable=siSHL_OpnRep
 
     #pragma HLS resource core=AXI4Stream variable=soSHL_ClsReq metadata="-bus_bundle soSHL_ClsReq"
-
   #else
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
-    #pragma HLS INTERFACE ap_stable             port=piSHL_Mmio_En  name=piSHL_Mmio_En
+    #pragma HLS INTERFACE axis off              port=siTAF_Data     name=siTAF_Data
+    #pragma HLS INTERFACE axis off              port=siTAF_SessId   name=siTAF_SessId
+    #pragma HLS INTERFACE axis off              port=siTAF_DatLen   name=siTAF_DatLen
 
-    #pragma HLS INTERFACE axis register both    port=siTAF_Data     name=siTAF_Data
-    #pragma HLS INTERFACE axis register both    port=siTAF_SessId   name=siTAF_SessId
-    #pragma HLS INTERFACE axis register both    port=siTAF_DatLen   name=siTAF_DatLen
+    #pragma HLS INTERFACE axis off              port=soTAF_Data     name=soTAF_Data
+    #pragma HLS INTERFACE axis off              port=soTAF_SessId   name=soTAF_SessId
+    #pragma HLS INTERFACE axis off              port=soTAF_DatLen   name=soTAF_DatLen
 
-    #pragma HLS INTERFACE axis register both    port=soTAF_Data     name=soTAF_Data
-    #pragma HLS INTERFACE axis register both    port=soTAF_SessId   name=soTAF_SessId
-    #pragma HLS INTERFACE axis register both    port=soTAF_DatLen   name=soTAF_DatLen
-
-    #pragma HLS INTERFACE axis register both    port=siSHL_Notif    name=siSHL_Notif
+    #pragma HLS INTERFACE axis off              port=siSHL_Notif    name=siSHL_Notif
     #pragma HLS DATA_PACK                   variable=siSHL_Notif
-    #pragma HLS INTERFACE axis register both    port=soSHL_DReq     name=soSHL_DReq
+    #pragma HLS INTERFACE axis off              port=soSHL_DReq     name=soSHL_DReq
     #pragma HLS DATA_PACK                   variable=soSHL_DReq
-    #pragma HLS INTERFACE axis register both    port=siSHL_Data     name=siSHL_Data
-    #pragma HLS INTERFACE axis register both    port=siSHL_Meta     name=siSHL_Meta
+    #pragma HLS INTERFACE axis off              port=siSHL_Data     name=siSHL_Data
+    #pragma HLS INTERFACE axis off              port=siSHL_Meta     name=siSHL_Meta
 
-    #pragma HLS INTERFACE axis register both    port=soSHL_LsnReq   name=soSHL_LsnReq
-    #pragma HLS INTERFACE axis register both    port=siSHL_LsnRep   name=siSHL_LsnRep
+    #pragma HLS INTERFACE axis off              port=soSHL_LsnReq   name=soSHL_LsnReq
+    #pragma HLS INTERFACE axis off              port=siSHL_LsnRep   name=siSHL_LsnRep
 
-    #pragma HLS INTERFACE axis register both    port=soSHL_Data     name=soSHL_Data
-    #pragma HLS INTERFACE axis register both    port=soSHL_SndReq   name=soSHL_SndReq
+    #pragma HLS INTERFACE axis off              port=soSHL_Data     name=soSHL_Data
+    #pragma HLS INTERFACE axis off              port=soSHL_SndReq   name=soSHL_SndReq
     #pragma HLS DATA_PACK                   variable=soSHL_SndReq
-    #pragma HLS INTERFACE axis register both    port=siSHL_SndRep   name=siSHL_SndRep
+    #pragma HLS INTERFACE axis off              port=siSHL_SndRep   name=siSHL_SndRep
     #pragma HLS DATA_PACK                   variable=siSHL_SndRep
 
-    #pragma HLS INTERFACE axis register both    port=soSHL_OpnReq   name=soSHL_OpnReq
+    #pragma HLS INTERFACE axis off               port=soSHL_OpnReq   name=soSHL_OpnReq
     #pragma HLS DATA_PACK                    variable=soSHL_OpnReq
-    #pragma HLS INTERFACE axis register both    port=siSHL_OpnRep   name=siSHL_OpnRep
+    #pragma HLS INTERFACE axis off              port=siSHL_OpnRep   name=siSHL_OpnRep
     #pragma HLS DATA_PACK                   variable=siSHL_OpnRep
 
-    #pragma HLS INTERFACE axis register both    port=soSHL_ClsReq   name=soSHL_ClsReq
-
+    #pragma HLS INTERFACE axis off              port=soSHL_ClsReq   name=soSHL_ClsReq
   #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+  #if HLS_VERSION == 2017
     #pragma HLS DATAFLOW
+  #else
+    #pragma HLS DATAFLOW disable_start_propagation
+  #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
 
+    /*** [NOT-USED] ************************
     //-- LOCAL IN and OUT STREAMS ----------------------------------------------
-    //OBSOLETE static stream<TcpSessId>     ssiTAF_SessId  ("ssiTAF_SessId");
-    //OBSOLETE #pragma HLS STREAM  variable=ssiTAF_SessId  depth=2
-    //OBSOLETE static stream<TcpDatLen>     ssiTAF_DatLen  ("ssiTAF_DatLen");
-    //OBSOLETE #pragma HLS STREAM  variable=ssiTAF_DatLen  depth=2
+    static stream<TcpSessId>     ssiTAF_SessId  ("ssiTAF_SessId");
+    #pragma HLS STREAM  variable=ssiTAF_SessId  depth=2
+    static stream<TcpDatLen>     ssiTAF_DatLen  ("ssiTAF_DatLen");
+    #pragma HLS STREAM  variable=ssiTAF_DatLen  depth=2
 
     //-- INPUT INTERFACES ------------------------------------------------------
-    //OBSOLETE pAxisToFifo(siTAF_SessId, ssiTAF_SessId);
-    //OBSOLETE pAxisToFifo(siTAF_DatLen, ssiTAF_DatLen);
+    pAxisToFifo(siTAF_SessId, ssiTAF_SessId);
+    pAxisToFifo(siTAF_DatLen, ssiTAF_DatLen);
+    ****************************************/
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     tcp_shell_if(
@@ -252,9 +257,11 @@ void tcp_shell_if_top(
         //-- TOE / Close Interfaces
         soSHL_ClsReq);
 
+    /*** [NOT-USED] ************************
     //-- OUTPUT INTERFACES -----------------------------------------------------
-    //OBSOLETE pAxisAppToAxisRaw(ssoTAF_Data, soTAF_Data);
-    //OBSOLETE pAxisAppToAxisRaw(ssoSHL_Data, soSHL_Data);
+    pAxisAppToAxisRaw(ssoTAF_Data, soTAF_Data);
+    pAxisAppToAxisRaw(ssoSHL_Data, soSHL_Data);
+    ****************************************/
 
 }
 

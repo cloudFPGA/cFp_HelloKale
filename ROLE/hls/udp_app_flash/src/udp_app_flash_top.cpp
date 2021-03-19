@@ -44,7 +44,7 @@ using namespace hls;
  *  with the DEPRECATED directives because the
  *  new PRAGMAs do not always work for us.
  ************************************************/
-#define USE_DEPRECATED_DIRECTIVES
+#undef  USE_DEPRECATED_DIRECTIVES
 #define USE_AP_FIFO
 
 /*** OBSOLETE_20210222 ****************
@@ -120,6 +120,7 @@ void udp_app_flash_top (
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
@@ -140,6 +141,7 @@ void udp_app_flash_top (
     #pragma HLS resource core=AXI4Stream variable=soUSIF_DLen    metadata="-bus_bundle soUSIF_DLen"
 
 #else
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
   #if defined (USE_AP_FIFO)
     //[NOT_USED] #pragma HLS INTERFACE ap_stable register port=piSHL_Mmio_EchoCtrl  name=piSHL_Mmio_EchoCtrl
     //[NOT_USED] #pragma HLS INTERFACE ap_stable port=piSHL_Mmio_PostPktEn
@@ -177,7 +179,12 @@ void udp_app_flash_top (
 #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+#if HLS_VERSION == 2017
     #pragma HLS DATAFLOW
+#else
+    #pragma HLS DATAFLOW disable_start_propagation
+#endif
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_app_flash (
