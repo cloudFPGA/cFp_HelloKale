@@ -272,10 +272,10 @@ end Role_Kale;
 
 architecture BringUp of Role_Kale is
 
-  constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cUDP_SIF_DEPRECATED_DIRECTIVES  : boolean := true;
-  constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := true;
+  constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
+  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
+  constant cUDP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
+  constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
   
   --============================================================================
   --  SIGNAL DECLARATIONS
@@ -284,41 +284,100 @@ architecture BringUp of Role_Kale is
   signal s156_25Rst_delayed          : std_ulogic;
   signal sRstDelayCounter            : std_ulogic_vector(5 downto 0);
 
-  --------------------------------------------------------
-  -- SIGNAL DECLARATIONS : TSIF <--> TAF 
-  --------------------------------------------------------
-  -- TCP Receive Path (TSIF->TAF) ------
-  ---- Stream TCP Data -------
-  signal ssTSIF_TAF_Data_tdata      : std_ulogic_vector( 63 downto 0);
-  signal ssTSIF_TAF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
-  signal ssTSIF_TAF_Data_tlast      : std_ulogic;
-  signal ssTSIF_TAF_Data_tvalid     : std_ulogic;
-  signal ssTSIF_TAF_Data_tready     : std_ulogic;
-  ---- Stream TCP SessId ---------------
-  signal ssTSIF_TAF_SessId_tdata    : std_ulogic_vector( 15 downto 0);
-  signal ssTSIF_TAF_SessId_tvalid   : std_ulogic;
-  signal ssTSIF_TAF_SessId_tready   : std_ulogic;
-  ---- Stream TCP Data-Length ----------
-  signal ssTSIF_TAF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
-  signal ssTSIF_TAF_DatLen_tvalid   : std_ulogic;
-  signal ssTSIF_TAF_DatLen_tready   : std_ulogic;  
-  -- TCP Transmit Path (TAF-->TSIF) ----
-  ---- Stream TCP Data -------
-  signal ssTAF_TSIF_Data_tdata      : std_ulogic_vector( 63 downto 0);
-  signal ssTAF_TSIF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
-  signal ssTAF_TSIF_Data_tlast      : std_ulogic;
-  signal ssTAF_TSIF_Data_tvalid     : std_ulogic;
-  signal ssTAF_TSIF_Data_tready     : std_ulogic;
-  ---- Stream TCP SessId ---------------
-  signal ssTAF_TSIF_SessId_tdata    : std_ulogic_vector( 15 downto 0);
-  signal ssTAF_TSIF_SessId_tvalid   : std_ulogic;
-  signal ssTAF_TSIF_SessId_tready   : std_ulogic;
-  ---- Stream TCP Data-Length ----------
-  signal ssTAF_TSIF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
-  signal ssTAF_TSIF_DatLen_tvalid   : std_ulogic;
-  signal ssTAF_TSIF_DatLen_tready   : std_ulogic;
+  --OBSOLETE_20210315 --------------------------------------------------------
+  --OBSOLETE_20210315 -- SIGNAL DECLARATIONS : TSIF <--> TAF (TSIF->TAF)
+  --OBSOLETE_20210315 --------------------------------------------------------
+  --OBSOLETE_20210315 ---- Stream TCP Data -------
+  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tdata      : std_ulogic_vector( 63 downto 0);
+  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
+  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tlast      : std_ulogic;
+  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tvalid     : std_ulogic;
+  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tready     : std_ulogic;
+  --OBSOLETE_20210315 ---- Stream TCP SessId ---------------
+  --OBSOLETE_20210315 signal ssTSIF_TAF_SessId_tdata    : std_ulogic_vector( 15 downto 0);
+  --OBSOLETE_20210315 signal ssTSIF_TAF_SessId_tvalid   : std_ulogic;
+  --OBSOLETE_20210315 signal ssTSIF_TAF_SessId_tready   : std_ulogic;
+  --OBSOLETE_20210315 ---- Stream TCP Data-Length ----------
+  --OBSOLETE_20210315 signal ssTSIF_TAF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
+  --OBSOLETE_20210315 signal ssTSIF_TAF_DatLen_tvalid   : std_ulogic;
+  --OBSOLETE_20210315 signal ssTSIF_TAF_DatLen_tready   : std_ulogic;  
+  --OBSOLETE_20210315 -- TCP Transmit Path (TAF-->TSIF) ----
+  --OBSOLETE_20210315 ---- Stream TCP Data -------
+  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tdata      : std_ulogic_vector( 63 downto 0);
+  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
+  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tlast      : std_ulogic;
+  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tvalid     : std_ulogic;
+  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tready     : std_ulogic;
+  --OBSOLETE_20210315 ---- Stream TCP SessId ---------------
+  --OBSOLETE_20210315 signal ssTAF_TSIF_SessId_tdata    : std_ulogic_vector( 15 downto 0);
+  --OBSOLETE_20210315 signal ssTAF_TSIF_SessId_tvalid   : std_ulogic;
+  --OBSOLETE_20210315 signal ssTAF_TSIF_SessId_tready   : std_ulogic;
+  --OBSOLETE_20210315 ---- Stream TCP Data-Length ----------
+  --OBSOLETE_20210315 signal ssTAF_TSIF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
+  --OBSOLETE_20210315 signal ssTAF_TSIF_DatLen_tvalid   : std_ulogic;
+  --OBSOLETE_20210315 signal ssTAF_TSIF_DatLen_tready   : std_ulogic;
  
-  signal sSHL_Mem_Mp0_Write_tlast   : std_ulogic_vector(0 downto 0);
+  --------------------------------------------------------
+  -- SIGNAL DECLARATIONS : TSIF --> TARS --> TAF
+  --------------------------------------------------------
+  signal ssTSIF_TARS_Data_tdata     : std_ulogic_vector( 63 downto 0);
+  signal ssTSIF_TARS_Data_tkeep     : std_ulogic_vector(  7 downto 0);
+  signal ssTSIF_TARS_Data_tlast     : std_ulogic;
+  signal ssTSIF_TARS_Data_tvalid    : std_ulogic;
+  signal ssTSIF_TARS_Data_tready    : std_ulogic;
+  --
+  signal ssTSIF_TARS_SessId_tdata   : std_ulogic_vector( 15 downto 0);
+  signal ssTSIF_TARS_SessId_tvalid  : std_ulogic;
+  signal ssTSIF_TARS_SessId_tready  : std_ulogic;
+  --
+  signal ssTSIF_TARS_DatLen_tdata   : std_ulogic_vector( 15 downto 0);
+  signal ssTSIF_TARS_DatLen_tvalid  : std_ulogic;
+  signal ssTSIF_TARS_DatLen_tready  : std_ulogic;  
+  -- -------------------------------------------
+  signal ssTARS_TAF_Data_tdata      : std_ulogic_vector( 63 downto 0);
+  signal ssTARS_TAF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
+  signal ssTARS_TAF_Data_tlast      : std_ulogic;
+  signal ssTARS_TAF_Data_tvalid     : std_ulogic;
+  signal ssTARS_TAF_Data_tready     : std_ulogic;
+  --
+  signal ssTARS_TAF_SessId_tdata    : std_ulogic_vector( 15 downto 0);
+  signal ssTARS_TAF_SessId_tvalid   : std_ulogic;
+  signal ssTARS_TAF_SessId_tready   : std_ulogic;
+  --
+  signal ssTARS_TAF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
+  signal ssTARS_TAF_DatLen_tvalid   : std_ulogic;
+  signal ssTARS_TAF_DatLen_tready   : std_ulogic;  
+
+  --------------------------------------------------------
+  -- SIGNAL DECLARATIONS : TAF --> TARS --> TSIF
+  --------------------------------------------------------
+  signal ssTAF_TARS_Data_tdata      : std_ulogic_vector( 63 downto 0);
+  signal ssTAF_TARS_Data_tkeep      : std_ulogic_vector(  7 downto 0);
+  signal ssTAF_TARS_Data_tlast      : std_ulogic;
+  signal ssTAF_TARS_Data_tvalid     : std_ulogic;
+  signal ssTAF_TARS_Data_tready     : std_ulogic;
+  --
+  signal ssTAF_TARS_SessId_tdata    : std_ulogic_vector( 15 downto 0);
+  signal ssTAF_TARS_SessId_tvalid   : std_ulogic;
+  signal ssTAF_TARS_SessId_tready   : std_ulogic;
+  --
+  signal ssTAF_TARS_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
+  signal ssTAF_TARS_DatLen_tvalid   : std_ulogic;
+  signal ssTAF_TARS_DatLen_tready   : std_ulogic;
+  -- -------------------------------------------
+  signal ssTARS_TSIF_Data_tdata     : std_ulogic_vector( 63 downto 0);
+  signal ssTARS_TSIF_Data_tkeep     : std_ulogic_vector(  7 downto 0);
+  signal ssTARS_TSIF_Data_tlast     : std_ulogic;
+  signal ssTARS_TSIF_Data_tvalid    : std_ulogic;
+  signal ssTARS_TSIF_Data_tready    : std_ulogic;
+  --
+  signal ssTARS_TSIF_SessId_tdata   : std_ulogic_vector( 15 downto 0);
+  signal ssTARS_TSIF_SessId_tvalid  : std_ulogic;
+  signal ssTARS_TSIF_SessId_tready  : std_ulogic;
+  --
+  signal ssTARS_TSIF_DatLen_tdata   : std_ulogic_vector( 15 downto 0);
+  signal ssTARS_TSIF_DatLen_tvalid  : std_ulogic;
+  signal ssTARS_TSIF_DatLen_tready  : std_ulogic;
   
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : USIF <--> UAF (Axis-based)
@@ -437,10 +496,12 @@ architecture BringUp of Role_Kale is
   signal ssFIFO_USIF_Udp_MetaDstPort_read  : std_logic;
   signal ssFIFO_USIF_Udp_MetaDstPort_empty : std_logic;
   --     
-  signal ssFIFO_USIF_Udp_DLen_data   : std_logic_vector(15 downto 0);
-  signal ssFIFO_USIF_Udp_DLen_read   : std_logic;
-  signal ssFIFO_USIF_Udp_DLen_empty  : std_logic;
+  signal ssFIFO_USIF_Udp_DLen_data         : std_logic_vector(15 downto 0);
+  signal ssFIFO_USIF_Udp_DLen_read         : std_logic;
+  signal ssFIFO_USIF_Udp_DLen_empty        : std_logic;
 
+  signal sSHL_Mem_Mp0_Write_tlast          : std_ulogic_vector(0 downto 0);
+  
   --============================================================================
   --  VARIABLE DECLARATIONS
   --============================================================================  
@@ -762,7 +823,7 @@ architecture BringUp of Role_Kale is
       ------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       ------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V   : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
       --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
       --[NOT_USED] piSHL_MmioCaptSegEn_V : in  std_logic;      
       --------------------------------------------------------
@@ -810,7 +871,7 @@ architecture BringUp of Role_Kale is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------       
-      piSHL_MmioEchoCtrl_V     : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_MmioEchoCtrl_V  : in  std_logic_vector(  1 downto 0);
       --[NOT_USED] piSHL_MmioPostSegEn_V : in  std_logic;
       --[NOT_USED] piSHL_MmioCaptSegEn   : in  std_logic;
       --------------------------------------------------------
@@ -1141,6 +1202,36 @@ architecture BringUp of Role_Kale is
       soMemWriteP0_TREADY        : in  std_logic
     );
   end component MemTestFlash;
+
+  component AxisRegisterSlice_64
+    port (
+      aclk          : in  std_logic;
+      aresetn       : in  std_logic;
+      s_axis_tvalid : in  std_logic;
+      s_axis_tready : out std_logic;
+      s_axis_tdata  : in  std_logic_vector(63 downto 0);
+      s_axis_tkeep  : in  std_logic_vector( 7 downto 0);
+      s_axis_tlast  : in  std_logic;
+      m_axis_tvalid : out std_logic;
+      m_axis_tready : in  std_logic;
+      m_axis_tdata  : out std_logic_vector(63 downto 0);
+      m_axis_tkeep  : out std_logic_vector( 7 downto 0);
+      m_axis_tlast  : out std_logic
+    );
+  end component AxisRegisterSlice_64;
+
+  component AxisRegisterSlice_16
+    port (
+      aclk          : in  std_logic;
+      aresetn       : in  std_logic;
+      s_axis_tvalid : in  std_logic;
+      s_axis_tready : out std_logic;
+      s_axis_tdata  : in  std_logic_vector(15 downto 0);
+      m_axis_tvalid : out std_logic;
+      m_axis_tready : in  std_logic;
+      m_axis_tdata  : out std_logic_vector(15 downto 0)
+    );
+  end component AxisRegisterSlice_16;
 
   component Fifo_16x16 is
     port (
@@ -1572,7 +1663,7 @@ begin
   --#                                                                             #
   --#    #     #  #####    ######    ######                                       #
   --#    #     #  #    #   #     #   #      #  #####  ####   ####                 #
-  --#    #     #  #     #  #     #   #      #  #     #    # #                     #
+  --#    #     #  #     #  #     #   #         #     #    # #                     #
   --#    #     #  #     #  ######    #####  #  ####  #    # #####                 #
   --#    #     #  #    #   #         #      #  #     #    #     #                 #
   --#    #######  #####    #         #      #  #      ####  ####                  #
@@ -1735,19 +1826,19 @@ begin
         rd_rst_busy  => open
       );
     FIFO_UDP_TX_META_DST_PORT : Fifo_16x16
-          port map (
-            clk          => piSHL_156_25Clk,
-            srst         => piSHL_Mmio_Ly7Rst,
-            din          => ssUAF_FIFO_Udp_MetaDstPort_data,
-            wr_en        => ssUAF_FIFO_Udp_MetaDstPort_write,
-            full         => ssUAF_FIFO_Udp_MetaDstPort_full,
-            --
-            dout         => ssFIFO_USIF_Udp_MetaDstPort_data,
-            rd_en        => ssFIFO_USIF_Udp_MetaDstPort_read,
-            empty        => ssFIFO_USIF_Udp_MetaDstPort_empty,
-            wr_rst_busy  => open,
-            rd_rst_busy  => open
-          );  
+      port map (
+        clk          => piSHL_156_25Clk,
+        srst         => piSHL_Mmio_Ly7Rst,
+        din          => ssUAF_FIFO_Udp_MetaDstPort_data,
+        wr_en        => ssUAF_FIFO_Udp_MetaDstPort_write,
+        full         => ssUAF_FIFO_Udp_MetaDstPort_full,
+        --
+        dout         => ssFIFO_USIF_Udp_MetaDstPort_data,
+        rd_en        => ssFIFO_USIF_Udp_MetaDstPort_read,
+        empty        => ssFIFO_USIF_Udp_MetaDstPort_empty,
+        wr_rst_busy  => open,
+        rd_rst_busy  => open
+      );  
     FIFO_UDP_TX_DLEN : Fifo_16x16
       port map (
         clk          => piSHL_156_25Clk,
@@ -1788,41 +1879,37 @@ begin
           --------------------------------------------------------       
           piSHL_Mmio_En_V           => piSHL_Mmio_Ly7En,
           ------------------------------------------------------
-          -- TAF / TxP Data Flow Interfaces
+          -- TAF (via TARS) / Tx Data Interfaces (APP-->SHELL)
           ------------------------------------------------------
-          -- FPGA Transmit Path (APP-->SHELL) ---------
-          ---- TCP Data Stream -------------
-          siTAF_Data_tdata          => ssTAF_TSIF_Data_tdata,
-          siTAF_Data_tkeep          => ssTAF_TSIF_Data_tkeep,
-          siTAF_Data_tlast          => ssTAF_TSIF_Data_tlast,
-          siTAF_Data_tvalid         => ssTAF_TSIF_Data_tvalid,
-          siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
-          ---- TCP Session-Id --------------
-          siTAF_SessId_tdata        => ssTAF_TSIF_SessId_tdata,
-          siTAF_SessId_tvalid       => ssTAF_TSIF_SessId_tvalid,
-          siTAF_SessId_tready       => ssTAF_TSIF_SessId_tready,
-          ---- TCP Data-Length -------------
-          siTAF_DatLen_tdata        => ssTAF_TSIF_DatLen_tdata,
-          siTAF_DatLen_tvalid       => ssTAF_TSIF_DatLen_tvalid,
-          siTAF_DatLen_tready       => ssTAF_TSIF_DatLen_tready,  
+          siTAF_Data_tdata          => ssTARS_TSIF_Data_tdata,
+          siTAF_Data_tkeep          => ssTARS_TSIF_Data_tkeep,
+          siTAF_Data_tlast          => ssTARS_TSIF_Data_tlast,
+          siTAF_Data_tvalid         => ssTARS_TSIF_Data_tvalid,
+          siTAF_Data_tready         => ssTARS_TSIF_Data_tready,
+          --
+          siTAF_SessId_tdata        => ssTARS_TSIF_SessId_tdata,
+          siTAF_SessId_tvalid       => ssTARS_TSIF_SessId_tvalid,
+          siTAF_SessId_tready       => ssTARS_TSIF_SessId_tready,
+          --
+          siTAF_DatLen_tdata        => ssTARS_TSIF_DatLen_tdata,
+          siTAF_DatLen_tvalid       => ssTARS_TSIF_DatLen_tvalid,
+          siTAF_DatLen_tready       => ssTARS_TSIF_DatLen_tready,
           ------------------------------------------------------
-          -- TAF / RxP Data Flow Interfaces
+          -- TAF (via TARS) / Rx Data Interfaces (SHELL-->APP)
           ------------------------------------------------------
-          -- FPGA Transmit Path (SHELL-->APP) --------
-          ---- TCP Data Stream --------------
-          soTAF_Data_tdata          => ssTSIF_TAF_Data_tdata,
-          soTAF_Data_tkeep          => ssTSIF_TAF_Data_tkeep,
-          soTAF_Data_tlast          => ssTSIF_TAF_Data_tlast,
-          soTAF_Data_tvalid         => ssTSIF_TAF_Data_tvalid,
-          soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
-          ---- TCP Session-Id ---------------
-          soTAF_SessId_tdata        => ssTSIF_TAF_SessId_tdata,
-          soTAF_SessId_tvalid       => ssTSIF_TAF_SessId_tvalid,
-          soTAF_SessId_tready       => ssTSIF_TAF_SessId_tready,
-          ---- TCP Data-Length --------------
-          soTAF_DatLen_tdata        => ssTSIF_TAF_DatLen_tdata,
-          soTAF_DatLen_tvalid       => ssTSIF_TAF_DatLen_tvalid,
-          soTAF_DatLen_tready       => ssTSIF_TAF_DatLen_tready,
+          soTAF_Data_tdata          => ssTSIF_TARS_Data_tdata,
+          soTAF_Data_tkeep          => ssTSIF_TARS_Data_tkeep,
+          soTAF_Data_tlast          => ssTSIF_TARS_Data_tlast,
+          soTAF_Data_tvalid         => ssTSIF_TARS_Data_tvalid,
+          soTAF_Data_tready         => ssTSIF_TARS_Data_tready,
+          --
+          soTAF_SessId_tdata        => ssTSIF_TARS_SessId_tdata,
+          soTAF_SessId_tvalid       => ssTSIF_TARS_SessId_tvalid,
+          soTAF_SessId_tready       => ssTSIF_TARS_SessId_tready,
+          --
+          soTAF_DatLen_tdata        => ssTSIF_TARS_DatLen_tdata,
+          soTAF_DatLen_tvalid       => ssTSIF_TARS_DatLen_tvalid,
+          soTAF_DatLen_tready       => ssTSIF_TARS_DatLen_tready,
           ------------------------------------------------------
           -- SHELL / RxP Data Flow Interfaces
           ------------------------------------------------------
@@ -1904,45 +1991,41 @@ begin
         --------------------------------------------------------
         piSHL_Mmio_En_V           => piSHL_Mmio_Ly7En,
         ------------------------------------------------------
-        -- TAF / TxP Data Flow Interfaces
+        -- TAF (via TARS) / TxP Data Flow Interfaces (APP-->SHELL)
         ------------------------------------------------------
-        -- FPGA Transmit Path (APP-->SHELL) ---------
-        ---- TCP Data Stream 
-        siTAF_Data_tdata          => ssTAF_TSIF_Data_tdata,
-        siTAF_Data_tkeep          => ssTAF_TSIF_Data_tkeep,
-        siTAF_Data_tlast          => ssTAF_TSIF_Data_tlast,
-        siTAF_Data_tvalid         => ssTAF_TSIF_Data_tvalid,
-        siTAF_Data_tready         => ssTAF_TSIF_Data_tready,
-          ---- TCP Session-Id --------------
-        siTAF_SessId_V_V_tdata    => ssTAF_TSIF_SessId_tdata,
-        siTAF_SessId_V_V_tvalid   => ssTAF_TSIF_SessId_tvalid,
-        siTAF_SessId_V_V_tready   => ssTAF_TSIF_SessId_tready,
-        ---- TCP Data-Length -------------
-        siTAF_DatLen_V_V_tdata    => ssTAF_TSIF_DatLen_tdata,
-        siTAF_DatLen_V_V_tvalid   => ssTAF_TSIF_DatLen_tvalid,
-        siTAF_DatLen_V_V_tready   => ssTAF_TSIF_DatLen_tready,
-        ------------------------------------------------------               
-        -- TAF / RxP Data Flow Interfaces                      
-        ------------------------------------------------------               
-        -- FPGA Transmit Path (SHELL-->APP) --------                      
-        ---- TCP Data Stream 
-        soTAF_Data_tdata          => ssTSIF_TAF_Data_tdata,
-        soTAF_Data_tkeep          => ssTSIF_TAF_Data_tkeep,
-        soTAF_Data_tlast          => ssTSIF_TAF_Data_tlast,
-        soTAF_Data_tvalid         => ssTSIF_TAF_Data_tvalid,
-        soTAF_Data_tready         => ssTSIF_TAF_Data_tready,
-          ---- TCP Session-Id ---------------
-        soTAF_SessId_V_V_tdata    => ssTSIF_TAF_SessId_tdata,
-        soTAF_SessId_V_V_tvalid   => ssTSIF_TAF_SessId_tvalid,
-        soTAF_SessId_V_V_tready   => ssTSIF_TAF_SessId_tready,
-        ---- TCP Data-Length --------------
-        soTAF_DatLen_V_V_tdata    => ssTSIF_TAF_DatLen_tdata,
-        soTAF_DatLen_V_V_tvalid   => ssTSIF_TAF_DatLen_tvalid,
-        soTAF_DatLen_V_V_tready   => ssTSIF_TAF_DatLen_tready,
+        siTAF_Data_tdata          => ssTARS_TSIF_Data_tdata,
+        siTAF_Data_tkeep          => ssTARS_TSIF_Data_tkeep,
+        siTAF_Data_tlast          => ssTARS_TSIF_Data_tlast,
+        siTAF_Data_tvalid         => ssTARS_TSIF_Data_tvalid,
+        siTAF_Data_tready         => ssTARS_TSIF_Data_tready,
+        --
+        siTAF_SessId_V_V_tdata    => ssTARS_TSIF_SessId_tdata,
+        siTAF_SessId_V_V_tvalid   => ssTARS_TSIF_SessId_tvalid,
+        siTAF_SessId_V_V_tready   => ssTARS_TSIF_SessId_tready,
+        --
+        siTAF_DatLen_V_V_tdata    => ssTARS_TSIF_DatLen_tdata,
+        siTAF_DatLen_V_V_tvalid   => ssTARS_TSIF_DatLen_tvalid,
+        siTAF_DatLen_V_V_tready   => ssTARS_TSIF_DatLen_tready,
+        ------------------------------------------------------
+        -- TAF (via TARS) / RxP Data Flow Interfaces (SHELL-->APP)
+        ------------------------------------------------------  
+        soTAF_Data_tdata          => ssTSIF_TARS_Data_tdata,
+        soTAF_Data_tkeep          => ssTSIF_TARS_Data_tkeep,
+        soTAF_Data_tlast          => ssTSIF_TARS_Data_tlast,
+        soTAF_Data_tvalid         => ssTSIF_TARS_Data_tvalid,
+        soTAF_Data_tready         => ssTSIF_TARS_Data_tready,
+        --
+        soTAF_SessId_V_V_tdata    => ssTSIF_TARS_SessId_tdata,
+        soTAF_SessId_V_V_tvalid   => ssTSIF_TARS_SessId_tvalid,
+        soTAF_SessId_V_V_tready   => ssTSIF_TARS_SessId_tready,
+        --
+        soTAF_DatLen_V_V_tdata    => ssTSIF_TARS_DatLen_tdata,
+        soTAF_DatLen_V_V_tvalid   => ssTSIF_TARS_DatLen_tvalid,
+        soTAF_DatLen_V_V_tready   => ssTSIF_TARS_DatLen_tready,
         ------------------------------------------------------
         -- SHELL / RxP Data Flow Interfaces
         ------------------------------------------------------
-        ---- TCP Data Notification Stream  
+        ---- TCP Data Notification Stream
         siSHL_Notif_V_tdata       => siSHL_Nts_Tcp_Notif_tdata,
         siSHL_Notif_V_tvalid      => siSHL_Nts_Tcp_Notif_tvalid,
         siSHL_Notif_V_tready      => siSHL_Nts_Tcp_Notif_tready,
@@ -2006,7 +2089,102 @@ begin
         soSHL_ClsReq_V_V_tvalid   => soSHL_Nts_Tcp_ClsReq_tvalid,
         soSHL_ClsReq_V_V_tready   => soSHL_Nts_Tcp_ClsReq_tready
       ); -- End of: TcpShellInterface
-  end generate;
+    end generate;
+  
+  --###############################################################################
+  --#                                                                             #
+  --#    #######    ####   ######     ###                                         #
+  --#       #      #       #     #   #   #  ####   ####                           #
+  --#       #     #        #     #   #   #  #   # #                               #
+  --#       #     #        ######    #####  ####  #####                           #
+  --#       #      #       #         #   #  # #       #                           #
+  --#       #       ####   #         #   #  #  #  ####                            #
+  --#                                                                             #
+  --###############################################################################
+  gArsTcpRx : if cTCP_SIF_DEPRECATED_DIRECTIVES = true
+    generate
+      ARS_TCP_RX_DATA   : AxisRegisterSlice_64
+        port map (
+          aclk          => piSHL_156_25Clk,
+          aresetn       => not piSHL_Mmio_Ly7Rst,
+          s_axis_tdata  => ssTSIF_TARS_Data_tdata,
+          s_axis_tkeep  => ssTSIF_TARS_Data_tkeep,
+          s_axis_tlast  => ssTSIF_TARS_Data_tlast,
+          s_axis_tvalid => ssTSIF_TARS_Data_tvalid,
+          s_axis_tready => ssTSIF_TARS_Data_tready,
+          --
+          m_axis_tdata  => ssTARS_TAF_Data_tdata,
+          m_axis_tkeep  => ssTARS_TAF_Data_tkeep,
+          m_axis_tlast  => ssTARS_TAF_Data_tlast,
+          m_axis_tvalid => ssTARS_TAF_Data_tvalid,
+          m_axis_tready => ssTARS_TAF_Data_tready
+        );
+      ARS_TCP_RX_SESSID : AxisRegisterSlice_16
+        port map (
+          aclk          => piSHL_156_25Clk,
+          aresetn       => not piSHL_Mmio_Ly7Rst,
+          s_axis_tdata  => ssTSIF_TARS_SessId_tdata,
+          s_axis_tvalid => ssTSIF_TARS_SessId_tvalid,
+          s_axis_tready => ssTSIF_TARS_SessId_tready,
+          --
+          m_axis_tdata  => ssTARS_TAF_SessId_tdata, 
+          m_axis_tvalid => ssTARS_TAF_SessId_tvalid,
+          m_axis_tready => ssTARS_TAF_SessId_tready
+        );
+      ARS_TCP_RX_DATLEN : AxisRegisterSlice_16
+        port map (
+          aclk          => piSHL_156_25Clk,
+          aresetn       => not piSHL_Mmio_Ly7Rst,
+          s_axis_tdata  => ssTSIF_TARS_DatLen_tdata,
+          s_axis_tvalid => ssTSIF_TARS_DatLen_tvalid,
+          s_axis_tready => ssTSIF_TARS_DatLen_tready,
+          --
+          m_axis_tdata  => ssTARS_TAF_DatLen_tdata, 
+          m_axis_tvalid => ssTARS_TAF_DatLen_tvalid,
+          m_axis_tready => ssTARS_TAF_DatLen_tready
+        );
+      --
+      ARS_TCP_TX_DATA   : AxisRegisterSlice_64
+        port map (
+          aclk          => piSHL_156_25Clk,
+          aresetn       => not piSHL_Mmio_Ly7Rst,
+          s_axis_tdata  => ssTAF_TARS_Data_tdata,
+          s_axis_tkeep  => ssTAF_TARS_Data_tkeep,
+          s_axis_tlast  => ssTAF_TARS_Data_tlast,
+          s_axis_tvalid => ssTAF_TARS_Data_tvalid,
+          s_axis_tready => ssTAF_TARS_Data_tready,
+          --
+          m_axis_tdata  => ssTARS_TSIF_Data_tdata,
+          m_axis_tkeep  => ssTARS_TSIF_Data_tkeep,
+          m_axis_tlast  => ssTARS_TSIF_Data_tlast,
+          m_axis_tvalid => ssTARS_TSIF_Data_tvalid,
+          m_axis_tready => ssTARS_TSIF_Data_tready
+        );
+      ARS_TCP_TX_SESSID : AxisRegisterSlice_16
+        port map (
+          aclk          => piSHL_156_25Clk,
+          aresetn       => not piSHL_Mmio_Ly7Rst,
+          s_axis_tdata  => ssTAF_TARS_SessId_tdata,
+          s_axis_tvalid => ssTAF_TARS_SessId_tvalid,
+          s_axis_tready => ssTAF_TARS_SessId_tready,
+          --
+          m_axis_tdata  => ssTARS_TSIF_SessId_tdata, 
+          m_axis_tvalid => ssTARS_TSIF_SessId_tvalid,
+          m_axis_tready => ssTARS_TSIF_SessId_tready
+        );
+      ARS_TCP_TX_DATLEN : AxisRegisterSlice_16
+        port map (
+          aclk          => piSHL_156_25Clk,
+          aresetn       => not piSHL_Mmio_Ly7Rst,
+          s_axis_tdata  => ssTAF_TARS_DatLen_tdata,
+          s_axis_tvalid => ssTAF_TARS_DatLen_tvalid,
+          s_axis_tready => ssTAF_TARS_DatLen_tready,
+          --
+          m_axis_tdata  => ssTARS_TSIF_DatLen_tdata, 
+          m_axis_tvalid => ssTARS_TSIF_DatLen_tvalid,
+          m_axis_tready => ssTARS_TSIF_DatLen_tready
+        );
+    end generate;
     
   --################################################################################
   --#                                                                              #
@@ -2038,41 +2216,41 @@ begin
         -------------------- ------------------------------------
         -- From SHELL / Mmio  Interfaces
         -------------------- ------------------------------------
-        piSHL_MmioEchoCtrl_V => piSHL_Mmio_TcpEchoCtrl,
+        --[NOT_USED] piSHL_MmioEchoCtrl_V   => piSHL_Mmio_TcpEchoCtrl,
         --[NOT_USED] piSHL_MmioPostSegEn_V  => piSHL_Mmio_TcpPostSegEn,
         --[NOT_USED] piSHL_MmioCaptSegEn_V  => piSHL_Mmio_TcpCaptSegEn,
         --------------------- -----------------------------------
-        -- From SHELL / Tcp Data & Session Id Interfaces
+        -- From TSIF (via TARS) / Tcp Rx Data Interfaces
         --------------------- -----------------------------------
-        siTSIF_Data_tdata    => ssTSIF_TAF_Data_tdata,
-        siTSIF_Data_tkeep    => ssTSIF_TAF_Data_tkeep,
-        siTSIF_Data_tlast    => ssTSIF_TAF_Data_tlast,
-        siTSIF_Data_tvalid   => ssTSIF_TAF_Data_tvalid,
-        siTSIF_Data_tready   => ssTSIF_TAF_Data_tready,
+        siTSIF_Data_tdata    => ssTARS_TAF_Data_tdata,
+        siTSIF_Data_tkeep    => ssTARS_TAF_Data_tkeep,
+        siTSIF_Data_tlast    => ssTARS_TAF_Data_tlast,
+        siTSIF_Data_tvalid   => ssTARS_TAF_Data_tvalid,
+        siTSIF_Data_tready   => ssTARS_TAF_Data_tready,
         --
-        siTSIF_SessId_tdata  => ssTSIF_TAF_SessId_tdata,
-        siTSIF_SessId_tvalid => ssTSIF_TAF_SessId_tvalid,
-        siTSIF_SessId_tready => ssTSIF_TAF_SessId_tready,
+        siTSIF_SessId_tdata  => ssTARS_TAF_SessId_tdata,
+        siTSIF_SessId_tvalid => ssTARS_TAF_SessId_tvalid,
+        siTSIF_SessId_tready => ssTARS_TAF_SessId_tready,
         --TSIF
-        siTSIF_DatLen_tdata  => ssTSIF_TAF_DatLen_tdata,
-        siTSIF_DatLen_tvalid => ssTSIF_TAF_DatLen_tvalid,
-        siTSIF_DatLen_tready => ssTSIF_TAF_DatLen_tready,
+        siTSIF_DatLen_tdata  => ssTARS_TAF_DatLen_tdata,
+        siTSIF_DatLen_tvalid => ssTARS_TAF_DatLen_tvalid,
+        siTSIF_DatLen_tready => ssTARS_TAF_DatLen_tready,
         --------------------- -----------------------------------
-        -- To SHELL / Tcp Data & Session Id Interfaces
+        -- To TSIF (via TARS) / Tcp Tx Data Interfaces
         --------------------- -----------------------------------
-        soTSIF_Data_tdata    => ssTAF_TSIF_Data_tdata,
-        soTSIF_Data_tkeep    => ssTAF_TSIF_Data_tkeep,
-        soTSIF_Data_tlast    => ssTAF_TSIF_Data_tlast,
-        soTSIF_Data_tvalid   => ssTAF_TSIF_Data_tvalid,
-        soTSIF_Data_tready   => ssTAF_TSIF_Data_tready,
+        soTSIF_Data_tdata    => ssTAF_TARS_Data_tdata,
+        soTSIF_Data_tkeep    => ssTAF_TARS_Data_tkeep,
+        soTSIF_Data_tlast    => ssTAF_TARS_Data_tlast,
+        soTSIF_Data_tvalid   => ssTAF_TARS_Data_tvalid,
+        soTSIF_Data_tready   => ssTAF_TARS_Data_tready,
         --
-        soTSIF_SessId_tdata  => ssTAF_TSIF_SessId_tdata,
-        soTSIF_SessId_tvalid => ssTAF_TSIF_SessId_tvalid,
-        soTSIF_SessId_tready => ssTAF_TSIF_SessId_tready,
+        soTSIF_SessId_tdata  => ssTAF_TARS_SessId_tdata,
+        soTSIF_SessId_tvalid => ssTAF_TARS_SessId_tvalid,
+        soTSIF_SessId_tready => ssTAF_TARS_SessId_tready,
         --
-        soTSIF_DatLen_tdata  => ssTAF_TSIF_DatLen_tdata,
-        soTSIF_DatLen_tvalid => ssTAF_TSIF_DatLen_tvalid,
-        soTSIF_DatLen_tready => ssTAF_TSIF_DatLen_tready
+        soTSIF_DatLen_tdata  => ssTAF_TARS_DatLen_tdata,
+        soTSIF_DatLen_tvalid => ssTAF_TARS_DatLen_tvalid,
+        soTSIF_DatLen_tready => ssTAF_TARS_DatLen_tready
       );  
   else generate
     TAF : TcpApplicationFlash
@@ -2085,41 +2263,41 @@ begin
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------       
-        piSHL_MmioEchoCtrl_V    => piSHL_Mmio_TcpEchoCtrl,
+        --[NOT_USED] piSHL_MmioEchoCtrl_V  => piSHL_Mmio_TcpEchoCtrl,
         --[NOT_USED] piSHL_MmioPostSegEn_V => piSHL_Mmio_TcpPostSegEn,
         --[NOT_USED] piSHL_MmioCaptSegEn   => piSHL_Mmio_TcpCaptSegEn,
         --------------------------------------------------------
-        -- From SHELL / Tcp Interfaces
+        -- From TSIF (via TARS) / Tcp Rx Data Interfaces
         --------------------------------------------------------
-        siTSIF_Data_tdata        => ssTSIF_TAF_Data_tdata,
-        siTSIF_Data_tkeep        => ssTSIF_TAF_Data_tkeep,
-        siTSIF_Data_tlast        => ssTSIF_TAF_Data_tlast,
-        siTSIF_Data_tvalid       => ssTSIF_TAF_Data_tvalid,
-        siTSIF_Data_tready       => ssTSIF_TAF_Data_tready,
+        siTSIF_Data_tdata        => ssTARS_TAF_Data_tdata,
+        siTSIF_Data_tkeep        => ssTARS_TAF_Data_tkeep,
+        siTSIF_Data_tlast        => ssTARS_TAF_Data_tlast,
+        siTSIF_Data_tvalid       => ssTARS_TAF_Data_tvalid,
+        siTSIF_Data_tready       => ssTARS_TAF_Data_tready,
         --
-        siTSIF_SessId_V_V_tdata  => ssTSIF_TAF_SessId_tdata,
-        siTSIF_SessId_V_V_tvalid => ssTSIF_TAF_SessId_tvalid,
-        siTSIF_SessId_V_V_tready => ssTSIF_TAF_SessId_tready,
+        siTSIF_SessId_V_V_tdata  => ssTARS_TAF_SessId_tdata,
+        siTSIF_SessId_V_V_tvalid => ssTARS_TAF_SessId_tvalid,
+        siTSIF_SessId_V_V_tready => ssTARS_TAF_SessId_tready,
         --
-        siTSIF_DatLen_V_V_tdata  => ssTSIF_TAF_DatLen_tdata,
-        siTSIF_DatLen_V_V_tvalid => ssTSIF_TAF_DatLen_tvalid,
-        siTSIF_DatLen_V_V_tready => ssTSIF_TAF_DatLen_tready,
+        siTSIF_DatLen_V_V_tdata  => ssTARS_TAF_DatLen_tdata,
+        siTSIF_DatLen_V_V_tvalid => ssTARS_TAF_DatLen_tvalid,
+        siTSIF_DatLen_V_V_tready => ssTARS_TAF_DatLen_tready,
         --------------------------------------------------------
-        -- To SHELL / Tcp Data Interfaces
+        -- To TSIF (via TARS) / Tcp Tx Data Interfaces
         --------------------------------------------------------
-        soTSIF_Data_tdata        => ssTAF_TSIF_Data_tdata,
-        soTSIF_Data_tkeep        => ssTAF_TSIF_Data_tkeep,
-        soTSIF_Data_tlast        => ssTAF_TSIF_Data_tlast,
-        soTSIF_Data_tvalid       => ssTAF_TSIF_Data_tvalid,
-        soTSIF_Data_tready       => ssTAF_TSIF_Data_tready,
+        soTSIF_Data_tdata        => ssTAF_TARS_Data_tdata,
+        soTSIF_Data_tkeep        => ssTAF_TARS_Data_tkeep,
+        soTSIF_Data_tlast        => ssTAF_TARS_Data_tlast,
+        soTSIF_Data_tvalid       => ssTAF_TARS_Data_tvalid,
+        soTSIF_Data_tready       => ssTAF_TARS_Data_tready,
         --
-        soTSIF_SessId_V_V_tdata  => ssTAF_TSIF_SessId_tdata,
-        soTSIF_SessId_V_V_tvalid => ssTAF_TSIF_SessId_tvalid,
-        soTSIF_SessId_V_V_tready => ssTAF_TSIF_SessId_tready,
+        soTSIF_SessId_V_V_tdata  => ssTAF_TARS_SessId_tdata,
+        soTSIF_SessId_V_V_tvalid => ssTAF_TARS_SessId_tvalid,
+        soTSIF_SessId_V_V_tready => ssTAF_TARS_SessId_tready,
         --
-        soTSIF_DatLen_V_V_tdata  => ssTAF_TSIF_DatLen_tdata,
-        soTSIF_DatLen_V_V_tvalid => ssTAF_TSIF_DatLen_tvalid,
-        soTSIF_DatLen_V_V_tready => ssTAF_TSIF_DatLen_tready
+        soTSIF_DatLen_V_V_tdata  => ssTAF_TARS_DatLen_tdata,
+        soTSIF_DatLen_V_V_tvalid => ssTAF_TARS_DatLen_tvalid,
+        soTSIF_DatLen_V_V_tready => ssTAF_TARS_DatLen_tready
       );
   end generate;
 
