@@ -16,10 +16,10 @@
 
 /*******************************************************************************
  * @file       : test_udp_app_flash_top.hpp
- * @brief      : Testbench for toplevel of the UDP Application Flash (UAF).
+ * @brief      : Testbench for toplevel of the UDP Application Flash.
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic / ROLE
+ * Component   : cFp_Monolithic/ROLE/UdpApplicationFlash (UAF)
  * Language    : Vivado HLS
  *
  * \ingroup ROLE_UAF
@@ -31,22 +31,7 @@
 #define _TEST_UAF_TOP_H_
 
 #include "../src/udp_app_flash_top.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimUdpDatagram.hpp"
-
-//------------------------------------------------------
-//-- TESTBENCH DEFINITIONS
-//------------------------------------------------------
-#define TB_SIM_CYCLES    500
-#define TB_GRACE_TIME    200  // Give the TB some time to finish
-
-#define VALID       true
-#define UNVALID     false
-#define DEBUG_TRACE true
-
-#define ENABLED     (ap_uint<1>)1
-#define DISABLED    (ap_uint<1>)0
+#include "./simu_udp_app_flash_env.hpp"
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -56,51 +41,7 @@
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = TB_SIM_CYCLES + TB_GRACE_TIME;
-
-//---------------------------------------------------------
-//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
-//--  By default, the following sockets will be used by the
-//--  testbench, unless the user specifies new ones via one
-//--  of the test vector files.
-//---------------------------------------------------------
-#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // FPGA's local IP Address   = 10.12.200.01
-#define DEFAULT_FPGA_LSN_PORT   0x2263      // UDP-ROLE listens on port  = 8803
-#define DEFAULT_FPGA_SND_PORT   0xA263      // UDP-ROLE sends on port    = 41571
-#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's foreign IP Address = 10.12.200.50
-#define DEFAULT_HOST_LSN_PORT   0x80        // HOST listens on port      = 128
-#define DEFAULT_HOST_SND_PORT   0x8080      // HOST sends on port        = 32896
-
-#define DEFAULT_DATAGRAM_LEN    32
-
-/*******************************************************************************
- *
- * ENTITY - UDP APPLICATION FLASH TOP (UAF)
- *
- *******************************************************************************/
-void udp_app_flash_top (
-
-        //------------------------------------------------------
-        //-- SHELL / Mmio / Configuration Interfaces
-        //------------------------------------------------------
-        //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
-        //[NOT_USED] CmdBit      piSHL_Mmio_PostPktEn,
-        //[NOT_USED] CmdBit      piSHL_Mmio_CaptPktEn,
-
-        //------------------------------------------------------
-        //-- USIF / Rx Data Interfaces
-        //------------------------------------------------------
-        stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMetb>  &siUSIF_Meta,
-
-        //------------------------------------------------------
-        //-- USIF / Tx Data Interfaces
-        //------------------------------------------------------
-        stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
-        stream<UdpAppDLen>  &soUSIF_DLen
-
-);
+unsigned int    gMaxSimCycles = TB_MAX_CYCLES + TB_GRACE_TIME;
 
 #endif
 

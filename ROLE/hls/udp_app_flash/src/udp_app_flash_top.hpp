@@ -35,31 +35,9 @@
 #ifndef _UAF_TOP_H_
 #define _UAF_TOP_H_
 
+#include "./udp_app_flash.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
-
-/********************************************
- * SHELL/MMIO/EchoCtrl - Config Register
- ********************************************/
-enum EchoCtrl {
-    ECHO_PATH_THRU  = 0,
-    ECHO_STORE_FWD  = 1,
-    ECHO_OFF        = 2
-};
-
-#define MTU    1500    // Maximum Transmission Unit in bytes [TODO:Move to a common place]
-
-//-------------------------------------------------------------------
-//-- DEFAULT TESTING PORTS
-//--  By default, the following port numbers will be used by the
-//--  UdpApplicationFlash (unless user specifies new ones via TBD).
-//--  Default testing ports:
-//--  --> 8803  : Traffic received on this port is looped back and
-//--              echoed to the sender in path-through mode.
-//--  --> Others: Traffic received on any port != 8803 is looped back
-//--              and echo to the sender in store-and-forward mode.
-//-------------------------------------------------------------------
-#define ECHO_PATH_THRU_PORT  8803   // 0x2263
 
 
 /*******************************************************************************
@@ -77,13 +55,13 @@ void udp_app_flash_top (
         //------------------------------------------------------
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &siUSIF_Data,
-        stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppData>  &siUSIF_Data,
+        stream<UdpAppMetb>  &siUSIF_Meta,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>     &soUSIF_Data,
-        stream<UdpAppMeta>  &soUSIF_Meta,
+        stream<UdpAppData>  &soUSIF_Data,
+        stream<UdpAppMetb>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen
 
 );

@@ -16,7 +16,7 @@
 
 /*******************************************************************************
  * @file       : test_tcp_app_flash.cpp
- * @brief      : Testbench for TCP Application Flash.
+ * @brief      : Testbench for TCP Application Flash (TAF).
  *
  * System:     : cloudFPGA
  * Component   : cFp_Monolithic/ROLE/TcpApplicationFlash (TAF)

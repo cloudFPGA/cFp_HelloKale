@@ -15,45 +15,43 @@
  */
 
 /******************************************************************************
- * @file       : simu_tcp_app_flash_env.hpp
- * @brief      : Simulation environment for the TCP Application Flash (TAF).
+ * @file       : simu_udp_app_flash.hpp
+ * @brief      : Simulation environment for the UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (TAF)
+ * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (UAF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE_TAF
- * \addtogroup ROLE_TAF_TEST
+ * \ingroup ROLE_UAF
+ * \addtogroup ROLE_UAF_TEST
  * \{
  ******************************************************************************/
 
-#ifndef _SIMU_TAF_H_
-#define _SIMU_TAF_H_
+#ifndef _SIMU_UAF_H_
+#define _SIMU_UAF_H_
 
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
 #include <hls_stream.h>
 
+#include "../src/udp_app_flash.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimAppData.hpp"
+#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimUdpDatagram.hpp"
 
 //------------------------------------------------------
 //-- TESTBENCH DEFINES
 //------------------------------------------------------
-#define MAX_SIM_CYCLES  500
-#define TB_GRACE_TIME   1000  // Give the TB some time to finish
-#define STARTUP_DELAY   25
-#define VALID           true
-#define UNVALID         false
-#define DONE            true
-#define NOT_YET_DONE    false
+#define TB_MAX_CYCLES    500
+#define TB_GRACE_TIME    200  // Give the TB some time to finish
+#define VALID       true
+#define UNVALID     false
+#define DEBUG_TRACE true
 
-#define ENABLED         (ap_uint<1>)1
-#define DISABLED        (ap_uint<1>)0
+#define ENABLED     (ap_uint<1>)1
+#define DISABLED    (ap_uint<1>)0
 
-#define DEFAULT_SESS_ID         42
-#define DEFAULT_DATAGRAM_LEN    32
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
@@ -62,12 +60,13 @@
 //--  of the test vector files.
 //---------------------------------------------------------
 #define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // FPGA's local IP Address   = 10.12.200.01
-#define DEFAULT_FPGA_LSN_PORT   0x2263      // TCP-ROLE listens on port  = 8803
-#define DEFAULT_FPGA_SND_PORT   0xA263      // TCP-ROLE sends on port    = 41571
+#define DEFAULT_FPGA_LSN_PORT   0x2263      // UDP-ROLE listens on port  = 8803
+#define DEFAULT_FPGA_SND_PORT   0xA263      // UDP-ROLE sends on port    = 41571
 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's foreign IP Address = 10.12.200.50
 #define DEFAULT_HOST_LSN_PORT   0x80        // HOST listens on port      = 128
 #define DEFAULT_HOST_SND_PORT   0x8080      // HOST sends on port        = 32896
 
+#define DEFAULT_DATAGRAM_LEN    32
 
 /*******************************************************************************
  * SIMULATION UTILITY HELPERS
@@ -78,39 +77,54 @@ void increaseSimTime(unsigned int cycles);
 /******************************************************************************
  * SIMULATION ENVIRONMENT FUNCTIONS
  *******************************************************************************/
-bool pTSIF_Recv(
-    int                &nrErr,
-    stream<TcpAppData> &siTAF_Data,
-    stream<TcpSessId>  &siTAF_SessId,
-    stream<TcpDatLen>  &siTAF_DatLen,
-    ofstream           &rawFileStream,
-    ofstream           &tcpFileStream,
-    int                &nrSegments);
+bool readDatagramFromFile(
+        const char        *myName,
+        SimUdpDatagram    &appDatagram,
+        ifstream          &ifsData,
+        SocketPair        &sockPair,
+        queue<UdpAppMetb> &udpMetaQueue,
+        int               &inpChunks,
+        int               &inpDgrms,
+        int               &inpBytes);
 
-bool pTSIF_Send(
-    int                &nrError,
-    stream<TcpAppData> &soTAF_Data,
-    stream<TcpSessId>  &soTAF_SessId,
-    stream<TcpDatLen>  &soTAF_DatLen,
-    ifstream           &inpFileStream,
-    ofstream           &outGoldStream,
-    int                &nrSegments);
+int createGoldenTxFiles(
+        EchoCtrl          tbMode,
+        string            inpData_FileName,
+        queue<UdpAppMetb> &udpMetaQueue,
+        string            outData_GoldName,
+        string            outMeta_GoldName,
+        string            outDLen_GoldName);
 
-void pTSIF(
-    int                 &nrErr,
-    //-- MMIO/ Configuration Interfaces
-  #if defined TAF_USE_NON_FIFO_IO
-    ap_uint<2>           poTAF_EchoCtrl,
-  #endif
-    //-- TAF / TCP Data Interfaces
-    stream<TcpAppData>  &soTAF_Data,
-    stream<TcpSessId>   &soTAF_SessId,
-    stream<TcpDatLen>   &soTAF_DatLen,
-    //-- TAF / TCP Data Interface
-    stream<TcpAppData>  &siTAF_Data,
-    stream<TcpSessId>   &siTAF_SessId,
-    stream<TcpDatLen>   &siTAF_DatLen);
+int createUdpRxTraffic(
+        stream<AxisApp>    &ssData, 
+        const string       ssDataName,
+        stream<UdpAppMetb> &ssMeta, 
+        const string       ssMetaName,
+        string             datFile,
+        queue<UdpAppMetb>  &metaQueue,
+        int                &nrFeededChunks);
+
+bool drainUdpMetaStreamToFile(
+        stream<UdpAppMetb> &ss,
+        string             ssName,
+        string             datFile,
+        int                &nrChunks,
+        int                &nrFrames,
+        int                &nrBytes);
+
+bool drainUdpDLenStreamToFile(
+        stream<UdpAppDLen> &ss, 
+        string             ssName,
+        string             datFile, 
+        int                &nrChunks, 
+        int                &nrFrames, 
+        int                &nrBytes);
 
 #endif
 
 /*! \} */
+
+
+
+
+

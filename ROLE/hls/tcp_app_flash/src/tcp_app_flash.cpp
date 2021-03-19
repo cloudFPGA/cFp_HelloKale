@@ -99,16 +99,16 @@ void pTcpEchoStoreAndForward(
 
     const char *myName  = concat3(THIS_NAME, "/", "ESf");
 
-    //-- DYNAMIC VARIABLES -----------------------------------------------------
-    AxisApp     currChunk;
-    TcpAppMeta  tcpSessId;
-
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ESF_META=0, ESF_STREAM } \
                                esf_fsmState = ESF_META;
     #pragma HLS reset variable=esf_fsmState
     static  Ly4Len             esf_byteCnt;
     #pragma HLS reset variable=esf_byteCnt
+
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    AxisApp     currChunk;
+    TcpAppMeta  tcpSessId;
 
     //=====================================================
     //== PROCESS DATA FORWARDING

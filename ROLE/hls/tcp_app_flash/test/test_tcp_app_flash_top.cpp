@@ -16,20 +16,20 @@
 
 /*******************************************************************************
  * @file       : test_tcp_app_flash.cpp
- * @brief      : Testbench for TCP Application Flash.
+ * @brief      : Testbench for toplevel of TCP Application Flash.
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic / ROLE
+ * Component   : cFp_Monolithic/ROLE/TcpApplicationFlash (TAF)
  * Language    : Vivado HLS
  *
  *               +-----------------------+
- *               |  UdpApplicationFlash  |     +--------+
+ *               |  TcpApplicationFlash  |     +--------+
  *               |        (TAF)          <-----+  MMIO  |
  *               +-----/|\------+--------+     +--------+
  *                      |       |
  *                      |       ||
  *               +------+------\|/-------+
- *               |   UdpShellInterface   |
+ *               |   TcpShellInterface   |
  *               |       (TSIF)          |
  *               +-----/|\------+--------+
  *                      |       |

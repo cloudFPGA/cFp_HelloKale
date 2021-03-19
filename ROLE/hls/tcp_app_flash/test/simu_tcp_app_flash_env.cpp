@@ -16,7 +16,7 @@
 
 /*******************************************************************************
  * @file       : simu_tcp_app_flash_env.cpp
- * @brief      : Simulation environment for the TCP Application Flash.
+ * @brief      : Simulation environment for the TCP Application Flash (TAF).
  *
  * System:     : cloudFPGA
  * Component   : cFp_Monolithic/ROLE/TcpApplicationFlash (TAF)
