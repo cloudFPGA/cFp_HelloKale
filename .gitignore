@@ -58,8 +58,7 @@ hd_visual/
 
 # cFDK specific files
 #---------------------
-.ip_guard
-.synth_guard
+.*_guard
 *.date
 *.vivado*
 *.dat
