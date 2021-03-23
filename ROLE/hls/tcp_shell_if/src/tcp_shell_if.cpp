@@ -108,8 +108,7 @@ void pConnect(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
-
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "COn");
 
@@ -244,8 +243,7 @@ void pListen(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
-
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = concat3(THIS_NAME, "/", "LSn");
 
@@ -413,15 +411,15 @@ void pInputReadBuffer(
     }
 }
 
-
 /*******************************************************************************
- * @brief Updates the counter which tracks the occupancy of the input read buffer.
+ * @brief Rx Buffer Occupancy (Rxb) -
+ *   Keeps track of the occupancy of the input read buffer.
  *
  * @param[in]  siEnqueueSig Signals the enqueue of a chunk in the buffer.
  * @param[in]  siEnqueueSig Signals the dequeue of a chunk from the buffer.
  * @param[out] soFreeSpace  The available space in the input buffer (in bytes).
  *******************************************************************************/
-void pInputBufferOccupancy(
+void pRxBufferOccupancy(
         stream<SigBit>                                 &siEnqueueSig,
         stream<SigBit>                                 &siDequeueSig,
         stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> > &soFreeSpace)
@@ -430,7 +428,7 @@ void pInputBufferOccupancy(
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
-    const char *myName  = concat3(THIS_NAME, "/", "RRh/Ibo");
+    const char *myName  = concat3(THIS_NAME, "/", "RRh/Rxb");
 
     static ap_uint<log2Ceil<cIBuffBytes>::val+1>  rrh_freeSpace=cIBuffBytes;
     #pragma HLS reset                    variable=rrh_freeSpace
@@ -493,6 +491,8 @@ void pRxPostNotification(
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "RRh/Rxp");
 
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
     static enum PostFsmStates { RPN_IDLE, RPN_INC, RPN_POST } \
@@ -561,7 +561,7 @@ void pRxInterruptTable(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = concat3(THIS_NAME, "/", "RRh/Rit");
 
@@ -609,7 +609,7 @@ void pRxInterruptTable(
                     rit_fsmState = RIT_NOTIF_REQ;
                 }
                 else if (!siRsr_InterruptQry.empty()) {
-                	rit_schedQuery = siRsr_InterruptQry.read();
+                    rit_schedQuery = siRsr_InterruptQry.read();
                     if (rit_schedQuery.action != GET) {
                         printFatal(myName, "Expecting a query 'GET' request!\n");
                     }
@@ -673,7 +673,8 @@ void pRxInterruptTable(
 /*******************************************************************************
  * @brief Always read the incoming buffer space occupancy w/ II=1.
  *******************************************************************************/
-void pRsr_Getter(
+/*** OBSOLETE_20230323 **************
+void pRxGetter(
         stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &siIbo_Space,
         stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &soSched_FreeSpace)
 {
@@ -692,22 +693,24 @@ void pRsr_Getter(
         soSched_FreeSpace.write(rsr_freeSpace);
     }
 }
+*******************************/
 
 /*******************************************************************************
- * @brief Always read the incoming session Id (w/ II=1) and update the vector
- *  of pending interrupts.
+ * @brief Rx Handler (Rxs)
+ *  Reads the incoming session Id (w/ II=1) and updates the vector of pending
+ *  interrupts.
  *******************************************************************************/
-void pRsr_Handler(
+void pRxHandler(
         stream<SessionId>              &siRpn_SessId,
-        stream<ReqBit>                 &siScheduler_SessIdReq,
-        stream<SessionId>              &soScheduler_SessIdRep,
-        stream<SessionId>              &siScheduler_ClrInt)
+        stream<ReqBit>                 &siRxs_SessIdReq,
+        stream<SessionId>              &soRxs_SessIdRep,
+        stream<SessionId>              &siRxs_ClearInt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
-    const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr/Handl");
+    const char *myName = concat3(THIS_NAME, "/", "RRh/Rxh");
 
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
     static ap_uint<cMaxSessions>    rsr_pendingInterrupts=0;
@@ -729,8 +732,8 @@ void pRsr_Handler(
         }
     }
     //-- Clear interrupt --------------
-    if (!siScheduler_ClrInt.empty()) {
-        SessionId sessId = siScheduler_ClrInt.read();
+    if (!siRxs_ClearInt.empty()) {
+        SessionId sessId = siRxs_ClearInt.read();
         clrVec[sessId] = 1;
         if (DEBUG_LEVEL & TRACE_RRH) {
             printInfo(myName, "Clear interrupt for session #%d.\n", sessId.to_uint());
@@ -741,7 +744,7 @@ void pRsr_Handler(
 
     //-- Forward interrupt
     bool currSessValid = false;
-    if (!siScheduler_SessIdReq.empty() and !soScheduler_SessIdRep.full()) {
+    if (!siRxs_SessIdReq.empty() and !soRxs_SessIdRep.full()) {
         //-- Round-robin scheduler
         for (uint8_t i=0; i<cMaxSessions; ++i) {
             #pragma HLS UNROLL
@@ -752,8 +755,8 @@ void pRsr_Handler(
             }
         }
         if (currSessValid == true) {
-            siScheduler_SessIdReq.read();
-            soScheduler_SessIdRep.write(nextSess);
+            siRxs_SessIdReq.read();
+            soRxs_SessIdRep.write(nextSess);
             if (DEBUG_LEVEL & TRACE_RRH) {
                 printInfo(myName, "RR-Arbiter has scheduled session #%d.\n", nextSess.to_uint());
             }
@@ -762,16 +765,16 @@ void pRsr_Handler(
 }
 
 /*******************************************************************************
- * @brief Always round-robin scheduler.
+ * @brief Rx Scheduler (Rxs)
  *
- * @param[out] soHandler_SessIdReq Request a session id from the RsrInterruptHandler.
- * @param[in]  siHandler_SessIdRep A session id to the RsrScheduler.
- * @param[in]  siGetter_FreeSpace  The available space in the input buffer (in bytes).
+ * @param[out] soRxh_SessIdReq     Request a session id from the RxHandler (Rxh).
+ * @param[in]  siRxh_SessIdRep     A session id reply from [Rxh].
+ * @param[in]  siRxb_FreeSpace     The available space (in bytes) from the RxBuffer (Rxb).
  * @param[out] soRit_InterruptQry  Interrupt query to RxInterruptTable(Rit).
  * @param[in]  siRit_InterruptRep  Interrupt reply from [Rit].
+ * @param[out] soRxh_ClearInt      A request to clear an interrupt to [Rxh].
  * @param[out] soSHL_DReq          An Rx data request to [SHELL].
  * @param[out] soRDp_FwdCmd        A command telling the ReadPath (RDp) to keep/drop a stream.
- * @param[out] soHandler_ClrInt    A request to clear an interrupt to RsrInterruptHandler.
  *
  * @detail
  *  This process implements a round-robin scheduler that generates data requests
@@ -780,27 +783,32 @@ void pRsr_Handler(
  *   is set, it indicates that session #0 has pending bytes.
  *  After sending the request to TOE, the pending byte count of the interrupt
  *   table is decreased accordingly.
+ *  Next, the scheduler sends a data request to [SHELL] indicating the number of
+ *   bytes that it is willing to receive for a given session.
  *******************************************************************************/
-void pRsr_Scheduler(
-        stream<ReqBit>                 &soHandler_SessIdReq,
-        stream<SessionId>              &siHandler_SessIdRep,
-        stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &siGetter_FreeSpace,
+void pRxScheduler(
+        stream<ReqBit>                 &soRxh_SessIdReq,
+        stream<SessionId>              &siRxh_SessIdRep,
+        stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &siRxb_FreeSpace,
         stream<InterruptQuery>         &soRit_InterruptQry,
         stream<InterruptEntry>         &siRit_InterruptRep,
+        stream<SessionId>              &soRxh_ClearReq,
         stream<TcpAppRdReq>            &soSHL_DReq,
-        stream<ForwardCmd>             &soRDp_FwdCmd,
-        stream<SessionId>              &soHandler_ClrReq)
+        stream<ForwardCmd>             &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
-    const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr/Sched");
+    const char *myName = concat3(THIS_NAME, "/", "RRh/Rxs");
 
     //-- STATIC VARIABLES W/ RESET ---------------------------------------------
     static enum FsmStates { RSR_SREQ, RSR_SREP, RSR_DEC, RSR_PUT, RSR_FWD } \
-                                            rsr_fsmState=RSR_SREQ;
-    #pragma HLS reset              variable=rsr_fsmState
+                                                 rsr_fsmState=RSR_SREQ;
+    #pragma HLS reset                   variable=rsr_fsmState
+    //OBSOLETE static ap_uint<log2Ceil<cIBuffBytes>::val+1> rsr_freeSpace;
+    static TcpDatLen                             rsr_freeSpace;
+    #pragma HLS reset                   variable=rsr_freeSpace
 
     //-- STATIC VARIABLES ------------------------------------------------------
     static SessionId              rsr_currSess;
@@ -809,18 +817,22 @@ void pRsr_Scheduler(
     static ap_uint<cMaxSessions>  rsr_pendingInterrupts;
 
     TcpDatLen                     newByteCnt;
-    TcpDatLen                     freeSpace;
+    //OBSOLETE TcpDatLen                     freeSpace;
+
+    if (!siRxb_FreeSpace.empty()) {
+        rsr_freeSpace = siRxb_FreeSpace.read();
+    }
 
     switch(rsr_fsmState) {
         case RSR_SREQ:
-            if (!soHandler_SessIdReq.full()) {
-                soHandler_SessIdReq.write(1);
+            if (!soRxh_SessIdReq.full()) {
+                soRxh_SessIdReq.write(1);
                 rsr_fsmState = RSR_SREP;
             }
             break;
         case RSR_SREP:
-            if (!siHandler_SessIdRep.empty() and !soRit_InterruptQry.full()) {
-                rsr_currSess = siHandler_SessIdRep.read();
+            if (!siRxh_SessIdRep.empty() and !soRit_InterruptQry.full()) {
+                rsr_currSess = siRxh_SessIdRep.read();
                 soRit_InterruptQry.write(rsr_currSess);
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "Querying [Rit] for session #%d.\n", rsr_currSess.to_uint());
@@ -829,25 +841,26 @@ void pRsr_Scheduler(
             }
             break;
         case RSR_DEC:
-            if (!siRit_InterruptRep.empty() and !siGetter_FreeSpace.empty()) {
+            //OBSOLETE if (!siRit_InterruptRep.empty() and !siGetter_FreeSpace.empty()) {
+            if (!siRit_InterruptRep.empty()) {
                 // Decrement counter and put it back in the table
                 rsr_intEntry  = siRit_InterruptRep.read();
-                freeSpace = siGetter_FreeSpace.read();
+                //OBSOLETE freeSpace = siGetter_FreeSpace.read();
                 // Request to TOE = max(rit_schedEntry.byteCnt, rit_freeSSpace)
-                rsr_datLenReq = (freeSpace < rsr_intEntry.byteCnt) ? (freeSpace) : (rsr_intEntry.byteCnt);
+                rsr_datLenReq = (rsr_freeSpace < rsr_intEntry.byteCnt) ? (rsr_freeSpace) : (rsr_intEntry.byteCnt);
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "NotifBytes=%d - FreeSpace=%d \n",
-                            rsr_intEntry.byteCnt.to_uint(), freeSpace.to_uint());
+                            rsr_intEntry.byteCnt.to_uint(), rsr_freeSpace.to_uint());
                 }
                 rsr_fsmState = RSR_PUT;
             }
             break;
         case RSR_PUT:
-            if (!soRit_InterruptQry.full() and !soHandler_ClrReq.full()) {
+            if (!soRit_InterruptQry.full() and !soRxh_ClearReq.full()) {
                 newByteCnt = rsr_intEntry.byteCnt - rsr_datLenReq;
                 soRit_InterruptQry.write(InterruptQuery(rsr_currSess, newByteCnt));
                 if (newByteCnt == 0) {
-                    soHandler_ClrReq.write(rsr_currSess);
+                	soRxh_ClearReq.write(rsr_currSess);
                     if (DEBUG_LEVEL & TRACE_RRH) {
                         printInfo(myName, "Request to clear interrupt #%d.\n", rsr_currSess.to_uint());
                     }
@@ -897,6 +910,7 @@ void pRsr_Scheduler(
  *  After sending the request to TOE, the pending byte count of the interrupt
  *   table is decreased accordingly.
  *******************************************************************************/
+/*** OBSOLETE_20210323 *************************
 void pRxSchedulerRequest(
         stream<SessionId>       &siRpn_SessId,
         stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> > &siIbo_Space,
@@ -944,6 +958,7 @@ void pRxSchedulerRequest(
             ssSchedulerToHandler_ClearInt);
 
 }
+********************************/
 
 /*******************************************************************************
  * @brief Read Request Handler (RRh)
@@ -1005,42 +1020,68 @@ void pReadRequestHandler(
     //-- LOCAL STREAM ----------------------------------------------------------
     static stream<InterruptQuery>   ssRpnToRit_InterruptQry ("ssRpnToRit_InterruptQry");
     #pragma HLS stream     variable=ssRpnToRit_InterruptQry depth=2
-    static stream<InterruptEntry>   ssRitToRpn_InterruptRep ("ssRitToRpn_InterruptRep");
-    #pragma HLS stream     variable=ssRitToRpn_InterruptRep depth=2
-    static stream<InterruptQuery>   ssRsrToRit_InterruptQry ("ssRsrToRit_InterruptQry");
-    #pragma HLS stream     variable=ssRsrToRit_InterruptQry depth=2
+    static stream<SessionId>        ssRpnToRxh_SessId       ("ssRpnToRxh_SessId");
+    #pragma HLS stream     variable=ssRpnToRxh_SessId       depth=4
+
     static stream<InterruptEntry>   ssRitToRsr_InterruptRep ("ssRitToRsr_InterruptRep");
     #pragma HLS stream     variable=ssRitToRsr_InterruptRep depth=2
-    static stream<SessionId>        ssRpnToRst_SessId       ("ssRpnToRst_SessId");
-    #pragma HLS stream     variable=ssRpnToRst_SessId       depth=4
+    static stream<InterruptEntry>   ssRitToRpn_InterruptRep ("ssRitToRpn_InterruptRep");
+    #pragma HLS stream     variable=ssRitToRpn_InterruptRep depth=2
 
-    static stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> >  ssIboToRsr_BufSpace ("ssIboToRsr_BufSpace");
-    #pragma HLS stream                            variable=ssIboToRsr_BufSpace  depth=2
+    static stream<InterruptQuery>   ssRxsToRit_InterruptQry ("ssRxsToRit_InterruptQry");
+    #pragma HLS stream     variable=ssRxsToRit_InterruptQry depth=2
+
+    static stream<ReqBit>           ssRxsToRxh_SessIdReq    ("ssRxsToRxh_SessIdReq");
+    #pragma HLS stream     variable=ssRxsToRxh_SessIdReq    depth=2
+    static stream<SessionId>        ssRxsToRxh_ClearInt     ("ssRxsToRxh_ClearInt");
+    #pragma HLS stream     variable=ssRxsToRxh_ClearInt     depth=2
+
+    static stream<SessionId>        ssRxhToRxs_SessIdRep    ("ssRxhToRxs_SessIdRep");
+    #pragma HLS stream     variable=ssRxhToRxs_SessIdRep    depth=2
+
+    static stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> >  ssRxbToRxs_FreeSpace  ("ssRxbToRxs_FreeSpace");
+    #pragma HLS stream                            variable=ssRxbToRxs_FreeSpace  depth=4
+    //OBSOLETE static stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> >  ssRxgToRxs_FreeSpace ("ssRxgToRxs_FreeSpace");
+    //OBSOLETE #pragma HLS stream                            variable=ssRxgToRxs_FreeSpace
 
     //-- PROCESS FUNCTIONS -----------------------------------------------------
-    pInputBufferOccupancy(
+    pRxBufferOccupancy(
             siIRb_EnquSig,
             siRDp_DequSig,
-            ssIboToRsr_BufSpace);
+            ssRxbToRxs_FreeSpace);
 
     pRxPostNotification(
             siSHL_Notif,
             ssRpnToRit_InterruptQry,
             ssRitToRpn_InterruptRep,
-            ssRpnToRst_SessId);
+            ssRpnToRxh_SessId);
 
-    pRxSchedulerRequest (
-            ssRpnToRst_SessId,
-            ssIboToRsr_BufSpace,
-            ssRsrToRit_InterruptQry,
+    /*** OBSOLETE_20210323 ************
+    pRxGetter(
+            ssIboToRxg_BufSpace,
+            ssRxgToRxs_FreeSpace);
+     **********************************/
+
+    pRxHandler(
+            ssRpnToRxh_SessId,
+            ssRxsToRxh_SessIdReq,
+            ssRxhToRxs_SessIdRep,
+            ssRxsToRxh_ClearInt);
+
+    pRxScheduler(
+            ssRxsToRxh_SessIdReq,
+            ssRxhToRxs_SessIdRep,
+            ssRxbToRxs_FreeSpace,
+            ssRxsToRit_InterruptQry,
             ssRitToRsr_InterruptRep,
+            ssRxsToRxh_ClearInt,
             soSHL_DReq,
             soRDp_FwdCmd);
 
     pRxInterruptTable(
             ssRpnToRit_InterruptQry,
             ssRitToRpn_InterruptRep,
-            ssRsrToRit_InterruptQry,
+            ssRxsToRit_InterruptQry,
             ssRitToRsr_InterruptRep);
 }
 
@@ -1084,8 +1125,7 @@ void pReadPath(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
-
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
@@ -1225,8 +1265,7 @@ void pWritePath(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
-
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = concat3(THIS_NAME, "/", "WRp");
 
