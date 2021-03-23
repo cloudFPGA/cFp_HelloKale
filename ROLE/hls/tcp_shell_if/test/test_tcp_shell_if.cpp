@@ -250,52 +250,58 @@ void pTOE(
     *poMMIO_Ready = (toe_rxpIsReady and toe_txpIsReady) ? 1 : 0;
 	********************/
     if (toe_startupDelay) {
-        *poMMIO_Ready = 0;
-        if (toe_startupDelay < cSimToeRxStartDelay) {
-            toe_rxpIsReady = true;
+            toe_startupDelay--;
+        } else {
+            if (toe_rxpStartupDelay) {
+                toe_rxpStartupDelay--;
+            }
+            else {
+                toe_rxpIsReady = true;
+            }
+            if (toe_txpStartupDelay) {
+                toe_txpStartupDelay--;
+            }
+            else
+                toe_txpIsReady = true;
         }
-        if (toe_startupDelay < cSimToeTxStartDelay) {
-            toe_txpIsReady = true;
-        }
-        toe_startupDelay--;
-    } else {
-        *poMMIO_Ready = 1;
-    }
+        *poMMIO_Ready = (toe_startupDelay == 0) ? 1 : 0;
 
     //------------------------------------------------------
     //-- FSM #1 - LISTENING
     //------------------------------------------------------
     static TcpAppLsnReq toe_appLsnPortReq;
-    switch (toe_lsnState) {
-    case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
-        if (!siTSIF_LsnReq.empty()) {
-            siTSIF_LsnReq.read(toe_appLsnPortReq);
-            if (DEBUG_LEVEL & TRACE_TOE_LSN) {
-                printInfo(myLsnName,
-                        "Received a listen port request #%d from [TSIF].\n",
-                        toe_appLsnPortReq.to_int());
-            }
-            toe_lsnState = LSN_SEND_REP;
-        }
-        break;
-    case LSN_SEND_REP: // SEND REPLY BACK TO [TSIF]
-        if (!soTSIF_LsnRep.full()) {
-            soTSIF_LsnRep.write(TcpAppLsnRep(NTS_OK));
-            toe_fpgaLsnPort = toe_appLsnPortReq.to_int();
-            toe_lsnState = LSN_WAIT_REQ;
-        } else {
-            printWarn(myLsnName,
-                    "Cannot send listen reply back to [TSIF] because stream is full.\n");
-        }
-        break;
-    }  // End-of: switch (lsnState) {
+	if (*poMMIO_Ready) {
+		switch (toe_lsnState) {
+		case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
+			if (!siTSIF_LsnReq.empty()) {
+				siTSIF_LsnReq.read(toe_appLsnPortReq);
+				if (DEBUG_LEVEL & TRACE_TOE_LSN) {
+					printInfo(myLsnName,
+							"Received a listen port request #%d from [TSIF].\n",
+							toe_appLsnPortReq.to_int());
+				}
+				toe_lsnState = LSN_SEND_REP;
+			}
+			break;
+		case LSN_SEND_REP: // SEND REPLY BACK TO [TSIF]
+			if (!soTSIF_LsnRep.full()) {
+				soTSIF_LsnRep.write(TcpAppLsnRep(NTS_OK));
+				toe_fpgaLsnPort = toe_appLsnPortReq.to_int();
+				toe_lsnState = LSN_WAIT_REQ;
+			} else {
+				printWarn(myLsnName,
+						"Cannot send listen reply back to [TSIF] because stream is full.\n");
+			}
+			break;
+		}  // End-of: switch (lsnState) {
+    }
 
     //------------------------------------------------------
     //-- FSM #2 - OPEN CONNECTION
     //------------------------------------------------------
     TcpAppOpnReq toe_opnReq;
     TcpAppOpnRep opnReply(DEFAULT_SESSION_ID + 1, ESTABLISHED);
-    if (toe_rxpIsReady) {
+    if (*poMMIO_Ready) {
         switch (toe_opnState) {
         case OPN_WAIT_REQ:
             if (!siTSIF_OpnReq.empty()) {
@@ -425,6 +431,15 @@ void pTOE(
             // ALL SEGMENTS HAVE BEEN NOTIFIED
             break;
         } // End of: switch (toe_ntfState)
+    }
+    else if (*poMMIO_Ready) {
+    	//appData.setTData(0);
+    	//appData.setTKeep(0x00);
+    	//appData.setTLast(0);
+    	//soTSIF_Data.write(appData);
+        //soTSIF_Notif.write(
+        //        TcpAppNotif(toe_sessId, notifByteCnt, toe_hostIp4Addr,
+        //                toe_hostTcpSrcPort, toe_hostTcpDstPort));
     }
 
     //------------------------------------------------------
