@@ -1455,7 +1455,7 @@ void tcp_shell_if(
 
     //-- Input Read Buffer (IRb)
     static stream<SigBit>          ssIRbToRRh_Enqueue    ("ssIRbToRRh_Enqueue");
-    #pragma HLS stream    variable=ssIRbToRRh_Enqueue    depth=2
+    #pragma HLS stream    variable=ssIRbToRRh_Enqueue    depth=4
     static stream<TcpAppData>      ssIRbToRDp_Data       ("ssIRbToRDp_Data");
     #pragma HLS stream    variable=ssIRbToRDp_Data       depth=cIBuffChunks
     static stream<TcpAppMeta>      ssIRbToRDp_Meta       ("ssIRbToRDp_Meta");
@@ -1463,7 +1463,7 @@ void tcp_shell_if(
 
     //-- Read Path (RDp)
     static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpbToRRh_Dequeue");
-    #pragma HLS stream    variable=ssRDpToRRh_Dequeue    depth=2
+    #pragma HLS stream    variable=ssRDpToRRh_Dequeue    depth=4
     static stream<SockAddr>        ssRDpToCOn_OpnSockReq ("ssRDpToCOn_OpnSockReq");
     #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=2
     static stream<TcpDatLen>       ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
