@@ -47,7 +47,7 @@ using namespace std;
 #define TRACE_TAF     1 <<  6
 #define TRACE_MMIO    1 <<  7
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -214,12 +214,10 @@ void pTOE(
         TXP_READ_REQ, TXP_REPLY_REQ, TXP_RECV_DATA
     } toe_txpState = TXP_READ_REQ;
 
-    static int toe_startupDelay    = cSimToeStartupDelay;
-    static int toe_rxpStartupDelay = cSimToeRxStartDelay;
-    static int toe_txpStartupDelay = cSimToeTxStartDelay;
-    static bool toe_isReady    = false;
-    static bool toe_rxpIsReady = false;
-    static bool toe_txpIsReady = false;
+    static int toe_startupDelay = cSimToeStartupDelay;
+    static bool toe_isReady     = false;
+    static bool toe_rxpIsReady  = false;
+    static bool toe_txpIsReady  = false;
 
     const char *myLsnName = concat3(THIS_NAME, "/", "TOE/Listen");
     const char *myOpnName = concat3(THIS_NAME, "/", "TOE/OpnCon");
@@ -230,47 +228,22 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #0 - STARTUP DELAYS
     //------------------------------------------------------
-    /**** OBSOLET ******
     if (toe_startupDelay) {
-        *poMMIO_Ready = 0;
         toe_startupDelay--;
-    } else {
-        if (toe_rxpStartupDelay) {
-            toe_rxpStartupDelay--;
-        }
-        else {
-            toe_rxpIsReady = true;
-        }
-        if (toe_txpStartupDelay) {
-            toe_txpStartupDelay--;
-        }
-        else
-            toe_txpIsReady = true;
+        *poMMIO_Ready = 0;
     }
-    *poMMIO_Ready = (toe_rxpIsReady and toe_txpIsReady) ? 1 : 0;
-	********************/
-    if (toe_startupDelay) {
-            toe_startupDelay--;
-        } else {
-            if (toe_rxpStartupDelay) {
-                toe_rxpStartupDelay--;
-            }
-            else {
-                toe_rxpIsReady = true;
-            }
-            if (toe_txpStartupDelay) {
-                toe_txpStartupDelay--;
-            }
-            else
-                toe_txpIsReady = true;
-        }
-        *poMMIO_Ready = (toe_startupDelay == 0) ? 1 : 0;
+    else {
+        *poMMIO_Ready = 1;
+    }
+    toe_isReady    = (toe_startupDelay == 25) ? true : false;
+    toe_rxpIsReady = (toe_startupDelay <= 25) ? true : false;
+    toe_txpIsReady = (toe_startupDelay <= 25) ? true : false;
 
     //------------------------------------------------------
     //-- FSM #1 - LISTENING
     //------------------------------------------------------
     static TcpAppLsnReq toe_appLsnPortReq;
-	if (*poMMIO_Ready) {
+	if (true) {
 		switch (toe_lsnState) {
 		case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
 			if (!siTSIF_LsnReq.empty()) {
@@ -301,7 +274,7 @@ void pTOE(
     //------------------------------------------------------
     TcpAppOpnReq toe_opnReq;
     TcpAppOpnRep opnReply(DEFAULT_SESSION_ID + 1, ESTABLISHED);
-    if (*poMMIO_Ready) {
+    if (true) {
         switch (toe_opnState) {
         case OPN_WAIT_REQ:
             if (!siTSIF_OpnReq.empty()) {
@@ -431,15 +404,6 @@ void pTOE(
             // ALL SEGMENTS HAVE BEEN NOTIFIED
             break;
         } // End of: switch (toe_ntfState)
-    }
-    else if (*poMMIO_Ready) {
-    	//appData.setTData(0);
-    	//appData.setTKeep(0x00);
-    	//appData.setTLast(0);
-    	//soTSIF_Data.write(appData);
-        //soTSIF_Notif.write(
-        //        TcpAppNotif(toe_sessId, notifByteCnt, toe_hostIp4Addr,
-        //                toe_hostTcpSrcPort, toe_hostTcpDstPort));
     }
 
     //------------------------------------------------------

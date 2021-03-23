@@ -45,8 +45,8 @@
 //-- TESTBENCH DEFINITIONS
 //------------------------------------------------------
 const int cSimToeStartupDelay = 1000;
-const int cSimToeRxStartDelay =  100;
-const int cSimToeTxStartDelay =  100;
+//OBSOLETE_20210323 const int cSimToeRxStartDelay =   25;
+//OBSOLETE_20210323 const int cSimToeTxStartDelay =   25;
 const int cGraceTime          = 2500;
 
 const int cNrSegToSend  = 5;
@@ -62,8 +62,7 @@ const int cMinWAIT = cMaxSessions;  // To avoid that TSIF accumulates the byte c
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = cSimToeStartupDelay + cSimToeRxStartDelay +
-                                cSimToeTxStartDelay + cGraceTime;
+unsigned int    gMaxSimCycles = cSimToeStartupDelay + cGraceTime;
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
