@@ -68,7 +68,7 @@ using namespace std;
 #define TRACE_RRH 1     <<  6
 #define TRACE_RRH_IBO 1 <<  7
 #define TRACE_ALL      0xFFFF
-#define DEBUG_LEVEL (TRACE_RRH)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -353,6 +353,68 @@ void pListen(
 }  // End-of: pListen()
 
 /*******************************************************************************
+ * @brief Input Read Buffer (IRb)
+ *
+ * @param[in]  piSHL_Enable  Enable signal from [SHELL].
+ * @param[in]  siSHL_Data    Data stream from [SHELL].
+ * @param[in]  siSHL_Meta    Session Id from [SHELL].
+ * @param[out] soRRh_EnquSig Signals the enqueue of a new chunk to ReadRequestHandler (RRh).
+ * @param[out] soRDp_Data    Data stream to ReadPath (RDp).
+ * @param[out] soRDp_Meta    Metadata stream [RDp].
+ *
+ * @details
+ *  This process counts and enqueues the incoming data segments and their meta-
+ *  data into two FIFOs. The goal is to provision a buffer to store all the
+ *  bytes that were requested from the TCP Rx buffer by the ReadRequestHandler
+ *  (RRh) process. If this process does not absorb the incoming data stream fast
+ *  enough, the [TOE] will start dropping segments on his side to avoid any
+ *  blocking situation.
+ *******************************************************************************/
+void pInputReadBuffer(
+        CmdBit              *piSHL_Enable,
+        stream<TcpAppData>  &siSHL_Data,
+        stream<TcpAppMeta>  &siSHL_Meta,
+        stream<SigBit>      &soRRh_EnquSig,
+        stream<TcpAppData>  &soRDp_Data,
+        stream<TcpAppMeta>  &soRDp_Meta)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "IRb");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { IRB_IDLE=0,    IRB_STREAM } \
+                               irb_fsmState=IRB_IDLE;
+    #pragma HLS reset variable=irb_fsmState
+
+    if (*piSHL_Enable != 1) {
+        return;
+    }
+
+    switch (irb_fsmState ) {
+    case IRB_IDLE:
+        if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
+            soRDp_Meta.write(siSHL_Meta.read());
+            irb_fsmState = IRB_STREAM;
+        }
+        break;
+    case IRB_STREAM:
+        if (!siSHL_Data.empty() and !soRDp_Data.full() and !soRRh_EnquSig.full()) {
+            TcpAppData currChunk = siSHL_Data.read();
+            soRDp_Data.write(currChunk);
+            soRRh_EnquSig.write(1);
+            if (currChunk.getTLast()) {
+                irb_fsmState = IRB_IDLE;
+            }
+        }
+        break;
+    }
+}
+
+
+/*******************************************************************************
  * @brief Updates the counter which tracks the occupancy of the input read buffer.
  *
  * @param[in]  siEnqueueSig Signals the enqueue of a chunk in the buffer.
@@ -408,7 +470,7 @@ void pInputBufferOccupancy(
  * @param[in]  siSHL_Notif    A new Rx data notification from [SHELL].
  * @param[out] soRit_InterruptQry  Interrupt query to RxInterruptTable(Rit).
  * @param[in]  siRit_InterruptRep  Interrupt reply from [Rit].
- * @param[out] soRst_SessId   Session Id to RxSchedulerRequest(Rst).
+ * @param[out] soRst_SessId   Session Id to RxSchedulerRequest(Rsr).
  *
  * @details
  *  This 'POST' process reads the incoming notification from the shell and
@@ -426,7 +488,7 @@ void pRxPostNotification(
         stream<TcpAppNotif>     &siSHL_Notif,
         stream<InterruptQuery>  &soRit_InterruptQry,
         stream<InterruptEntry>  &siRit_InterruptRep,
-        stream<SessionId>       &soRst_SessId)
+        stream<SessionId>       &soRsr_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -462,11 +524,11 @@ void pRxPostNotification(
         }
         break;
     case RPN_POST:
-        if (!soRit_InterruptQry.full() and !soRst_SessId.full()) {
+        if (!soRit_InterruptQry.full() and !soRsr_SessId.full()) {
             InterruptEntry currEntry(rpn_newPendingByteCnt, rpn_notif.tcpDstPort);
             InterruptQuery postQuery(rpn_notif.sessionID, currEntry);
             soRit_InterruptQry.write(postQuery);
-            soRst_SessId.write(rpn_notif.sessionID);
+            soRsr_SessId.write(rpn_notif.sessionID);
             rpn_fsmState = RPN_IDLE;
         }
         break;
@@ -773,6 +835,10 @@ void pRsr_Scheduler(
                 freeSpace = siGetter_FreeSpace.read();
                 // Request to TOE = max(rit_schedEntry.byteCnt, rit_freeSSpace)
                 rsr_datLenReq = (freeSpace < rsr_intEntry.byteCnt) ? (freeSpace) : (rsr_intEntry.byteCnt);
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "NotifBytes=%d - FreeSpace=%d \n",
+                            rsr_intEntry.byteCnt.to_uint(), freeSpace.to_uint());
+                }
                 rsr_fsmState = RSR_PUT;
             }
             break;
@@ -977,62 +1043,6 @@ void pReadRequestHandler(
             ssRsrToRit_InterruptQry,
             ssRitToRsr_InterruptRep);
 }
-
-/*******************************************************************************
- * @brief Input Read Buffer (IRb)
- *
- * @param[in]  siSHL_Data    Data stream from [SHELL].
- * @param[in]  siSHL_Meta    Session Id from [SHELL].
- * @param[out] soRRh_EnquSig Signals the enqueue of a new chunk to ReadRequestHandler (RRh).
- * @param[out] soRDp_Data    Data stream to ReadPath (RDp).
- * @param[out] soRDp_Meta    Metadata stream [RDp].
- *
- * @details
- *  This process counts and enqueues the incoming data segments and their meta-
- *  data into two FIFOs. The goal is to provision a buffer to store all the
- *  bytes that were requested from the TCP Rx buffer by the ReadRequestHandler
- *  (RRh) process. If this process does not absorb the incoming data stream fast
- *  enough, the [TOE] will start dropping segments on his side to avoid any
- *  blocking situation.
- *******************************************************************************/
-void pInputReadBuffer(
-        stream<TcpAppData>  &siSHL_Data,
-        stream<TcpAppMeta>  &siSHL_Meta,
-        stream<SigBit>      &soRRh_EnquSig,
-        stream<TcpAppData>  &soRDp_Data,
-        stream<TcpAppMeta>  &soRDp_Meta)
-{
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1 enable_flush
-
-    const char *myName  = concat3(THIS_NAME, "/", "IRb");
-
-    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { IRB_IDLE=0,    IRB_STREAM } \
-                               irb_fsmState=IRB_IDLE;
-    #pragma HLS reset variable=irb_fsmState
-
-    switch (irb_fsmState ) {
-    case IRB_IDLE:
-        if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
-            soRDp_Meta.write(siSHL_Meta.read());
-            irb_fsmState = IRB_STREAM;
-        }
-        break;
-    case IRB_STREAM:
-        if (!siSHL_Data.empty() and !soRDp_Data.full() and !soRRh_EnquSig.full()) {
-            TcpAppData currChunk = siSHL_Data.read();
-            soRDp_Data.write(currChunk);
-            soRRh_EnquSig.write(1);
-            if (currChunk.getTLast()) {
-                irb_fsmState = IRB_IDLE;
-            }
-        }
-        break;
-    }
-}
-
 
 /*******************************************************************************
  * @brief Read Path (RDp)
@@ -1497,6 +1507,7 @@ void tcp_shell_if(
             siSHL_LsnRep);
 
     pInputReadBuffer(
+            piSHL_Mmio_En,
             siSHL_Data,
             siSHL_Meta,
             ssIRbToRRh_Enqueue,
