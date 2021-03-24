@@ -186,9 +186,9 @@ if { $hlsCSim} {
     csim_design -argv "1024 10.11.12.13 32768  512"
     csim_design -argv "2048 10.11.12.13 32768 1024"
     csim_design -argv "4096 10.11.12.13 32768 2048"
-    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(      32768))}] [expr {1 + int(rand()*65535)}]"
-    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {32768 + int(rand()*(65535-32768))}] [expr {1 + int(rand()*65535)}]"
-    csim_design -argv "[expr {1 + int(rand()*65535)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(65535      ))}] [expr {1 + int(rand()*65535)}]"
+    csim_design -argv "[expr {1 + int(rand()*16384)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(      32768))}] [expr {1 + int(rand()*16384)}]"
+    csim_design -argv "[expr {1 + int(rand()*16384)}] [expr {1 + int(rand()*4294967278)}] [expr {32768 + int(rand()*(65535-32768))}] [expr {1 + int(rand()*16384)}]"
+    csim_design -argv "[expr {1 + int(rand()*16384)}] [expr {1 + int(rand()*4294967278)}] [expr {    1 + int(rand()*(65535      ))}] [expr {1 + int(rand()*16384)}]"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -212,10 +212,9 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level none
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1024 10.11.12.13 32768 512"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "[expr {1 + int(rand()*65535)}] 192.168.0.200 [expr {1 + int(rand()*(65535))}] [expr {1 + int(rand()*65535)}]"
-
+    # [NOT-SUPPORTED] cosim_design -tool xsim -rtl verilog -trace_level none
+    # [NOT-SUPPORTED] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1024 10.11.12.13 32768 512"
+    # [NOT-SUPPORTED] cosim_design -tool xsim -rtl verilog -trace_level none -argv "[expr {1 + int(rand()*16384)}] 192.168.0.200 [expr {1 + int(rand()*(65535))}] [expr {1 + int(rand()*16384)}]"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

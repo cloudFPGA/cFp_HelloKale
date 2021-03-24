@@ -77,7 +77,7 @@ using namespace std;
 #define TRACE_RRH 1     <<  6
 #define TRACE_RRH_IBO 1 <<  7
 #define TRACE_ALL      0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_WRP)
 
 
 /*******************************************************************************
@@ -1115,7 +1115,7 @@ void pReadRequestHandler(
     // [TODO] #pragma HLS INTERFACE ap_ctrl_none port=return
     // [TODO] #pragma HLS INLINE off
 
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
 
@@ -1199,6 +1199,7 @@ void pReadRequestHandler(
 /*******************************************************************************
  * @brief Read Path (RDp)
  *
+ * @param[in]  piSHL_Enable  Enable signal from [SHELL].
  * @param[in]  siSHL_Data    Data stream from [SHELL].
  * @param[in]  siSHL_Meta    Session Id from [SHELL].
  * @param[in]  siRRh_FwdCmd  A command to keep/drop a stream from ReadRequestHandler (RRh).
@@ -1224,6 +1225,7 @@ void pReadRequestHandler(
  *       the extracted fields to the Connect (COn) process.
  *******************************************************************************/
 void pReadPath(
+        CmdBit              *piSHL_Enable,
         stream<TcpAppData>  &siSHL_Data,
         stream<TcpAppMeta>  &siSHL_Meta,
         stream<ForwardCmd>  &siRRh_FwdCmd,
@@ -1253,6 +1255,10 @@ void pReadPath(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpAppData  appData;
     TcpSessId   sessId;
+
+    if (*piSHL_Enable != 1) {
+        return;
+    }
 
     switch (rdp_fsmState ) {
     case RDP_IDLE:
@@ -1338,6 +1344,7 @@ void pReadPath(
 /*******************************************************************************
  * @brief Write Path (WRp)
  *
+ * @param[in]  piSHL_Enable  Enable signal from [SHELL].
  * @param[in]  siTAF_Data   Tx data stream from [ROLE/TAF].
  * @param[in]  siTAF_SessId The session Id from [ROLE/TAF].
  * @param[in]  siTAF_DatLen The data length from [ROLE/TAF].
@@ -1365,6 +1372,7 @@ void pReadPath(
  *
  *******************************************************************************/
 void pWritePath(
+        CmdBit               *piSHL_Enable,
         stream<TcpAppData>   &siTAF_Data,
         stream<TcpSessId>    &siTAF_SessId,
         stream<TcpDatLen>    &siTAF_DatLen,
@@ -1397,21 +1405,14 @@ void pWritePath(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpAppData  appData;
 
+    if (*piSHL_Enable != 1) {
+        return;
+    }
+
     switch (wrp_fsmState) {
     case WRP_IDLE:
-        //-- Always read the metadata provided by [ROLE/TAF]
-        if (!siTAF_SessId.empty() and !siTAF_DatLen.empty()) {
-            siTAF_SessId.read(wrp_sendReq.sessId);
-            siTAF_DatLen.read(wrp_sendReq.length);
-            if (DEBUG_LEVEL & TRACE_WRP) {
-                printInfo(myName, "Received a data forward request from [ROLE/TAF] for sessId=%d and nrBytes=%d.\n",
-                          wrp_sendReq.sessId.to_uint(), wrp_sendReq.length.to_uint());
-            }
-            wrp_testMode = false;
-            wrp_retryCnt = 0x200;
-            wrp_fsmState = WRP_RTS;
-        }
-        else if (!siCOn_TxSessId.empty() and !siCOn_TxBytesReq.empty()) {
+        //-- Always give priority to the Tx test generator (for testing reasons)
+        if (!siCOn_TxSessId.empty() and !siCOn_TxBytesReq.empty()) {
             siCOn_TxSessId.read(wrp_sendReq.sessId);
             siCOn_TxBytesReq.read(wrp_sendReq.length);
             if (DEBUG_LEVEL & TRACE_WRP) {
@@ -1426,6 +1427,17 @@ void pWritePath(
             else {
                 wrp_fsmState = WRP_IDLE;
             }
+        }
+        else if (!siTAF_SessId.empty() and !siTAF_DatLen.empty()) {
+            siTAF_SessId.read(wrp_sendReq.sessId);
+            siTAF_DatLen.read(wrp_sendReq.length);
+            if (DEBUG_LEVEL & TRACE_WRP) {
+                printInfo(myName, "Received a data forward request from [ROLE/TAF] for sessId=%d and nrBytes=%d.\n",
+                          wrp_sendReq.sessId.to_uint(), wrp_sendReq.length.to_uint());
+            }
+            wrp_testMode = false;
+            wrp_retryCnt = 0x200;
+            wrp_fsmState = WRP_RTS;
         }
         break;
     case WRP_RTS:
@@ -1665,6 +1677,7 @@ void tcp_shell_if(
             ssIRbToRDp_Meta);
 
     pReadPath(
+    		piSHL_Mmio_En,
             ssIRbToRDp_Data,
             ssIRbToRDp_Meta,
             ssRRhToRDp_FwdCmd,
@@ -1676,6 +1689,7 @@ void tcp_shell_if(
             soTAF_DatLen);
 
     pWritePath(
+            piSHL_Mmio_En,
             siTAF_Data,
             siTAF_SessId,
             siTAF_DatLen,

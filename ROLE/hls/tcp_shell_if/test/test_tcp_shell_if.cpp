@@ -47,7 +47,7 @@ using namespace std;
 #define TRACE_TAF     1 <<  6
 #define TRACE_MMIO    1 <<  7
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL & ~TRACE_TOE_TXP)
+#define DEBUG_LEVEL (TRACE_TOE_RXP)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -71,14 +71,21 @@ void stepSim() {
  * @param[in]  siTSIF_Data   Data stream from TcpShellInterface (TSIF).
  * @param[in]  siTSIF_SessId Session-id from [TSIF].
  * @param[in]  siTSIF_DatLen Data-length from [TSIF].
+ * @param[out] soTAF_Data    Data stream to [TSIF].
+ * @param[out] soTAF_SessId  Session-id to [TSIF].
+ * @param[out] soTAF_DatLen  Data-length to [TSIF].
+ *
  * @details
  *  ALWAYS READ INCOMING DATA STREAM AND STORE IT TO FILE.
  *******************************************************************************/
 void pTAF(ofstream &ofTAF_Data,
         stream<TcpAppData> &siTSIF_Data,
 		stream<TcpSessId>  &siTSIF_SessId,
-		stream<TcpDatLen>  &siTSIF_DatLen) {
-
+		stream<TcpDatLen>  &siTSIF_DatLen,
+		stream<TcpAppData> &soTAF_Data,
+		stream<TcpSessId>  &soTAF_Meta,
+		stream<TcpSessId>  &soTAF_DLen)
+{
     const char *myName = concat3(THIS_NAME, "/", "TAF");
 
     TcpAppData appData;
@@ -143,10 +150,6 @@ void pMMIO(
  * @param[out] soTSIF_Meta   Session Id to [TSIF].
  * @param[in]  siTSIF_LsnReq Listen port request from [TSIF].
  * @param[out] soTSIF_LsnRep Listen port reply to [TSIF].
- * -- Section that emulates the Tx part of the [TAF] --------------------------
- * @param[out] soTAF_Data    Data stream to [TSIF].
- * @param[out] soTAF_SessId  Session-id to [TSIF].
- * @param[out] soTAF_DatLen  Data-length to [TSIF].
  *******************************************************************************/
 void pTOE(
 		int                  &nrErr,
@@ -172,12 +175,8 @@ void pTOE(
         stream<TcpAppSndRep> &soTSIF_SndRep,
         //-- TSIF / Open Interfaces
         stream<TcpAppOpnReq> &siTSIF_OpnReq,
-        stream<TcpAppOpnRep> &soTSIF_OpnRep,
-		//-- TAF / Tx Data Interfaces
-        stream<TcpAppData>   &soTAF_Data,
-		stream<TcpSessId>    &soTAF_Meta,
-        stream<TcpSessId>    &soTAF_DLen) {
-
+        stream<TcpAppOpnRep> &soTSIF_OpnRep)
+{
     static Ip4Addr toe_hostIp4Addr    = DEFAULT_HOST_IP4_ADDR;
     static TcpPort toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
     static TcpPort toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
@@ -191,13 +190,12 @@ void pTOE(
 		SEND_METADATA,
 		SEND_DATA_SEGMENT,
 		SEND_8801_COMMAND,
-		PAUSE,
+		NEXT_SEGMENT,
 		NEXT_ROUND,
 		DONE
     } toe_fsmState = CREATE_SCENARIO;
 
     static int  toe_startupDelay = cSimToeStartupDelay;
-    static bool toe_isReady     = false;
     static bool toe_rxpIsReady  = false;
     static bool toe_txpIsReady  = false;
 
@@ -216,9 +214,8 @@ void pTOE(
     else {
         *poMMIO_Ready = 1;
     }
-    toe_isReady    = (toe_startupDelay == 25) ? true : false;
-    toe_rxpIsReady = (toe_startupDelay <= 25) ? true : false;
-    toe_txpIsReady = (toe_startupDelay <= 25) ? true : false;
+    toe_rxpIsReady = (toe_startupDelay <= 500) ? true : false;
+    toe_txpIsReady = (toe_startupDelay <= 500) ? true : false;
 
     //------------------------------------------------------
     //-- REQUEST TO LISTEN ON A PORT
@@ -275,7 +272,6 @@ void pTOE(
     static TcpSegLen toe_notifByteCnt;
     static int       toe_sessCnt = 0;
     static int       toe_segCnt = 0;
-    static int       toe_sendPause = 0;
     TcpAppData appData;
     int        bytesToSend;
 
@@ -283,41 +279,36 @@ void pTOE(
         switch (toe_fsmState) {
             case CREATE_SCENARIO:
             	switch (toe_segCnt) {
-            		case 1: //-- Set TSIF in receive mode and execute test
+            		case 0:
             			toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
-            			toe_notifByteCnt   = echoDatLen;
-            			toe_sessId         = 1;
-            			gMaxSimCycles     += (echoDatLen / 8);
-            			toe_sendPause      = cMinWAIT + (toe_notifByteCnt/2);
-            			break;
-            		case 2: //-- Request TSIF to open an active port
-            			toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
-            			toe_notifByteCnt   = 8; // {IP_DA,TCP_DP, 0x0000}
-            			toe_sessId         = 2;
-            			gMaxSimCycles     += (8 / 8);
-            			//-- Drain previous echo and send traffic
-            			toe_sendPause      = (cMinWAIT > (2 * echoDatLen.to_int())) ? cMinWAIT : (2 * echoDatLen.to_int());
-            			break;
-            		case 3: //-- Set TSIF in transmit mode and execute test
-            			toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
-            			toe_notifByteCnt   = 8;  // {IP_DA,TCP_DP, testDatLen}
-            			toe_sessId         = 3;
-            			gMaxSimCycles     += (testDatLen / 8);
-            			toe_sendPause      = 0;
-            			break;
-            		case 4:
-            			toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
-            			toe_notifByteCnt   = echoDatLen;
-            			toe_sessId         = 4;
-            			gMaxSimCycles     += (echoDatLen / 8);
-            			toe_sendPause      = testDatLen; //-- Drain previous test traffic
-            			break;
-            		default:
-            			toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
             			toe_notifByteCnt   = echoDatLen;
             			toe_sessId         = 0;
             			gMaxSimCycles     += (echoDatLen / 8);
-            			toe_sendPause      = cMinWAIT + (toe_notifByteCnt/2);
+            			break;
+            		case 1: //-- Request TSIF to open an active port
+            			toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
+            			toe_notifByteCnt   = 8; // {IP_DA,TCP_DP, 0x0000}
+            			toe_sessId         = 1;
+            			gMaxSimCycles     += (8 / 8);
+            			//-- Drain previous echo and send traffic
+            			break;
+            		case 2: //-- Set TSIF in transmit mode and execute test
+            			toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
+            			toe_notifByteCnt   = 8;  // {IP_DA,TCP_DP, testDatLen}
+            			toe_sessId         = 2;
+            			gMaxSimCycles     += (testDatLen / 8);
+            			break;
+            		case 3:
+            			toe_hostTcpDstPort = ECHO_MODE_LSN_PORT;
+            			toe_notifByteCnt   = echoDatLen;
+            			toe_sessId         = 3;
+            			gMaxSimCycles     += (echoDatLen / 8);
+            			break;
+            		default:
+            			toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
+            			toe_notifByteCnt   = echoDatLen;
+            			toe_sessId         = 4;
+            			gMaxSimCycles     += (echoDatLen / 8);
             			break;
             	}
             	// Add new connection to the map
@@ -375,7 +366,7 @@ void pTOE(
                 		appData.setTKeep(lenTotKeep(bytesToSend));
                         appData.setTLast(TLAST);
                         bytesToSend = 0;
-                        toe_fsmState = PAUSE;
+                        toe_fsmState = NEXT_SEGMENT;
                     }
                     soTSIF_Data.write(appData);
                     if (DEBUG_LEVEL & TRACE_TOE) {
@@ -383,30 +374,13 @@ void pTOE(
                     }
                     if (toe_hostTcpDstPort == ECHO_MODE_LSN_PORT) {
                         int bytes = writeAxisAppToFile(appData, ofTAF_Gold);
-                        // NOW EMULATE THE [TAF] DATA LOOPBACK
-                    	if (soTAF_Data.full()) {
-                    		printFatal(myRxpName, "Cannot send data to [TAF] because stream is full.\n");
-                    	}
-                        soTAF_Data.write(appData);
-                        writeAxisRawToFile(appData, ofTOE_Gold);
                     }
                 }
-                // NOW EMULATE THE [TAF] META AND DLEN LOOPBACK
-                if (toe_hostTcpDstPort == ECHO_MODE_LSN_PORT) {
-                	if (soTAF_Meta.full()) {
-                		printFatal(myRxpName, "Cannot send metadata to [TAF] because stream is full.\n");
-                	}
-                	soTAF_Meta.write(toe_sessId);
-                	if (soTAF_DLen.full()) {
-                		printFatal(myRxpName, "Cannot send data-length to [TAF] because stream is full.\n");
-                	}
-                	soTAF_DLen.write(toe_notifByteCnt);
-                }
-                toe_fsmState = PAUSE;
+                toe_fsmState = NEXT_SEGMENT;
                 break;
             case SEND_8801_COMMAND:
                 bytesToSend = testDatLen;
-                if (toe_sessId == 2) {
+                if (toe_sessId == 1) {
                 	printInfo(myRxpName, "Requesting TSIF to connect to socket: \n");
                 	printSockAddr(myRxpName, testSock);
                 	appData.setTData(0);
@@ -468,20 +442,14 @@ void pTOE(
                 		int bytes = writeAxisRawToFile(goldChunk, ofTOE_Gold);
                 	}
                 }
-                toe_fsmState = PAUSE;
+                toe_fsmState = NEXT_SEGMENT;
                 break;
-            case PAUSE:
-            	// PAUSE BEFORE SENDING NEXT NOTIFICATION TO [TSIF]
-            	if (toe_sendPause) {
-            		toe_sendPause--;
+            case NEXT_SEGMENT:
+            	if (toe_segCnt == cNrSegToSend) {
+            		toe_fsmState = NEXT_ROUND;
             	}
             	else {
-            		if (toe_segCnt == cNrSegToSend) {
-            			toe_fsmState = NEXT_ROUND;
-            		}
-            		else {
-            			toe_fsmState = CREATE_SCENARIO;
-            		}
+            		toe_fsmState = CREATE_SCENARIO;
             	}
             	break;
             case NEXT_ROUND:
@@ -489,6 +457,7 @@ void pTOE(
             	toe_sessCnt += 1;
             	if (toe_sessCnt == cNrSessToSend) {
             		toe_fsmState = DONE;
+                	printInfo(myRxpName, "DONE WITH TRAFFIC GENERATION.\n");
             	}
             	else {
             		toe_fsmState = CREATE_SCENARIO;
@@ -515,7 +484,7 @@ void pTOE(
     		//-- Decrement the byte counter of the session
     		int sessByteCnt = toe_openedSess[toe_appRdReq.sessionID].byteCnt.to_int();
     		if (toe_appRdReq.length.to_int() > sessByteCnt) {
-    			printFatal(myRxpName, "TOE is requesting more data (%d) than notified (%d) for session #%d !\n",
+    			printInfo(myRxpName, "TOE is requesting more data (%d) than notified (%d) for session #%d !\n",
     					toe_appRdReq.length.to_int(), sessByteCnt, toe_appRdReq.sessionID.to_uint());
     		}
     		else {
@@ -657,9 +626,9 @@ int main(int argc, char *argv[]) {
     //-- PARSING THE TESBENCH ARGUMENTS
     //------------------------------------------------------
     if (argc >= 2) {
-        if ((atoi(argv[1]) < 1) or (atoi(argv[1]) >= 0x10000)) {
+        if ((atoi(argv[1]) < 1) or (atoi(argv[1]) > 0x4000)) {
             printFatal(THIS_NAME,
-                    "Argument 'len' is out of range [1:65535].\n");
+                    "Argument 'len' is out of range [1:16384].\n");
             return NTS_KO;
         } else {
             echoLenOfSegment = atoi(argv[1]);
@@ -688,9 +657,9 @@ int main(int argc, char *argv[]) {
     }
     if (argc >= 5) {
         testLenOfSegment = atoi(argv[4]);
-        if ((testLenOfSegment <= 0) or (testLenOfSegment >= 0x10000)) {
+        if ((testLenOfSegment < 1) or (testLenOfSegment > 0x4000)) {
             printFatal(THIS_NAME,
-                    "Argument 'len' is out of range [0:65535].\n");
+                    "Argument 'len' is out of range [1:16384].\n");
             return NTS_KO;
         }
     }
@@ -773,9 +742,7 @@ int main(int argc, char *argv[]) {
                 //-- TOE / Tx Data Interfaces
                 ssTSIF_TOE_Data, ssTSIF_TOE_SndReq, ssTOE_TSIF_SndRep,
                 //-- TOE / Open Interfaces
-                ssTSIF_TOE_OpnReq, ssTOE_TSIF_OpnRep,
-				//-- TAF / Data Interface
-				ssTAF_TSIF_Data, ssTAF_TSIF_SessId, ssTAF_TSIF_DatLen);
+                ssTSIF_TOE_OpnReq, ssTOE_TSIF_OpnRep);
 
         //-------------------------------------------------
         //-- EMULATE SHELL/MMIO
@@ -812,7 +779,9 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         pTAF(ofTAF_Data,
                 //-- TSIF / Data Interface
-                ssTSIF_TAF_Data, ssTSIF_TAF_SessId, ssTSIF_TAF_DatLen);
+                ssTSIF_TAF_Data, ssTSIF_TAF_SessId, ssTSIF_TAF_DatLen,
+				//-- TAF / Data Interface
+				ssTAF_TSIF_Data, ssTAF_TSIF_SessId, ssTAF_TSIF_DatLen);
 
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
