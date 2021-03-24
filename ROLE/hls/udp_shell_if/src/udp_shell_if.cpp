@@ -609,6 +609,7 @@ void udp_shell_if(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
     #pragma HLS INLINE
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
