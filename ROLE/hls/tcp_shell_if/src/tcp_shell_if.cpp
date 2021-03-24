@@ -50,6 +50,15 @@ using namespace hls;
 using namespace std;
 
 /************************************************
+ * ARCHITECTURE DIRECTIVE
+ *  The ReadRequestHandler (RRh) of TSIF can be
+ *  implemented with an interrupt handler and
+ *  scheduler approach by setting the following
+ *  pre-processor directive.
+ ************************************************/
+#undef USE_INTERRUPTS
+
+/************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
  ************************************************/
@@ -68,7 +77,7 @@ using namespace std;
 #define TRACE_RRH 1     <<  6
 #define TRACE_RRH_IBO 1 <<  7
 #define TRACE_ALL      0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -350,6 +359,7 @@ void pListen(
     }  // End-of: switch()
 }  // End-of: pListen()
 
+#if defined USE_INTERRUPTS
 /*******************************************************************************
  * @brief Input Read Buffer (IRb)
  *
@@ -671,31 +681,6 @@ void pRxInterruptTable(
 }
 
 /*******************************************************************************
- * @brief Always read the incoming buffer space occupancy w/ II=1.
- *******************************************************************************/
-/*** OBSOLETE_20230323 **************
-void pRxGetter(
-        stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &siIbo_Space,
-        stream<ap_uint<log2Ceil<cIBuffBytes>::val + 1> > &soSched_FreeSpace)
-{
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
-
-    //-- STATIC VARIABLES W/ RESET ---------------------------------------------
-    static ap_uint<log2Ceil<cIBuffBytes>::val + 1>  rsr_freeSpace;
-    #pragma HLS reset                      variable=rsr_freeSpace
-
-    if (!siIbo_Space.empty()) {
-        rsr_freeSpace = siIbo_Space.read();
-    }
-    if (!soSched_FreeSpace.full()) {
-        soSched_FreeSpace.write(rsr_freeSpace);
-    }
-}
-*******************************/
-
-/*******************************************************************************
  * @brief Rx Handler (Rxs)
  *  Reads the incoming session Id (w/ II=1) and updates the vector of pending
  *  interrupts.
@@ -806,7 +791,6 @@ void pRxScheduler(
     static enum FsmStates { RSR_SREQ, RSR_SREP, RSR_DEC, RSR_PUT, RSR_FWD } \
                                                  rsr_fsmState=RSR_SREQ;
     #pragma HLS reset                   variable=rsr_fsmState
-    //OBSOLETE static ap_uint<log2Ceil<cIBuffBytes>::val+1> rsr_freeSpace;
     static TcpDatLen                             rsr_freeSpace;
     #pragma HLS reset                   variable=rsr_freeSpace
 
@@ -817,7 +801,6 @@ void pRxScheduler(
     static ap_uint<cMaxSessions>  rsr_pendingInterrupts;
 
     TcpDatLen                     newByteCnt;
-    //OBSOLETE TcpDatLen                     freeSpace;
 
     if (!siRxb_FreeSpace.empty()) {
         rsr_freeSpace = siRxb_FreeSpace.read();
@@ -841,11 +824,9 @@ void pRxScheduler(
             }
             break;
         case RSR_DEC:
-            //OBSOLETE if (!siRit_InterruptRep.empty() and !siGetter_FreeSpace.empty()) {
             if (!siRit_InterruptRep.empty()) {
                 // Decrement counter and put it back in the table
                 rsr_intEntry  = siRit_InterruptRep.read();
-                //OBSOLETE freeSpace = siGetter_FreeSpace.read();
                 // Request to TOE = max(rit_schedEntry.byteCnt, rit_freeSSpace)
                 rsr_datLenReq = (rsr_freeSpace < rsr_intEntry.byteCnt) ? (rsr_freeSpace) : (rsr_intEntry.byteCnt);
                 if (DEBUG_LEVEL & TRACE_RRH) {
@@ -893,74 +874,6 @@ void pRxScheduler(
 }
 
 /*******************************************************************************
- * @brief Receive Scheduler Request (Rsr).
- *
- * @param[in]  siRpn_SessId  The session Id of the last notification from RxPostNotification (Rpn).
- * @param[in]  siIbo_Space   The available space in the input buffer (in bytes).
- * @param[out] soRit_InterruptQry  Interrupt query to RxInterruptTable(Rit).
- * @param[in]  siRit_InterruptRep  Interrupt reply from [Rit].
- * @param[out] soSHL_DReq    An Rx data request to [SHELL].
- * @param[out] soRDp_FwdCmd  A command telling the ReadPath (RDp) to keep/drop a stream.
- *
- * @detail
- *  This process implements a round-robin scheduler that generates data requests
- *   to TOE based on a bitmap encoded vector that represents the sessions that
- *   have pending bytes to be read. For example, if 'rit_pendingInterrupts[0]'
- *   is set, it indicates that session #0 has pending bytes.
- *  After sending the request to TOE, the pending byte count of the interrupt
- *   table is decreased accordingly.
- *******************************************************************************/
-/*** OBSOLETE_20210323 *************************
-void pRxSchedulerRequest(
-        stream<SessionId>       &siRpn_SessId,
-        stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> > &siIbo_Space,
-        stream<InterruptQuery>  &soRit_InterruptQry,
-        stream<InterruptEntry>  &siRit_InterruptRep,
-        stream<TcpAppRdReq>     &soSHL_DReq,
-        stream<ForwardCmd>      &soRDp_FwdCmd)
-{
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    const char *myName = concat3(THIS_NAME, "/", "RRh/Rsr");
-
-    //-- LOCAL STREAM ----------------------------------------------------------
-    static stream<SessionId>              ssSchedulerToHandler_ClearInt ("ssSchedulerToHandler_ClearInt");
-    #pragma HLS stream           variable=ssSchedulerToHandler_ClearInt depth=2
-    static stream<ReqBit>                 ssSchedulerToHandler_SessIdReq ("ssSchedulerToHandler_SessIdReq");
-    #pragma HLS stream           variable=ssSchedulerToHandler_SessIdReq depth=2
-    static stream<SessionId>              ssHandlerToScheduler_SessIdRep ("ssHandlerToScheduler_SessIdRep");
-    #pragma HLS stream           variable=ssHandlerToScheduler_SessIdRep depth=2
-    static stream <ap_uint<log2Ceil<cIBuffBytes>::val + 1> > ssGetterToScheduler_FreeSpace ("ssGetterToScheduler_FreeSpace");
-    #pragma HLS stream           variable=ssGetterToScheduler_FreeSpace
-
-    //-- PROCESS FUNCTIONS -----------------------------------------------------
-
-    pRsr_Getter(
-            siIbo_Space,
-            ssGetterToScheduler_FreeSpace);
-
-    pRsr_Handler(
-            siRpn_SessId,
-            ssSchedulerToHandler_SessIdReq,
-            ssHandlerToScheduler_SessIdRep,
-            ssSchedulerToHandler_ClearInt);
-
-    pRsr_Scheduler(
-            ssSchedulerToHandler_SessIdReq,
-            ssHandlerToScheduler_SessIdRep,
-            ssGetterToScheduler_FreeSpace,
-            soRit_InterruptQry,
-            siRit_InterruptRep,
-            soSHL_DReq,
-            soRDp_FwdCmd,
-            ssSchedulerToHandler_ClearInt);
-
-}
-********************************/
-
-/*******************************************************************************
  * @brief Read Request Handler (RRh)
  *
  * @param[in]  siSHL_Notif   A new Rx data notification from [SHELL].
@@ -971,18 +884,18 @@ void pRxSchedulerRequest(
  *
  * @details
  *  The [RRh] consists of 4 sub-processes:
- *   1) pInputBufferOccupancy (Ibo) keeps tracks of the input read buffer occupancy.
+ *   1) pRxBufferOccupancy (Rxb) keeps tracks of the input read buffer occupancy.
  *   2) pRxInterruptTable (Rit) keeps track of the received notifications.
- *   3) pRxPostNotification (Rpn) handles the incoming notifications and post them into the interrupt table.
- *   4) pRxSchedulerRequest (Rsr) schedules new data requests among the pending interrupts.
+ *   3) pRxPostNotification (Rxp) handles the incoming notifications and post them into the interrupt table.
+ *   4) pRxScheduler (Rxs) schedules new data requests among the pending interrupts.
  *
- *  The [Rpn] waits for a notification from [TOE] indicating the availability
+ *  The [RRh] waits for a notification from [TOE] indicating the availability
  *   of new data for the TcpApplication Flash (TAF) process of the [ROLE]. If
  *   the TCP segment length of the notification message is greater than 0, the
  *   data segment is valid and the notification is accepted. The #bytes and TCP
  *   destination port specified by the notification are added to the interrupt
- *   table by the [Rpn] process.
- *  The [Rsr] implement a round-robin that schedules among the pending requests
+ *   table by the [Rxp] process.
+ *  The [Rxh] implement a round-robin that schedules among the pending requests
  *   and generates data requests to [TOE] accordingly. Upon, request, the number
  *   of pending bytes in [Rit] is decreased.
  *   For testing purposes, the TCP destination port is evaluated here and one of
@@ -1041,8 +954,6 @@ void pReadRequestHandler(
 
     static stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> >  ssRxbToRxs_FreeSpace  ("ssRxbToRxs_FreeSpace");
     #pragma HLS stream                            variable=ssRxbToRxs_FreeSpace  depth=4
-    //OBSOLETE static stream<ap_uint<log2Ceil<cIBuffBytes>::val+1> >  ssRxgToRxs_FreeSpace ("ssRxgToRxs_FreeSpace");
-    //OBSOLETE #pragma HLS stream                            variable=ssRxgToRxs_FreeSpace
 
     //-- PROCESS FUNCTIONS -----------------------------------------------------
     pRxBufferOccupancy(
@@ -1055,12 +966,6 @@ void pReadRequestHandler(
             ssRpnToRit_InterruptQry,
             ssRitToRpn_InterruptRep,
             ssRpnToRxh_SessId);
-
-    /*** OBSOLETE_20210323 ************
-    pRxGetter(
-            ssIboToRxg_BufSpace,
-            ssRxgToRxs_FreeSpace);
-     **********************************/
 
     pRxHandler(
             ssRpnToRxh_SessId,
@@ -1084,6 +989,212 @@ void pReadRequestHandler(
             ssRxsToRit_InterruptQry,
             ssRitToRsr_InterruptRep);
 }
+
+#else
+
+/*******************************************************************************
+ * @brief Input Read Buffer (IRb)
+ *
+ * @param[in]  piSHL_Enable  Enable signal from [SHELL].
+ * @param[in]  siSHL_Data    Data stream from [SHELL].
+ * @param[in]  siSHL_Meta    Session Id from [SHELL].
+ * @param[out] soRRh_EnquSig Signals the enqueue of a new chunk to ReadRequestHandler (RRh).
+ * @param[out] soRDp_Data    Data stream to ReadPath (RDp).
+ * @param[out] soRDp_Meta    Metadata stream [RDp].
+ *
+ * @details
+ *  This process counts and enqueues the incoming data segments and their meta-
+ *  data into two FIFOs. The goal is to provision a buffer to store all the
+ *  bytes that were requested from the TCP Rx buffer by the ReadRequestHandler
+ *  (RRh) process. If this process does not absorb the incoming data stream fast
+ *  enough, the [TOE] will start dropping segments on his side to avoid any
+ *  blocking situation.
+ *******************************************************************************/
+void pInputReadBuffer(
+        CmdBit              *piSHL_Enable,
+        stream<TcpAppData>  &siSHL_Data,
+        stream<TcpAppMeta>  &siSHL_Meta,
+        stream<SigBit>      &soRRh_EnquSig,
+        stream<TcpAppData>  &soRDp_Data,
+        stream<TcpAppMeta>  &soRDp_Meta)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "IRb");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { IRB_IDLE=0,    IRB_STREAM } \
+                               irb_fsmState=IRB_IDLE;
+    #pragma HLS reset variable=irb_fsmState
+
+    if (*piSHL_Enable != 1) {
+        return;
+    }
+
+    switch (irb_fsmState ) {
+    case IRB_IDLE:
+        if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
+            soRDp_Meta.write(siSHL_Meta.read());
+            irb_fsmState = IRB_STREAM;
+        }
+        break;
+    case IRB_STREAM:
+        if (!siSHL_Data.empty() and !soRDp_Data.full() and !soRRh_EnquSig.full()) {
+            TcpAppData currChunk = siSHL_Data.read();
+            soRDp_Data.write(currChunk);
+            soRRh_EnquSig.write(1);
+            if (currChunk.getTLast()) {
+                irb_fsmState = IRB_IDLE;
+            }
+        }
+        break;
+    }
+}
+
+/*******************************************************************************
+ * @brief Read Request Handler (RRh)
+ *
+ * @param[in]  piSHL_Enable  Enable signal from [SHELL].
+ * @param[in]  siSHL_Notif   A new Rx data notification from [SHELL].
+ * @param[in]  siIRb_EnquSig Signals the enqueue of a chunk from InputReadBuffer (IRb).
+ * @param[in]  siRDp_EnquSig Signals the dequeue of a chunk from ReadPath (RDp).
+ * @param[out] soSHL_DReq    An Rx data request to [SHELL].
+ * @param[out] soRDp_FwdCmd  A command telling the ReadPath (RDp) to keep/drop a stream.
+ *
+ * @details
+ *  This process waits for a notification from [TOE] indicating the availability
+ *   of new data for the TcpApplication Flash (TAF) process of the [ROLE]. If
+ *   the TCP segment length of the notification message is greater than 0, the
+ *   data segment is valid and the notification is accepted.
+ *
+ * @details
+ *  The [RRh] consists of 3 sub-processes:
+ *   1) pRxBufferManager (Rbm) keeps tracks of the free space in the Rx buffer.
+ *   2) pRxNotifHandler (Rnh) reads and enqueues the incoming notifications.
+ *   3) pRxDataRequester (Rdr) dequeues the notifications and requests data from [SHELL].
+ *
+ *  The [Rnh] waits for a notification from [TOE] indicating the availability
+ *   of new data for the TcpApplication Flash (TAF) process of the [ROLE]. If
+ *   the TCP segment length of the notification message is greater than 0, the
+ *   data segment is valid and the notification is accepted. The #bytes and TCP
+ *   destination port specified by the notification are then pushed into a FIFO.
+ *   This process run with II=1 in order to never miss an incoming notification.
+ *  The [Rdr] pops the notifications from the FiFo, assess the available space
+ *   in the Rx buffer and request a data segment from the [SHELL] accordingly.
+ *   The rule is as follows: #RequestedBytes = min(AvailableSpace, NotifDatLen).
+ *   For testing purposes, the TCP destination port is also evaluated here and
+ *   one of the following actions is taken upon its value:
+ *     - 8800 : The RxPath (RXp) process is requested to dump/sink this segment.
+ *              This is an indirect way for a remote client to run iPerf on that
+ *              FPGA port used here as a server.
+ *     - 8801 : The TxPath (TXp) is expected to open an active connection and
+ *              to send an certain amount of bytes to the producer of this
+ *              request. It is the responsibility of the RxPath (RXp) to extract
+ *              the TCP destination socket {IpAddr, PortNum} and the #bytes to
+ *              transmit, out of the 64 first bits of the segment and to forward
+ *              these data to the Connect (COn) process. The [COn] will then
+ *              open an active connection before triggering the WritePath (WRp)
+ *              to send the requested amount of bytes on the new connection.
+ *     - 5001 : [TBD]
+ *     - 5201 : [TBD]
+ *     - Others: The RXp process is requested to forward these data and metadata
+ *              streams to the TcpApplicationFlash (TAF).
+ *******************************************************************************/
+void pReadRequestHandler(
+        CmdBit                *piSHL_Enable,
+        stream<TcpAppNotif>    &siSHL_Notif,
+        stream<SigBit>         &siIRb_EnquSig,
+        stream<SigBit>         &siRDp_DequSig,
+        stream<TcpAppRdReq>    &soSHL_DReq,
+        stream<ForwardCmd>     &soRDp_FwdCmd)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    // [TODO] #pragma HLS DATAFLOW
+    // [TODO] #pragma HLS INTERFACE ap_ctrl_none port=return
+    // [TODO] #pragma HLS INLINE off
+
+    #pragma HLS PIPELINE II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "RRh");
+
+    static ap_uint<log2Ceil<cIBuffBytes>::val+1>  rrh_freeSpace=cIBuffBytes;
+    #pragma HLS reset                    variable=rrh_freeSpace
+
+    bool traceInc = false;
+    bool traceDec = false;
+
+    if (*piSHL_Enable != 1) {
+        return;
+    }
+
+    if (!siIRb_EnquSig.empty() and siRDp_DequSig.empty()) {
+        siIRb_EnquSig.read();
+        rrh_freeSpace -= (ARW/8);
+        traceInc = true;
+    } else if (siIRb_EnquSig.empty() and !siRDp_DequSig.empty()) {
+    	siRDp_DequSig.read();
+        rrh_freeSpace += (ARW/8);
+        traceDec = true;
+    } else if (!siIRb_EnquSig.empty() and !siRDp_DequSig.empty()) {
+    	siIRb_EnquSig.read();
+    	siRDp_DequSig.read();
+        traceInc = true;
+        traceDec = true;
+    }
+    //-- Always
+    // [TODO] soFreeSpace.write(rrh_freeSpace);
+
+    if (DEBUG_LEVEL & TRACE_RRH_IBO) {
+        if (traceInc or traceDec) {
+            printInfo(myName, "Input buffer occupancy = %d bytes (%c|%c)\n",
+                     (cIBuffBytes - rrh_freeSpace.to_uint()),
+                     (traceInc ? '+' : ' '), (traceDec ? '-' : ' '));
+        }
+    }
+
+    //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
+    static enum FsmStates { RRH_IDLE, RRH_SEND_DREQ } \
+                               rrh_fsmState=RRH_IDLE;
+    #pragma HLS reset variable=rrh_fsmState
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static   TcpAppNotif rrh_notif;
+
+    switch(rrh_fsmState) {
+    case RRH_IDLE:
+        if (!siSHL_Notif.empty() and !soRDp_FwdCmd.full()) {
+            siSHL_Notif.read(rrh_notif);
+            if (rrh_notif.tcpDatLen != 0) {
+                // Always request the data to be received
+                switch (rrh_notif.tcpDstPort) {
+                case RECV_MODE_LSN_PORT: // 8800
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_DROP, NOP));
+                    break;
+                case XMIT_MODE_LSN_PORT: // 8801
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_DROP, GEN));
+                    break;
+                default:
+                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_KEEP, NOP));
+                    break;
+                }
+                rrh_fsmState = RRH_SEND_DREQ;
+            }
+            else {
+                printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n.");
+            }
+        }
+        break;
+    case RRH_SEND_DREQ:
+        if (!soSHL_DReq.full()) {
+            soSHL_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_notif.tcpDatLen));
+            rrh_fsmState = RRH_IDLE;
+        }
+        break;
+    }
+}
+#endif
 
 /*******************************************************************************
  * @brief Read Path (RDp)
@@ -1495,8 +1606,8 @@ void tcp_shell_if(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-    #pragma HLS INTERFACE ap_ctrl_none port=return
     #pragma HLS INLINE off
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -1575,6 +1686,7 @@ void tcp_shell_if(
             siSHL_SndRep);
 
     pReadRequestHandler(
+            piSHL_Mmio_En,
             siSHL_Notif,
             ssIRbToRRh_Enqueue,
             ssRDpToRRh_Dequeue,
