@@ -47,7 +47,7 @@ using namespace std;
 #define TRACE_TAF     1 <<  6
 #define TRACE_MMIO    1 <<  7
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_TOE_RXP)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -281,9 +281,9 @@ void pTOE(
             	switch (toe_segCnt) {
             		case 0:
             			toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
-            			toe_notifByteCnt   = echoDatLen;
+            			toe_notifByteCnt   = testDatLen;
             			toe_sessId         = 0;
-            			gMaxSimCycles     += (echoDatLen / 8);
+            			gMaxSimCycles     += (testDatLen / 8);
             			break;
             		case 1: //-- Request TSIF to open an active port
             			toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
@@ -665,11 +665,24 @@ int main(int argc, char *argv[]) {
     }
 
     //------------------------------------------------------
+    //-- ASSESS THE TESTBENCH ARGUMENTS
+    //------------------------------------------------------
+    int totalRxBytes = (cNrSessToSend * (testLenOfSegment + 8 + 8 + 2*echoLenOfSegment));
+    if (totalRxBytes > cIBuffBytes) {
+        printFatal(THIS_NAME, "The total amount of Rx bytes (%d) exceeds the size of the input TSIF read buffer (%d).\n",
+        		totalRxBytes, cIBuffBytes);
+    }
+    if (testLenOfSegment > cIBuffBytes) {
+        printFatal(THIS_NAME, "The length of the test segment (%d) exceeds the size of the input TSIF read buffer (%d).\n",
+        		   testLenOfSegment, cIBuffBytes);
+    }
+
+    //------------------------------------------------------
     //-- UPDATE THE LOCAL VARIABLES ACCORDINGLY
     //------------------------------------------------------
     SockAddr testSock(testDestHostIpv4, testDestHostPort);
     gMaxSimCycles += cNrSessToSend
-            * (((echoLenOfSegment * (cNrSegToSend / 2 + 1))
+            * (((echoLenOfSegment * (cNrSegToSend / 2))
                     + (testLenOfSegment * (cNrSegToSend / 2))));
 
     //------------------------------------------------------

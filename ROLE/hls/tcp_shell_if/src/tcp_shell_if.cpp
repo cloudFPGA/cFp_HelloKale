@@ -77,7 +77,7 @@ using namespace std;
 #define TRACE_RRH 1     <<  6
 #define TRACE_RRH_IBO 1 <<  7
 #define TRACE_ALL      0xFFFF
-#define DEBUG_LEVEL (TRACE_WRP)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -330,7 +330,9 @@ void pListen(
             TcpAppLsnRep  listenDone;
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
-                printInfo(myName, "Received OK listen reply from [TOE] for port %d.\n", LSN_PORT_TABLE[lsn_i].to_uint());
+            	if (DEBUG_LEVEL & TRACE_LSN) {
+            		printInfo(myName, "Received OK listen reply from [TOE] for port %d.\n", LSN_PORT_TABLE[lsn_i].to_uint());
+            	}
                 if (lsn_i == sizeof(LSN_PORT_TABLE)/sizeof(LSN_PORT_TABLE[0])-1) {
                     lsn_fsmState = LSN_DONE;
                 }
@@ -841,7 +843,7 @@ void pRxScheduler(
                 newByteCnt = rsr_intEntry.byteCnt - rsr_datLenReq;
                 soRit_InterruptQry.write(InterruptQuery(rsr_currSess, newByteCnt));
                 if (newByteCnt == 0) {
-                	soRxh_ClearReq.write(rsr_currSess);
+                    soRxh_ClearReq.write(rsr_currSess);
                     if (DEBUG_LEVEL & TRACE_RRH) {
                         printInfo(myName, "Request to clear interrupt #%d.\n", rsr_currSess.to_uint());
                     }
@@ -998,23 +1000,23 @@ void pReadRequestHandler(
  * @param[in]  piSHL_Enable  Enable signal from [SHELL].
  * @param[in]  siSHL_Data    Data stream from [SHELL].
  * @param[in]  siSHL_Meta    Session Id from [SHELL].
- * @param[out] soRRh_EnquSig Signals the enqueue of a new chunk to ReadRequestHandler (RRh).
+ //OBSOLETE_20210325 * @param[out] soRRh_EnquSig Signals the enqueue of a new chunk to ReadRequestHandler (RRh).
  * @param[out] soRDp_Data    Data stream to ReadPath (RDp).
  * @param[out] soRDp_Meta    Metadata stream [RDp].
  *
  * @details
- *  This process counts and enqueues the incoming data segments and their meta-
- *  data into two FIFOs. The goal is to provision a buffer to store all the
- *  bytes that were requested from the TCP Rx buffer by the ReadRequestHandler
- *  (RRh) process. If this process does not absorb the incoming data stream fast
- *  enough, the [TOE] will start dropping segments on his side to avoid any
- *  blocking situation.
+ *  This process implements an input FIFO buffer as a stream. The goal is to
+ *   provision a buffer to store all the bytes that were requested by the
+ *   ReadRequestHandler (RRh) process.
+ *  FYI, if this user process does not absorb the incoming data stream fast
+ *   enough, the [TOE] will start dropping segments on his side to avoid any
+ *   blocking situation.
  *******************************************************************************/
 void pInputReadBuffer(
         CmdBit              *piSHL_Enable,
         stream<TcpAppData>  &siSHL_Data,
         stream<TcpAppMeta>  &siSHL_Meta,
-        stream<SigBit>      &soRRh_EnquSig,
+        //OBSOLETE_20210325 stream<SigBit>      &soRRh_EnquSig,
         stream<TcpAppData>  &soRDp_Data,
         stream<TcpAppMeta>  &soRDp_Meta)
 {
@@ -1024,15 +1026,18 @@ void pInputReadBuffer(
 
     const char *myName  = concat3(THIS_NAME, "/", "IRb");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { IRB_IDLE=0,    IRB_STREAM } \
-                               irb_fsmState=IRB_IDLE;
-    #pragma HLS reset variable=irb_fsmState
-
     if (*piSHL_Enable != 1) {
         return;
     }
 
+    if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
+        soRDp_Meta.write(siSHL_Meta.read());
+    }
+    if (!siSHL_Data.empty() and !soRDp_Data.full()) {
+        soRDp_Data.write(siSHL_Data.read());
+    }
+
+    /*** OBSOLETE_20210325 ************
     switch (irb_fsmState ) {
     case IRB_IDLE:
         if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
@@ -1051,6 +1056,7 @@ void pInputReadBuffer(
         }
         break;
     }
+    ***********************************/
 }
 
 /*******************************************************************************
@@ -1058,8 +1064,11 @@ void pInputReadBuffer(
  *
  * @param[in]  piSHL_Enable  Enable signal from [SHELL].
  * @param[in]  siSHL_Notif   A new Rx data notification from [SHELL].
- * @param[in]  siIRb_EnquSig Signals the enqueue of a chunk from InputReadBuffer (IRb).
+ * @param[out] soRRh_NotifFifo A local FIFO port to push the incoming notifications.
+ * @param[in]  siRRh_NotifFifo A local FIFO port to pop the stored notifications.
  * @param[in]  siRDp_EnquSig Signals the dequeue of a chunk from ReadPath (RDp).
+ * @param[out] soRRh_RdReqFifo A local FIFO port to push the outgoing data requests.
+ * @param[in]  siRRh_RdReqFifo A local FIFO port to pop the stored data requests.
  * @param[out] soSHL_DReq    An Rx data request to [SHELL].
  * @param[out] soRDp_FwdCmd  A command telling the ReadPath (RDp) to keep/drop a stream.
  *
@@ -1105,16 +1114,18 @@ void pInputReadBuffer(
 void pReadRequestHandler(
         CmdBit                *piSHL_Enable,
         stream<TcpAppNotif>    &siSHL_Notif,
-        stream<SigBit>         &siIRb_EnquSig,
+        stream<TcpAppNotif>    &soRRh_NotifFifo,
+        stream<TcpAppNotif>    &siRRh_NotifFifo,
         stream<SigBit>         &siRDp_DequSig,
+        stream<TcpAppRdReq>    &soRRh_RdReqFifo,
+        stream<TcpAppRdReq>    &siRRh_RdReqFifo,
         stream<TcpAppRdReq>    &soSHL_DReq,
         stream<ForwardCmd>     &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     // [TODO] #pragma HLS DATAFLOW
     // [TODO] #pragma HLS INTERFACE ap_ctrl_none port=return
-    // [TODO] #pragma HLS INLINE off
-
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
@@ -1122,77 +1133,145 @@ void pReadRequestHandler(
     static ap_uint<log2Ceil<cIBuffBytes>::val+1>  rrh_freeSpace=cIBuffBytes;
     #pragma HLS reset                    variable=rrh_freeSpace
 
-    bool traceInc = false;
-    bool traceDec = false;
-
     if (*piSHL_Enable != 1) {
         return;
     }
 
-    if (!siIRb_EnquSig.empty() and siRDp_DequSig.empty()) {
-        siIRb_EnquSig.read();
-        rrh_freeSpace -= (ARW/8);
-        traceInc = true;
-    } else if (siIRb_EnquSig.empty() and !siRDp_DequSig.empty()) {
-    	siRDp_DequSig.read();
+    //==========================================================================
+    //== pRxBufferManager (Rbm)
+    //==========================================================================
+    //bool traceInc = false;
+    //bool traceDec = false;
+    //if (!siIRb_EnquSig.empty() and siRDp_DequSig.empty()) {
+    //    siIRb_EnquSig.read();
+    //    rrh_freeSpace -= (ARW/8);
+    //    traceInc = true;
+    //}
+    if (!siRDp_DequSig.empty()) {
+        siRDp_DequSig.read();
         rrh_freeSpace += (ARW/8);
-        traceDec = true;
-    } else if (!siIRb_EnquSig.empty() and !siRDp_DequSig.empty()) {
-    	siIRb_EnquSig.read();
-    	siRDp_DequSig.read();
-        traceInc = true;
-        traceDec = true;
-    }
-    //-- Always
-    // [TODO] soFreeSpace.write(rrh_freeSpace);
-
-    if (DEBUG_LEVEL & TRACE_RRH_IBO) {
-        if (traceInc or traceDec) {
-            printInfo(myName, "Input buffer occupancy = %d bytes (%c|%c)\n",
-                     (cIBuffBytes - rrh_freeSpace.to_uint()),
-                     (traceInc ? '+' : ' '), (traceDec ? '-' : ' '));
+        if (DEBUG_LEVEL & TRACE_RRH) {
+        	printInfo(myName, "FreeSpace=%4d bytes\n", rrh_freeSpace.to_uint());
         }
     }
+    //traceDec = true;
+    //-- Always
+    //if (DEBUG_LEVEL & TRACE_RRH_IBO) {
+    //    if (traceInc or traceDec) {
+    //        printInfo(myName, "Input buffer occupancy = %d bytes (%c|%c)\n",
+    //                 (cIBuffBytes - rrh_freeSpace.to_uint()),
+    //                 (traceInc ? '+' : ' '), (traceDec ? '-' : ' '));
+    //    }
+    //}
+
+    //==========================================================================
+    //== pRxNotif
+    //==========================================================================
+
+    if (!siSHL_Notif.empty()) {
+        TcpAppNotif notif;
+        siSHL_Notif.read(notif);
+        if (notif.tcpDatLen == 0) {
+            printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n");
+        }
+        if (!soRRh_NotifFifo.full()) {
+            soRRh_NotifFifo.write(notif);
+        }
+        else {
+            printFatal(myName, "The Rx notification FiFo is full. Consider increasing the depth of this FiFo.\n");
+        }
+    }
+
+    //==========================================================================
+    //== pRxDataRequester (Rdr)
+    //==========================================================================
 
     //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
-    static enum FsmStates { RRH_IDLE, RRH_SEND_DREQ } \
-                               rrh_fsmState=RRH_IDLE;
-    #pragma HLS reset variable=rrh_fsmState
+    static enum FsmStates { RDR_IDLE, RDR_GEN_DLEN, RDR_SEND_DREQ} \
+                               rdr_fsmState=RDR_IDLE;
+    #pragma HLS reset variable=rdr_fsmState
 
-    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static   TcpAppNotif rrh_notif;
+    //-- STATIC VARIABLES ------------------------------------------------------
+    static  TcpAppNotif rdr_notif;
+    static  TcpDatLen   rdr_datLenReq;
 
-    switch(rrh_fsmState) {
-    case RRH_IDLE:
-        if (!siSHL_Notif.empty() and !soRDp_FwdCmd.full()) {
-            siSHL_Notif.read(rrh_notif);
-            if (rrh_notif.tcpDatLen != 0) {
-                // Always request the data to be received
-                switch (rrh_notif.tcpDstPort) {
-                case RECV_MODE_LSN_PORT: // 8800
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_DROP, NOP));
-                    break;
-                case XMIT_MODE_LSN_PORT: // 8801
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_DROP, GEN));
-                    break;
-                default:
-                    soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_notif.tcpDatLen, CMD_KEEP, NOP));
-                    break;
+    switch(rdr_fsmState) {
+        case RDR_IDLE:
+            if (!siRRh_NotifFifo.empty()) {
+                siRRh_NotifFifo.read(rdr_notif);
+                rdr_fsmState = RDR_GEN_DLEN;
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "Received a new notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
+                    		  rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
                 }
-                rrh_fsmState = RRH_SEND_DREQ;
+            }
+            break;
+        case RDR_GEN_DLEN:
+            if (rrh_freeSpace < cMinDataReqLen) {
+            	if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "FreeSpace=%4d is too low. Waiting for buffer to drain. \n",
+                                      rrh_freeSpace.to_uint());
+            	}
+            	else {
+                    if (DEBUG_LEVEL & TRACE_RRH) {
+                        printInfo(myName, "FreeSpace=%4d | NotifBytes=%4d \n",
+                                  rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
+                    }
+            	}
+            	break;
+            }
+            // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
+            if (rrh_freeSpace < rdr_notif.tcpDatLen) {
+                rdr_datLenReq        = rrh_freeSpace;
+                rdr_notif.tcpDatLen -= rrh_freeSpace;
+                rrh_freeSpace        = 0;
             }
             else {
-                printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n.");
+                rdr_datLenReq        = rdr_notif.tcpDatLen;
+                rrh_freeSpace       -= (rdr_notif.tcpDatLen & ~(ARW/8-1));
+                rdr_notif.tcpDatLen  = 0;
             }
-        }
-        break;
-    case RRH_SEND_DREQ:
-        if (!soSHL_DReq.full()) {
-            soSHL_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_notif.tcpDatLen));
-            rrh_fsmState = RRH_IDLE;
-        }
-        break;
+            if (DEBUG_LEVEL & TRACE_RRH) {
+                 printInfo(myName, "DataLenReq=%d\n", rdr_datLenReq.to_uint());
+             }
+            rdr_fsmState = RDR_SEND_DREQ;
+            break;
+        case RDR_SEND_DREQ:
+            if (!soRRh_RdReqFifo.full() and !soRDp_FwdCmd.full()) {
+                soRRh_RdReqFifo.write(TcpAppRdReq(rdr_notif.sessionID, rdr_datLenReq));
+                switch (rdr_notif.tcpDstPort) {
+                    case RECV_MODE_LSN_PORT: // 8800
+                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, NOP));
+                        break;
+                    case XMIT_MODE_LSN_PORT: // 8801
+                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, GEN));
+                        break;
+                    default:
+                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_KEEP, NOP));
+                        break;
+                }
+                if (rdr_notif.tcpDatLen == 0) {
+                    rdr_fsmState = RDR_IDLE;
+                    if (DEBUG_LEVEL & TRACE_RRH) {
+                         printInfo(myName, "Done with notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
+                         		  rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
+                     }
+                }
+                else {
+                    rdr_fsmState = RDR_GEN_DLEN;
+                }
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "Sending DReq(SessId=%2d, DatLen=%4d) to SHELL (requested TcpDstPort was %4d).\n",
+                              rdr_notif.sessionID.to_uint(), rdr_datLenReq.to_uint(), rdr_notif.tcpDstPort.to_uint());
+                }
+            }
+            break;
     }
+
+    if (!siRRh_RdReqFifo.empty() and !soSHL_DReq.full()) {
+        soSHL_DReq.write(siRRh_RdReqFifo.read());
+    }
+
 }
 #endif
 
@@ -1626,15 +1705,13 @@ void tcp_shell_if(
     //--------------------------------------------------------------------------
 
     //-- Input Read Buffer (IRb)
-    static stream<SigBit>          ssIRbToRRh_Enqueue    ("ssIRbToRRh_Enqueue");
-    #pragma HLS stream    variable=ssIRbToRRh_Enqueue    depth=4
     static stream<TcpAppData>      ssIRbToRDp_Data       ("ssIRbToRDp_Data");
     #pragma HLS stream    variable=ssIRbToRDp_Data       depth=cIBuffChunks
     static stream<TcpAppMeta>      ssIRbToRDp_Meta       ("ssIRbToRDp_Meta");
     #pragma HLS stream    variable=ssIRbToRDp_Meta       depth=cIBuffChunks
 
     //-- Read Path (RDp)
-    static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpbToRRh_Dequeue");
+    static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpToRRh_Dequeue");
     #pragma HLS stream    variable=ssRDpToRRh_Dequeue    depth=4
     static stream<SockAddr>        ssRDpToCOn_OpnSockReq ("ssRDpToCOn_OpnSockReq");
     #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=2
@@ -1642,9 +1719,13 @@ void tcp_shell_if(
     #pragma HLS stream    variable=ssRDpToCOn_TxCountReq depth=2
 
     //-- ReadrequestHandler (RRh)
-    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd     ("ssRRhToRDp_FwdCmd");
-    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd     depth=8
+    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd    ("ssRRhToRDp_FwdCmd");
+    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd    depth=cOBuffDReqs
     #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
+    static stream<TcpAppNotif>     ssRRhToRRh_Notif     ("ssRRhToRRh_Notif");
+    #pragma HLS stream    variable=ssRRhToRRh_Notif     depth=cIBuffChunks
+    static stream<TcpAppRdReq>     ssRRhToRRh_RdReq     ("ssRRhToRRh_RdReq");
+    #pragma HLS stream    variable=ssRRhToRRh_RdReq     depth=cOBuffDReqs
 
     //-- Connect (COn)
     static stream<TcpDatLen>       ssCOnToWRp_TxBytesReq ("ssCOnToWRp_TxBytesReq");
@@ -1672,12 +1753,11 @@ void tcp_shell_if(
             piSHL_Mmio_En,
             siSHL_Data,
             siSHL_Meta,
-            ssIRbToRRh_Enqueue,
             ssIRbToRDp_Data,
             ssIRbToRDp_Meta);
 
     pReadPath(
-    		piSHL_Mmio_En,
+            piSHL_Mmio_En,
             ssIRbToRDp_Data,
             ssIRbToRDp_Meta,
             ssRRhToRDp_FwdCmd,
@@ -1702,8 +1782,11 @@ void tcp_shell_if(
     pReadRequestHandler(
             piSHL_Mmio_En,
             siSHL_Notif,
-            ssIRbToRRh_Enqueue,
+            ssRRhToRRh_Notif,
+            ssRRhToRRh_Notif,
             ssRDpToRRh_Dequeue,
+            ssRRhToRRh_RdReq,
+            ssRRhToRRh_RdReq,
             soSHL_DReq,
             ssRRhToRDp_FwdCmd);
 }
