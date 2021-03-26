@@ -1016,7 +1016,6 @@ void pInputReadBuffer(
         CmdBit              *piSHL_Enable,
         stream<TcpAppData>  &siSHL_Data,
         stream<TcpAppMeta>  &siSHL_Meta,
-        //OBSOLETE_20210325 stream<SigBit>      &soRRh_EnquSig,
         stream<TcpAppData>  &soRDp_Data,
         stream<TcpAppMeta>  &soRDp_Meta)
 {
@@ -1123,9 +1122,9 @@ void pReadRequestHandler(
         stream<ForwardCmd>     &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    // [TODO] #pragma HLS DATAFLOW
+    //#pragma HLS DATAFLOW
     // [TODO] #pragma HLS INTERFACE ap_ctrl_none port=return
-    #pragma HLS INLINE off
+    // #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
@@ -1140,45 +1139,11 @@ void pReadRequestHandler(
     //==========================================================================
     //== pRxBufferManager (Rbm)
     //==========================================================================
-    //bool traceInc = false;
-    //bool traceDec = false;
-    //if (!siIRb_EnquSig.empty() and siRDp_DequSig.empty()) {
-    //    siIRb_EnquSig.read();
-    //    rrh_freeSpace -= (ARW/8);
-    //    traceInc = true;
-    //}
     if (!siRDp_DequSig.empty()) {
         siRDp_DequSig.read();
         rrh_freeSpace += (ARW/8);
         if (DEBUG_LEVEL & TRACE_RRH) {
         	printInfo(myName, "FreeSpace=%4d bytes\n", rrh_freeSpace.to_uint());
-        }
-    }
-    //traceDec = true;
-    //-- Always
-    //if (DEBUG_LEVEL & TRACE_RRH_IBO) {
-    //    if (traceInc or traceDec) {
-    //        printInfo(myName, "Input buffer occupancy = %d bytes (%c|%c)\n",
-    //                 (cIBuffBytes - rrh_freeSpace.to_uint()),
-    //                 (traceInc ? '+' : ' '), (traceDec ? '-' : ' '));
-    //    }
-    //}
-
-    //==========================================================================
-    //== pRxNotif
-    //==========================================================================
-
-    if (!siSHL_Notif.empty()) {
-        TcpAppNotif notif;
-        siSHL_Notif.read(notif);
-        if (notif.tcpDatLen == 0) {
-            printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n");
-        }
-        if (!soRRh_NotifFifo.full()) {
-            soRRh_NotifFifo.write(notif);
-        }
-        else {
-            printFatal(myName, "The Rx notification FiFo is full. Consider increasing the depth of this FiFo.\n");
         }
     }
 
@@ -1268,8 +1233,28 @@ void pReadRequestHandler(
             break;
     }
 
+    //==========================================================================
+    //== pRxDataRequestForwarder (Rdrf)
+    //==========================================================================
     if (!siRRh_RdReqFifo.empty() and !soSHL_DReq.full()) {
         soSHL_DReq.write(siRRh_RdReqFifo.read());
+    }
+
+    //==========================================================================
+    //== pRxNotificationHandler (Rnh)
+    //==========================================================================
+    if (!siSHL_Notif.empty()) {
+        TcpAppNotif notif;
+        siSHL_Notif.read(notif);
+        if (notif.tcpDatLen == 0) {
+            printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n");
+        }
+        if (!soRRh_NotifFifo.full()) {
+        	soRRh_NotifFifo.write(notif);
+        }
+        else {
+        	printFatal(myName, "The Rx notification FiFo is full. Consider increasing the depth of this FiFo.\n");
+        }
     }
 
 }
@@ -1724,6 +1709,7 @@ void tcp_shell_if(
     #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
     static stream<TcpAppNotif>     ssRRhToRRh_Notif     ("ssRRhToRRh_Notif");
     #pragma HLS stream    variable=ssRRhToRRh_Notif     depth=cIBuffChunks
+    //OBSOLETE #pragma HLS RESOURCE  variable=ssRRhToRRh_Notif     core=FIFO latency=1
     static stream<TcpAppRdReq>     ssRRhToRRh_RdReq     ("ssRRhToRRh_RdReq");
     #pragma HLS stream    variable=ssRRhToRRh_RdReq     depth=cOBuffDReqs
 
