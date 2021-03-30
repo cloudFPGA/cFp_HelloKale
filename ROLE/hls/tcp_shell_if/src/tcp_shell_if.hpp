@@ -40,8 +40,9 @@
 //-- CONSTANTS FOR THE TCp SHELL INTERFACE
 //-------------------------------------------------------------------
 const int cMaxSessions   = TOE_MAX_SESSIONS;
-const int cOBuffDReqs    = 4;    // Size of the output data request buffer (in #request)
-const int cIBuffChunks   = 256;  // Size of the input read buffer (in #chunks)
+const int cIBuffNotifs   = 64;   // SizeOf input notif buffer (in #notifications)
+const int cOBuffDReqs    = 8;    // SizeOf output data request buffer (in #requests)
+const int cIBuffChunks   = 256;  // SizeOf input read buffer (in #chunks)
 const int cIBuffBytes    = cIBuffChunks * (ARW/8);
 const int cMinDataReqLen = 128;  // The minimum DReq length we want to generate
 

@@ -69,16 +69,35 @@ using namespace std;
 #define THIS_NAME "TSIF"  // TcpShellInterface
 
 #define TRACE_OFF      0x0000
-#define TRACE_IRB 1     <<  1
-#define TRACE_RDP 1     <<  2
-#define TRACE_WRP 1     <<  3
-#define TRACE_LSN 1     <<  4
-#define TRACE_CON 1     <<  5
-#define TRACE_RRH 1     <<  6
-#define TRACE_RRH_IBO 1 <<  7
+#define TRACE_IRB     1 <<  1
+#define TRACE_RDP     1 <<  2
+#define TRACE_WRP     1 <<  3
+#define TRACE_LSN     1 <<  4
+#define TRACE_CON     1 <<  5
+#define TRACE_RNH     1 <<  6
+#define TRACE_RRH     1 <<  7
+#define TRACE_RRM     1 <<  8
 #define TRACE_ALL      0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_RRH | TRACE_RDP)
 
+/*******************************************************************************
+ * @brief Stream Data Mover - Moves data chunks from incoming stream to outgoing
+ *  stream with blocking read and write access methods.
+ *
+ * @param[in]  si  Stream in.
+ * @param[out] so  Stream out.
+ *******************************************************************************/
+template <class Type>
+void pStreamDataMover(
+        stream<Type>& si,
+        stream<Type>& so)
+{
+    #pragma HLS INLINE off
+    Type currChunk;
+    si.read(currChunk);  // Blocking read
+    so.write(currChunk); // Blocking write
+    // [TODO] so.write(si.read());
+}
 
 /*******************************************************************************
  * @brief Connect (COn).
@@ -1059,41 +1078,70 @@ void pInputReadBuffer(
 }
 
 /*******************************************************************************
- * @brief Read Request Handler (RRh)
+ * @brief Read Notification Handler (RNh)
  *
  * @param[in]  piSHL_Enable  Enable signal from [SHELL].
  * @param[in]  siSHL_Notif   A new Rx data notification from [SHELL].
- * @param[out] soRRh_NotifFifo A local FIFO port to push the incoming notifications.
- * @param[in]  siRRh_NotifFifo A local FIFO port to pop the stored notifications.
- * @param[in]  siRDp_EnquSig Signals the dequeue of a chunk from ReadPath (RDp).
- * @param[out] soRRh_RdReqFifo A local FIFO port to push the outgoing data requests.
- * @param[in]  siRRh_RdReqFifo A local FIFO port to pop the stored data requests.
- * @param[out] soSHL_DReq    An Rx data request to [SHELL].
- * @param[out] soRDp_FwdCmd  A command telling the ReadPath (RDp) to keep/drop a stream.
+ * @param[out] soRRh_Notif   The notification forwarded to ReadRequestHandler (RRh).
  *
  * @details
  *  This process waits for a notification from [TOE] indicating the availability
  *   of new data for the TcpApplication Flash (TAF) process of the [ROLE]. If
  *   the TCP segment length of the notification message is greater than 0, the
- *   data segment is valid and the notification is accepted.
+ *   data segment is valid and the notification is accepted. The notification
+ *   is then pushed into a FIFO for later processing by the [RRh].
+ *  This process runs with II=1 in order to never miss an incoming notification.
+ *******************************************************************************/
+void pReadNotificationHandler(
+        CmdBit                *piSHL_Enable,
+        stream<TcpAppNotif>    &siSHL_Notif,
+        stream<TcpAppNotif>    &soRRh_Notif)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "RNh");
+
+	if (*piSHL_Enable != 1) {
+		return;
+	}
+
+	if (!siSHL_Notif.empty()) {
+		TcpAppNotif notif;
+		siSHL_Notif.read(notif);
+		if (notif.tcpDatLen == 0) {
+			printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n");
+		}
+		if (!soRRh_Notif.full()) {
+			soRRh_Notif.write(notif);
+		}
+		else {
+			printFatal(myName, "The Rx Notif FiFo is full. Consider increasing the depth of this FiFo.\n");
+		}
+	}
+}
+
+/*******************************************************************************
+ * @brief Read Request Handler (RRh)
+ *
+ * @param[in]  piSHL_Enable  Enable signal from [SHELL].
+ * @param[in]  siRNh_Notif   A new Rx data notification from ReadNotifHandler (RNh).
+ * @param[in]  siRDp_DequSig Signals the dequeue of a chunk from ReadPath (RDp).
+ * @param[out] soRRm_DReq    A data read request to ReadRequestMover (RRm).
+ * @param[out] soRDp_FwdCmd  A command telling the ReadPath (RDp) to keep/drop a stream.
  *
  * @details
- *  The [RRh] consists of 3 sub-processes:
+ *  The [RRh] consists of 2 sub-processes:
  *   1) pRxBufferManager (Rbm) keeps tracks of the free space in the Rx buffer.
- *   2) pRxNotifHandler (Rnh) reads and enqueues the incoming notifications.
- *   3) pRxDataRequester (Rdr) dequeues the notifications and requests data from [SHELL].
+ *   2) pRxDataRequester (Rdr) dequeues the notifications from a FiFo, assesses
+ *       the available space in the Rx buffer and requests one or multiple data
+ *       read requests from the [SHELL] accordingly.
+ *      The rule is as follows:
+ *       #RequestedBytes = min(NotifDatLen, max(AvailableSpace, cMinDataReqLen).
  *
- *  The [Rnh] waits for a notification from [TOE] indicating the availability
- *   of new data for the TcpApplication Flash (TAF) process of the [ROLE]. If
- *   the TCP segment length of the notification message is greater than 0, the
- *   data segment is valid and the notification is accepted. The #bytes and TCP
- *   destination port specified by the notification are then pushed into a FIFO.
- *   This process run with II=1 in order to never miss an incoming notification.
- *  The [Rdr] pops the notifications from the FiFo, assess the available space
- *   in the Rx buffer and request a data segment from the [SHELL] accordingly.
- *   The rule is as follows: #RequestedBytes = min(AvailableSpace, NotifDatLen).
  *   For testing purposes, the TCP destination port is also evaluated here and
- *   one of the following actions is taken upon its value:
+ *    one of the following actions is taken upon its value:
  *     - 8800 : The RxPath (RXp) process is requested to dump/sink this segment.
  *              This is an indirect way for a remote client to run iPerf on that
  *              FPGA port used here as a server.
@@ -1112,19 +1160,13 @@ void pInputReadBuffer(
  *******************************************************************************/
 void pReadRequestHandler(
         CmdBit                *piSHL_Enable,
-        stream<TcpAppNotif>    &siSHL_Notif,
-        stream<TcpAppNotif>    &soRRh_NotifFifo,
-        stream<TcpAppNotif>    &siRRh_NotifFifo,
+        stream<TcpAppNotif>    &siRNh_Notif,
         stream<SigBit>         &siRDp_DequSig,
-        stream<TcpAppRdReq>    &soRRh_RdReqFifo,
-        stream<TcpAppRdReq>    &siRRh_RdReqFifo,
-        stream<TcpAppRdReq>    &soSHL_DReq,
+        stream<TcpAppRdReq>    &soRRm_DReq,
         stream<ForwardCmd>     &soRDp_FwdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    //#pragma HLS DATAFLOW
-    // [TODO] #pragma HLS INTERFACE ap_ctrl_none port=return
-    // #pragma HLS INLINE off
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
@@ -1150,7 +1192,6 @@ void pReadRequestHandler(
     //==========================================================================
     //== pRxDataRequester (Rdr)
     //==========================================================================
-
     //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
     static enum FsmStates { RDR_IDLE, RDR_GEN_DLEN, RDR_SEND_DREQ} \
                                rdr_fsmState=RDR_IDLE;
@@ -1162,8 +1203,8 @@ void pReadRequestHandler(
 
     switch(rdr_fsmState) {
         case RDR_IDLE:
-            if (!siRRh_NotifFifo.empty()) {
-                siRRh_NotifFifo.read(rdr_notif);
+            if (!siRNh_Notif.empty()) {
+            	siRNh_Notif.read(rdr_notif);
                 rdr_fsmState = RDR_GEN_DLEN;
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "Received a new notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
@@ -1202,8 +1243,8 @@ void pReadRequestHandler(
             rdr_fsmState = RDR_SEND_DREQ;
             break;
         case RDR_SEND_DREQ:
-            if (!soRRh_RdReqFifo.full() and !soRDp_FwdCmd.full()) {
-                soRRh_RdReqFifo.write(TcpAppRdReq(rdr_notif.sessionID, rdr_datLenReq));
+            if (!soRRm_DReq.full() and !soRDp_FwdCmd.full()) {
+                soRRm_DReq.write(TcpAppRdReq(rdr_notif.sessionID, rdr_datLenReq));
                 switch (rdr_notif.tcpDstPort) {
                     case RECV_MODE_LSN_PORT: // 8800
                         soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, NOP));
@@ -1232,32 +1273,31 @@ void pReadRequestHandler(
             }
             break;
     }
-
-    //==========================================================================
-    //== pRxDataRequestForwarder (Rdrf)
-    //==========================================================================
-    if (!siRRh_RdReqFifo.empty() and !soSHL_DReq.full()) {
-        soSHL_DReq.write(siRRh_RdReqFifo.read());
-    }
-
-    //==========================================================================
-    //== pRxNotificationHandler (Rnh)
-    //==========================================================================
-    if (!siSHL_Notif.empty()) {
-        TcpAppNotif notif;
-        siSHL_Notif.read(notif);
-        if (notif.tcpDatLen == 0) {
-            printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n");
-        }
-        if (!soRRh_NotifFifo.full()) {
-        	soRRh_NotifFifo.write(notif);
-        }
-        else {
-        	printFatal(myName, "The Rx notification FiFo is full. Consider increasing the depth of this FiFo.\n");
-        }
-    }
-
 }
+
+/*******************************************************************************
+ * @brief Read Request Mover (RRm)
+ *
+ * @param[out] siRRh_DReq  A data read request from ReadRequestHandler (RRh).
+ * @param[out] soSHL_DReq  The TCP data request forwarded to [SHELL].
+ *
+ * @details
+ *  Dequeues the read requests form a FiFo and forwards them to the [SHELL]
+ *   in blocking read and write access modes.
+ *******************************************************************************/
+void pReadRequestMover(
+        CmdBit               *piSHL_Enable,
+        stream<TcpAppRdReq>  &siRRh_DReq,
+        stream<TcpAppRdReq>  &soSHL_DReq)
+{
+    if (*piSHL_Enable != 1) {
+        return;
+    }
+    if (!siRRh_DReq.empty()) {
+    	pStreamDataMover(siRRh_DReq, soSHL_DReq);
+    }
+}
+
 #endif
 
 /*******************************************************************************
@@ -1288,6 +1328,7 @@ void pReadRequestHandler(
  *       bits of the data stream. Next, drop the rest of that stream and forward
  *       the extracted fields to the Connect (COn) process.
  *******************************************************************************/
+
 void pReadPath(
         CmdBit              *piSHL_Enable,
         stream<TcpAppData>  &siSHL_Data,
@@ -1682,7 +1723,7 @@ void tcp_shell_if(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-    #pragma HLS INLINE off
+    #pragma HLS INLINE // off
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //--------------------------------------------------------------------------
@@ -1695,6 +1736,17 @@ void tcp_shell_if(
     static stream<TcpAppMeta>      ssIRbToRDp_Meta       ("ssIRbToRDp_Meta");
     #pragma HLS stream    variable=ssIRbToRDp_Meta       depth=cIBuffChunks
 
+    //-- Read Notification Handler (RNh)
+    static stream <TcpAppNotif>    ssRNhToRRh_Notif      ("ssRNhToRRh_Notif");
+    #pragma HLS stream    variable=ssRNhToRRh_Notif      depth=cIBuffNotifs
+
+    //-- Read Request Handler (RRh)
+    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd    ("ssRRhToRDp_FwdCmd");
+    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd    depth=cOBuffDReqs
+    #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
+    static stream<TcpAppRdReq>     ssRRhToRRm_DReq      ("ssRRhToRRm_DReq");
+    #pragma HLS stream    variable=ssRRhToRRm_DReq      depth=cOBuffDReqs
+
     //-- Read Path (RDp)
     static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpToRRh_Dequeue");
     #pragma HLS stream    variable=ssRDpToRRh_Dequeue    depth=4
@@ -1702,16 +1754,6 @@ void tcp_shell_if(
     #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=2
     static stream<TcpDatLen>       ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
     #pragma HLS stream    variable=ssRDpToCOn_TxCountReq depth=2
-
-    //-- ReadrequestHandler (RRh)
-    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd    ("ssRRhToRDp_FwdCmd");
-    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd    depth=cOBuffDReqs
-    #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
-    static stream<TcpAppNotif>     ssRRhToRRh_Notif     ("ssRRhToRRh_Notif");
-    #pragma HLS stream    variable=ssRRhToRRh_Notif     depth=cIBuffChunks
-    //OBSOLETE #pragma HLS RESOURCE  variable=ssRRhToRRh_Notif     core=FIFO latency=1
-    static stream<TcpAppRdReq>     ssRRhToRRh_RdReq     ("ssRRhToRRh_RdReq");
-    #pragma HLS stream    variable=ssRRhToRRh_RdReq     depth=cOBuffDReqs
 
     //-- Connect (COn)
     static stream<TcpDatLen>       ssCOnToWRp_TxBytesReq ("ssCOnToWRp_TxBytesReq");
@@ -1754,6 +1796,32 @@ void tcp_shell_if(
             soTAF_SessId,
             soTAF_DatLen);
 
+    pReadNotificationHandler(
+    		piSHL_Mmio_En,
+            siSHL_Notif,
+            ssRNhToRRh_Notif);
+
+  #if defined USE_INTERRUPTS
+    pReadRequestHandler(
+            siSHL_Notif,
+            ssIRbToRRh_Enqueue,
+            ssRDpToRRh_Dequeue,
+            soSHL_DReq,
+            ssRRhToRDp_FwdCmd);
+
+  #else
+    pReadRequestHandler(
+            piSHL_Mmio_En,
+			ssRNhToRRh_Notif,
+            ssRDpToRRh_Dequeue,
+			ssRRhToRRm_DReq,
+            ssRRhToRDp_FwdCmd);
+
+    pReadRequestMover(
+            piSHL_Mmio_En,
+			ssRRhToRRm_DReq,
+			soSHL_DReq);
+
     pWritePath(
             piSHL_Mmio_En,
             siTAF_Data,
@@ -1765,16 +1833,7 @@ void tcp_shell_if(
             soSHL_SndReq,
             siSHL_SndRep);
 
-    pReadRequestHandler(
-            piSHL_Mmio_En,
-            siSHL_Notif,
-            ssRRhToRRh_Notif,
-            ssRRhToRRh_Notif,
-            ssRDpToRRh_Dequeue,
-            ssRRhToRRh_RdReq,
-            ssRRhToRRh_RdReq,
-            soSHL_DReq,
-            ssRRhToRDp_FwdCmd);
+  #endif
 }
 
 /*! \} */
