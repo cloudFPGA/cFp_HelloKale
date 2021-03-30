@@ -92,7 +92,7 @@ void pStreamDataMover(
         stream<Type>& si,
         stream<Type>& so)
 {
-    #pragma HLS INLINE off
+    #pragma HLS INLINE
     Type currChunk;
     si.read(currChunk);  // Blocking read
     so.write(currChunk); // Blocking write
@@ -1354,12 +1354,12 @@ void pReadPath(
                                rdp_fsmState=RDP_IDLE;
     #pragma HLS reset variable=rdp_fsmState
 
-    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    //-- STATIC VARIABLES ------------------------------------------------------
     static ForwardCmd  rdp_fwdCmd;
+    static TcpSessId   rdp_sessId;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpAppData  appData;
-    TcpSessId   sessId;
 
     if (*piSHL_Enable != 1) {
         return;
@@ -1367,9 +1367,10 @@ void pReadPath(
 
     switch (rdp_fsmState ) {
     case RDP_IDLE:
-        if (!siRRh_FwdCmd.empty()) {
+        if (!siRRh_FwdCmd.empty() and !siSHL_Meta.empty()) {
             siRRh_FwdCmd.read(rdp_fwdCmd);
-            if (rdp_fwdCmd.action == CMD_KEEP) {
+            siSHL_Meta.read(rdp_sessId);
+            if ((rdp_fwdCmd.action == CMD_KEEP) and (rdp_fwdCmd.sessId == rdp_sessId)) {
                 rdp_fsmState  = RDP_FWD_META;
             }
             else {
@@ -1378,12 +1379,11 @@ void pReadPath(
         }
         break;
     case RDP_FWD_META:
-        if (!siSHL_Meta.empty() and !soTAF_SessId.full() and !soTAF_DatLen.full()) {
-            siSHL_Meta.read(sessId);
-            soTAF_SessId.write(sessId);
+        if (!soTAF_SessId.full() and !soTAF_DatLen.full()) {
+            soTAF_SessId.write(rdp_sessId);
             soTAF_DatLen.write(rdp_fwdCmd.datLen);
             if (DEBUG_LEVEL & TRACE_RDP) {
-                printInfo(myName, "soTAF_SessId = %d \n", sessId.to_uint());
+                printInfo(myName, "soTAF_SessId = %d \n", rdp_sessId.to_uint());
                 printInfo(myName, "soTAF_DatLen = %d \n", rdp_fwdCmd.datLen.to_uint());
             }
             rdp_fsmState  = RDP_FWD_STREAM;
@@ -1401,14 +1401,11 @@ void pReadPath(
         }
         break;
     case RDP_SINK_META:
-        if (!siSHL_Meta.empty()) {
-            siSHL_Meta.read();
-            if (rdp_fwdCmd.dropCode == GEN) {
-                rdp_fsmState  = RDP_8801;
-            }
-            else {
-                rdp_fsmState  = RDP_SINK_STREAM;
-            }
+        if (rdp_fwdCmd.dropCode == GEN) {
+            rdp_fsmState  = RDP_8801;
+        }
+        else {
+            rdp_fsmState  = RDP_SINK_STREAM;
         }
         break;
     case RDP_SINK_STREAM:
@@ -1723,7 +1720,7 @@ void tcp_shell_if(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-    #pragma HLS INLINE // off
+    #pragma HLS INLINE
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //--------------------------------------------------------------------------
