@@ -930,7 +930,7 @@ begin
   --==      a VHDL process because it makes it easier to apply the "ASYNC_REG"
   --==      property to those instances.
   --=========================================================================== 
-  TOP_META_RST : HARD_SYNC
+  HW_RESET : HARD_SYNC
     generic map (
       INIT => '0',            -- Initial values, '0', '1'
       IS_CLK_INVERTED => '0', -- Programmable inversion on CLK input
