@@ -349,9 +349,9 @@ void pListen(
             TcpAppLsnRep  listenDone;
             siSHL_LsnRep.read(listenDone);
             if (listenDone) {
-            	if (DEBUG_LEVEL & TRACE_LSN) {
-            		printInfo(myName, "Received OK listen reply from [TOE] for port %d.\n", LSN_PORT_TABLE[lsn_i].to_uint());
-            	}
+                if (DEBUG_LEVEL & TRACE_LSN) {
+                    printInfo(myName, "Received OK listen reply from [TOE] for port %d.\n", LSN_PORT_TABLE[lsn_i].to_uint());
+                }
                 if (lsn_i == sizeof(LSN_PORT_TABLE)/sizeof(LSN_PORT_TABLE[0])-1) {
                     lsn_fsmState = LSN_DONE;
                 }
@@ -1098,28 +1098,28 @@ void pReadNotificationHandler(
         stream<TcpAppNotif>    &soRRh_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-	#pragma HLS INLINE off
-	#pragma HLS PIPELINE II=1 enable_flush
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RNh");
 
-	if (*piSHL_Enable != 1) {
-		return;
-	}
+    if (*piSHL_Enable != 1) {
+        return;
+    }
 
-	if (!siSHL_Notif.empty()) {
-		TcpAppNotif notif;
-		siSHL_Notif.read(notif);
-		if (notif.tcpDatLen == 0) {
-			printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n");
-		}
-		if (!soRRh_Notif.full()) {
-			soRRh_Notif.write(notif);
-		}
-		else {
-			printFatal(myName, "The Rx Notif FiFo is full. Consider increasing the depth of this FiFo.\n");
-		}
-	}
+    if (!siSHL_Notif.empty()) {
+        TcpAppNotif notif;
+        siSHL_Notif.read(notif);
+        if (notif.tcpDatLen == 0) {
+            printFatal(myName, "Received a notification for a TCP segment of length 'zero'. Don't know what to do with it!\n");
+        }
+        if (!soRRh_Notif.full()) {
+            soRRh_Notif.write(notif);
+        }
+        else {
+            printFatal(myName, "The Rx Notif FiFo is full. Consider increasing the depth of this FiFo.\n");
+        }
+    }
 }
 
 /*******************************************************************************
@@ -1185,7 +1185,7 @@ void pReadRequestHandler(
         siRDp_DequSig.read();
         rrh_freeSpace += (ARW/8);
         if (DEBUG_LEVEL & TRACE_RRH) {
-        	printInfo(myName, "FreeSpace=%4d bytes\n", rrh_freeSpace.to_uint());
+            printInfo(myName, "FreeSpace=%4d bytes\n", rrh_freeSpace.to_uint());
         }
     }
 
@@ -1204,27 +1204,27 @@ void pReadRequestHandler(
     switch(rdr_fsmState) {
         case RDR_IDLE:
             if (!siRNh_Notif.empty()) {
-            	siRNh_Notif.read(rdr_notif);
+                siRNh_Notif.read(rdr_notif);
                 rdr_fsmState = RDR_GEN_DLEN;
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "Received a new notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
-                    		  rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
+                              rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
                 }
             }
             break;
         case RDR_GEN_DLEN:
             if (rrh_freeSpace < cMinDataReqLen) {
-            	if (DEBUG_LEVEL & TRACE_RRH) {
+                if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "FreeSpace=%4d is too low. Waiting for buffer to drain. \n",
                                       rrh_freeSpace.to_uint());
-            	}
-            	else {
+                }
+                else {
                     if (DEBUG_LEVEL & TRACE_RRH) {
                         printInfo(myName, "FreeSpace=%4d | NotifBytes=%4d \n",
                                   rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
                     }
-            	}
-            	break;
+                }
+                break;
             }
             // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
             if (rrh_freeSpace < rdr_notif.tcpDatLen) {
@@ -1260,7 +1260,7 @@ void pReadRequestHandler(
                     rdr_fsmState = RDR_IDLE;
                     if (DEBUG_LEVEL & TRACE_RRH) {
                          printInfo(myName, "Done with notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
-                         		  rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
+                                   rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
                      }
                 }
                 else {
@@ -1294,7 +1294,7 @@ void pReadRequestMover(
         return;
     }
     if (!siRRh_DReq.empty()) {
-    	pStreamDataMover(siRRh_DReq, soSHL_DReq);
+        pStreamDataMover(siRRh_DReq, soSHL_DReq);
     }
 }
 
@@ -1794,7 +1794,7 @@ void tcp_shell_if(
             soTAF_DatLen);
 
     pReadNotificationHandler(
-    		piSHL_Mmio_En,
+            piSHL_Mmio_En,
             siSHL_Notif,
             ssRNhToRRh_Notif);
 
@@ -1809,15 +1809,15 @@ void tcp_shell_if(
   #else
     pReadRequestHandler(
             piSHL_Mmio_En,
-			ssRNhToRRh_Notif,
+            ssRNhToRRh_Notif,
             ssRDpToRRh_Dequeue,
-			ssRRhToRRm_DReq,
+            ssRRhToRRm_DReq,
             ssRRhToRDp_FwdCmd);
 
     pReadRequestMover(
             piSHL_Mmio_En,
-			ssRRhToRRm_DReq,
-			soSHL_DReq);
+            ssRRhToRRm_DReq,
+            soSHL_DReq);
 
     pWritePath(
             piSHL_Mmio_En,

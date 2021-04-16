@@ -306,7 +306,7 @@ if args.user_name == '' or args.user_passwd == '':
     exit(1)
 
 #  STEP-2a: Retrieve the IP address of the FPGA module (this will be the SERVER)
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 ipFpga = getFpgaIpv4(args)
 
 #  STEP-2b: Retrieve the instance Id assigned by the cloudFPGA Resource Manager

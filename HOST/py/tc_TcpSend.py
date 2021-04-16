@@ -121,7 +121,7 @@ def tcp_tx_long(sock, message, count, verbose=False):
         if verbose:
             print("Loop=%d | TotalTxBytes=%d" % (loop, totalByteCnt))
         if txWinByteCnt > 32*1024:
-            time.sleep(1)
+            time.sleep(0)
             txWinByteCnt = 0
             print("Pause | TotalTxBytes=%d" % totalByteCnt)
         loop += 1
@@ -359,7 +359,7 @@ print("[INFO] It is run in single-threading mode.\n")
 if seed == 0:
     tcp_tx_ramp(tcpSock, message, count, args.verbose)
 else:
-    if count*len(message) < 64*1024:
+    if count*len(message) < 16*1024:
         tcp_tx_loop(tcpSock, message, count, args.verbose)
     else:
         tcp_tx_long(tcpSock, message, count, args.verbose)

@@ -243,6 +243,8 @@ if { ${create} } {
     my_puts "##"
     my_puts "##  CREATING PROJECT: ${xprName}  "
     my_puts "##"
+    my_puts "##    Vivado Version is ${VIVADO_VERSION}  "
+    my_puts "##"
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
@@ -308,6 +310,12 @@ if { ${create} } {
 
     set_property "ip_output_repo" "${xprDir}/${xprName}/${xprName}.cache/ip" ${xprObj}
 
+    if { [format "%.1f" ${VIVADO_VERSION}] == 2017.4 } {
+        my_dbg_trace "Enabling the use of deprecated PRAGMAs." ${dbgLvl_2};
+        set_property verilog_define {USE_DEPRECATED_DIRECTIVES=true} [ current_fileset ] -verbose
+        # OBSOLETE_20210412 set_property generic        {USE_DEPRECATED_DIRECTIVES=1   } [ current_fileset ] -verbose
+    }
+    
     my_dbg_trace "Done with set project properties." ${dbgLvl_1}
 
     #===============================================================================
@@ -334,11 +342,8 @@ if { ${create} } {
     update_ip_catalog -rebuild
 
     # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
-    #-------------------------------------------------------------------------------
-    
-    #add_files -fileset ${srcObj} ../hdl/
+    #-------------------------------------------------------------------------------   
     add_files -fileset ${srcObj} ${rootDir}/TOP/hdl/
-    #add_files -fileset ${srcObj} ${hdlDir}/topFlash_pkg.vhdl
     
     # add TOP library files
     add_files -fileset ${srcObj} ${rootDir}/cFDK/SRA/LIB/TOP/hdl/
@@ -358,6 +363,7 @@ if { ${create} } {
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/${cFpSRAtype}/hdl/
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/
 
+        set_property file_type {VHDL 2008} [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/*/*.vhd ] ]
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
 
         # IP Cores SHELL
