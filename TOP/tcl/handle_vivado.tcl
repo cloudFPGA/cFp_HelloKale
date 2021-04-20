@@ -313,7 +313,6 @@ if { ${create} } {
     if { [format "%.1f" ${VIVADO_VERSION}] == 2017.4 } {
         my_dbg_trace "Enabling the use of deprecated PRAGMAs." ${dbgLvl_2};
         set_property verilog_define {USE_DEPRECATED_DIRECTIVES=true} [ current_fileset ] -verbose
-        # OBSOLETE_20210412 set_property generic        {USE_DEPRECATED_DIRECTIVES=1   } [ current_fileset ] -verbose
     }
     
     my_dbg_trace "Done with set project properties." ${dbgLvl_1}
@@ -345,7 +344,7 @@ if { ${create} } {
     #-------------------------------------------------------------------------------   
     add_files -fileset ${srcObj} ${rootDir}/TOP/hdl/
     
-    # add TOP library files
+    # Add TOP library files
     add_files -fileset ${srcObj} ${rootDir}/cFDK/SRA/LIB/TOP/hdl/
 
     # Turn the VHDL-2008 mode on 
@@ -511,8 +510,7 @@ if { ${create} } {
     #         Timing Assertions -> Timing Exceptions -> Physical Constraints
     #-------------------------------------------------------------------------------
     set constrObj [ get_filesets constrs_1 ]
-    #set orderedList "xdc_settings.tcl topFMKU60_timg.xdc topFMKU60_pins.xdc  topFMKU60.xdc"
-    # import orderedList
+    # Import orderedList
     source ${xdcDir}/order.tcl 
     foreach file ${orderedList} {
         if { [ add_files -fileset ${constrObj} -norecurse ${xdcDir}/${file} ] eq "" } {
