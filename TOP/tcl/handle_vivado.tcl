@@ -366,8 +366,6 @@ if { ${create} } {
         set hlsDirShell ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hls/
         set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
                                           ${ipDirShell} ${hlsDirShell} ] [current_project]
-        update_ip_catalog
-        my_dbg_trace "Done with update_ip_catalog for the SHELL" ${dbgLvl_1}
         
         # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the SHELL. 
         #---------------------------------------------------------------------------
@@ -379,6 +377,9 @@ if { ${create} } {
                 my_dbg_trace "Done with add_files for SHELL: ${ipDir}/${ipName}/${ipName}.xci" 2
             }
         }
+
+        update_ip_catalog
+        my_dbg_trace "Done with update_ip_catalog for the SHELL" ${dbgLvl_1}
    
         # Update Compile Order
         #---------------------------------------------------------------------------
@@ -514,7 +515,7 @@ if { ${create} } {
     }
 
     set_property used_in_implementation false [get_files topFMKU60_timg_synt.xdc]
-    set_property used_in_synthesis      fasle [get_files topFMKU60_timg_impl.xdc]
+    set_property used_in_synthesis      false [get_files topFMKU60_timg_impl.xdc]
 
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
