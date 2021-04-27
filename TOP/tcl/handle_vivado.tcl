@@ -356,6 +356,8 @@ if { ${create} } {
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/
 
         set_property file_type {VHDL 2008} [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/*/*.vhd ] ]
+        set_property file_type {VHDL}      [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/mmio/dpAsymRam.vhd ] ]
+
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
 
         # IP Cores SHELL
