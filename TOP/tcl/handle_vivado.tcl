@@ -305,7 +305,8 @@ if { ${create} } {
 
     if { [format "%.1f" ${VIVADO_VERSION}] == 2017.4 } {
         my_dbg_trace "Enabling the use of deprecated PRAGMAs." ${dbgLvl_2};
-        set_property verilog_define {USE_DEPRECATED_DIRECTIVES=true} [ current_fileset ] -verbose
+        set_property verilog_define {USE_DEPRECATED_DIRECTIVES=true} [ current_fileset ]
+        set_property generic        {gVivadoVersion=2017}            [ current_fileset ]
     }
     
     my_dbg_trace "Done with set project properties." ${dbgLvl_1}
