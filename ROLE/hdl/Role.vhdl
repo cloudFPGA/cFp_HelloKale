@@ -276,12 +276,7 @@ end Role_Kale;
 -- *****************************************************************************
 
 architecture BringUp of Role_Kale is
-
-  --OBSOLETE_20210427 constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
-  --OBSOLETE_20210427 constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
-  --OBSOLETE_20210427 constant cUDP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
-  --OBSOLETE_20210427 constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
-  
+ 
   --============================================================================
   --  SIGNAL DECLARATIONS
   --============================================================================  
@@ -289,39 +284,6 @@ architecture BringUp of Role_Kale is
   signal s156_25Rst_delayed          : std_ulogic;
   signal sRstDelayCounter            : std_ulogic_vector(5 downto 0);
 
-  --OBSOLETE_20210315 --------------------------------------------------------
-  --OBSOLETE_20210315 -- SIGNAL DECLARATIONS : TSIF <--> TAF (TSIF->TAF)
-  --OBSOLETE_20210315 --------------------------------------------------------
-  --OBSOLETE_20210315 ---- Stream TCP Data -------
-  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tdata      : std_ulogic_vector( 63 downto 0);
-  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
-  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tlast      : std_ulogic;
-  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tvalid     : std_ulogic;
-  --OBSOLETE_20210315 signal ssTSIF_TAF_Data_tready     : std_ulogic;
-  --OBSOLETE_20210315 ---- Stream TCP SessId ---------------
-  --OBSOLETE_20210315 signal ssTSIF_TAF_SessId_tdata    : std_ulogic_vector( 15 downto 0);
-  --OBSOLETE_20210315 signal ssTSIF_TAF_SessId_tvalid   : std_ulogic;
-  --OBSOLETE_20210315 signal ssTSIF_TAF_SessId_tready   : std_ulogic;
-  --OBSOLETE_20210315 ---- Stream TCP Data-Length ----------
-  --OBSOLETE_20210315 signal ssTSIF_TAF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
-  --OBSOLETE_20210315 signal ssTSIF_TAF_DatLen_tvalid   : std_ulogic;
-  --OBSOLETE_20210315 signal ssTSIF_TAF_DatLen_tready   : std_ulogic;  
-  --OBSOLETE_20210315 -- TCP Transmit Path (TAF-->TSIF) ----
-  --OBSOLETE_20210315 ---- Stream TCP Data -------
-  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tdata      : std_ulogic_vector( 63 downto 0);
-  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
-  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tlast      : std_ulogic;
-  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tvalid     : std_ulogic;
-  --OBSOLETE_20210315 signal ssTAF_TSIF_Data_tready     : std_ulogic;
-  --OBSOLETE_20210315 ---- Stream TCP SessId ---------------
-  --OBSOLETE_20210315 signal ssTAF_TSIF_SessId_tdata    : std_ulogic_vector( 15 downto 0);
-  --OBSOLETE_20210315 signal ssTAF_TSIF_SessId_tvalid   : std_ulogic;
-  --OBSOLETE_20210315 signal ssTAF_TSIF_SessId_tready   : std_ulogic;
-  --OBSOLETE_20210315 ---- Stream TCP Data-Length ----------
-  --OBSOLETE_20210315 signal ssTAF_TSIF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
-  --OBSOLETE_20210315 signal ssTAF_TSIF_DatLen_tvalid   : std_ulogic;
-  --OBSOLETE_20210315 signal ssTAF_TSIF_DatLen_tready   : std_ulogic;
- 
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : TSIF --> TARS --> TAF
   --------------------------------------------------------
@@ -421,9 +383,6 @@ architecture BringUp of Role_Kale is
   signal ssUSIF_FIFO_Udp_Data_write  : std_logic;
   signal ssUSIF_FIFO_Udp_Data_full   : std_logic;
   --
-  --OBSOLETE_20210222 signal ssUSIF_FIFO_Udp_Meta_data   : std_logic_vector(95 downto 0);
-  --OBSOLETE_20210222 signal ssUSIF_FIFO_Udp_Meta_write  : std_logic;
-  --OBSOLETE_20210222 signal ssUSIF_FIFO_Udp_Meta_full   : std_logic; 
   signal ssUSIF_FIFO_Udp_MetaSrcAddr_data  : std_logic_vector(31 downto 0);
   signal ssUSIF_FIFO_Udp_MetaSrcAddr_write : std_logic;
   signal ssUSIF_FIFO_Udp_MetaSrcAddr_full  : std_logic;
@@ -441,9 +400,6 @@ architecture BringUp of Role_Kale is
   signal ssFIFO_UAF_Udp_Data_read          : std_logic;
   signal ssFIFO_UAF_Udp_Data_empty         : std_logic; 
   --
-  --OBSOLETE_20210222 signal ssFIFO_UAF_Udp_Meta_data    : std_logic_vector(95 downto 0);
-  --OBSOLETE_20210222 signal ssFIFO_UAF_Udp_Meta_read    : std_logic;
-  --OBSOLETE_20210222 signal ssFIFO_UAF_Udp_Meta_empty   : std_logic;
   signal ssFIFO_UAF_Udp_MetaSrcAddr_data   : std_logic_vector(31 downto 0);
   signal ssFIFO_UAF_Udp_MetaSrcAddr_read   : std_logic;
   signal ssFIFO_UAF_Udp_MetaSrcAddr_empty  : std_logic;
@@ -461,9 +417,6 @@ architecture BringUp of Role_Kale is
   signal ssUAF_FIFO_Udp_Data_write         : std_logic;
   signal ssUAF_FIFO_Udp_Data_full          : std_logic;
   --
-  --OBSOLETE_20210222 signal ssUAF_FIFO_Udp_Meta_data    : std_logic_vector(95 downto 0);
-  --OBSOLETE_20210222 signal ssUAF_FIFO_Udp_Meta_write   : std_logic;
-  --OBSOLETE_20210222 signal ssUAF_FIFO_Udp_Meta_full    : std_logic;
   signal ssUAF_FIFO_Udp_MetaSrcAddr_data   : std_logic_vector(31 downto 0);
   signal ssUAF_FIFO_Udp_MetaSrcAddr_write  : std_logic;
   signal ssUAF_FIFO_Udp_MetaSrcAddr_full   : std_logic;
@@ -485,9 +438,6 @@ architecture BringUp of Role_Kale is
   signal ssFIFO_USIF_Udp_Data_read         : std_logic;
   signal ssFIFO_USIF_Udp_Data_empty        : std_logic;
   --
-  --OBSOLETE_20210222 signal ssFIFO_USIF_Udp_Meta_data   : std_logic_vector(95 downto 0);
-  --OBSOLETE_20210222 signal ssFIFO_USIF_Udp_Meta_read   : std_logic;
-  --OBSOLETE_20210222 signal ssFIFO_USIF_Udp_Meta_empty  : std_logic;
   signal ssFIFO_USIF_Udp_MetaSrcAddr_data  : std_logic_vector(31 downto 0);
   signal ssFIFO_USIF_Udp_MetaSrcAddr_read  : std_logic;
   signal ssFIFO_USIF_Udp_MetaSrcAddr_empty : std_logic;
@@ -578,9 +528,6 @@ architecture BringUp of Role_Kale is
       siUSIF_Data_V_empty_n            : in  std_logic;
       siUSIF_Data_V_read               : out std_logic;
       --
-      --OBSOLETE_20210222 siUSIF_Meta_V_dout     : in  std_logic_vector( 95 downto 0);  -- 32+32+16+16
-      --OBSOLETE_20210222 siUSIF_Meta_V_empty_n  : in  std_logic;
-      --OBSOLETE_20210222 siUSIF_Meta_V_read     : out std_logic;
       siUSIF_Meta_V_ip4SrcAddr_V_dout    : in  std_logic_vector(31 DOWNTO 0);
       siUSIF_Meta_V_ip4SrcAddr_V_empty_n : in  std_logic;
       siUSIF_Meta_V_ip4SrcAddr_V_read    : out std_logic;
@@ -600,9 +547,6 @@ architecture BringUp of Role_Kale is
       soUSIF_Data_V_write              : out std_logic;
       soUSIF_Data_V_full_n             : in  std_logic;
       --               
-      --OBSOLETE_20210222 soUSIF_Meta_V_din      : out std_logic_vector( 95 downto 0);
-      --OBSOLETE_20210222 soUSIF_Meta_V_write    : out std_logic;
-      --OBSOLETE_20210222 soUSIF_Meta_V_full_n   : in  std_logic; 
       soUSIF_Meta_V_ip4SrcAddr_V_din     : out std_logic_vector(31 DOWNTO 0);
       soUSIF_Meta_V_ip4SrcAddr_V_write   : out std_logic;
       soUSIF_Meta_V_ip4SrcAddr_V_full_n  : in  std_logic;
@@ -774,9 +718,6 @@ architecture BringUp of Role_Kale is
         siUAF_Data_V_empty_n            : in  std_logic;
         siUAF_Data_V_read               : out std_logic;
         --
-        --OBSOLETE_20210222 siUAF_Meta_V_dout       : in  std_logic_vector(95 downto 0);
-        --OBSOLETE_20210222 siUAF_Meta_V_empty_n    : in  std_logic;
-        --OBSOLETE_20210222 siUAF_Meta_V_read       : out std_logic;
         siUAF_Meta_V_ip4SrcAddr_V_dout    : in  std_logic_vector(31 downto 0);
         siUAF_Meta_V_ip4SrcAddr_V_empty_n : in  std_logic;
         siUAF_Meta_V_ip4SrcAddr_V_read    : out std_logic;
@@ -800,9 +741,6 @@ architecture BringUp of Role_Kale is
         soUAF_Data_V_write              : out std_logic;
         soUAF_Data_V_full_n             : in  std_logic;
         --
-        --OBSOLETE_20210222 soUAF_Meta_V_din        : out std_logic_vector(95 downto 0);
-        --OBSOLETE_20210222 soUAF_Meta_V_write      : out std_logic;
-        --OBSOLETE_20210222 soUAF_Meta_V_full_n     : in  std_logic
         soUAF_Meta_V_ip4SrcAddr_V_din     : out std_logic_vector(31 downto 0);
         soUAF_Meta_V_ip4SrcAddr_V_write   : out std_logic;
         soUAF_Meta_V_ip4SrcAddr_V_full_n  : in  std_logic;
@@ -1341,7 +1279,6 @@ begin
   --#    #######  ######  ###  #                                                   #
   --#                                                                              #
   --################################################################################
-  --OBSOLETE_20210427 gUdpShellInterface : if cUDP_SIF_DEPRECATED_DIRECTIVES = true generate
   gUdpShellInterface : if gVivadoVersion = 2016 generate
       USIF : UdpShellInterface_Deprecated
         port map (
@@ -1493,10 +1430,7 @@ begin
         siUAF_Data_V_dout          => ssFIFO_USIF_Udp_Data_data   ,
         siUAF_Data_V_read          => ssFIFO_USIF_Udp_Data_read   ,
         siUAF_Data_V_empty_n       => not ssFIFO_USIF_Udp_Data_empty,
-        -- 
-        --OBSOLETE_20210222 siUAF_Meta_V_dout          => ssFIFO_USIF_Udp_Meta_data   ,
-        --OBSOLETE_20210222 siUAF_Meta_V_read          => ssFIFO_USIF_Udp_Meta_read   ,
-        --OBSOLETE_20210222 siUAF_Meta_V_empty_n       => not ssFIFO_USIF_Udp_Meta_empty,
+        --
         siUAF_Meta_V_ip4SrcAddr_V_dout    =>     ssFIFO_USIF_Udp_MetaSrcAddr_data,
         siUAF_Meta_V_ip4SrcAddr_V_read    =>     ssFIFO_USIF_Udp_MetaSrcAddr_read,
         siUAF_Meta_V_ip4SrcAddr_V_empty_n => not ssFIFO_USIF_Udp_MetaSrcAddr_empty,
@@ -1520,9 +1454,6 @@ begin
         soUAF_Data_V_write         => ssUSIF_FIFO_Udp_Data_write ,
         soUAF_Data_V_full_n        => not ssUSIF_FIFO_Udp_Data_full,
         --
-        --OBSOLETE_20210222 soUAF_Meta_V_din           => ssUSIF_FIFO_Udp_Meta_data  ,  
-        --OBSOLETE_20210222 soUAF_Meta_V_write         => ssUSIF_FIFO_Udp_Meta_write ,
-        --OBSOLETE_20210222 soUAF_Meta_V_full_n        => not ssUSIF_FIFO_Udp_Meta_full
         soUAF_Meta_V_ip4SrcAddr_V_din    =>     ssUSIF_FIFO_Udp_MetaSrcAddr_data,  
         soUAF_Meta_V_ip4SrcAddr_V_write  =>     ssUSIF_FIFO_Udp_MetaSrcAddr_write,
         soUAF_Meta_V_ip4SrcAddr_V_full_n => not ssUSIF_FIFO_Udp_MetaSrcAddr_full,
@@ -1557,7 +1488,6 @@ begin
   --==   opening of one or multiple listening port(s). The use of the [USIF] is
   --==   not a prerequisite, but it is provided here for sake of simplicity.
   --==========================================================================
-  --OBSOLETE_20210427 gUdpAppFlash : if cUDP_APP_DEPRECATED_DIRECTIVES = true generate
   gUdpAppFlash : if gVivadoVersion = 2016 generate
     UAF : UdpApplicationFlash_Deprecated
       port map (
@@ -1622,9 +1552,6 @@ begin
         siUSIF_Data_V_read     => ssFIFO_UAF_Udp_Data_read,
         siUSIF_Data_V_empty_n  => not ssFIFO_UAF_Udp_Data_empty,
         --
-        --OBSOLETE_20210222 siUSIF_Meta_V_dout     => ssFIFO_UAF_Udp_Meta_data,
-        --OBSOLETE_20210222 siUSIF_Meta_V_read     => ssFIFO_UAF_Udp_Meta_read,
-        --OBSOLETE_20210222 siUSIF_Meta_V_empty_n  => not ssFIFO_UAF_Udp_Meta_empty,
         siUSIF_Meta_V_ip4SrcAddr_V_dout    =>     ssFIFO_UAF_Udp_MetaSrcAddr_data,
         siUSIF_Meta_V_ip4SrcAddr_V_read    =>     ssFIFO_UAF_Udp_MetaSrcAddr_read,
         siUSIF_Meta_V_ip4SrcAddr_V_empty_n => not ssFIFO_UAF_Udp_MetaSrcAddr_empty,
@@ -1644,9 +1571,6 @@ begin
         soUSIF_Data_V_write    => ssUAF_FIFO_Udp_Data_write,
         soUSIF_Data_V_full_n   => not ssUAF_FIFO_Udp_Data_full,        
         --
-        --OBSOLETE_20210222 soUSIF_Meta_V_din      => ssUAF_FIFO_Udp_Meta_data,
-        --OBSOLETE_20210222 soUSIF_Meta_V_write    => ssUAF_FIFO_Udp_Meta_write,
-        --OBSOLETE_20210222 soUSIF_Meta_V_full_n   => not ssUAF_FIFO_Udp_Meta_full,
         soUSIF_Meta_V_ip4SrcAddr_V_din    =>     ssUAF_FIFO_Udp_MetaSrcAddr_data,
         soUSIF_Meta_V_ip4SrcAddr_V_write  =>     ssUAF_FIFO_Udp_MetaSrcAddr_write,   
         soUSIF_Meta_V_ip4SrcAddr_V_full_n => not ssUAF_FIFO_Udp_MetaSrcAddr_full,
@@ -1676,8 +1600,7 @@ begin
   --#    #######  #####    #         #      #  #      ####  ####                  #
   --#                                                                             #
   --###############################################################################
-  --OBSOLETE_20210427 gUdpTxFifos : if cUDP_APP_DEPRECATED_DIRECTIVES = false generate
-  gUdpTxFifos : if gVivadoVersion = 2016 generate
+  gUdpTxFifos : if gVivadoVersion /= 2016 generate
     FIFO_UDP_RX_DATA : Fifo_16x73
       port map (
         clk          => piSHL_156_25Clk,
@@ -1691,21 +1614,7 @@ begin
         empty        => ssFIFO_UAF_Udp_Data_empty,
         wr_rst_busy  => open,
         rd_rst_busy  => open
-      );       
---    FIFO_UDP_RX_META : Fifo_16x96
---      port map (
---        clk          => piSHL_156_25Clk,
---        srst         => piSHL_Mmio_Ly7Rst,
---        din          => ssUSIF_FIFO_Udp_Meta_data,
---        wr_en        => ssUSIF_FIFO_Udp_Meta_write,
---        full         => ssUSIF_FIFO_Udp_Meta_full,
---        --
---        dout         => ssFIFO_UAF_Udp_Meta_data ,
---        rd_en        => ssFIFO_UAF_Udp_Meta_read,
---        empty        => ssFIFO_UAF_Udp_Meta_empty,
---        wr_rst_busy  => open,
---        rd_rst_busy  => open
---     );
+      );
     FIFO_UDP_RX_META_SRC_ADDR : Fifo_16x32                   
       port map (                                    
         clk          => piSHL_156_25Clk,            
@@ -1761,8 +1670,7 @@ begin
         empty        => ssFIFO_UAF_Udp_MetaDstPort_empty,  
         wr_rst_busy  => open,                       
         rd_rst_busy  => open                        
-      );   
-    --
+      );
     FIFO_UDP_TX_DATA : Fifo_16x73
       port map (
         clk          => piSHL_156_25Clk,
@@ -1776,21 +1684,7 @@ begin
         empty        => ssFIFO_USIF_Udp_Data_empty,
         wr_rst_busy  => open,
         rd_rst_busy  => open
-    );       
---    FIFO_UDP_TX_META : Fifo_16x96
---      port map (
---        clk          => piSHL_156_25Clk,
---        srst         => piSHL_Mmio_Ly7Rst,
---        din          => ssUAF_FIFO_Udp_Meta_data,
---        wr_en        => ssUAF_FIFO_Udp_Meta_write,
---        full         => ssUAF_FIFO_Udp_Meta_full,
---        --
---        dout         => ssFIFO_USIF_Udp_Meta_data,
---        rd_en        => ssFIFO_USIF_Udp_Meta_read,
---        empty        => ssFIFO_USIF_Udp_Meta_empty,
---        wr_rst_busy  => open,
---        rd_rst_busy  => open
---      );
+    );
     FIFO_UDP_TX_META_SRC_ADDR : Fifo_16x32
       port map (
         clk          => piSHL_156_25Clk,
@@ -1873,7 +1767,6 @@ begin
   --#       #     ######  ###  #                                                   #
   --#                                                                              #
   --################################################################################
-  --OBSOLETE_20210427 gTcpShellInterface : if cTCP_SIF_DEPRECATED_DIRECTIVES = true
   gTcpShellInterface : if gVivadoVersion = 2016 generate
     TSIF : TcpShellInterface_Deprecated
       port map (
@@ -2108,8 +2001,7 @@ begin
   --#       #       ####   #         #   #  #  #  ####                            #
   --#                                                                             #
   --###############################################################################
-  --OBSOLETE_20210427 gArsTcpRx : if cTCP_SIF_DEPRECATED_DIRECTIVES /= true
-  gArsTcpRx : if gVivadoVersion = 2016 generate
+  gArsTcpRx : if gVivadoVersion /= 2016 generate
     ARS_TCP_RX_DATA   : AxisRegisterSlice_64
       port map (
         aclk          => piSHL_156_25Clk,
@@ -2211,7 +2103,6 @@ begin
   --==   opening of one or multiple listening port(s). The use of the [TSIF] is
   --==   not a prerequisite, but it is provided here for sake of simplicity.
   --==========================================================================
-  --OBSOLETE_20210427 gTcpAppFlash : if cTCP_APP_DEPRECATED_DIRECTIVES = true generate
   gTcpAppFlash : if gVivadoVersion = 2016 generate
     TAF : TcpApplicationFlash_Deprecated
       port map (
@@ -2347,7 +2238,7 @@ begin
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
       ap_clk                     => piSHL_156_25Clk,
-      ap_rst_n                   => not piSHL_Mmio_Ly7Rst,  --OBSOLETE not (piSHL_156_25Rst),
+      ap_rst_n                   => not piSHL_Mmio_Ly7Rst,
       ------------------------------------------------------
       -- BLock-Level I/O Protocol
       ------------------------------------------------------
