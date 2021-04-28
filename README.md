@@ -31,21 +31,32 @@ the components that must be recreated.
  
 Finally, to further reduce the place-and-route implementation time, an _incremental compile_ options cans be specified.
 
-##### Step-1: Generate a static bitfile 
+##### Step-1: Clone and Configure the cFp_Monolithic project
 ```
-make monolithic
+$ git clone git@github.ibm.com:cloudFPGA/cFp_Monolithic.git
+$ git submodule init
+$ git submodule update
+$ cd cFDK
+$ git checkout master
+$ cd ..
 ```
-##### Step-2: Save a checkpoint (optional)
-
+##### Step-2: Setup your environment
+```
+$ source env/setenv.sh
+```
+##### Step-3: Generate a static bitfile 
+```
+$ make monolithic
+```
+##### Step-4: Save a checkpoint (optional)
 If the design was successfully implemented, you may want to save its corresponding checkpoint in the '_./dcps_' directory
 to later exploit incremental place-and-route in Vivado (see step-3).
 ```
-make save_mono_incr
+$ make save_mono_incr
 ``` 
-##### Step-3: Generate an incremental implementation (optional)
-
+##### Step-5: Generate an incremental implementation (optional)
 ```
-make monolithic_incr
+$ make monolithic_incr
 ```
 
 Note: If ```make monolithic_incr``` gets invoked in the absence of a saved checkpoint, the build will execute the default
