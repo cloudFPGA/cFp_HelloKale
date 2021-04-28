@@ -1,22 +1,26 @@
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 -- *****************************************************************************
--- *
--- *                             cloudFPGA
--- *            All rights reserved -- Property of IBM
--- *
--- *----------------------------------------------------------------------------
 -- *
 -- * Title : Role for the bring-up of the FMKU2595 when equipped with a XCKU060.
 -- *
 -- * File    : Role.vhdl
 -- *
--- * Created : Feb 2018
--- * Authors : Francois Abel <fab@zurich.ibm.com>
--- *           Beat Weiss <wei@zurich.ibm.com>
--- *           Burkhard Ringlein <ngl@zurich.ibm.com>
--- *
--- * Devices : xcku060-ffva1156-2-i
--- * Tools   : Vivado v2016.4, 2017.4 (64-bit)
--- * Depends : None
+-- * Tools   : Vivado v2016.4, v2017.4, v2019.2 (64-bit) 
 -- *
 -- * Description : In cloudFPGA, the user application is referred to as a 'role'    
 -- *    and is integrated along with a 'shell' that abstracts the HW components
@@ -42,10 +46,12 @@ use     XIL_DEFAULTLIB.all;
 
 
 --******************************************************************************
---**  ENTITY  **  FMKU60 ROLE
+--**  ENTITY  **  ROLE_KALE
 --******************************************************************************
-
 entity Role_Kale is
+  generic (
+    gVivadoVersion : integer := 2019
+  );
   port (
     --------------------------------------------------------
     -- SHELL / Clock, Reset and Enable Interface
@@ -262,20 +268,19 @@ entity Role_Kale is
     --------------------------------------------------------
     piTOP_250_00Clk                     : in    std_ulogic   -- Freerunning
   );
-  
 end Role_Kale;
 
 
 -- *****************************************************************************
--- **  ARCHITECTURE  **  BRING_UP of ROLE_BRING_UP
+-- **  ARCHITECTURE  **  BRING_UP of ROLE_KALE
 -- *****************************************************************************
 
 architecture BringUp of Role_Kale is
 
-  constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
-  constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
-  constant cUDP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
-  constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
+  --OBSOLETE_20210427 constant cTCP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
+  --OBSOLETE_20210427 constant cTCP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
+  --OBSOLETE_20210427 constant cUDP_SIF_DEPRECATED_DIRECTIVES  : boolean := false;
+  --OBSOLETE_20210427 constant cUDP_APP_DEPRECATED_DIRECTIVES  : boolean := false;
   
   --============================================================================
   --  SIGNAL DECLARATIONS
@@ -1336,7 +1341,8 @@ begin
   --#    #######  ######  ###  #                                                   #
   --#                                                                              #
   --################################################################################
-  gUdpShellInterface : if cUDP_SIF_DEPRECATED_DIRECTIVES = true generate
+  --OBSOLETE_20210427 gUdpShellInterface : if cUDP_SIF_DEPRECATED_DIRECTIVES = true generate
+  gUdpShellInterface : if gVivadoVersion = 2016 generate
       USIF : UdpShellInterface_Deprecated
         port map (
           ------------------------------------------------------
@@ -1551,7 +1557,8 @@ begin
   --==   opening of one or multiple listening port(s). The use of the [USIF] is
   --==   not a prerequisite, but it is provided here for sake of simplicity.
   --==========================================================================
-  gUdpAppFlash : if cUDP_APP_DEPRECATED_DIRECTIVES = true generate
+  --OBSOLETE_20210427 gUdpAppFlash : if cUDP_APP_DEPRECATED_DIRECTIVES = true generate
+  gUdpAppFlash : if gVivadoVersion = 2016 generate
     UAF : UdpApplicationFlash_Deprecated
       port map (
         ------------------------------------------------------
@@ -1669,7 +1676,8 @@ begin
   --#    #######  #####    #         #      #  #      ####  ####                  #
   --#                                                                             #
   --###############################################################################
-  gUdpTxFifos : if cUDP_APP_DEPRECATED_DIRECTIVES = false generate
+  --OBSOLETE_20210427 gUdpTxFifos : if cUDP_APP_DEPRECATED_DIRECTIVES = false generate
+  gUdpTxFifos : if gVivadoVersion = 2016 generate
     FIFO_UDP_RX_DATA : Fifo_16x73
       port map (
         clk          => piSHL_156_25Clk,
@@ -1865,121 +1873,120 @@ begin
   --#       #     ######  ###  #                                                   #
   --#                                                                              #
   --################################################################################
-  gTcpShellInterface : if cTCP_SIF_DEPRECATED_DIRECTIVES = true
-    generate
-      TSIF : TcpShellInterface_Deprecated
-        port map (
-          ------------------------------------------------------
-          -- From SHELL / Clock and Reset
-          ------------------------------------------------------
-          aclk                      => piSHL_156_25Clk,
-          aresetn                   => not piSHL_Mmio_Ly7Rst,
-          --------------------------------------------------------
-          -- From SHELL / Mmio Interfaces
-          --------------------------------------------------------       
-          piSHL_Mmio_En_V           => piSHL_Mmio_Ly7En,
-          ------------------------------------------------------
-          -- TAF (via TARS) / Tx Data Interfaces (APP-->SHELL)
-          ------------------------------------------------------
-          siTAF_Data_tdata          => ssTARS_TSIF_Data_tdata,
-          siTAF_Data_tkeep          => ssTARS_TSIF_Data_tkeep,
-          siTAF_Data_tlast          => ssTARS_TSIF_Data_tlast,
-          siTAF_Data_tvalid         => ssTARS_TSIF_Data_tvalid,
-          siTAF_Data_tready         => ssTARS_TSIF_Data_tready,
-          --
-          siTAF_SessId_tdata        => ssTARS_TSIF_SessId_tdata,
-          siTAF_SessId_tvalid       => ssTARS_TSIF_SessId_tvalid,
-          siTAF_SessId_tready       => ssTARS_TSIF_SessId_tready,
-          --
-          siTAF_DatLen_tdata        => ssTARS_TSIF_DatLen_tdata,
-          siTAF_DatLen_tvalid       => ssTARS_TSIF_DatLen_tvalid,
-          siTAF_DatLen_tready       => ssTARS_TSIF_DatLen_tready,
-          ------------------------------------------------------
-          -- TAF (via TARS) / Rx Data Interfaces (SHELL-->APP)
-          ------------------------------------------------------
-          soTAF_Data_tdata          => ssTSIF_TARS_Data_tdata,
-          soTAF_Data_tkeep          => ssTSIF_TARS_Data_tkeep,
-          soTAF_Data_tlast          => ssTSIF_TARS_Data_tlast,
-          soTAF_Data_tvalid         => ssTSIF_TARS_Data_tvalid,
-          soTAF_Data_tready         => ssTSIF_TARS_Data_tready,
-          --
-          soTAF_SessId_tdata        => ssTSIF_TARS_SessId_tdata,
-          soTAF_SessId_tvalid       => ssTSIF_TARS_SessId_tvalid,
-          soTAF_SessId_tready       => ssTSIF_TARS_SessId_tready,
-          --
-          soTAF_DatLen_tdata        => ssTSIF_TARS_DatLen_tdata,
-          soTAF_DatLen_tvalid       => ssTSIF_TARS_DatLen_tvalid,
-          soTAF_DatLen_tready       => ssTSIF_TARS_DatLen_tready,
-          ------------------------------------------------------
-          -- SHELL / RxP Data Flow Interfaces
-          ------------------------------------------------------
-          ---- TCP Data Stream Notification 
-          siSHL_Notif_tdata         => siSHL_Nts_Tcp_Notif_tdata,
-          siSHL_Notif_tvalid        => siSHL_Nts_Tcp_Notif_tvalid,
-          siSHL_Notif_tready        => siSHL_Nts_Tcp_Notif_tready,
-          ---- TCP Data Request Stream -----
-          soSHL_DReq_tdata          => soSHL_Nts_Tcp_DReq_tdata,
-          soSHL_DReq_tvalid         => soSHL_Nts_Tcp_DReq_tvalid,
-          soSHL_DReq_tready         => soSHL_Nts_Tcp_DReq_tready,
-          ---- TCP Data Stream  ------------
-          siSHL_Data_tdata          => siSHL_Nts_Tcp_Data_tdata, 
-          siSHL_Data_tkeep          => siSHL_Nts_Tcp_Data_tkeep, 
-          siSHL_Data_tlast          => siSHL_Nts_Tcp_Data_tlast, 
-          siSHL_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
-          siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
-          ---- TCP Meta Stream -------------
-          siSHL_Meta_tdata          => siSHL_Nts_Tcp_Meta_tdata,
-          siSHL_Meta_tvalid         => siSHL_Nts_Tcp_Meta_tvalid,
-          siSHL_Meta_tready         => siSHL_Nts_Tcp_Meta_tready,
-          ------------------------------------------------------
-          -- SHELL / RxP Ctlr Flow Interfaces
-          ------------------------------------------------------
-          -- FPGA Receive Path (SHELL-->APP) --------
-          ---- TCP Listen Request Stream -----
-          soSHL_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
-          soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
-          soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
-          ---- TCP Listen Rep Stream ---------
-          siSHL_LsnRep_tdata        => siSHL_Nts_Tcp_LsnRep_tdata,
-          siSHL_LsnRep_tvalid       => siSHL_Nts_Tcp_LsnRep_tvalid, 
-          siSHL_LsnRep_tready       => siSHL_Nts_Tcp_LsnRep_tready, 
-          ------------------------------------------------------
-          -- SHELL / TxP Data Flow Interfaces
-          ------------------------------------------------------
-          ---- TCP Data Stream ------------- 
-          soSHL_Data_tdata          => soSHL_Nts_Tcp_Data_tdata, 
-          soSHL_Data_tkeep          => soSHL_Nts_Tcp_Data_tkeep, 
-          soSHL_Data_tlast          => soSHL_Nts_Tcp_Data_tlast, 
-          soSHL_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
-          soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
-          ---- TCP Send Request ------------
-          soSHL_SndReq_tdata        => soSHL_Nts_Tcp_SndReq_tdata,
-          soSHL_SndReq_tvalid       => soSHL_Nts_Tcp_SndReq_tvalid,
-          soSHL_SndReq_tready       => soSHL_Nts_Tcp_SndReq_tready,
-          ---- TCP Send Reply --------------
-          siSHL_SndRep_tdata        => siSHL_Nts_Tcp_SndRep_tdata,
-          siSHL_SndRep_tvalid       => siSHL_Nts_Tcp_SndRep_tvalid,
-          siSHL_SndRep_tready       => siSHL_Nts_Tcp_SndRep_tready,
-          ------------------------------------------------------
-          -- SHELL / TxP Ctlr Flow Interfaces
-          ------------------------------------------------------
-          -- FPGA Transmit Path (APP-->SHELL) -------
-          ---- TCP Open Session Request Stream 
-          soSHL_OpnReq_tdata        => soSHL_Nts_Tcp_OpnReq_tdata, 
-          soSHL_OpnReq_tvalid       => soSHL_Nts_Tcp_OpnReq_tvalid,
-          soSHL_OpnReq_tready       => soSHL_Nts_Tcp_OpnReq_tready,
-          ---- TCP Open Session Status Stream  
-          siSHL_OpnRep_tdata        => siSHL_Nts_Tcp_OpnRep_tdata,  
-          siSHL_OpnRep_tvalid       => siSHL_Nts_Tcp_OpnRep_tvalid,
-          siSHL_OpnRep_tready       => siSHL_Nts_Tcp_OpnRep_tready,
-          ---- TCP Close Request Stream  ---
-          soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
-          soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
-          soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready
-        ); -- End of: TcpShellInterface_Deprecated
-  else
-    generate
-      TSIF : TcpShellInterface
+  --OBSOLETE_20210427 gTcpShellInterface : if cTCP_SIF_DEPRECATED_DIRECTIVES = true
+  gTcpShellInterface : if gVivadoVersion = 2016 generate
+    TSIF : TcpShellInterface_Deprecated
+      port map (
+        ------------------------------------------------------
+        -- From SHELL / Clock and Reset
+        ------------------------------------------------------
+        aclk                      => piSHL_156_25Clk,
+        aresetn                   => not piSHL_Mmio_Ly7Rst,
+        --------------------------------------------------------
+        -- From SHELL / Mmio Interfaces
+        --------------------------------------------------------       
+        piSHL_Mmio_En_V           => piSHL_Mmio_Ly7En,
+        ------------------------------------------------------
+        -- TAF (via TARS) / Tx Data Interfaces (APP-->SHELL)
+        ------------------------------------------------------
+        siTAF_Data_tdata          => ssTARS_TSIF_Data_tdata,
+        siTAF_Data_tkeep          => ssTARS_TSIF_Data_tkeep,
+        siTAF_Data_tlast          => ssTARS_TSIF_Data_tlast,
+        siTAF_Data_tvalid         => ssTARS_TSIF_Data_tvalid,
+        siTAF_Data_tready         => ssTARS_TSIF_Data_tready,
+        --
+        siTAF_SessId_tdata        => ssTARS_TSIF_SessId_tdata,
+        siTAF_SessId_tvalid       => ssTARS_TSIF_SessId_tvalid,
+        siTAF_SessId_tready       => ssTARS_TSIF_SessId_tready,
+        --
+        siTAF_DatLen_tdata        => ssTARS_TSIF_DatLen_tdata,
+        siTAF_DatLen_tvalid       => ssTARS_TSIF_DatLen_tvalid,
+        siTAF_DatLen_tready       => ssTARS_TSIF_DatLen_tready,
+        ------------------------------------------------------
+        -- TAF (via TARS) / Rx Data Interfaces (SHELL-->APP)
+        ------------------------------------------------------
+        soTAF_Data_tdata          => ssTSIF_TARS_Data_tdata,
+        soTAF_Data_tkeep          => ssTSIF_TARS_Data_tkeep,
+        soTAF_Data_tlast          => ssTSIF_TARS_Data_tlast,
+        soTAF_Data_tvalid         => ssTSIF_TARS_Data_tvalid,
+        soTAF_Data_tready         => ssTSIF_TARS_Data_tready,
+        --
+        soTAF_SessId_tdata        => ssTSIF_TARS_SessId_tdata,
+        soTAF_SessId_tvalid       => ssTSIF_TARS_SessId_tvalid,
+        soTAF_SessId_tready       => ssTSIF_TARS_SessId_tready,
+        --
+        soTAF_DatLen_tdata        => ssTSIF_TARS_DatLen_tdata,
+        soTAF_DatLen_tvalid       => ssTSIF_TARS_DatLen_tvalid,
+        soTAF_DatLen_tready       => ssTSIF_TARS_DatLen_tready,
+        ------------------------------------------------------
+        -- SHELL / RxP Data Flow Interfaces
+        ------------------------------------------------------
+        ---- TCP Data Stream Notification 
+        siSHL_Notif_tdata         => siSHL_Nts_Tcp_Notif_tdata,
+        siSHL_Notif_tvalid        => siSHL_Nts_Tcp_Notif_tvalid,
+        siSHL_Notif_tready        => siSHL_Nts_Tcp_Notif_tready,
+        ---- TCP Data Request Stream -----
+        soSHL_DReq_tdata          => soSHL_Nts_Tcp_DReq_tdata,
+        soSHL_DReq_tvalid         => soSHL_Nts_Tcp_DReq_tvalid,
+        soSHL_DReq_tready         => soSHL_Nts_Tcp_DReq_tready,
+        ---- TCP Data Stream  ------------
+        siSHL_Data_tdata          => siSHL_Nts_Tcp_Data_tdata, 
+        siSHL_Data_tkeep          => siSHL_Nts_Tcp_Data_tkeep, 
+        siSHL_Data_tlast          => siSHL_Nts_Tcp_Data_tlast, 
+        siSHL_Data_tvalid         => siSHL_Nts_Tcp_Data_tvalid,
+        siSHL_Data_tready         => siSHL_Nts_Tcp_Data_tready,
+        ---- TCP Meta Stream -------------
+        siSHL_Meta_tdata          => siSHL_Nts_Tcp_Meta_tdata,
+        siSHL_Meta_tvalid         => siSHL_Nts_Tcp_Meta_tvalid,
+        siSHL_Meta_tready         => siSHL_Nts_Tcp_Meta_tready,
+        ------------------------------------------------------
+        -- SHELL / RxP Ctlr Flow Interfaces
+        ------------------------------------------------------
+        -- FPGA Receive Path (SHELL-->APP) --------
+        ---- TCP Listen Request Stream -----
+        soSHL_LsnReq_tdata        => soSHL_Nts_Tcp_LsnReq_tdata,
+        soSHL_LsnReq_tvalid       => soSHL_Nts_Tcp_LsnReq_tvalid,
+        soSHL_LsnReq_tready       => soSHL_Nts_Tcp_LsnReq_tready,
+        ---- TCP Listen Rep Stream ---------
+        siSHL_LsnRep_tdata        => siSHL_Nts_Tcp_LsnRep_tdata,
+        siSHL_LsnRep_tvalid       => siSHL_Nts_Tcp_LsnRep_tvalid, 
+        siSHL_LsnRep_tready       => siSHL_Nts_Tcp_LsnRep_tready, 
+        ------------------------------------------------------
+        -- SHELL / TxP Data Flow Interfaces
+        ------------------------------------------------------
+        ---- TCP Data Stream ------------- 
+        soSHL_Data_tdata          => soSHL_Nts_Tcp_Data_tdata, 
+        soSHL_Data_tkeep          => soSHL_Nts_Tcp_Data_tkeep, 
+        soSHL_Data_tlast          => soSHL_Nts_Tcp_Data_tlast, 
+        soSHL_Data_tvalid         => soSHL_Nts_Tcp_Data_tvalid,
+        soSHL_Data_tready         => soSHL_Nts_Tcp_Data_tready,
+        ---- TCP Send Request ------------
+        soSHL_SndReq_tdata        => soSHL_Nts_Tcp_SndReq_tdata,
+        soSHL_SndReq_tvalid       => soSHL_Nts_Tcp_SndReq_tvalid,
+        soSHL_SndReq_tready       => soSHL_Nts_Tcp_SndReq_tready,
+        ---- TCP Send Reply --------------
+        siSHL_SndRep_tdata        => siSHL_Nts_Tcp_SndRep_tdata,
+        siSHL_SndRep_tvalid       => siSHL_Nts_Tcp_SndRep_tvalid,
+        siSHL_SndRep_tready       => siSHL_Nts_Tcp_SndRep_tready,
+        ------------------------------------------------------
+        -- SHELL / TxP Ctlr Flow Interfaces
+        ------------------------------------------------------
+        -- FPGA Transmit Path (APP-->SHELL) -------
+        ---- TCP Open Session Request Stream 
+        soSHL_OpnReq_tdata        => soSHL_Nts_Tcp_OpnReq_tdata, 
+        soSHL_OpnReq_tvalid       => soSHL_Nts_Tcp_OpnReq_tvalid,
+        soSHL_OpnReq_tready       => soSHL_Nts_Tcp_OpnReq_tready,
+        ---- TCP Open Session Status Stream  
+        siSHL_OpnRep_tdata        => siSHL_Nts_Tcp_OpnRep_tdata,  
+        siSHL_OpnRep_tvalid       => siSHL_Nts_Tcp_OpnRep_tvalid,
+        siSHL_OpnRep_tready       => siSHL_Nts_Tcp_OpnRep_tready,
+        ---- TCP Close Request Stream  ---
+        soSHL_ClsReq_tdata        => soSHL_Nts_Tcp_ClsReq_tdata,
+        soSHL_ClsReq_tvalid       => soSHL_Nts_Tcp_ClsReq_tvalid,
+        soSHL_ClsReq_tready       => soSHL_Nts_Tcp_ClsReq_tready
+      ); -- End of: TcpShellInterface_Deprecated
+  else generate
+    TSIF : TcpShellInterface
       port map (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
@@ -2089,7 +2096,7 @@ begin
         soSHL_ClsReq_V_V_tvalid   => soSHL_Nts_Tcp_ClsReq_tvalid,
         soSHL_ClsReq_V_V_tready   => soSHL_Nts_Tcp_ClsReq_tready
       ); -- End of: TcpShellInterface
-    end generate;
+  end generate;
   
   --###############################################################################
   --#                                                                             #
@@ -2101,89 +2108,89 @@ begin
   --#       #       ####   #         #   #  #  #  ####                            #
   --#                                                                             #
   --###############################################################################
-  gArsTcpRx : if cTCP_SIF_DEPRECATED_DIRECTIVES /= true
-    generate
-      ARS_TCP_RX_DATA   : AxisRegisterSlice_64
-        port map (
-          aclk          => piSHL_156_25Clk,
-          aresetn       => not piSHL_Mmio_Ly7Rst,
-          s_axis_tdata  => ssTSIF_TARS_Data_tdata,
-          s_axis_tkeep  => ssTSIF_TARS_Data_tkeep,
-          s_axis_tlast  => ssTSIF_TARS_Data_tlast,
-          s_axis_tvalid => ssTSIF_TARS_Data_tvalid,
-          s_axis_tready => ssTSIF_TARS_Data_tready,
-          --
-          m_axis_tdata  => ssTARS_TAF_Data_tdata,
-          m_axis_tkeep  => ssTARS_TAF_Data_tkeep,
-          m_axis_tlast  => ssTARS_TAF_Data_tlast,
-          m_axis_tvalid => ssTARS_TAF_Data_tvalid,
-          m_axis_tready => ssTARS_TAF_Data_tready
-        );
-      ARS_TCP_RX_SESSID : AxisRegisterSlice_16
-        port map (
-          aclk          => piSHL_156_25Clk,
-          aresetn       => not piSHL_Mmio_Ly7Rst,
-          s_axis_tdata  => ssTSIF_TARS_SessId_tdata,
-          s_axis_tvalid => ssTSIF_TARS_SessId_tvalid,
-          s_axis_tready => ssTSIF_TARS_SessId_tready,
-          --
-          m_axis_tdata  => ssTARS_TAF_SessId_tdata, 
-          m_axis_tvalid => ssTARS_TAF_SessId_tvalid,
-          m_axis_tready => ssTARS_TAF_SessId_tready
-        );
-      ARS_TCP_RX_DATLEN : AxisRegisterSlice_16
-        port map (
-          aclk          => piSHL_156_25Clk,
-          aresetn       => not piSHL_Mmio_Ly7Rst,
-          s_axis_tdata  => ssTSIF_TARS_DatLen_tdata,
-          s_axis_tvalid => ssTSIF_TARS_DatLen_tvalid,
-          s_axis_tready => ssTSIF_TARS_DatLen_tready,
-          --
-          m_axis_tdata  => ssTARS_TAF_DatLen_tdata, 
-          m_axis_tvalid => ssTARS_TAF_DatLen_tvalid,
-          m_axis_tready => ssTARS_TAF_DatLen_tready
-        );
-      ARS_TCP_TX_DATA   : AxisRegisterSlice_64
-        port map (
-          aclk          => piSHL_156_25Clk,
-          aresetn       => not piSHL_Mmio_Ly7Rst,
-          s_axis_tdata  => ssTAF_TARS_Data_tdata,
-          s_axis_tkeep  => ssTAF_TARS_Data_tkeep,
-          s_axis_tlast  => ssTAF_TARS_Data_tlast,
-          s_axis_tvalid => ssTAF_TARS_Data_tvalid,
-          s_axis_tready => ssTAF_TARS_Data_tready,
-          --
-          m_axis_tdata  => ssTARS_TSIF_Data_tdata,
-          m_axis_tkeep  => ssTARS_TSIF_Data_tkeep,
-          m_axis_tlast  => ssTARS_TSIF_Data_tlast,
-          m_axis_tvalid => ssTARS_TSIF_Data_tvalid,
-          m_axis_tready => ssTARS_TSIF_Data_tready
-        );
-      ARS_TCP_TX_SESSID : AxisRegisterSlice_16
-        port map (
-          aclk          => piSHL_156_25Clk,
-          aresetn       => not piSHL_Mmio_Ly7Rst,
-          s_axis_tdata  => ssTAF_TARS_SessId_tdata,
-          s_axis_tvalid => ssTAF_TARS_SessId_tvalid,
-          s_axis_tready => ssTAF_TARS_SessId_tready,
-          --
-          m_axis_tdata  => ssTARS_TSIF_SessId_tdata, 
-          m_axis_tvalid => ssTARS_TSIF_SessId_tvalid,
-          m_axis_tready => ssTARS_TSIF_SessId_tready
-        );
-      ARS_TCP_TX_DATLEN : AxisRegisterSlice_16
-        port map (
-          aclk          => piSHL_156_25Clk,
-          aresetn       => not piSHL_Mmio_Ly7Rst,
-          s_axis_tdata  => ssTAF_TARS_DatLen_tdata,
-          s_axis_tvalid => ssTAF_TARS_DatLen_tvalid,
-          s_axis_tready => ssTAF_TARS_DatLen_tready,
-          --
-          m_axis_tdata  => ssTARS_TSIF_DatLen_tdata, 
-          m_axis_tvalid => ssTARS_TSIF_DatLen_tvalid,
-          m_axis_tready => ssTARS_TSIF_DatLen_tready
-        );
-    end generate;
+  --OBSOLETE_20210427 gArsTcpRx : if cTCP_SIF_DEPRECATED_DIRECTIVES /= true
+  gArsTcpRx : if gVivadoVersion = 2016 generate
+    ARS_TCP_RX_DATA   : AxisRegisterSlice_64
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssTSIF_TARS_Data_tdata,
+        s_axis_tkeep  => ssTSIF_TARS_Data_tkeep,
+        s_axis_tlast  => ssTSIF_TARS_Data_tlast,
+        s_axis_tvalid => ssTSIF_TARS_Data_tvalid,
+        s_axis_tready => ssTSIF_TARS_Data_tready,
+        --
+        m_axis_tdata  => ssTARS_TAF_Data_tdata,
+        m_axis_tkeep  => ssTARS_TAF_Data_tkeep,
+        m_axis_tlast  => ssTARS_TAF_Data_tlast,
+        m_axis_tvalid => ssTARS_TAF_Data_tvalid,
+        m_axis_tready => ssTARS_TAF_Data_tready
+      );
+    ARS_TCP_RX_SESSID : AxisRegisterSlice_16
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssTSIF_TARS_SessId_tdata,
+        s_axis_tvalid => ssTSIF_TARS_SessId_tvalid,
+        s_axis_tready => ssTSIF_TARS_SessId_tready,
+        --
+        m_axis_tdata  => ssTARS_TAF_SessId_tdata, 
+        m_axis_tvalid => ssTARS_TAF_SessId_tvalid,
+        m_axis_tready => ssTARS_TAF_SessId_tready
+      );
+    ARS_TCP_RX_DATLEN : AxisRegisterSlice_16
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssTSIF_TARS_DatLen_tdata,
+        s_axis_tvalid => ssTSIF_TARS_DatLen_tvalid,
+        s_axis_tready => ssTSIF_TARS_DatLen_tready,
+        --
+        m_axis_tdata  => ssTARS_TAF_DatLen_tdata, 
+        m_axis_tvalid => ssTARS_TAF_DatLen_tvalid,
+        m_axis_tready => ssTARS_TAF_DatLen_tready
+      );
+    ARS_TCP_TX_DATA   : AxisRegisterSlice_64
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssTAF_TARS_Data_tdata,
+        s_axis_tkeep  => ssTAF_TARS_Data_tkeep,
+        s_axis_tlast  => ssTAF_TARS_Data_tlast,
+        s_axis_tvalid => ssTAF_TARS_Data_tvalid,
+        s_axis_tready => ssTAF_TARS_Data_tready,
+        --
+        m_axis_tdata  => ssTARS_TSIF_Data_tdata,
+        m_axis_tkeep  => ssTARS_TSIF_Data_tkeep,
+        m_axis_tlast  => ssTARS_TSIF_Data_tlast,
+        m_axis_tvalid => ssTARS_TSIF_Data_tvalid,
+        m_axis_tready => ssTARS_TSIF_Data_tready
+      );
+    ARS_TCP_TX_SESSID : AxisRegisterSlice_16
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssTAF_TARS_SessId_tdata,
+        s_axis_tvalid => ssTAF_TARS_SessId_tvalid,
+        s_axis_tready => ssTAF_TARS_SessId_tready,
+        --
+        m_axis_tdata  => ssTARS_TSIF_SessId_tdata, 
+        m_axis_tvalid => ssTARS_TSIF_SessId_tvalid,
+        m_axis_tready => ssTARS_TSIF_SessId_tready
+      );
+    ARS_TCP_TX_DATLEN : AxisRegisterSlice_16
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssTAF_TARS_DatLen_tdata,
+        s_axis_tvalid => ssTAF_TARS_DatLen_tvalid,
+        s_axis_tready => ssTAF_TARS_DatLen_tready,
+        --
+        m_axis_tdata  => ssTARS_TSIF_DatLen_tdata, 
+        m_axis_tvalid => ssTARS_TSIF_DatLen_tvalid,
+        m_axis_tready => ssTARS_TSIF_DatLen_tready
+      );
+  end generate;
     
   --################################################################################
   --#                                                                              #
@@ -2204,7 +2211,8 @@ begin
   --==   opening of one or multiple listening port(s). The use of the [TSIF] is
   --==   not a prerequisite, but it is provided here for sake of simplicity.
   --==========================================================================
-  gTcpAppFlash : if cTCP_APP_DEPRECATED_DIRECTIVES = true generate
+  --OBSOLETE_20210427 gTcpAppFlash : if cTCP_APP_DEPRECATED_DIRECTIVES = true generate
+  gTcpAppFlash : if gVivadoVersion = 2016 generate
     TAF : TcpApplicationFlash_Deprecated
       port map (
         ------------------------------------------------------
@@ -2300,26 +2308,26 @@ begin
       );
   end generate;
 
-   -- ========================================================================
-   -- == Generation of a delayed reset for the MemTest core
-   -- ==  [TODO: Can we get ret rid of this reset]
-   -- ========================================================================
-   process(piSHL_156_25Clk)
-   begin
-     if rising_edge(piSHL_156_25Clk) then
-       if piSHL_156_25Rst = '1' then
-         s156_25Rst_delayed <= '0';
-         sRstDelayCounter <= (others => '0');
+  -- ========================================================================
+  -- == Generation of a delayed reset for the MemTest core
+  -- ==  [TODO: Can we get ret rid of this reset]
+  -- ========================================================================
+  process(piSHL_156_25Clk)
+  begin
+    if rising_edge(piSHL_156_25Clk) then
+      if piSHL_156_25Rst = '1' then
+        s156_25Rst_delayed <= '0';
+        sRstDelayCounter <= (others => '0');
+      else
+       if unsigned(sRstDelayCounter) <= 20 then 
+          s156_25Rst_delayed <= '1';
+          sRstDelayCounter <= std_logic_vector(unsigned(sRstDelayCounter) + 1);
        else
-        if unsigned(sRstDelayCounter) <= 20 then 
-           s156_25Rst_delayed <= '1';
-           sRstDelayCounter <= std_logic_vector(unsigned(sRstDelayCounter) + 1);
-        else
-           s156_25Rst_delayed <= '0';
-         end if;
-       end if;
-     end if;
-   end process;
+          s156_25Rst_delayed <= '0';
+        end if;
+      end if;
+    end if;
+  end process;
 
 
   --################################################################################
