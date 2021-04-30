@@ -64,6 +64,7 @@ entity topFMKU60 is
     -- Synthesis parameters ----------------------
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
     gSecurityPriviledges : string  := "super";  -- "user" or "super"
+    gVivadoVersion       : integer := 2019;     --  E.g., 2019
     -- Build date --------------------------------
     gTopDateYear         : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
     gTopDateMonth        : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
@@ -687,6 +688,9 @@ architecture structural of topFMKU60 is
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
   component Role_Kale
+    generic (
+     gVivadoVersion : integer := 2019
+    );
     port (
       ------------------------------------------------------
       -- TOP / Global Input Clock and Reset Interface
@@ -1252,7 +1256,11 @@ begin
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
+  
   ROLE : Role_Kale
+    generic map (
+      gVivadoVersion => gVivadoVersion
+    )  
     port map (
       ------------------------------------------------------
       -- SHELL / Global Input Clock and Reset Interface

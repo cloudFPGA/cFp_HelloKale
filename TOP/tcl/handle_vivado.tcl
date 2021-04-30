@@ -305,7 +305,8 @@ if { ${create} } {
 
     if { [format "%.1f" ${VIVADO_VERSION}] == 2017.4 } {
         my_dbg_trace "Enabling the use of deprecated PRAGMAs." ${dbgLvl_2};
-        set_property verilog_define {USE_DEPRECATED_DIRECTIVES=true} [ current_fileset ] -verbose
+        set_property verilog_define {USE_DEPRECATED_DIRECTIVES=true} [ current_fileset ]
+        set_property generic        {gVivadoVersion=2017}            [ current_fileset ]
     }
     
     my_dbg_trace "Done with set project properties." ${dbgLvl_1}
@@ -356,6 +357,8 @@ if { ${create} } {
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/
 
         set_property file_type {VHDL 2008} [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/*/*.vhd ] ]
+        set_property file_type {VHDL}      [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/mmio/dpAsymRam.vhd ] ]
+
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
 
         # IP Cores SHELL

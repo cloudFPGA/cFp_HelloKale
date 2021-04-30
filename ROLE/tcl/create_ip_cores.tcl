@@ -211,6 +211,11 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
 # By default, create all the IP cores 
 set gTargetIpCore "all"   
 
+# Retreive the Vivado version 
+#-------------------------------------------------------------------------------
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+set HLS_VERSION    [expr entier(${VIVADO_VERSION})]
+
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
 #  Note: All the strings after the '-tclargs' option are considered as TCL
@@ -511,7 +516,11 @@ update_ip_catalog
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : UDP Shell Interface 
 #------------------------------------------------------------------------------
-set ipModName "UdpShellInterface"
+if { [format "%.1f" ${VIVADO_VERSION}] == 2016.4 } {
+    set ipModName "UdpShellInterface_Deprecated"
+} else {
+    set ipModName "UdpShellInterface"
+}
 set ipName    "udp_shell_if_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
@@ -525,7 +534,11 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : UDP Application Flash
 #------------------------------------------------------------------------------
-set ipModName "UdpApplicationFlash"
+if { [format "%.1f" ${VIVADO_VERSION}] == 2016.4 } {
+    set ipModName "UdpApplicationFlash_Deprecated" 
+} else {
+    set ipModName "UdpApplicationFlash"
+}
 set ipName    "udp_app_flash_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
@@ -540,7 +553,11 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : TCP Application Flash 
 #------------------------------------------------------------------------------
-set ipModName "TcpApplicationFlash"
+if { [format "%.1f" ${VIVADO_VERSION}] == 2016.4 } {
+    set ipModName "TcpApplicationFlash_Deprecated" 
+} else {
+    set ipModName "TcpApplicationFlash"
+}
 set ipName    "tcp_app_flash_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
@@ -554,7 +571,11 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : TCP Shell Interface 
 #------------------------------------------------------------------------------
-set ipModName "TcpShellInterface"
+if { [format "%.1f" ${VIVADO_VERSION}] == 2016.4 } {
+    set ipModName "TcpShellInterface_Deprecated" 
+} else {
+    set ipModName "TcpShellInterface"
+}
 set ipName    "tcp_shell_if_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
@@ -585,70 +606,70 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 ##  PHASE-3: Creating HLS-based cores (the deprecated ones)
 ##
 ################################################################################
-my_puts ""
+#OBSOLETE_20210427 my_puts ""
 
 # Specify the IP Repository Path to add the HLS-based IP implementation paths.
 #   (Must do this because IPs are stored outside of the current project) 
 #-------------------------------------------------------------------------------
-set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
-update_ip_catalog
+#OBSOLETE_20210427 set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
+#OBSOLETE_20210427 update_ip_catalog
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : UDP Shell Interface 
 #------------------------------------------------------------------------------
-set ipModName "UdpShellInterface_Deprecated"
-set ipName    "udp_shell_if_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
+#OBSOLETE_20210427 set ipModName "UdpShellInterface_Deprecated"
+#OBSOLETE_20210427 set ipName    "udp_shell_if_top"
+#OBSOLETE_20210427 set ipVendor  "IBM"
+#OBSOLETE_20210427 set ipLibrary "hls"
+#OBSOLETE_20210427 set ipVersion "1.0"
+#OBSOLETE_20210427 set ipCfgList  [ list ]
 
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : UDP Application Flash
 #------------------------------------------------------------------------------
-set ipModName "UdpApplicationFlash_Deprecated"
-set ipName    "udp_app_flash_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
+#OBSOLETE_20210427 set ipModName "UdpApplicationFlash_Deprecated"
+#OBSOLETE_20210427 set ipName    "udp_app_flash_top"
+#OBSOLETE_20210427 set ipVendor  "IBM"
+#OBSOLETE_20210427 set ipLibrary "hls"
+#OBSOLETE_20210427 set ipVersion "1.0"
+#OBSOLETE_20210427 set ipCfgList  [ list ]
 
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : TCP Application Flash 
 #------------------------------------------------------------------------------
-set ipModName "TcpApplicationFlash_Deprecated"
-set ipName    "tcp_app_flash_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
+#OBSOLETE_20210427 set ipModName "TcpApplicationFlash_Deprecated"
+#OBSOLETE_20210427 set ipName    "tcp_app_flash_top"
+#OBSOLETE_20210427 set ipVendor  "IBM"
+#OBSOLETE_20210427 set ipLibrary "hls"
+#OBSOLETE_20210427 set ipVersion "1.0"
+#OBSOLETE_20210427 set ipCfgList  [ list ]
 
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : TCP Shell Interface 
 #------------------------------------------------------------------------------
-set ipModName "TcpShellInterface_Deprecated"
-set ipName    "tcp_shell_if_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
+#OBSOLETE_20210427 set ipModName "TcpShellInterface_Deprecated"
+#OBSOLETE_20210427 set ipName    "tcp_shell_if_top"
+#OBSOLETE_20210427 set ipVendor  "IBM"
+#OBSOLETE_20210427 set ipLibrary "hls"
+#OBSOLETE_20210427 set ipVersion "1.0"
+#OBSOLETE_20210427 set ipCfgList  [ list ]
 
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 puts    ""
