@@ -34,6 +34,8 @@ import struct
 import netifaces as ni
 import time
 
+from netifaces import AF_INET
+
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
 
