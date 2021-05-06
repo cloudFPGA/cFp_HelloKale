@@ -22,7 +22,6 @@ tags
 vivado*.str
 *.wcfg
 
-
 # Vivado_hls
 #------------
 *.pref
@@ -31,7 +30,6 @@ vivado*.str
 *.gold*
 *.strm*
 fsm_encoding.os
-
 
 # Vim
 #----- 
@@ -48,13 +46,16 @@ fsm_encoding.os
 *.bak
 *.sav
 
-# Folders
-#---------
+# cFp Folders
+#-------------
+bit/
 build/
 ip/
 xpr/
 workspace/
 hd_visual/
+TOP/xdc/.DEBUG_SWITCH
+TOP/xdc/debug.xdc
 
 # cFDK specific files
 #---------------------
