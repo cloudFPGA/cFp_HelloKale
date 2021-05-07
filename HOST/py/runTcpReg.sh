@@ -64,7 +64,7 @@ VERBOSE=false
 #===============================================================================
 fDisplayHelp() {
    echo -e "NAME\n\t ${0}  A script to run a suite of TCP tests between the host and an FPGA instance."  
-   echo -e "USAGE\n\t ${0} [-h|--HELP] [-ri|--INSTANCE_ID] [-un|--USER_NAME] [-up|--USER_PASSWD] [--ECHO] [--IPERF] [--RECV] [--SEND]"
+   echo -e "USAGE\n\t ${0} [-h|--HELP] [-ii|--INSTANCE_ID] [-un|--USER_NAME] [-up|--USER_PASSWD] [--ECHO] [--IPERF] [--RECV] [--SEND]"
    echo -e "OPTIONS"
    echo -e "\t[-h |--HELP]        Prints this and exits"
    echo -e "\t[-ii|--INSTANCE_ID] The id of the FPGA instance to test (e.g. 42)"
