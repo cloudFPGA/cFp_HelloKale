@@ -1,12 +1,22 @@
+# /*****************************************************************************
+#  * Copyright 2016 -- 2021 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  *     http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# *****************************************************************************/
+
 # *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Sep 2018
-# * Authors : Francois Abel
 # * 
-# * Description : A Tcl script that generates all the IP cores instanciated by 
-# *   this FLASH version of the FMKU60 ROLE.
+# * Description : A Tcl script to create the IP cores of the current ROLE.
 # * 
 # * Synopsis : vivado -mode batch -source <this_file> -notrace
 # *                             [ -log    <log_file_name>        ]
@@ -26,10 +36,7 @@
 # *  - UG896 / Ch.3 / Using Manage IP Projects.
 # *  - UG896 / Ch.2 / IP Basics.
 # *  - UG896 / Ch.6 / Tcl Commands for Common IP Operations.
-# *-----------------------------------------------------------------------------
-# * Modification History:
-# *  Fab: Feb-07-2018 Created from former 'create_project.tcl'.
-# *  Fab: Sep-14-2018 Created from the SHELL version of this script.
+# *
 # ******************************************************************************
 
 package require cmdline
@@ -49,7 +56,6 @@ set nrErrors         0
 set dbgLvl_1         1
 set dbgLvl_2         2
 set dbgLvl_3         3
-
 
 
 #-------------------------------------------------------------------------------
@@ -599,77 +605,6 @@ set ipCfgList  [ list ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-################################################################################
-##
-##  PHASE-3: Creating HLS-based cores (the deprecated ones)
-##
-################################################################################
-#OBSOLETE_20210427 my_puts ""
-
-# Specify the IP Repository Path to add the HLS-based IP implementation paths.
-#   (Must do this because IPs are stored outside of the current project) 
-#-------------------------------------------------------------------------------
-#OBSOLETE_20210427 set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
-#OBSOLETE_20210427 update_ip_catalog
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Shell Interface 
-#------------------------------------------------------------------------------
-#OBSOLETE_20210427 set ipModName "UdpShellInterface_Deprecated"
-#OBSOLETE_20210427 set ipName    "udp_shell_if_top"
-#OBSOLETE_20210427 set ipVendor  "IBM"
-#OBSOLETE_20210427 set ipLibrary "hls"
-#OBSOLETE_20210427 set ipVersion "1.0"
-#OBSOLETE_20210427 set ipCfgList  [ list ]
-
-#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Application Flash
-#------------------------------------------------------------------------------
-#OBSOLETE_20210427 set ipModName "UdpApplicationFlash_Deprecated"
-#OBSOLETE_20210427 set ipName    "udp_app_flash_top"
-#OBSOLETE_20210427 set ipVendor  "IBM"
-#OBSOLETE_20210427 set ipLibrary "hls"
-#OBSOLETE_20210427 set ipVersion "1.0"
-#OBSOLETE_20210427 set ipCfgList  [ list ]
-
-#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : TCP Application Flash 
-#------------------------------------------------------------------------------
-#OBSOLETE_20210427 set ipModName "TcpApplicationFlash_Deprecated"
-#OBSOLETE_20210427 set ipName    "tcp_app_flash_top"
-#OBSOLETE_20210427 set ipVendor  "IBM"
-#OBSOLETE_20210427 set ipLibrary "hls"
-#OBSOLETE_20210427 set ipVersion "1.0"
-#OBSOLETE_20210427 set ipCfgList  [ list ]
-
-#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : TCP Shell Interface 
-#------------------------------------------------------------------------------
-#OBSOLETE_20210427 set ipModName "TcpShellInterface_Deprecated"
-#OBSOLETE_20210427 set ipName    "tcp_shell_if_top"
-#OBSOLETE_20210427 set ipVendor  "IBM"
-#OBSOLETE_20210427 set ipLibrary "hls"
-#OBSOLETE_20210427 set ipVersion "1.0"
-#OBSOLETE_20210427 set ipCfgList  [ list ]
-
-#OBSOLETE_20210427 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-#OBSOLETE_20210427 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 puts    ""
