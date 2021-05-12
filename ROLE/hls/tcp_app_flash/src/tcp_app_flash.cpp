@@ -164,6 +164,7 @@ void pTcpTxPath(
         stream<TcpDatLen>   &soTSIF_DatLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "TXp");
@@ -274,21 +275,8 @@ void pTcpTxPath(
   #else
     switch (txp_fsmState ) {
     case TXP_START_OF_STREAM:
-        if (!siEPt_SessId.empty() and !siESf_SessId.empty() and
-            !siEPt_DatLen.empty() and !siESf_DatLen.empty() and
+        if (!siEPt_SessId.empty() and !siEPt_DatLen.empty() and
             !soTSIF_SessId.full() and !soTSIF_DatLen.full()) {
-            if (txp_EchoCtrl == ECHO_PATH_THRU) {
-                soTSIF_SessId.write(siEPt_SessId.read());
-                soTSIF_DatLen.write(siEPt_DatLen.read());
-            }
-            else {
-                soTSIF_SessId.write(siESf_SessId.read());
-                soTSIF_DatLen.write(siESf_DatLen.read());
-            }
-            txp_fsmState = TXP_CONTINUATION_OF_STREAM;
-        }
-        else if (!siEPt_SessId.empty() and !siEPt_DatLen.empty() and
-                 !soTSIF_SessId.full() and !soTSIF_DatLen.full()) {
             soTSIF_SessId.write(siEPt_SessId.read());
             soTSIF_DatLen.write(siEPt_DatLen.read());
             txp_EchoCtrl = ECHO_PATH_THRU;
@@ -363,6 +351,7 @@ void pTcpRxPath(
         stream<TcpDatLen>    &soESf_DatLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RXp");
@@ -612,10 +601,13 @@ void tcp_app_flash (
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+    #pragma HLS INLINE
     #pragma HLS INTERFACE ap_ctrl_none port=return
+
   #if defined TAF_USE_NON_FIFO_IO
     #pragma HLS STABLE variable=piSHL_MmioEchoCtrl
   #endif
+
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
     //--------------------------------------------------------------------------
