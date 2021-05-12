@@ -39,13 +39,6 @@
 using namespace hls;
 using namespace std;
 
-/************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we may continue to design
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not always work for us.
- ************************************************/
-#undef USE_DEPRECATED_DIRECTIVES
 
 /*******************************************************************************
  * @brief   Top of TCP Application Flash (TAF)
@@ -59,7 +52,8 @@ using namespace std;
  * @param[out  soTSIF_DatLen       TCP data-length to [TSIF].
  *
  *******************************************************************************/
-void tcp_app_flash_top (
+#if HLS_VERSION == 2017
+    void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
@@ -79,9 +73,8 @@ void tcp_app_flash_top (
         stream<TcpSessId>   &soTSIF_SessId,
         stream<TcpDatLen>   &soTSIF_DatLen)
 {
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
@@ -97,50 +90,80 @@ void tcp_app_flash_top (
     #pragma HLS resource core=AXI4Stream variable=soTSIF_Data   metadata="-bus_bundle soTSIF_Data"
     #pragma HLS resource core=AXI4Stream variable=soTSIF_SessId metadata="-bus_bundle soTSIF_SessId"
     #pragma HLS resource core=AXI4Stream variable=soTSIF_DatLen metadata="-bus_bundle soTSIF_DatLen"
-#else
-    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-  #if defined TAF_USE_NON_FIFO_IO
-    #pragma HLS INTERFACE ap_stable register port=piSHL_MmioEchoCtrl
-  #endif
-
-    #pragma HLS INTERFACE axis off           port=siTSIF_Data    name=siTSIF_Data
-    #pragma HLS INTERFACE axis off           port=siTSIF_SessId  name=siTSIF_SessId
-    #pragma HLS INTERFACE axis off           port=siTSIF_DatLen  name=siTSIF_DatLen
-
-    #pragma HLS INTERFACE axis off           port=soTSIF_Data    name=soTSIF_Data
-    #pragma HLS INTERFACE axis off           port=soTSIF_SessId  name=soTSIF_SessId
-    #pragma HLS INTERFACE axis off           port=soTSIF_DatLen  name=soTSIF_DatLen
-#endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-#if HLS_VERSION == 2017
     #pragma HLS DATAFLOW
-#else
-    #pragma HLS DATAFLOW disable_start_propagation
-#endif
-    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     tcp_app_flash (
-        //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
-        //------------------------------------------------------
       #if defined TAF_USE_NON_FIFO_IO
         piSHL_MmioEchoCtrl,
       #endif
-        //------------------------------------------------------
         //-- SHELL / TCP Rx Data Interface
-        //------------------------------------------------------
         siTSIF_Data,
         siTSIF_SessId,
         siTSIF_DatLen,
-        //------------------------------------------------------
         //-- SHELL / TCP Tx Data Interface
-        //------------------------------------------------------
         soTSIF_Data,
         soTSIF_SessId,
         soTSIF_DatLen);
 
 }
+#else
+    void tcp_app_flash_top (
+        //------------------------------------------------------
+        //-- SHELL / MMIO / Configuration Interfaces
+        //------------------------------------------------------
+      #if defined TAF_USE_NON_FIFO_IO
+        ap_uint<2>           piSHL_MmioEchoCtrl,
+      #endif
+        //------------------------------------------------------
+        //-- TSIF / Rx Data Interface
+        //------------------------------------------------------
+        stream<TcpAppData>  &siTSIF_Data,
+        stream<TcpSessId>   &siTSIF_SessId,
+        stream<TcpDatLen>   &siTSIF_DatLen,
+        //------------------------------------------------------
+        //-- TSIF / Tx Data Interface
+        //------------------------------------------------------
+        stream<TcpAppData>  &soTSIF_Data,
+        stream<TcpSessId>   &soTSIF_SessId,
+        stream<TcpDatLen>   &soTSIF_DatLen)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+  #if defined TAF_USE_NON_FIFO_IO
+    #pragma HLS INTERFACE ap_stable register port=piSHL_MmioEchoCtrl
+  #endif
+    #pragma HLS INTERFACE axis off           port=siTSIF_Data    name=siTSIF_Data
+    #pragma HLS INTERFACE axis off           port=siTSIF_SessId  name=siTSIF_SessId
+    #pragma HLS INTERFACE axis off           port=siTSIF_DatLen  name=siTSIF_DatLen
+    #pragma HLS INTERFACE axis off           port=soTSIF_Data    name=soTSIF_Data
+    #pragma HLS INTERFACE axis off           port=soTSIF_SessId  name=soTSIF_SessId
+    #pragma HLS INTERFACE axis off           port=soTSIF_DatLen  name=soTSIF_DatLen
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+    //-- INSTANTIATE TOPLEVEL --------------------------------------------------
+    tcp_app_flash (
+        //-- SHELL / MMIO / Configuration Interfaces
+      #if defined TAF_USE_NON_FIFO_IO
+        piSHL_MmioEchoCtrl,
+      #endif
+        //-- SHELL / TCP Rx Data Interface
+        siTSIF_Data,
+        siTSIF_SessId,
+        siTSIF_DatLen,
+        //-- SHELL / TCP Tx Data Interface
+        soTSIF_Data,
+        soTSIF_SessId,
+        soTSIF_DatLen);
+
+}
+
+#endif  //  HLS_VERSION
 
 /*! \} */
