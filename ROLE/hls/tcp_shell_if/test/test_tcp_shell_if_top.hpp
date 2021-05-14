@@ -19,7 +19,7 @@
  * @brief      : Testbench for the toplevel of TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic / ROLE
+ * Component   : cFp_BringUp/ROLE/TcpShellInterface (TSIF)
  * Language    : Vivado HLS
  *
  * \ingroup ROLE_TSIF
@@ -30,13 +30,8 @@
 #ifndef _TEST_TSIF_TOP_H_
 #define _TEST_TSIF_TOP_H_
 
-#include <hls_stream.h>
-#include <iostream>
-
 #include "../src/tcp_shell_if_top.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
+#include "./simu_tcp_shell_if_env.hpp"
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -46,21 +41,7 @@
 unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
-unsigned int    gMaxSimCycles = 0x8000 + 500;
-
-//---------------------------------------------------------
-//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
-//--  By default, the following sockets will be used by the
-//--  testbench, unless the user specifies new ones via one
-//--  of the test vector files.
-//---------------------------------------------------------
-#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
-#define DEFAULT_FPGA_LSN_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
-#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
-#define DEFAULT_HOST_TCP_SRC_PORT 0x80      // TB source port          = 128
-
-#define DEFAULT_SESSION_ID      42
-#define DEFAULT_SESSION_LEN     32
+unsigned int    gMaxSimCycles = cSimToeStartupDelay + cGraceTime;
 
 #endif
 

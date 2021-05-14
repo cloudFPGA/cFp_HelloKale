@@ -19,40 +19,19 @@
  * @brief      : Testbench for the TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE
+ * Component   : cFp_BringUp/ROLE/TcpShellInterface (TSIF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TSIF
+ * \ingroup ROLE_TSIF
+ * \addtogroup ROLE_TSIF_TEST
  * \{
  *****************************************************************************/
 
 #ifndef _TEST_TSIF_H_
 #define _TEST_TSIF_H_
 
-#include <hls_stream.h>
-#include <iostream>
-#include <fstream>
-#include <map>
-#include <set>
-
 #include "../src/tcp_shell_if.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
-#include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.hpp"
-
-//------------------------------------------------------
-//-- TESTBENCH DEFINITIONS
-//------------------------------------------------------
-const int cSimToeStartupDelay = 1000;
-//OBSOLETE_20210323 const int cSimToeRxStartDelay =   25;
-//OBSOLETE_20210323 const int cSimToeTxStartDelay =   25;
-const int cGraceTime          = 2500;
-
-const int cNrSegToSend  = 5;
-const int cNrSessToSend = 2;
-
-const int cMinWAIT = cMaxSessions;  // To avoid that TSIF accumulates the byte counts of the Notifs
+#include "./simu_tcp_shell_if_env.hpp"
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -63,21 +42,6 @@ unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
 unsigned int    gMaxSimCycles = cSimToeStartupDelay + cGraceTime;
-
-//---------------------------------------------------------
-//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
-//--  By default, the following sockets will be used by the
-//--  testbench, unless the user specifies new ones via one
-//--  of the test vector files.
-//---------------------------------------------------------
-#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
-#define DEFAULT_FPGA_LSN_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
-#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
-#define DEFAULT_HOST_TCP_SRC_PORT 0x80      // TB source port          = 128
-
-//OBSOLETE_20210305 #define DEFAULT_SESSION_ID      42
-#define DEFAULT_SESSION_ID       0
-#define DEFAULT_SESSION_LEN     32
 
 #endif
 

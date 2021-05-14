@@ -39,24 +39,6 @@
 using namespace hls;
 using namespace std;
 
-/************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we continue designing
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not work for us.
- ************************************************/
-#undef USE_DEPRECATED_DIRECTIVES
-
-/*** [NOT-USED] ***********************
-void pAxisToFifo(
-        stream<ap_uint<16> >  &siAxisType,
-        stream<ap_uint<16> >  &soFifoType)
-{
-    #pragma HLS INLINE off
-    #pragma HLS pipeline
-    if (!soFifoType.full()) { soFifoType.write(siAxisType.read()); }
-}
-***************************************/
 
 /*******************************************************************************
  * @brief Top of TCP Shell Interface (TSIF)
@@ -79,27 +61,24 @@ void pAxisToFifo(
  * @param[in]  siSHL_OpnRep  TCP open connection reply from [SHELL].
  * @param[out] soSHL_ClsReq  TCP close connection request to [SHELL].
  *******************************************************************************/
-void tcp_shell_if_top(
-
+#if HLS_VERSION == 2016
+    void tcp_shell_if_top(
         //------------------------------------------------------
         //-- SHELL / Mmio Interface
         //------------------------------------------------------
         CmdBit                *piSHL_Mmio_En,
-
         //------------------------------------------------------
         //-- TAF / TxP Data Interface
         //------------------------------------------------------
         stream<TcpAppData>    &siTAF_Data,
         stream<TcpSessId>     &siTAF_SessId,
         stream<TcpDatLen>     &siTAF_DatLen,
-
         //------------------------------------------------------
         //-- TAF / RxP Data Interface
         //------------------------------------------------------
         stream<TcpAppData>    &soTAF_Data,
         stream<TcpSessId>     &soTAF_SessId,
         stream<TcpDatLen>     &soTAF_DatLen,
-
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
         //------------------------------------------------------
@@ -107,34 +86,30 @@ void tcp_shell_if_top(
         stream<TcpAppRdReq>   &soSHL_DReq,
         stream<TcpAppData>    &siSHL_Data,
         stream<TcpAppMeta>    &siSHL_Meta,
-
         //------------------------------------------------------
         //-- SHELL / Listen Interfaces
         //------------------------------------------------------
         stream<TcpAppLsnReq>  &soSHL_LsnReq,
         stream<TcpAppLsnRep>  &siSHL_LsnRep,
-
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
         stream<TcpAppData>    &soSHL_Data,
         stream<TcpAppSndReq>  &soSHL_SndReq,
         stream<TcpAppSndRep>  &siSHL_SndRep,
-
         //------------------------------------------------------
         //-- SHELL / Tx Open Interfaces
         //------------------------------------------------------
         stream<TcpAppOpnReq>  &soSHL_OpnReq,
         stream<TcpAppOpnRep>  &siSHL_OpnRep,
-
         //------------------------------------------------------
         //-- SHELL / Close Interfaces
         //------------------------------------------------------
         stream<TcpAppClsReq>  &soSHL_ClsReq)
 {
 
-  #if defined(USE_DEPRECATED_DIRECTIVES)
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
@@ -172,8 +147,89 @@ void tcp_shell_if_top(
     #pragma HLS DATA_PACK                variable=siSHL_OpnRep
 
     #pragma HLS resource core=AXI4Stream variable=soSHL_ClsReq metadata="-bus_bundle soSHL_ClsReq"
-  #else
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- INSTANTIATE TOPLEVEL --------------------------------------------------
+	tcp_shell_if(
+		//-- SHELL / Mmio Interface
+		piSHL_Mmio_En,
+		//-- TAF / Rx & Tx Data Interfaces
+		siTAF_Data,
+		siTAF_SessId,
+		siTAF_DatLen,
+		soTAF_Data,
+		soTAF_SessId,
+		soTAF_DatLen,
+		//-- TOE / Rx Data Interfaces
+		siSHL_Notif,
+		soSHL_DReq,
+		siSHL_Data,
+		siSHL_Meta,
+		//-- TOE / Listen Interfaces
+		soSHL_LsnReq,
+		siSHL_LsnRep,
+		//-- TOE / Tx Data Interfaces
+		soSHL_Data,
+		soSHL_SndReq,
+		siSHL_SndRep,
+		//-- TOE / Tx Open Interfaces
+		soSHL_OpnReq,
+		siSHL_OpnRep,
+		//-- TOE / Close Interfaces
+		soSHL_ClsReq);
+
+}
+#else
+    void tcp_shell_if_top(
+        //------------------------------------------------------
+        //-- SHELL / Mmio Interface
+        //------------------------------------------------------
+        CmdBit                *piSHL_Mmio_En,
+        //------------------------------------------------------
+        //-- TAF / TxP Data Interface
+        //------------------------------------------------------
+        stream<TcpAppData>    &siTAF_Data,
+        stream<TcpSessId>     &siTAF_SessId,
+        stream<TcpDatLen>     &siTAF_DatLen,
+        //------------------------------------------------------
+        //-- TAF / RxP Data Interface
+        //------------------------------------------------------
+        stream<TcpAppData>    &soTAF_Data,
+        stream<TcpSessId>     &soTAF_SessId,
+        stream<TcpDatLen>     &soTAF_DatLen,
+        //------------------------------------------------------
+        //-- SHELL / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppNotif>   &siSHL_Notif,
+        stream<TcpAppRdReq>   &soSHL_DReq,
+        stream<TcpAppData>    &siSHL_Data,
+        stream<TcpAppMeta>    &siSHL_Meta,
+        //------------------------------------------------------
+        //-- SHELL / Listen Interfaces
+        //------------------------------------------------------
+        stream<TcpAppLsnReq>  &soSHL_LsnReq,
+        stream<TcpAppLsnRep>  &siSHL_LsnRep,
+        //------------------------------------------------------
+        //-- SHELL / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppData>    &soSHL_Data,
+        stream<TcpAppSndReq>  &soSHL_SndReq,
+        stream<TcpAppSndRep>  &siSHL_SndRep,
+        //------------------------------------------------------
+        //-- SHELL / Tx Open Interfaces
+        //------------------------------------------------------
+        stream<TcpAppOpnReq>  &soSHL_OpnReq,
+        stream<TcpAppOpnRep>  &siSHL_OpnRep,
+        //------------------------------------------------------
+        //-- SHELL / Close Interfaces
+        //------------------------------------------------------
+        stream<TcpAppClsReq>  &soSHL_ClsReq)
+{
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
     #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     #pragma HLS INTERFACE axis off              port=siTAF_Data     name=siTAF_Data
@@ -206,7 +262,6 @@ void tcp_shell_if_top(
     #pragma HLS DATA_PACK                   variable=siSHL_OpnRep
 
     #pragma HLS INTERFACE axis off              port=soSHL_ClsReq   name=soSHL_ClsReq
-  #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
   #if HLS_VERSION == 2017
@@ -214,19 +269,6 @@ void tcp_shell_if_top(
   #else
     #pragma HLS DATAFLOW disable_start_propagation
   #endif
-  #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    /*** [NOT-USED] ************************
-    //-- LOCAL IN and OUT STREAMS ----------------------------------------------
-    static stream<TcpSessId>     ssiTAF_SessId  ("ssiTAF_SessId");
-    #pragma HLS STREAM  variable=ssiTAF_SessId  depth=2
-    static stream<TcpDatLen>     ssiTAF_DatLen  ("ssiTAF_DatLen");
-    #pragma HLS STREAM  variable=ssiTAF_DatLen  depth=2
-
-    //-- INPUT INTERFACES ------------------------------------------------------
-    pAxisToFifo(siTAF_SessId, ssiTAF_SessId);
-    pAxisToFifo(siTAF_DatLen, ssiTAF_DatLen);
-    ****************************************/
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     tcp_shell_if(
@@ -257,12 +299,8 @@ void tcp_shell_if_top(
         //-- TOE / Close Interfaces
         soSHL_ClsReq);
 
-    /*** [NOT-USED] ************************
-    //-- OUTPUT INTERFACES -----------------------------------------------------
-    pAxisAppToAxisRaw(ssoTAF_Data, soTAF_Data);
-    pAxisAppToAxisRaw(ssoSHL_Data, soSHL_Data);
-    ****************************************/
-
 }
+
+#endif  //  HLS_VERSION
 
 /*! \} */

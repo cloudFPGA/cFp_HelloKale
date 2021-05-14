@@ -1218,13 +1218,13 @@ void pReadRequestHandler(
                     printInfo(myName, "FreeSpace=%4d is too low. Waiting for buffer to drain. \n",
                                       rrh_freeSpace.to_uint());
                 }
-                else {
-                    if (DEBUG_LEVEL & TRACE_RRH) {
-                        printInfo(myName, "FreeSpace=%4d | NotifBytes=%4d \n",
-                                  rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
-                    }
-                }
                 break;
+            }
+            else {
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "FreeSpace=%4d | NotifBytes=%4d \n",
+                              rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
+                }
             }
             // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
             if (rrh_freeSpace < rdr_notif.tcpDatLen) {
@@ -1247,13 +1247,16 @@ void pReadRequestHandler(
                 soRRm_DReq.write(TcpAppRdReq(rdr_notif.sessionID, rdr_datLenReq));
                 switch (rdr_notif.tcpDstPort) {
                     case RECV_MODE_LSN_PORT: // 8800
-                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, NOP));
+                        //OBSOLETE_20210514 soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, NOP));
+                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_DROP, NOP));
                         break;
                     case XMIT_MODE_LSN_PORT: // 8801
-                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, GEN));
+                        //OBSOLETE_20210514 soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, GEN));
+                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_DROP, GEN));
                         break;
                     default:
-                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_KEEP, NOP));
+                        //OBSOLETE_20210514 soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_KEEP, NOP));
+                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_KEEP, NOP));
                         break;
                 }
                 if (rdr_notif.tcpDatLen == 0) {
@@ -1290,6 +1293,10 @@ void pReadRequestMover(
         stream<TcpAppRdReq>  &siRRh_DReq,
         stream<TcpAppRdReq>  &soSHL_DReq)
 {
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
     if (*piSHL_Enable != 1) {
         return;
     }
@@ -1328,7 +1335,6 @@ void pReadRequestMover(
  *       bits of the data stream. Next, drop the rest of that stream and forward
  *       the extracted fields to the Connect (COn) process.
  *******************************************************************************/
-
 void pReadPath(
         CmdBit              *piSHL_Enable,
         stream<TcpAppData>  &siSHL_Data,
@@ -1537,9 +1543,11 @@ void pWritePath(
                 printInfo(myName, "Received a data forward request from [ROLE/TAF] for sessId=%d and nrBytes=%d.\n",
                           wrp_sendReq.sessId.to_uint(), wrp_sendReq.length.to_uint());
             }
-            wrp_testMode = false;
-            wrp_retryCnt = 0x200;
-            wrp_fsmState = WRP_RTS;
+            if (wrp_sendReq.length != 0) {
+                wrp_testMode = false;
+                wrp_retryCnt = 0x200;
+                wrp_fsmState = WRP_RTS;
+            }
         }
         break;
     case WRP_RTS:
@@ -1588,7 +1596,7 @@ void pWritePath(
                 }
                 break;
             default:
-                printWarn(myName, "Received unknown TCP request to send reply from [TOE].\n");
+                printFatal(myName, "Received unknown TCP request to send reply from [TOE].\n");
                 wrp_fsmState = WRP_IDLE;
                 break;
             }
