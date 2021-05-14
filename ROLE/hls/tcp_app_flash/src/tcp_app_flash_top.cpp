@@ -52,7 +52,7 @@ using namespace std;
  * @param[out  soTSIF_DatLen       TCP data-length to [TSIF].
  *
  *******************************************************************************/
-#if HLS_VERSION == 2017
+#if HLS_VERSION == 2016
     void tcp_app_flash_top (
         //------------------------------------------------------
         //-- SHELL / MMIO / Configuration Interfaces
@@ -145,7 +145,11 @@ using namespace std;
     #pragma HLS INTERFACE axis off           port=soTSIF_DatLen  name=soTSIF_DatLen
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW disable_start_propagation
+    #if HLS_VERSION == 2017
+        #pragma HLS DATAFLOW
+    #else
+        #pragma HLS DATAFLOW disable_start_propagation
+    #endif
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     tcp_app_flash (
