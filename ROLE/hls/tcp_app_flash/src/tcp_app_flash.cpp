@@ -331,9 +331,9 @@ void pTcpTxPath(
  * @param[out] soESF_SessId       TCP session-id to [ESf].
  * @param[out] soESF_DatLen       TCP data-length to [ESf].
  *
- * @details This Process waits for new TCP data to read and forwards them to the
- *   EchoPathThrough (EPt) or EchoStoreAndForward (ESf) process upon the setting
- *   of the TCP destination port.
+ * @details This Process waits for a new TCP data segment to read and forwards
+ *   it to the EchoPathThrough (EPt) or the EchoStoreAndForward (ESf) process
+ *   upon the setting of LSBit of the session-id (if sessId[0] --> EPt).
  *   (FYI-This function used to be performed by the 'piSHL_Mmio_EchoCtrl' bits).
  *******************************************************************************/
 void pTcpRxPath(
