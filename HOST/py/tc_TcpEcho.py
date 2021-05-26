@@ -29,6 +29,7 @@
 import argparse
 import datetime
 import errno
+import filecmp
 import socket
 import threading
 import time
@@ -36,6 +37,9 @@ import time
 # ### REQUIRED TESTCASE MODULES ###############################################
 from tc_utils import *
 
+# ### GLOBAL VARIABLES ########################################################
+gEchoRxPath = './echoRx.dat'
+gEchoTxPath = './echoTx.dat'
 
 def tcp_tx(sock, message, count, verbose=False):
     """TCP Tx Thread.
@@ -47,6 +51,16 @@ def tcp_tx(sock, message, count, verbose=False):
     if verbose:
         print("The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
               (len(message), count, message.decode()))
+
+    # Create a Tx Reference File
+    echoTxFile = open(gEchoTxPath, 'w')
+    if count <= 1000:
+        loop = 0
+        while loop < count:
+            echoTxFile.write(message.decode())
+            loop += 1
+
+    # Start Data Transmission
     loop = 0
     startTime = datetime.datetime.now()
     while loop < count:
@@ -63,6 +77,15 @@ def tcp_tx(sock, message, count, verbose=False):
     print("##################################################")
     print()
 
+    # Close the Tx Reference File
+    echoTxFile.close()
+    # Push a few more bytes to force the FPGA to flush its buffers
+    try:
+        sock.sendall(message)
+    finally:
+        pass
+
+
 def tcp_rx(sock, message, count, verbose):
     """TCP Rx Thread.
      :param sock,       the socket to receive from.
@@ -70,33 +93,38 @@ def tcp_rx(sock, message, count, verbose):
      :param count,      the number of segment to receive.
      :param verbose,    enables verbosity.
      :return None"""
+
+    # Create an Rx Test File
+    echoRxFile = open(gEchoRxPath, 'w')
+
+    # Start Data Reception
     loop = 0
     rxBytes = 0
-    nrErr = 0
+    expectedBytes = count*len(message)
     startTime = datetime.datetime.now()
-    while rxBytes < count*len(message):
+    while rxBytes < expectedBytes:
         try:
-            data = sock.recv(len(message))
+            data = sock.recv(expectedBytes - rxBytes)
             rxBytes += len(data)
+            if count <= 1000:
+                echoRxFile.write(data.decode())
         except socket.error as exc:
             print("[EXCEPTION] Socket error while receiving :: %s" % exc)
         else:
-            if data == message:
-                if verbose:
-                    print("Loop=%d | RxBytes=%d" % (loop, rxBytes))
-            else:
+            if verbose:
                 print("Loop=%d | RxBytes=%d" % (loop, rxBytes))
-                print(" KO | Received  Message=%s" % data.decode())
-                print("    | Expecting Message=%s" % message)
-                nrErr += 1
         loop += 1
     endTime = datetime.datetime.now()
-    elapseTime = endTime - startTime;
+    elapseTime = endTime - startTime
     bandwidth  = len(message) * 8 * count * 1.0 / (elapseTime.total_seconds() * 1024 * 1024)
     print("##################################################")
     print("#### TCP RX DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     print("##################################################")
     print()
+
+    # Close the Rx Test File
+    echoRxFile.close()
+
 
 def waitUntilSocketPairCanBeReused(ipFpga, portFpga):
     """Check and wait until the a socket pair can be reused.
@@ -270,6 +298,7 @@ def tcp_txrx_ramp(sock, message, count, verbose=False):
 #                                 MAIN                                        #
 #                                                                             #
 ###############################################################################
+rc = 0
 
 #  STEP-1: Parse the command line strings into Python objects
 # -----------------------------------------------------------------------------
@@ -438,6 +467,15 @@ if args.multi_threading:
     # ----------------------------------------
     tx_thread.join()
     rx_thread.join()
+    #  STEP-14: Compare Rx and Tx files
+    # ----------------------------------------
+    result = filecmp.cmp(gEchoTxPath, gEchoRxPath, shallow=False)
+    if not result:
+        print("\n[ERROR] Rx file \'%s\' differs from Tx file \'%s\'.\n" % (gEchoRxPath, gEchoTxPath))
+        rc = 1
+    else:
+        os.remove(gEchoRxPath)
+        os.remove(gEchoTxPath)
 else:
     print("[INFO] The run is executed in single-threading mode.\n")
     #  STEP-11: Set the socket in non-blocking mode
@@ -453,3 +491,5 @@ else:
 # -----------------------
 time.sleep(2)
 tcpSock.close()
+
+exit(rc)
