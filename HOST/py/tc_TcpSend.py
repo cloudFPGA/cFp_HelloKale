@@ -80,13 +80,13 @@ def tcp_tx_loop(sock, message, count, verbose=False):
         print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
 
     bandwidth = (txByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
-    print("#####################################################")
+    print("##################################################")
     if bandwidth < 1000:
         print("#### TCP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     else:
         bandwidth = bandwidth / 1000
-        print("#### TCP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
-    print("#####################################################")
+        print("#### TCP Tx DONE with bandwidth = %6.1f Gb/s ####" % bandwidth)
+    print("##################################################")
     print()
 
 
@@ -199,7 +199,7 @@ def tcp_tx_ramp(sock, message, count, verbose=False):
         print("#### TCP Tx DONE with bandwidth = %6.1f Mb/s ####" % bandwidth)
     else:
         bandwidth = bandwidth / 1000
-        print("#### TCP Tx DONE with bandwidth = %2.1f Gb/s ####" % bandwidth)
+        print("#### TCP Tx DONE with bandwidth = %6.1f Gb/s ####" % bandwidth)
     print("#####################################################")
     print()
 
