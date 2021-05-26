@@ -119,7 +119,7 @@ do
     arg="$1"
     case ${arg} in
         -h | --HELP)
-            fDisplayHelp; exit;
+            echo -e "${arg}"; fDisplayHelp; exit;
             ;;
         -ii | --INSTANCE_ID)
             INSTANCE_ID="$2"; echo -e "INSTANCE_ID = ${INSTANCE_ID}"; shift; shift
@@ -204,7 +204,6 @@ if [ $RUN_SEND = true ]; then
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
-
 fi
 
 
@@ -246,7 +245,6 @@ if [ $RUN_RECV = true ]; then
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
-
 fi
 
 
@@ -257,7 +255,7 @@ if [ $RUN_ECHO = true ]; then
   for value in {1..${LOOP}}; \
   do \
     if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpEcho.py -lc 10 -sz ${ZYC2_MSS}   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
+      python3 tc_TcpEcho.py -lc 10 -sz ${cZYC2_MSS}   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
@@ -270,7 +268,6 @@ if [ $RUN_ECHO = true ]; then
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done  
-
 fi
 
 
