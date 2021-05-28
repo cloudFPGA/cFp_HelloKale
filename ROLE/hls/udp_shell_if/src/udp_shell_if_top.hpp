@@ -60,28 +60,28 @@ void udp_shell_if_top(
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>         &siSHL_Data,
+        stream<UdpAppData>      &siSHL_Data,
         stream<UdpAppMeta>      &siSHL_Meta,
 
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>         &soSHL_Data,
+        stream<UdpAppData>      &soSHL_Data,
         stream<UdpAppMeta>      &soSHL_Meta,
         stream<UdpAppDLen>      &soSHL_DLen,
 
         //------------------------------------------------------
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>         &siUAF_Data,
-        stream<UdpAppMeta>      &siUAF_Meta,
+        stream<UdpAppData>      &siUAF_Data,
+        stream<UdpAppMetb>      &siUAF_Meta,
         stream<UdpAppDLen>      &siUAF_DLen,
 
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisRaw>         &soUAF_Data,
-        stream<UdpAppMeta>      &soUAF_Meta
+        stream<UdpAppData>      &soUAF_Data,
+        stream<UdpAppMetb>      &soUAF_Meta
 
 );
 

@@ -35,13 +35,13 @@ set ipName         "udp_shell_if"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
-set ipDisplayName  "UDP Shell Interface"
+set ipDisplayName  "UDP Shell Interface for cFp_Monolithic (USIF)"
 set ipDescription  "An interface between the bring-up role of the FMKU60 and the UDP offload engine of the shell Kale."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
-set ipRtl          "verilog"
+set ipRtl          "vhdl"
 
 # Retrieve the arguments passed to this script
 #-------------------------------------------------
@@ -84,7 +84,18 @@ set currDir      [pwd]
 set srcDir       ${currDir}/src
 set testDir      ${currDir}/test
 
-# Open Project
+
+puts "############################################################################"
+puts "####                                                                    ####"
+puts "####                      START OF HLS PROCESSING                       ####"
+puts "####                                                                    ####"
+set line "####  IP Name = ${ipDisplayName} "; while { [ string length $line ] <= 70 } { append line " " }; puts "${line} ####"
+set line "####  IP Vers = ${ipVersion}     "; while { [ string length $line ] <= 70 } { append line " " }; puts "${line} ####"
+puts "####                                                                    ####"
+puts "############################################################################"
+
+
+# Open and Setup Project
 #-------------------------------------------------
 open_project     ${ipProjectName}_prj
 
@@ -93,15 +104,17 @@ open_project     ${ipProjectName}_prj
 add_files        ${currDir}/src/${ipName}.cpp
 add_files        ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.cpp
 
+# Set toplevel
+#-------------------------------------------------
 if { [string equal ${ipProjectName} ip_core] } {
     set_top       ${ipName}
     add_files -tb ${testDir}/test_${ipName}.cpp
 } elseif { [string equal ${ipProjectName} ip_top] } {
     set_top       ${ipName}_top
-    add_files     ${srcDir}/${ipName}_top.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
-    add_files -tb ${testDir}/test_${ipName}_top.cpp
+    add_files     ${srcDir}/${ipName}_top.cpp       -cflags "-DHLS_VERSION=${HLS_VERSION}"
+    add_files -tb ${testDir}/test_${ipName}_top.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
 }
-#[TODO] add_files -tb ${testDir}/simu_${ipName}_env.cpp
+add_files -tb ${testDir}/simu_${ipName}_env.cpp
 add_files -tb ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
 
 
@@ -109,7 +122,7 @@ add_files -tb ${currDir}/../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/SimNtsUtils.cpp
 #-------------------------------------------------
 open_solution ${solutionName}
 set_part      ${xilPartName}
-create_clock  -period 6.4 -name default
+create_clock -period 6.4 -name default
 
 #--------------------------------------------
 # Controlling the Reset Behavior (see UG902)
@@ -199,12 +212,12 @@ if { $hlsCSim} {
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
     puts "####                                                     ####"
     puts "#############################################################"
-}  
+}
 
 #-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
-if { $hlsCSynth} { 
+if { $hlsCSynth} {
     csynth_design
     puts "#############################################################"
     puts "####                                                     ####"
@@ -280,9 +293,10 @@ if { $hlsRtl } {
 
 }
 
-#-------------------------------------------------
+#--------------------------------------------------
 # Exit Vivado HLS
-#-------------------------------------------------
+#--------------------------------------------------
 exit
+
 
 

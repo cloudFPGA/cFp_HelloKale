@@ -39,42 +39,7 @@
 using namespace hls;
 using namespace std;
 
-/************************************************
- * INTERFACE SYNTHESIS DIRECTIVES
- *  For the time being, we continue designing
- *  with the DEPRECATED directives because the
- *  new PRAGMAs do not work for us.
- ************************************************/
-#undef  USE_DEPRECATED_DIRECTIVES
 #define USE_AP_FIFO
-
-/*** [NOT-USED] ***********************
-template <class Type>
-void pAxisToFifo(
-        stream<Type>& siAxisStream,
-        stream<Type>& soFifoStream)
-{
-    #pragma HLS INLINE off
-    Type currChunk;
-    siAxisStream.read(currChunk);  // Blocking read
-    if (!soFifoStream.full()) {
-        soFifoStream.write(currChunk);  // else drop
-    }
-}
-
-template <class Type>
-void pFifoToAxis(
-        stream<Type>& siFifoStream,
-        stream<Type>& soAxisStream)
-{
-    #pragma HLS INLINE off
-    Type currChunk;
-    if (!siFifoStream.empty()) {
-        siFifoStream.read(currChunk);
-        soAxisStream.write(currChunk);  // Blocking write
-    }
-}
-***************************************/
 
 /*****************************************************************************
  * @brief   Top of UDP Shell Interface (USIF)
@@ -102,13 +67,12 @@ void pFifoToAxis(
  *   toplevel implements a shim layer between the 'axis' and the 'ap_fifo'
  *   interfaces and vice versa.
  *****************************************************************************/
-void udp_shell_if_top(
-
+#if HLS_VERSION == 2016
+    void udp_shell_if_top(
         //------------------------------------------------------
         //-- SHELL / Mmio Interface
         //------------------------------------------------------
         CmdBit              *piSHL_Mmio_En,
-
        //------------------------------------------------------
         //-- SHELL / Control Port Interfaces
         //------------------------------------------------------
@@ -116,27 +80,23 @@ void udp_shell_if_top(
         stream<StsBool>     &siSHL_LsnRep,
         stream<UdpPort>     &soSHL_ClsReq,
         stream<StsBool>     &siSHL_ClsRep,
-
         //------------------------------------------------------
         //-- SHELL / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
-
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soSHL_Data,
         stream<UdpAppMeta>  &soSHL_Meta,
         stream<UdpAppDLen>  &soSHL_DLen,
-
         //------------------------------------------------------
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUAF_Data,
         stream<UdpAppMetb>  &siUAF_Meta,
         stream<UdpAppDLen>  &siUAF_DLen,
-
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
@@ -144,8 +104,8 @@ void udp_shell_if_top(
         stream<UdpAppMetb>  &soUAF_Meta)
 {
 
-#if defined(USE_DEPRECATED_DIRECTIVES)
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
@@ -177,25 +137,90 @@ void udp_shell_if_top(
     #pragma HLS resource core=AXI4Stream variable=soUAF_Data    metadata="-bus_bundle soUAF_Data"
     #pragma HLS resource core=AXI4Stream variable=soUAF_Meta    metadata="-bus_bundle soUAF_Meta"
     #pragma HLS DATA_PACK                variable=soUAF_Meta
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- INSTANTIATE TOPLEVEL --------------------------------------------------
+    udp_shell_if(
+        //-- SHELL / Mmio Interface
+        piSHL_Mmio_En,
+        //-- SHELL / Control Port Interfaces
+        soSHL_LsnReq,
+        siSHL_LsnRep,
+        soSHL_ClsReq,
+        siSHL_ClsRep,
+        //-- SHELL / Rx Data Interfaces
+        siSHL_Data,
+        siSHL_Meta,
+        //-- SHELL / Tx Data Interfaces
+        soSHL_Data,
+        soSHL_Meta,
+        soSHL_DLen,
+        //-- UAF / Tx Data Interfaces
+        siUAF_Data,
+        siUAF_Meta,
+        siUAF_DLen,
+        //-- UAF / Rx Data Interfaces
+        soUAF_Data,
+        soUAF_Meta);
+}
 #else
+    void udp_shell_if_top(
+        //------------------------------------------------------
+        //-- SHELL / Mmio Interface
+        //------------------------------------------------------
+        CmdBit              *piSHL_Mmio_En,
+       //------------------------------------------------------
+        //-- SHELL / Control Port Interfaces
+        //------------------------------------------------------
+        stream<UdpPort>     &soSHL_LsnReq,
+        stream<StsBool>     &siSHL_LsnRep,
+        stream<UdpPort>     &soSHL_ClsReq,
+        stream<StsBool>     &siSHL_ClsRep,
+        //------------------------------------------------------
+        //-- SHELL / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>  &siSHL_Data,
+        stream<UdpAppMeta>  &siSHL_Meta,
+        //------------------------------------------------------
+        //-- SHELL / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>  &soSHL_Data,
+        stream<UdpAppMeta>  &soSHL_Meta,
+        stream<UdpAppDLen>  &soSHL_DLen,
+        //------------------------------------------------------
+        //-- UAF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>  &siUAF_Data,
+        stream<UdpAppMetb>  &siUAF_Meta,
+        stream<UdpAppDLen>  &siUAF_DLen,
+        //------------------------------------------------------
+        //-- UAF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>  &soUAF_Data,
+        stream<UdpAppMetb>  &soUAF_Meta)
+{
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
   #if defined (USE_AP_FIFO)
     #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     //-- [SHL] INTERFACES ------------------------------------------------------
-    #pragma HLS INTERFACE axis register off     port=soSHL_LsnReq   name=soSHL_LsnReq
-    #pragma HLS INTERFACE axis register off     port=siSHL_LsnRep   name=siSHL_LsnRep
-    #pragma HLS INTERFACE axis register off     port=soSHL_ClsReq   name=soSHL_ClsReq
-    #pragma HLS INTERFACE axis register off     port=siSHL_ClsRep   name=siSHL_ClsRep
+    #pragma HLS INTERFACE axis off              port=soSHL_LsnReq   name=soSHL_LsnReq
+    #pragma HLS INTERFACE axis off              port=siSHL_LsnRep   name=siSHL_LsnRep
+    #pragma HLS INTERFACE axis off              port=soSHL_ClsReq   name=soSHL_ClsReq
+    #pragma HLS INTERFACE axis off              port=siSHL_ClsRep   name=siSHL_ClsRep
 
-    #pragma HLS INTERFACE axis register off     port=siSHL_Data     name=siSHL_Data
-    #pragma HLS INTERFACE axis register off     port=siSHL_Meta     name=siSHL_Meta
+    #pragma HLS INTERFACE axis off              port=siSHL_Data     name=siSHL_Data
+    #pragma HLS INTERFACE axis off              port=siSHL_Meta     name=siSHL_Meta
     #pragma HLS DATA_PACK                   variable=siSHL_Meta
 
-    #pragma HLS INTERFACE axis register off     port=soSHL_Data     name=soSHL_Data
-    #pragma HLS INTERFACE axis register off     port=soSHL_Meta     name=soSHL_Meta
+    #pragma HLS INTERFACE axis off              port=soSHL_Data     name=soSHL_Data
+    #pragma HLS INTERFACE axis off              port=soSHL_Meta     name=soSHL_Meta
     #pragma HLS DATA_PACK                   variable=soSHL_Meta
-    #pragma HLS INTERFACE axis register off     port=soSHL_DLen     name=soSHL_DLen
+    #pragma HLS INTERFACE axis off              port=soSHL_DLen     name=soSHL_DLen
 
     //-- [UAF] INTERFACES ------------------------------------------------------
     #pragma HLS INTERFACE ap_fifo               port=siUAF_Data     name=siUAF_Data
@@ -214,31 +239,30 @@ void udp_shell_if_top(
     #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     //-- [SHL] INTERFACES ------------------------------------------------------
-    #pragma HLS INTERFACE axis register off     port=soSHL_LsnReq   name=soSHL_LsnReq
-    #pragma HLS INTERFACE axis register off     port=siSHL_LsnRep   name=siSHL_LsnRep
-    #pragma HLS INTERFACE axis register off     port=soSHL_ClsReq   name=soSHL_ClsReq
-    #pragma HLS INTERFACE axis register off     port=siSHL_ClsRep   name=siSHL_ClsRep
+    #pragma HLS INTERFACE axis off              port=soSHL_LsnReq   name=soSHL_LsnReq
+    #pragma HLS INTERFACE axis off              port=siSHL_LsnRep   name=siSHL_LsnRep
+    #pragma HLS INTERFACE axis off              port=soSHL_ClsReq   name=soSHL_ClsReq
+    #pragma HLS INTERFACE axis off              port=siSHL_ClsRep   name=siSHL_ClsRep
 
-    #pragma HLS INTERFACE axis register off     port=siSHL_Data     name=siSHL_Data
-    #pragma HLS INTERFACE axis register off     port=siSHL_Meta     name=siSHL_Meta
+    #pragma HLS INTERFACE axis off              port=siSHL_Data     name=siSHL_Data
+    #pragma HLS INTERFACE axis off              port=siSHL_Meta     name=siSHL_Meta
     #pragma HLS DATA_PACK                   variable=siSHL_Meta
 
-    #pragma HLS INTERFACE axis register off     port=soSHL_Data     name=soSHL_Data
-    #pragma HLS INTERFACE axis register off     port=soSHL_Meta     name=soSHL_Meta
+    #pragma HLS INTERFACE axis off              port=soSHL_Data     name=soSHL_Data
+    #pragma HLS INTERFACE axis off              port=soSHL_Meta     name=soSHL_Meta
     #pragma HLS DATA_PACK                   variable=soSHL_Meta
-    #pragma HLS INTERFACE axis register off     port=soSHL_DLen     name=soSHL_DLen
+    #pragma HLS INTERFACE axis off              port=soSHL_DLen     name=soSHL_DLen
 
     //-- [UAF] INTERFACES ------------------------------------------------------
-    #pragma HLS INTERFACE axis register off     port=siUAF_Data     name=siUAF_Data
-    #pragma HLS INTERFACE axis register off     port=siUAF_Meta     name=siUAF_Meta
+    #pragma HLS INTERFACE axis off              port=siUAF_Data     name=siUAF_Data
+    #pragma HLS INTERFACE axis off              port=siUAF_Meta     name=siUAF_Meta
     #pragma HLS DATA_PACK                   variable=siUAF_Meta
-    #pragma HLS INTERFACE axis register off     port=siUAF_DLen     name=siUAF_DLen
+    #pragma HLS INTERFACE axis off              port=siUAF_DLen     name=siUAF_DLen
 
-    #pragma HLS INTERFACE axis register off     port=siUAF_Data     name=soUAF_Data
-    #pragma HLS INTERFACE axis register off     port=soUAF_Meta     name=soUAF_Meta
+    #pragma HLS INTERFACE axis off              port=siUAF_Data     name=soUAF_Data
+    #pragma HLS INTERFACE axis off              port=soUAF_Meta     name=soUAF_Meta
     #pragma HLS DATA_PACK                   variable=soUAF_Meta
   #endif
-#endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
   #if HLS_VERSION == 2017
@@ -246,35 +270,6 @@ void udp_shell_if_top(
   #else
     #pragma HLS DATAFLOW disable_start_propagation
   #endif
-  #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    /*** [NOT-USED] ************************
-
-    //-- LOCAL IN and OUT STREAMS ----------------------------------------------
-    //--  FYI, an internal hls::stream<> is implemented as a FIFO with a default
-    //--  depth of 2. You may change it with the optimization directive 'STREAM'.
-    //--    E.g., #pragma HLS STREAM variable=ssiUAF_Data depth=4
-    static stream<UdpPort>       ssoSHL_LsnReq  ("ssoSHL_LsnReq");
-    static stream<StsBool>       ssiSHL_LsnRep  ("ssiSHL_LsnRep");
-    static stream<UdpPort>       ssoSHL_ClsReq  ("ssoSHL_ClsReq");
-    static stream<StsBool>       ssiSHL_ClsRep  ("ssiSHL_ClsRep");
-    static stream<UdpAppData>    ssiSHL_Data    ("ssiSHL_Data");
-    static stream<UdpAppMeta>    ssiSHL_Meta    ("ssiSHL_Meta");
-    static stream<UdpAppData>    ssoSHL_Data    ("ssoSHL_Data");
-    static stream<UdpAppMeta>    ssoSHL_Meta    ("ssoSHL_Meta");
-    static stream<UdpAppDLen>    ssoSHL_DLen    ("ssoSHL_DLen");
-    static stream<UdpAppData>    ssiUAF_Data    ("ssiUAF_Data");
-    static stream<UdpAppMeta>    ssiUAF_Meta    ("ssiUAF_Meta");
-    static stream<UdpAppDLen>    ssiUAF_DLen    ("ssiUAF_DLen");
-    static stream<UdpAppData>    ssoUAF_Data    ("ssoUAF_Data");
-    static stream<UdpAppMeta>    ssoUAF_Meta    ("ssoUAF_Meta");
-
-    //-- INPUT AXIS INTERFACES -------------------------------------------------
-    pAxisToFifo(siSHL_LsnRep, ssiSHL_LsnRep);
-    pAxisToFifo(siSHL_ClsRep, ssiSHL_ClsRep);
-    pAxisToFifo(siSHL_Data,   ssiSHL_Data);
-    pAxisToFifo(siSHL_Meta,   ssiSHL_Meta);
-    ****************************************/
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_shell_if(
@@ -300,17 +295,8 @@ void udp_shell_if_top(
         soUAF_Data,
         soUAF_Meta);
 
-    /*** [NOT-USED] ************************
-    //-- OUTPUT INTERFACES -----------------------------------------------------
-    pFifoToAxis(ssoSHL_LsnReq, soSHL_LsnReq);
-    pFifoToAxis(ssoSHL_ClsReq, soSHL_ClsReq);
-    pFifoToAxis(ssoSHL_Data,   soSHL_Data);
-    pFifoToAxis(ssoSHL_Meta,   soSHL_Meta);
-    pFifoToAxis(ssoSHL_DLen,   soSHL_DLen);
-    pFifoToAxis(ssoUAF_Data,   soUAF_Data);
-    pFifoToAxis(ssoUAF_Meta,   soUAF_Meta);
-    ****************************************/
-
 }
+
+#endif  //  HLS_VERSION
 
 /*! \} */
