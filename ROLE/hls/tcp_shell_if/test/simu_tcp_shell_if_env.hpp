@@ -15,7 +15,7 @@
  */
 
 /*****************************************************************************
- * @file       : simu_test_tcp_shell_if_env.hpp
+ * @file       : simu_tcp_shell_if_env.hpp
  * @brief      : Simulation environment for the TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
@@ -78,7 +78,7 @@ void increaseSimTime(unsigned int cycles);
  * SIMULATION ENVIRONMENT FUNCTIONS
  *******************************************************************************/
 void pTAF(
-        ofstream &ofTAF_Data,
+        ofstream           &ofTAF_Data,
         stream<TcpAppData> &siTSIF_Data,
         stream<TcpSessId>  &siTSIF_SessId,
         stream<TcpDatLen>  &siTSIF_DatLen,

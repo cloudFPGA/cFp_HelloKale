@@ -152,33 +152,33 @@ using namespace std;
     #pragma HLS DATAFLOW
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
-	tcp_shell_if(
-		//-- SHELL / Mmio Interface
-		piSHL_Mmio_En,
-		//-- TAF / Rx & Tx Data Interfaces
-		siTAF_Data,
-		siTAF_SessId,
-		siTAF_DatLen,
-		soTAF_Data,
-		soTAF_SessId,
-		soTAF_DatLen,
-		//-- TOE / Rx Data Interfaces
-		siSHL_Notif,
-		soSHL_DReq,
-		siSHL_Data,
-		siSHL_Meta,
-		//-- TOE / Listen Interfaces
-		soSHL_LsnReq,
-		siSHL_LsnRep,
-		//-- TOE / Tx Data Interfaces
-		soSHL_Data,
-		soSHL_SndReq,
-		siSHL_SndRep,
-		//-- TOE / Tx Open Interfaces
-		soSHL_OpnReq,
-		siSHL_OpnRep,
-		//-- TOE / Close Interfaces
-		soSHL_ClsReq);
+    tcp_shell_if(
+        //-- SHELL / Mmio Interface
+        piSHL_Mmio_En,
+        //-- TAF / Rx & Tx Data Interfaces
+        siTAF_Data,
+        siTAF_SessId,
+        siTAF_DatLen,
+        soTAF_Data,
+        soTAF_SessId,
+        soTAF_DatLen,
+        //-- TOE / Rx Data Interfaces
+        siSHL_Notif,
+        soSHL_DReq,
+        siSHL_Data,
+        siSHL_Meta,
+        //-- TOE / Listen Interfaces
+        soSHL_LsnReq,
+        siSHL_LsnRep,
+        //-- TOE / Tx Data Interfaces
+        soSHL_Data,
+        soSHL_SndReq,
+        siSHL_SndRep,
+        //-- TOE / Tx Open Interfaces
+        soSHL_OpnReq,
+        siSHL_OpnRep,
+        //-- TOE / Close Interfaces
+        soSHL_ClsReq);
 
 }
 #else

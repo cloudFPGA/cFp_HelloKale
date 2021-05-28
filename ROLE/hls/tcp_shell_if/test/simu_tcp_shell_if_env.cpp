@@ -15,7 +15,7 @@
  */
 
 /*****************************************************************************
- * @file       : simu_test_tcp_shell_if_env.cpp
+ * @file       : simu_tcp_shell_if_env.cpp
  * @brief      : Simulation environment for the TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
@@ -68,7 +68,7 @@ extern unsigned int gMaxSimCycles; //  = cSimToeStartupDelay + cGraceTime;
 #define TRACE_TAF     1 <<  6
 #define TRACE_MMIO    1 <<  7
 #define TRACE_ALL     0xFFFF
-#define DEBUG_LEVEL (TRACE_TOE_RXP)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -95,15 +95,15 @@ void increaseSimTime(unsigned int cycles) {
 }
 
 /*******************************************************************************
- * @brief Emulate the behavior of the Rx part of TcpAppFlash (TAF).
+ * @brief Emulate the behavior of the ROLE/TcpAppFlash (TAF).
  *
  * @param[in]  ofTAF_Data    A ref to the output TxApp file to write to.
  * @param[in]  siTSIF_Data   Data stream from TcpShellInterface (TSIF).
  * @param[in]  siTSIF_SessId Session-id from [TSIF].
  * @param[in]  siTSIF_DatLen Data-length from [TSIF].
- * @param[out] soTAF_Data    Data stream to [TSIF].
- * @param[out] soTAF_SessId  Session-id to [TSIF].
- * @param[out] soTAF_DatLen  Data-length to [TSIF].
+ * @param[out] soTSIF_Data   Data stream to [TSIF].
+ * @param[out] soTSIF_SessId Session-id to [TSIF].
+ * @param[out] soTSIF_DatLen Data-length to [TSIF].
  *
  * @details
  *  ALWAYS READ INCOMING DATA STREAM AND STORE IT TO FILE.
@@ -112,9 +112,9 @@ void pTAF(ofstream &ofTAF_Data,
         stream<TcpAppData> &siTSIF_Data,
         stream<TcpSessId>  &siTSIF_SessId,
         stream<TcpDatLen>  &siTSIF_DatLen,
-        stream<TcpAppData> &soTAF_Data,
-        stream<TcpSessId>  &soTAF_Meta,
-        stream<TcpSessId>  &soTAF_DLen)
+        stream<TcpAppData> &soTSIF_Data,
+        stream<TcpSessId>  &soTSIF_Meta,
+        stream<TcpSessId>  &soTSIF_DLen)
 {
     const char *myName = concat3(THIS_NAME, "/", "TAF");
 
@@ -149,14 +149,14 @@ void pMMIO(
         CmdBit *poTSIF_Enable) {
     const char *myName = concat3(THIS_NAME, "/", "MMIO");
 
-    static bool printOnce = true;
+    static bool mmio_printOnce = true;
 
     if (*piSHL_Ready) {
         *poTSIF_Enable = 1;
-        if (printOnce) {
+        if (mmio_printOnce) {
             printInfo(myName,
                     "[SHELL/NTS/TOE] is ready -> Enabling operation of the TCP Shell Interface [TSIF].\n");
-            printOnce = false;
+            mmio_printOnce = false;
         }
     } else {
         *poTSIF_Enable = 0;
