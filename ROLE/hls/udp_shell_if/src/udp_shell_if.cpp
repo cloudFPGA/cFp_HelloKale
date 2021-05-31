@@ -108,7 +108,7 @@ void pListen(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = concat3(THIS_NAME, "/", "LSn");
 
@@ -231,7 +231,7 @@ void pClose(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = concat3(THIS_NAME, "/", "CLs");
 
@@ -296,6 +296,7 @@ void pClose(
 /*******************************************************************************
  * @brief Read Path (RDp) - From SHELL/UOE to ROLE/UAF.
  *
+ * @param[in]  piSHL_Enable Enable signal from [SHELL].
  * @param[in]  siSHL_Data   Datagram from [SHELL].
  * @param[in]  siSHL_Meta   Metadata from [SHELL].
  * @param[out] soUAF_Data   Datagram to [UAF].
@@ -316,6 +317,7 @@ void pClose(
  *  3) Otherwise, incoming metadata and data are forwarded to the UAF.
  *******************************************************************************/
 void pReadPath(
+        CmdBit              *piSHL_Enable,
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
         stream<UdpAppData>  &soUAF_Data,
@@ -325,12 +327,12 @@ void pReadPath(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RDp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { RDP_IDLE=0, RDP_FWD_META, RDP_STREAM, RDP_DROP, RDP_8801 } \
+    static enum FsmStates { RDP_IDLE=0, RDP_FWD_META, RDP_FWD_STREAM, RDP_SINK_STREAM, RDP_8801 } \
 	                           rdp_fsmState = RDP_IDLE;
     #pragma HLS reset variable=rdp_fsmState
 
@@ -340,23 +342,27 @@ void pReadPath(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     UdpAppData  appData;
 
+    if (*piSHL_Enable != 1) {
+        return;
+    }
+
     switch (rdp_fsmState ) {
     case RDP_IDLE:
         if (!siSHL_Meta.empty()) {
             siSHL_Meta.read(rdp_appMeta);
             switch (rdp_appMeta.dst.port) {
             case RECV_MODE_LSN_PORT:
-                // (DstPort == 8800) Dump this traffic stream
+                // (DstPort == 8800) Sink this traffic stream
                 if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Rx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
-                rdp_fsmState  = RDP_DROP;
+                rdp_fsmState  = RDP_SINK_STREAM;
                 break;
             case XMIT_MODE_LSN_PORT:
-                // (DstPort == 8801) Retrieve the size of the requested Tx datagram
+                // (DstPort == 8801) Enter the Tx test mode
                 if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Tx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
                 rdp_fsmState  = RDP_8801;
                 break;
             default:
-                // Business as usual
+                // Forward the incoming stream to [TAF]
                 rdp_fsmState  = RDP_FWD_META;
                 break;
             }
@@ -366,10 +372,10 @@ void pReadPath(
         if (!soUAF_Meta.full()) {
             soUAF_Meta.write(UdpAppMetb(rdp_appMeta.src.addr, rdp_appMeta.src.port,
                                         rdp_appMeta.dst.addr, rdp_appMeta.dst.port));
-            rdp_fsmState  = RDP_STREAM;
+            rdp_fsmState  = RDP_FWD_STREAM;
         }
         break;
-    case RDP_STREAM:
+    case RDP_FWD_STREAM:
         if (!siSHL_Data.empty() and !soUAF_Data.full()) {
             siSHL_Data.read(appData);
             soUAF_Data.write(appData);
@@ -379,7 +385,7 @@ void pReadPath(
             if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "soUAF_Data =", appData); }
         }
         break;
-    case RDP_DROP:
+    case RDP_SINK_STREAM:
         if (!siSHL_Data.empty()) {
             siSHL_Data.read(appData);
             if (appData.getLE_TLast()) {
@@ -409,7 +415,7 @@ void pReadPath(
                 rdp_fsmState  = RDP_IDLE;
             }
             else {
-                rdp_fsmState = RDP_STREAM;
+                rdp_fsmState = RDP_SINK_STREAM;
             }
         }
     }
@@ -419,6 +425,7 @@ void pReadPath(
 /*******************************************************************************
  * @brief Write Path (WRp) - From ROLE/UAF to SHELL/NTS/UOE.
  *
+ * @param[in]  piSHL_Enable Enable signal from [SHELL].
  * @param[in]  siUAF_Data   UDP datagram from [ROLE/UAF].
  * @param[in]  siUAF_Meta   UDP metadata from [ROLE/UAF].
  * @Param[in]  siUAF_DLen   UDP data len from [ROLE/UAF].
@@ -436,6 +443,7 @@ void pReadPath(
  *   of this request. This mode is used to test the UOE in transmit mode.
  *******************************************************************************/
 void pWritePath(
+        CmdBit               *piSHL_Enable,
         stream<UdpAppData>   &siUAF_Data,
         stream<UdpAppMetb>   &siUAF_Meta,
         stream<UdpAppDLen>   &siUAF_DLen,
@@ -447,7 +455,7 @@ void pWritePath(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "WRp");
 
@@ -468,10 +476,34 @@ void pWritePath(
     UdpAppDLen    appDLen;
     UdpAppData    appData;
 
+    if (*piSHL_Enable != 1) {
+        return;
+    }
+
     switch (wrp_fsmState) {
     case WRP_IDLE:
-        //-- Always read the metadata and the length provided by [ROLE/UAF]
-        if (!siUAF_Meta.empty() and !siUAF_DLen.empty() and !soSHL_Meta.full()  and !soSHL_DLen.full()) {
+        //-- Always give priority to the Tx test generator (for testing reasons)
+        if (!siRDp_SockPair.empty() and !siRDp_DReq.empty() and
+            !soSHL_Meta.full() and !soSHL_DLen.full()) {
+            siRDp_SockPair.read(tstSockPair);
+            siRDp_DReq.read(wrp_appDReq);
+            soSHL_Meta.write(tstSockPair);
+            soSHL_DLen.write(wrp_appDReq);
+            if (DEBUG_LEVEL & TRACE_WRP) {
+                printInfo(myName, "Received a Tx test request of length %d from RDp.\n", wrp_appDReq.to_uint());
+                printSockPair(myName, tstSockPair);
+            }
+            if (wrp_appDReq != 0) {
+                wrp_fsmState = WRP_8801;
+                wrp_genChunk = CHK0;
+            }
+            else {
+                wrp_fsmState = WRP_IDLE;
+            }
+        }
+        else if (!siUAF_Meta.empty() and !siUAF_DLen.empty() and
+                 !soSHL_Meta.full()  and !soSHL_DLen.full()) {
+            //-- Read the metadata and the length provided by [ROLE/UAF]
             siUAF_Meta.read(appMeta);
             siUAF_DLen.read(appDLen);
             soSHL_Meta.write(SocketPair(SockAddr(appMeta.ip4SrcAddr, appMeta.udpSrcPort),
@@ -484,26 +516,13 @@ void pWritePath(
             }
             wrp_fsmState = WRP_STREAM;
         }
-        else if (!siRDp_SockPair.empty() and !siRDp_DReq.empty() and !soSHL_Meta.full()  and !soSHL_DLen.full()) {
-            siRDp_SockPair.read(tstSockPair);
-            siRDp_DReq.read(wrp_appDReq);
-            soSHL_Meta.write(tstSockPair);
-            soSHL_DLen.write(wrp_appDReq);
-            if (DEBUG_LEVEL & TRACE_WRP) {
-                printInfo(myName, "Received a Tx test request of length %d from RDp.\n", wrp_appDReq.to_uint());
-                printSockPair(myName, tstSockPair);
-            }
-            wrp_fsmState = WRP_8801;
-            wrp_genChunk = CHK0;
-        }
+
         break;
     case WRP_STREAM:
         if (!siUAF_Data.empty() and !soSHL_Data.full()) {
             siUAF_Data.read(appData);
-            if (DEBUG_LEVEL & TRACE_WRP) {
-                 printAxisRaw(myName, "Received data chunk from ROLE: ", appData);
-            }
             soSHL_Data.write(appData);
+            if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data = ", appData); }
             if(appData.getTLast())
                 wrp_fsmState = WRP_IDLE;
         }
@@ -572,7 +591,7 @@ void udp_shell_if(
         //------------------------------------------------------
         CmdBit              *piSHL_Mmio_En,
 
-       //------------------------------------------------------
+        //------------------------------------------------------
         //-- SHELL / Control Port Interfaces
         //------------------------------------------------------
         stream<UdpPort>     &soSHL_LsnReq,
@@ -633,6 +652,7 @@ void udp_shell_if(
             siSHL_ClsRep);
 
     pReadPath(
+            piSHL_Mmio_En,
             siSHL_Data,
             siSHL_Meta,
             soUAF_Data,
@@ -641,6 +661,7 @@ void udp_shell_if(
             ssRDpToWRp_DReq);
 
     pWritePath(
+            piSHL_Mmio_En,
             siUAF_Data,
             siUAF_Meta,
             siUAF_DLen,

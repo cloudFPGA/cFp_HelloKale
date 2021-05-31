@@ -205,6 +205,7 @@ using namespace std;
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
   #if defined (USE_AP_FIFO)
+    //-- Make use of FIFOs on the UAF interfaces -------------------------------
     #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     //-- [SHL] INTERFACES ------------------------------------------------------
@@ -236,6 +237,7 @@ using namespace std;
     // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
     //    does not support packing structs which contain other structs!!!
   #else
+    //-- Make use of AXIS on the UAF interfaces --------------------------------
     #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
 
     //-- [SHL] INTERFACES ------------------------------------------------------
