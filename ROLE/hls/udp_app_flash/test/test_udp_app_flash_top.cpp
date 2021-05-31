@@ -56,7 +56,6 @@ using namespace std;
   extern unsigned int gMaxSimCycles;
 #endif
 
-
 /*******************************************************************************
  * @brief Main function for the test of the UDP Application Flash (UAF) TOP.
  *******************************************************************************/
@@ -68,7 +67,7 @@ int main(int argc, char *argv[]) {
     //-- TESTBENCH LOCAL VARIABLES
     //------------------------------------------------------
     int      nrErr  = 0;
-    EchoCtrl tbMode = ECHO_PATH_THRU; // Indicates TB testing mode.
+    EchoCtrl tbCtrlMode = ECHO_CTRL_DISABLED;
 
     //------------------------------------------------------
     //-- NONE-STREAM-BASED INTERFACES
@@ -87,16 +86,20 @@ int main(int argc, char *argv[]) {
     //      hls_stream ports.
     //   @E [SIM-4] *** C/RTL co-simulation finished: FAIL **
    //------------------------------------------------------
-#if TB_MODE == 1
-    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_STORE_FWD;
+#if TB_MODE == 0
+    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_CTRL_DISABLED;
+    ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
+    ap_uint<1>          sSHL_UAF_Mmio_CaptPktEn = 0;
+#elif TB_MODE == 1
+    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_PATH_THRU;
     ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
     ap_uint<1>          sSHL_UAF_Mmio_CaptPktEn = 0;
 #elif TB_MODE == 2
-    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_OFF;
+    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_STORE_FWD;
     ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
     ap_uint<1>          sSHL_UAF_Mmio_CaptPktEn = 0;
 #else
-    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_PATH_THRU;
+    ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_OFF;
     ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
     ap_uint<1>          sSHL_UAF_Mmio_CaptPktEn = 0;
 #endif
@@ -116,17 +119,18 @@ int main(int argc, char *argv[]) {
     if (argc < 3) {
         printFatal(THIS_NAME, "Expected a minimum of 2 parameters with the following synopsis:\n \t\t mode(0|1|2)   siUAF_<Filename>.dat\n");
     }
-    tbMode = EchoCtrl(atoi(argv[1]));
-    if (tbMode != sSHL_UAF_Mmio_EchoCtrl) {
-        printFatal(THIS_NAME, "tbMode (%d) does not match TB_MODE (%d). Modify the CFLAG and re-compile.\n", tbMode, TB_MODE);
+    tbCtrlMode = EchoCtrl(atoi(argv[1]));
+    if (tbCtrlMode != sSHL_UAF_Mmio_EchoCtrl) {
+        printFatal(THIS_NAME, "tbCtrlMode (%d) does not match TB_MODE (%d). Modify the CFLAG and re-compile.\n", tbCtrlMode, TB_MODE);
     }
 
-    switch (tbMode) {
+    switch (tbCtrlMode) {
+    case ECHO_CTRL_DISABLED:
+        break;
     case ECHO_PATH_THRU:
     case ECHO_STORE_FWD:
-        break;
     case ECHO_OFF:
-        printFatal(THIS_NAME, "The 'ECHO_OFF' mode is no longer supported since the removal of the MMIO EchoCtrl bits. \n");
+        printFatal(THIS_NAME, "The 'ECHO' mode %d is no longer supported since the removal of the MMIO EchoCtrl bits. \n", tbCtrlMode);
         break;
     default:
         printFatal(THIS_NAME, "Unknown testing mode '%d' (or not yet implemented). \n");
@@ -142,51 +146,63 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
-    if ((tbMode == ECHO_PATH_THRU) or (tbMode == ECHO_STORE_FWD)) {
+    if (tbCtrlMode == ECHO_CTRL_DISABLED) {
 
         //-- DUT OUTPUT TRAFFIC AS STREAMS ------------------------------
-        string  ofsUSIF_Data_FileName      = "../../../../test/simOutFiles/soUSIF_Data.dat";
-        string  ofsUSIF_Meta_FileName      = "../../../../test/simOutFiles/soUSIF_Meta.dat";
-        string  ofsUSIF_DLen_FileName      = "../../../../test/simOutFiles/soUSIF_DLen.dat";
-        string  ofsUSIF_Data_Gold_FileName = "../../../../test/simOutFiles/soUSIF_Data_Gold.dat";
-        string  ofsUSIF_Meta_Gold_FileName = "../../../../test/simOutFiles/soUSIF_Meta_Gold.dat";
-        string  ofsUSIF_DLen_Gold_FileName = "../../../../test/simOutFiles/soUSIF_DLen_Gold.dat";
+        ofstream ofsUSIF_Data;  // APP data streams delivered to USIF
+        const char *ofsUSIF_Data_FileName      = "../../../../test/simOutFiles/soUSIF_Data.dat";
+        ofstream ofsUSIF_Meta;  // APP meta streams delivered to USIF
+        const char *ofsUSIF_Meta_FileName      = "../../../../test/simOutFiles/soUSIF_Meta.dat";
+        ofstream ofsUSIF_DLen;  // APP data len streams delivered to USIF
+        const char *ofsUSIF_DLen_FileName      = "../../../../test/simOutFiles/soUSIF_DLen.dat";
 
-        vector<string>   ofNames;
-        ofNames.push_back(ofsUSIF_Data_FileName);
-        ofNames.push_back(ofsUSIF_Meta_FileName);
-        ofNames.push_back(ofsUSIF_DLen_FileName);
-        ofstream         ofStreams[ofNames.size()]; // Stored in the same order
+        string   ofsUSIF_Data_Gold_FileName = "../../../../test/simOutFiles/soUSIF_Data_Gold.dat";
+        string   ofsUSIF_Meta_Gold_FileName = "../../../../test/simOutFiles/soUSIF_Meta_Gold.dat";
+        string   ofsUSIF_DLen_Gold_FileName = "../../../../test/simOutFiles/soUSIF_DLen_Gold.dat";
 
         //-- STEP-1: The setting of the ECHO mode is already done via CFLAGS
-        if (tbMode == ECHO_PATH_THRU) {
-            printInfo(THIS_NAME, "### TEST_MODE = ECHO_PATH_THRU #########\n");
-        }
-        else if (tbMode == ECHO_STORE_FWD) {
-            printInfo(THIS_NAME, "### TEST_MODE = ECHO_STORE_FWD #########\n");
-        }
+        printInfo(THIS_NAME, "### TEST_MODE = ECHO_CTRL_DISABLED #########\n");
 
         //-- STEP-2: Remove previous old files and open new files
-        for (int i = 0; i < ofNames.size(); i++) {
-            remove(ofNames[i].c_str());
-            if (not isDatFile(ofNames[i])) {
-                printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofNames[i].c_str());
-                nrErr++;
-                continue;
-            }
-            if (!ofStreams[i].is_open()) {
-                ofStreams[i].open(ofNames[i].c_str(), ofstream::out);
-                if (!ofStreams[i]) {
-                    printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofNames[i].c_str());
+        if (not isDatFile(ofsUSIF_Data_FileName)) {
+            printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsUSIF_Data_FileName);
+            nrErr++;
+        }
+        else {
+            remove(ofsUSIF_Data_FileName);
+        }
+        if (not isDatFile(ofsUSIF_Meta_FileName)) {
+            printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsUSIF_Meta_FileName);
+            nrErr++;
+        }
+        else {
+            remove(ofsUSIF_Meta_FileName);
+            if (!ofsUSIF_Meta.is_open()) {
+                ofsUSIF_Meta.open(ofsUSIF_Meta_FileName, ofstream::out);
+                if (!ofsUSIF_Meta) {
+                    printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsUSIF_Meta_FileName);
                     nrErr++;
-                    continue;
+                }
+            }
+        }
+        if (not isDatFile(ofsUSIF_DLen_FileName)) {
+            printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsUSIF_DLen_FileName);
+            nrErr++;
+        }
+        else {
+            remove(ofsUSIF_DLen_FileName);
+            if (!ofsUSIF_DLen.is_open()) {
+                ofsUSIF_DLen.open(ofsUSIF_DLen_FileName, ofstream::out);
+                if (!ofsUSIF_DLen) {
+                    printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsUSIF_DLen_FileName);
+                    nrErr++;
                 }
             }
         }
 
         //-- STEP-3: Create golden Tx files
         queue<UdpAppMetb>   udpMetaQueue;
-        if (NTS_OK == createGoldenTxFiles(tbMode, string(argv[2]), udpMetaQueue,
+        if (NTS_OK == createGoldenTxFiles(tbCtrlMode, string(argv[2]), udpMetaQueue,
                 ofsUSIF_Data_Gold_FileName, ofsUSIF_Meta_Gold_FileName, ofsUSIF_DLen_Gold_FileName) != NTS_OK) {
             printError(THIS_NAME, "Failed to create golden Tx files. \n");
             nrErr++;
@@ -229,7 +245,7 @@ int main(int argc, char *argv[]) {
         //-- STEP-6a: Drain UAF-->USIF DATA OUTPUT STREAM
         int nrUAF_USIF_DataChunks=0, nrUAF_USIF_DataGrams=0, nrUAF_USIF_DataBytes=0;
         if (not drainAxisToFile(ssUAF_USIF_Data, "ssUAF_USIF_Data",
-            ofNames[0], nrUAF_USIF_DataChunks, nrUAF_USIF_DataGrams, nrUAF_USIF_DataBytes)) {
+            ofsUSIF_Data_FileName, nrUAF_USIF_DataChunks, nrUAF_USIF_DataGrams, nrUAF_USIF_DataBytes)) {
             printError(THIS_NAME, "Failed to drain UAF-to-USIF data traffic from DUT. \n");
             nrErr++;
         }
@@ -241,35 +257,63 @@ int main(int argc, char *argv[]) {
         //-- STEP-6b: Drain UAF-->USIF META OUTPUT STREAM
         int nrUAF_USIF_MetaChunks=0, nrUAF_USIF_MetaGrams=0, nrUAF_USIF_MetaBytes=0;
         if (not drainUdpMetaStreamToFile(ssUAF_USIF_Meta, "ssUAF_USIF_Meta",
-                ofNames[1], nrUAF_USIF_MetaChunks, nrUAF_USIF_MetaGrams, nrUAF_USIF_MetaBytes)) {
+            ofsUSIF_Meta_FileName, nrUAF_USIF_MetaChunks, nrUAF_USIF_MetaGrams, nrUAF_USIF_MetaBytes)) {
             printError(THIS_NAME, "Failed to drain UAF-to-USIF meta traffic from DUT. \n");
             nrErr++;
         }
         //-- STEP-6c: Drain UAF-->USIF DLEN OUTPUT STREAM
         int nrUAF_USIF_DLenChunks=0, nrUAF_USIF_DLenGrams=0, nrUAF_USIF_DLenBytes=0;
         if (not drainUdpDLenStreamToFile(ssUAF_USIF_DLen, "ssUAF_USIF_DLen",
-                ofNames[2], nrUAF_USIF_DLenChunks, nrUAF_USIF_DLenGrams, nrUAF_USIF_DLenBytes)) {
+            ofsUSIF_DLen_FileName, nrUAF_USIF_DLenChunks, nrUAF_USIF_DLenGrams, nrUAF_USIF_DLenBytes)) {
             printError(THIS_NAME, "Failed to drain UAF-to-USIF dlen traffic from DUT. \n");
             nrErr++;
         }
 
         //-- STEP-7: Compare output DAT vs gold DAT
-        int res = myDiffTwoFiles(std::string(ofsUSIF_Data_FileName),
-                                 std::string(ofsUSIF_Data_Gold_FileName));
-        if (res) {
-            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-                       ofsUSIF_Data_FileName.c_str(), ofsUSIF_Data_Gold_FileName.c_str());
-            nrErr += 1;
-        }
-        res = myDiffTwoFiles(std::string(ofsUSIF_DLen_FileName),
-                             std::string(ofsUSIF_DLen_Gold_FileName));
-        if (res) {
-            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-                       ofsUSIF_DLen_FileName.c_str(), ofsUSIF_DLen_Gold_FileName.c_str());
-            nrErr += 1;
-        }
+        int res;
+        ifstream ifsFile;
 
-    }  // End-of: if (tbMode == ECHO_PATH_THRU or ECHO_STORE_FWD) {
+        ifsFile.open(ofsUSIF_Data_FileName, ofstream::in);
+        if (!ifsFile) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsUSIF_Data_FileName);
+            nrErr++;
+        }
+        else if (not (ifsFile.peek() == ifstream::traits_type::eof())) {
+            res = myDiffTwoFiles(std::string(ofsUSIF_Data_FileName),
+                                 std::string(ofsUSIF_Data_Gold_FileName));
+            if (res) {
+                printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                           ofsUSIF_Data_FileName, ofsUSIF_Data_Gold_FileName.c_str());
+               nrErr += 1;
+            }
+        }
+        else {
+            printError(THIS_NAME, "File \"%s\" is empty.\n", ofsUSIF_Data_FileName);
+            nrErr++;
+        }
+        ifsFile.close();
+
+        ifsFile.open(ofsUSIF_DLen_FileName, ofstream::in);
+        if (!ifsFile) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsUSIF_DLen_FileName);
+            nrErr++;
+        }
+        else if (not (ifsFile.peek() == ifstream::traits_type::eof())) {
+            res = myDiffTwoFiles(std::string(ofsUSIF_DLen_FileName),
+                                 std::string(ofsUSIF_DLen_Gold_FileName));
+            if (res) {
+                printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                           ofsUSIF_DLen_FileName, ofsUSIF_DLen_Gold_FileName.c_str());
+               nrErr += 1;
+            }
+        }
+        else {
+            printError(THIS_NAME, "File \"%s\" is empty.\n", ofsUSIF_DLen_FileName);
+            nrErr++;
+        }
+        ifsFile.close();
+
+    }  // End-of: if (tbCtrlMode == ECHO_CTRL_DISABLED) {
 
 
     //---------------------------------------------------------------

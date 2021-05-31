@@ -42,9 +42,10 @@
  * SHELL/MMIO/EchoCtrl - Config Register
  ********************************************/
 enum EchoCtrl {
-    ECHO_PATH_THRU  = 0,
-    ECHO_STORE_FWD  = 1,
-    ECHO_OFF        = 2
+    ECHO_CTRL_DISABLED = 0,
+    ECHO_PATH_THRU     = 1,
+    ECHO_STORE_FWD     = 2,
+    ECHO_OFF           = 3
 };
 
 #define MTU    1500    // Maximum Transmission Unit in bytes [TODO:Move to a common place]

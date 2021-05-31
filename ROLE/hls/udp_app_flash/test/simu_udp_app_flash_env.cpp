@@ -157,7 +157,7 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
 /*****************************************************************************
  * @brief Create the golden UDP Tx files from an input test file.
  *
- * @param[in]  tbMode            The testbench mode of operation.
+ * @param[in]  tbCtrlMode        The testbench mode of operation.
  * @param[in]  inpData_FileName  The input data file to generate from.
  * @param[out] udpMetaQueue      A ref to a container queue which holds the
  *                                sequence of UDP socket-pairs.
@@ -168,7 +168,7 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
 int createGoldenTxFiles(
-        EchoCtrl          tbMode,
+        EchoCtrl          tbCtrlMode,
         string            inpData_FileName,
         queue<UdpAppMetb> &udpMetaQueue,
         string            outData_GoldName,
@@ -240,10 +240,10 @@ int createGoldenTxFiles(
     //-- STEP-3 : READ AND PARSE THE INPUT TEST FILE --------------------------
     SockAddr  hostSock = SockAddr(hostDefaultIp4Address, hostDefaultUdpSndPort);
     SockAddr  fpgaSock = SockAddr(fpgaDefaultIp4Address, fpgaDefaultUdpLsnPort);
+    int       dgmCnt = 0;
     do {
         SimUdpDatagram appDatagram(8);
         SocketPair     currSockPair(hostSock, fpgaSock);
-        //OBSOLETE UdpAppMetb     udpAppMeta(hostSock.addr, hostSock.port, fpgaSock.addr, fpgaSock.port);
         UdpAppDLen     udpAppDLen = 0;
         bool           endOfDgm=false;
         //-- Retrieve one APP datagram from input DAT file (can be up to 2^16-1 bytes)
@@ -252,12 +252,10 @@ int createGoldenTxFiles(
                                         inpChunks, inpDgrms, inpBytes);
         if (endOfDgm) {
             //-- Swap the IP_SA/IP_DA but keep UDP_SP/UDP/DP as is
-            //OBSOLETE_20210226 UdpAppMetb udpGldMeta(SockAddr(udpAppMeta.dst.addr, udpAppMeta.src.port),
-        	//OBSOLETE_20210226                       SockAddr(udpAppMeta.src.addr, udpAppMeta.dst.port));
             SocketPair goldSockPair(SockAddr(currSockPair.dst.addr, currSockPair.src.port),
                                     SockAddr(currSockPair.src.addr, currSockPair.dst.port));
             // Dump the socket pair to file
-            if (tbMode != ECHO_OFF) {
+            if (tbCtrlMode == ECHO_CTRL_DISABLED) {
                 writeSocketPairToFile(goldSockPair, ofsMetaGold);
                 if (DEBUG_LEVEL & TRACE_CGTF) {
                     printInfo(myName, "Writing new socket-pair to gold file:\n");
@@ -266,12 +264,18 @@ int createGoldenTxFiles(
             }
 
             // Dump the data len to file
-            if (tbMode != ECHO_OFF) {
+            if (tbCtrlMode == ECHO_CTRL_DISABLED) {
                 UdpAppDLen appDLen;
                 if (currSockPair.dst.port == ECHO_PATH_THRU_PORT) {
                     //-- The traffic will be forwarded in 'ECHO-CUT-THRU' mode
-                    //--  and in 'STREAMING-MODE' by setting 'DLen' to zero.
-                    appDLen = 0;
+                    // [TODO] if (dgmCnt % 2) {
+                    // [TODO]     //-- Datagram counter is an ODD value
+                    // [TODO]     //-- Enable the 'STREAMING-MODE' by setting 'DLen' to zero.
+                    // [TODO]     appDLen = 0;
+                    // [TODO] }
+                    // [TODO] else {
+                        appDLen = appDatagram.length() - UDP_HEADER_LEN;
+                    // [TODO] }
                 }
                 else {
                     appDLen = appDatagram.length() - UDP_HEADER_LEN;
@@ -291,7 +295,7 @@ int createGoldenTxFiles(
             }
 
             // Dump UDP datagram payload to gold file
-            if (tbMode != ECHO_OFF) {
+            if (tbCtrlMode == ECHO_CTRL_DISABLED) {
                 if (appDatagram.writePayloadToDatFile(ofsDataGold) == false) {
                     printError(myName, "Failed to write UDP payload to GOLD file.\n");
                     ret = NTS_KO;
@@ -302,6 +306,7 @@ int createGoldenTxFiles(
                     outBytes  += appDatagram.length();
                 }
             }
+            dgmCnt++;
         } // End-of:if (endOfDgm) {
 
     } while(ifsData.peek() != EOF);
@@ -415,10 +420,6 @@ bool drainUdpMetaStreamToFile(stream<UdpAppMetb> &ss, string ssName,
     //-- READ FROM STREAM AND WRITE TO FILE
     while (!(ss.empty())) {
         ss.read(udpMeta);
-        //OBSOLETE_20210226 SocketPair socketPair(SockAddr(udpMeta.src.addr,
-        //OBSOLETE_20210226                                udpMeta.src.port),
-        //OBSOLETE_20210226                       SockAddr(udpMeta.dst.addr,
-        //OBSOLETE_20210226                                udpMeta.dst.port));
         SocketPair socketPair(SockAddr(udpMeta.ip4SrcAddr, udpMeta.udpSrcPort),
                               SockAddr(udpMeta.ip4DstAddr, udpMeta.udpDstPort));
         writeSocketPairToFile(socketPair, outFileStream);

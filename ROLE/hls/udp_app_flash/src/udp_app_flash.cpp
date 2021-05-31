@@ -64,8 +64,7 @@ using namespace std;
 #define TRACE_RXP 1 <<  2
 #define TRACE_TXP 1 <<  3
 #define TRACE_ALL  0xFFFF
-
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -73,6 +72,7 @@ using namespace std;
  *
  * @param[in]  siRXp_Data   UDP datagram from RxPath (RXp).
  * @param[in]  siRXp_Meta   UDP metadata from [RXp].
+ * @param[in]  siRXp_DLen   UDP data len from [RXp].
  * @param[out] soTXp_Data   UDP datagram to TxPath (TXp).
  * @param[out] soTXp_Meta   UDP metadata to [TXp].
  * @param[out] soTXp_DLen   UDP data len to [TXp].
@@ -86,6 +86,7 @@ using namespace std;
 void pEchoStoreAndForward(
         stream<UdpAppData>  &siRXp_Data,
         stream<UdpAppMetb>  &siRXp_Meta,
+        stream<UdpAppDLen>  &siRXp_DLen,
         stream<UdpAppData>  &soTXp_Data,
         stream<UdpAppMetb>  &soTXp_Meta,
         stream<UdpAppDLen>  &soTXp_DLen)
@@ -111,7 +112,6 @@ void pEchoStoreAndForward(
         soTXp_Data.write(appData);
         esf_byteCnt += appData.getLen();
         if (appData.getTLast()) {
-            soTXp_DLen.write(esf_byteCnt);
             esf_byteCnt = 0;
         }
     }
@@ -119,14 +119,14 @@ void pEchoStoreAndForward(
     //=====================================================
     //== PROCESS META FORWARDING
     //=====================================================
-    if ( !siRXp_Meta.empty() and !soTXp_Meta.full() ) {
+    if ( !siRXp_Meta.empty() and !soTXp_Meta.full() and
+         !siRXp_DLen.empty() and !soTXp_DLen.full() ) {
         UdpAppMetb appMeta = siRXp_Meta.read();
+        UdpAppDLen appDLen = siRXp_DLen.read();
         // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-        //OBSOLETE_20210226 soTXp_Meta.write(SocketPair(
-        //OBSOLETE_20210226                  SockAddr(appMeta.dst.addr, appMeta.dst.port),
-        //OBSOLETE_20210226                  SockAddr(appMeta.src.addr, appMeta.src.port)));
         soTXp_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, appMeta.udpDstPort,
                                     appMeta.ip4SrcAddr, appMeta.udpSrcPort));
+        soTXp_DLen.write(appDLen);
     }
 }    // End-of: pEchoStoreAndForward()
 
@@ -196,15 +196,11 @@ void pTxPath(
 
     switch (txp_fsmState) {
     case TXP_IDLE:
-        if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and !soUSIF_DLen.full()) {
-            /*!siEPt_DLen.empty() and*/
+        if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and
+            !siEPt_DLen.empty() and !soUSIF_DLen.full()) {
             appMeta = siEPt_Meta.read();
-            //BUG_20210227 appDLen = siEPt_DLen.read();
-            appDLen = 0;
+            appDLen = siEPt_DLen.read();
             // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-            //OBSOLETE_20210226 soUSIF_Meta.write(SocketPair(
-            //OBSOLETE_20210226                   SockAddr(appMeta.dst.addr, appMeta.dst.port),
-            //OBSOLETE_20210226                   SockAddr(appMeta.src.addr, appMeta.src.port)));
             soUSIF_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, appMeta.udpDstPort,
                                          appMeta.ip4SrcAddr, appMeta.udpSrcPort));
             soUSIF_DLen.write(appDLen);
@@ -231,25 +227,26 @@ void pTxPath(
         if (!siEPt_Data.empty() and !soUSIF_Data.full()) {
             appData = siEPt_Data.read();
             if (txp_fwdMode == STRM_MODE) {
-                //OBSOLETE_20210228 soUSIF_Data.write(appData);
-                txp_lenCnt = txp_lenCnt + appData.getLen();
+                txp_lenCnt = txp_lenCnt + appData.getLen();  // Just for tracing
                 if (appData.getTLast()) {
                     txp_fsmState = TXP_IDLE;
                     if (DEBUG_LEVEL & TRACE_TXP) {
-                        printInfo(myName, "ECHO_PATH_THRU - Finished forwarding a datagram of len=%d.\n", txp_lenCnt.to_uint());
+                        printInfo(myName, "ECHO_PATH_THRU + STREAM   MODE - Finished forwarding %d bytes.\n", txp_lenCnt.to_uint());
                     }
                 }
             }
             else {
                 txp_lenCnt -= appData.getLen();
-                if (txp_lenCnt <= 0) {
+                if ((txp_lenCnt <= 0) or (appData.getTLast())) {
                     appData.setTLast(TLAST);
                     txp_fsmState = TXP_IDLE;
+                    if (DEBUG_LEVEL & TRACE_TXP) {
+                        printInfo(myName, "ECHO_PATH_THRU + DATAGRAM MODE - Finished datagram forwarding.\n");
+                    }
                 }
                 else {
                     appData.setTLast(0);
                 }
-                //OBSOLETE_20210228 soUSIF_Data.write(appData);
             }
             soUSIF_Data.write(appData);
         }
@@ -258,21 +255,26 @@ void pTxPath(
         if (!siESf_Data.empty() and !soUSIF_Data.full()) {
             appData = siESf_Data.read();
             if (txp_fwdMode == STRM_MODE) {
-                //OBSOLETE_20210228 soUSIF_Data.write(appData);
+                txp_lenCnt = txp_lenCnt + appData.getLen();  // Just for tracing
                 if (appData.getTLast()) {
-                        txp_fsmState = TXP_IDLE;
+                    txp_fsmState = TXP_IDLE;
+                    if (DEBUG_LEVEL & TRACE_TXP) {
+                        printInfo(myName, "ECHO_STORE_FWD + STREAM   MODE - Finished forwarding %d bytes.\n", txp_lenCnt.to_uint());
+                    }
                 }
             }
             else {
                 txp_lenCnt -= appData.getLen();
-                if (txp_lenCnt <= 0) {
+                if ((txp_lenCnt <= 0) or (appData.getTLast())) {
                     appData.setTLast(TLAST);
                     txp_fsmState = TXP_IDLE;
+                    if (DEBUG_LEVEL & TRACE_TXP) {
+                        printInfo(myName, "ECHO_STORE_FWD + DATAGRAM MODE - Finished datagram forwarding.\n");
+                    }
                 }
                 else {
                     appData.setTLast(0);
                 }
-                //OBSOLETE_20210228 soUSIF_Data.write(appData);
             }
             soUSIF_Data.write(appData);
         }
@@ -411,6 +413,7 @@ void pTxPath(
  * @param[out] soEPt_DLen          Data len to [EPt].
  * @param[out] soESf_Data          Datagram to EchoStoreAndForward (ESf).
  * @param[out] soESf_Meta          Metadata to [ESf].
+ * @param[out] soESf_DLen          Metadata to [ESf].
  *
  * @details This Process waits for a new datagram to read and forwards it to the
  *   EchoPathThrough (EPt) or EchoStoreAndForward (ESf) process upon the setting
@@ -425,7 +428,8 @@ void pRxPath(
         stream<UdpAppMetb>   &soEPt_Meta,
         stream<UdpAppDLen>   &soEPt_DLen,
         stream<UdpAppData>   &soESf_Data,
-        stream<UdpAppMetb>   &soESf_Meta)
+        stream<UdpAppMetb>   &soESf_Meta,
+        stream<UdpAppDLen>   &soESf_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -435,13 +439,14 @@ void pRxPath(
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { RXP_IDLE=0, RXP_META_EPT, RXP_META_ESF,
-                                        RXP_DATA_EPT, RXP_DATA_ESF } \
+                                        RXP_DATA_EPT, RXP_DATA_ESF,
+                                        RXP_DLEN_EPT, RXP_DLEN_ESF} \
                                rxp_fsmState = RXP_IDLE;
     #pragma HLS reset variable=rxp_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static UdpAppMetb rxp_appMeta;
-    static UdpAppDLen rxp_byteCnt;  // Just for debug
+    static UdpAppDLen rxp_byteCnt;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     UdpAppData  appData;
@@ -466,11 +471,9 @@ void pRxPath(
         }
         break;
     case RXP_META_EPT:
-        if (!soEPt_Meta.full()) { //BUG_20210227 and !soEPt_DLen.full()) {
-            //-- Forward incoming metadata to pEchoPathThrough while requesting
-            //-- [TXp] to operate in STREAMING-MODE by setting 'DLen' to zero.
+        if (!soEPt_Meta.full()) {
+            //-- Forward incoming metadata to pEchoPathThrough
             soEPt_Meta.write(rxp_appMeta);
-            //BUG_20210227 soEPt_DLen.write(0);
             rxp_fsmState = RXP_DATA_EPT;
         }
         break;
@@ -481,8 +484,15 @@ void pRxPath(
             soEPt_Data.write(appData);
             rxp_byteCnt += appData.getLen();
             if (appData.getTLast()) {
-                rxp_fsmState = RXP_IDLE;
+                rxp_fsmState = RXP_DLEN_EPT;
             }
+        }
+        break;
+    case RXP_DLEN_EPT:
+        if (!soEPt_DLen.full()) {
+            //-- Forward the computed data length to pEchoPathThrough
+            soEPt_DLen.write(rxp_byteCnt);
+            rxp_fsmState = RXP_IDLE;
         }
         break;
     case RXP_META_ESF:
@@ -498,9 +508,17 @@ void pRxPath(
             UdpAppData appData;
             siUSIF_Data.read(appData);
             soESf_Data.write(appData);
+            rxp_byteCnt += appData.getLen();
             if (appData.getTLast()) {
-                rxp_fsmState = RXP_IDLE;
+                rxp_fsmState = RXP_DLEN_ESF;
             }
+        }
+        break;
+    case RXP_DLEN_ESF:
+        if (!soESf_DLen.full()) {
+            //-- Forward the computed data length to pEchoPathThrough
+            soESf_DLen.write(rxp_byteCnt);
+            rxp_fsmState = RXP_IDLE;
         }
         break;
     }  // End-of: switch (rxp_fsmState) {
@@ -635,6 +653,8 @@ void udp_app_flash (
     #pragma HLS STREAM   variable=ssRXpToESf_Data    depth=1024
     static stream<UdpAppMetb>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
     #pragma HLS STREAM   variable=ssRXpToESf_Meta    depth=32
+    static stream<UdpAppDLen>     ssRXpToESf_DLen    ("ssRXpToESf_DLen");
+    #pragma HLS STREAM   variable=ssRXpToESf_DLen    depth=32
 
     //-- Echo Store and Forward (ESf) ------------------------------------------
     static stream<UdpAppData>     ssESfToTXp_Data    ("ssESfToTXp_Data");
@@ -670,11 +690,13 @@ void udp_app_flash (
             ssRXpToTXp_Meta,
             ssRXpToTXp_DLen,
             ssRXpToESf_Data,
-            ssRXpToESf_Meta);
+            ssRXpToESf_Meta,
+            ssRXpToESf_DLen);
 
     pEchoStoreAndForward(
             ssRXpToESf_Data,
             ssRXpToESf_Meta,
+            ssRXpToESf_DLen,
             ssESfToTXp_Data,
             ssESfToTXp_Meta,
             ssESfToTXp_DLen);
