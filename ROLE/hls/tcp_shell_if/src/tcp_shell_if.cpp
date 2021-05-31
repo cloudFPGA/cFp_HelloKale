@@ -1606,7 +1606,7 @@ void pWritePath(
         if (!siTAF_Data.empty() and !soSHL_Data.full()) {
             siTAF_Data.read(appData);
             soSHL_Data.write(appData);
-            if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data =", appData); }
+            if (DEBUG_LEVEL & TRACE_WRP) { printAxisRaw(myName, "soSHL_Data = ", appData); }
             if(appData.getTLast()) {
                 wrp_fsmState = WRP_IDLE;
             }
@@ -1746,11 +1746,11 @@ void tcp_shell_if(
     #pragma HLS stream    variable=ssRNhToRRh_Notif      depth=cIBuffNotifs
 
     //-- Read Request Handler (RRh)
-    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd    ("ssRRhToRDp_FwdCmd");
-    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd    depth=cOBuffDReqs
+    static stream<ForwardCmd>      ssRRhToRDp_FwdCmd     ("ssRRhToRDp_FwdCmd");
+    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd     depth=cOBuffDReqs
     #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
-    static stream<TcpAppRdReq>     ssRRhToRRm_DReq      ("ssRRhToRRm_DReq");
-    #pragma HLS stream    variable=ssRRhToRRm_DReq      depth=cOBuffDReqs
+    static stream<TcpAppRdReq>     ssRRhToRRm_DReq       ("ssRRhToRRm_DReq");
+    #pragma HLS stream    variable=ssRRhToRRm_DReq       depth=cOBuffDReqs
 
     //-- Read Path (RDp)
     static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpToRRh_Dequeue");
