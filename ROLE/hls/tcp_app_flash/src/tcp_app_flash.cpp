@@ -53,7 +53,11 @@ using namespace std;
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (TRACE_RXP | TRACE_TXP)
  ************************************************/
-#define THIS_NAME "TAF"  // TcpAppFlash
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+
+#define THIS_NAME "TAF"  // TcpApplicationFlash
 
 #define TRACE_OFF  0x0000
 #define TRACE_ESF 1 <<  1  // EchoStoreForward
@@ -62,9 +66,6 @@ using namespace std;
 #define TRACE_ALL  0xFFFF
 #define DEBUG_LEVEL (TRACE_OFF)
 
-#ifndef __SYNTHESIS__
-  extern bool gTraceEvent;
-#endif
 
 /*******************************************************************************
  * @brief Echo Store and Forward (ESf)
