@@ -83,7 +83,7 @@ using namespace std;
  *
  * [TODO - Implement this process as a real store-and-forward]
  *******************************************************************************/
-void pEchoStoreAndForward(
+void pUdpEchoStoreAndForward(
         stream<UdpAppData>  &siRXp_Data,
         stream<UdpAppMetb>  &siRXp_Meta,
         stream<UdpAppDLen>  &siRXp_DLen,
@@ -160,7 +160,7 @@ void pEchoStoreAndForward(
  *     bytes before generating a new UDP-over-IPv4 packet, unless the 'TLAST'
  *     bit of the data stream is set.
  *******************************************************************************/
-void pTxPath(
+void pUdpTxPath(
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
         stream<UdpAppMetb>  &siEPt_Meta,
@@ -420,7 +420,7 @@ void pTxPath(
  *   of the UDP destination port.
  *   (FYI-This function used to be performed by the 'piSHL_Mmio_EchoCtrl' bits).
  *******************************************************************************/
-void pRxPath(
+void pUdpRxPath(
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
         stream<UdpAppMetb>   &siUSIF_Meta,
@@ -682,7 +682,7 @@ void udp_app_flash (
     //           |                              \|/
     //
     //-------------------------------------------------------------------------
-    pRxPath(
+    pUdpRxPath(
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             siUSIF_Data,
             siUSIF_Meta,
@@ -693,7 +693,7 @@ void udp_app_flash (
             ssRXpToESf_Meta,
             ssRXpToESf_DLen);
 
-    pEchoStoreAndForward(
+    pUdpEchoStoreAndForward(
             ssRXpToESf_Data,
             ssRXpToESf_Meta,
             ssRXpToESf_DLen,
@@ -701,7 +701,7 @@ void udp_app_flash (
             ssESfToTXp_Meta,
             ssESfToTXp_DLen);
 
-    pTxPath(
+    pUdpTxPath(
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             ssRXpToTXp_Data,
             ssRXpToTXp_Meta,
