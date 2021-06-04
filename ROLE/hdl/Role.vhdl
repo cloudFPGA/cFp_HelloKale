@@ -379,9 +379,9 @@ architecture BringUp of Role_Kale is
   -- SIGNAL DECLARATIONS : USIF <--> FIFO <--> UAF
   --------------------------------------------------------
   -- USIF -> FIFO_Write / UDP Rx Data Interfaces
-  signal ssUSIF_FIFO_Udp_Data_data   : std_logic_vector(72 downto 0);
-  signal ssUSIF_FIFO_Udp_Data_write  : std_logic;
-  signal ssUSIF_FIFO_Udp_Data_full   : std_logic;
+  signal ssUSIF_FIFO_Udp_Data_data         : std_logic_vector(72 downto 0);
+  signal ssUSIF_FIFO_Udp_Data_write        : std_logic;
+  signal ssUSIF_FIFO_Udp_Data_full         : std_logic;
   --
   signal ssUSIF_FIFO_Udp_MetaSrcAddr_data  : std_logic_vector(31 downto 0);
   signal ssUSIF_FIFO_Udp_MetaSrcAddr_write : std_logic;
@@ -1427,9 +1427,9 @@ begin
         --------------------------------------------------------
         -- UAF / UDP Tx Data Interfaces
         --------------------------------------------------------
-        siUAF_Data_V_dout          => ssFIFO_USIF_Udp_Data_data   ,
-        siUAF_Data_V_read          => ssFIFO_USIF_Udp_Data_read   ,
-        siUAF_Data_V_empty_n       => not ssFIFO_USIF_Udp_Data_empty,
+        siUAF_Data_V_dout                 =>     ssFIFO_USIF_Udp_Data_data,
+        siUAF_Data_V_read                 =>     ssFIFO_USIF_Udp_Data_read,
+        siUAF_Data_V_empty_n              => not ssFIFO_USIF_Udp_Data_empty,
         --
         siUAF_Meta_V_ip4SrcAddr_V_dout    =>     ssFIFO_USIF_Udp_MetaSrcAddr_data,
         siUAF_Meta_V_ip4SrcAddr_V_read    =>     ssFIFO_USIF_Udp_MetaSrcAddr_read,
@@ -1444,28 +1444,28 @@ begin
         siUAF_Meta_V_udpDstPort_V_read    =>     ssFIFO_USIF_Udp_MetaDstPort_read,
         siUAF_Meta_V_udpDstPort_V_empty_n => not ssFIFO_USIF_Udp_MetaDstPort_empty,
         --
-        siUAF_DLen_V_V_dout        => ssFIFO_USIF_Udp_DLen_data   ,
-        siUAF_DLen_V_V_read        => ssFIFO_USIF_Udp_DLen_read   ,
-        siUAF_DLen_V_V_empty_n     => not ssFIFO_USIF_Udp_DLen_empty,
+        siUAF_DLen_V_V_dout               =>     ssFIFO_USIF_Udp_DLen_data,
+        siUAF_DLen_V_V_read               =>     ssFIFO_USIF_Udp_DLen_read,
+        siUAF_DLen_V_V_empty_n            => not ssFIFO_USIF_Udp_DLen_empty,
         --------------------------------------------------------
         -- UAF / UDP Rx Data Interfaces
         --------------------------------------------------------
-        soUAF_Data_V_din           => ssUSIF_FIFO_Udp_Data_data  ,
-        soUAF_Data_V_write         => ssUSIF_FIFO_Udp_Data_write ,
-        soUAF_Data_V_full_n        => not ssUSIF_FIFO_Udp_Data_full,
+        soUAF_Data_V_din                  =>     ssUSIF_FIFO_Udp_Data_data,
+        soUAF_Data_V_write                =>     ssUSIF_FIFO_Udp_Data_write,
+        soUAF_Data_V_full_n               => not ssUSIF_FIFO_Udp_Data_full,
         --
-        soUAF_Meta_V_ip4SrcAddr_V_din    =>     ssUSIF_FIFO_Udp_MetaSrcAddr_data,  
-        soUAF_Meta_V_ip4SrcAddr_V_write  =>     ssUSIF_FIFO_Udp_MetaSrcAddr_write,
-        soUAF_Meta_V_ip4SrcAddr_V_full_n => not ssUSIF_FIFO_Udp_MetaSrcAddr_full,
-        soUAF_Meta_V_udpSrcPort_V_din    =>     ssUSIF_FIFO_Udp_MetaSrcPort_data,  
-        soUAF_Meta_V_udpSrcPort_V_write  =>     ssUSIF_FIFO_Udp_MetaSrcPort_write,
-        soUAF_Meta_V_udpSrcPort_V_full_n => not ssUSIF_FIFO_Udp_MetaSrcPort_full,
-        soUAF_Meta_V_ip4DstAddr_V_din    =>     ssUSIF_FIFO_Udp_MetaDstAddr_data,  
-        soUAF_Meta_V_ip4DstAddr_V_write  =>     ssUSIF_FIFO_Udp_MetaDstAddr_write,
-        soUAF_Meta_V_ip4DstAddr_V_full_n => not ssUSIF_FIFO_Udp_MetaDstAddr_full,
-        soUAF_Meta_V_udpDstPort_V_din    =>     ssUSIF_FIFO_Udp_MetaDstPort_data,  
-        soUAF_Meta_V_udpDstPort_V_write  =>     ssUSIF_FIFO_Udp_MetaDstPort_write,
-        soUAF_Meta_V_udpDstPort_V_full_n => not ssUSIF_FIFO_Udp_MetaDstPort_full
+        soUAF_Meta_V_ip4SrcAddr_V_din     =>     ssUSIF_FIFO_Udp_MetaSrcAddr_data,  
+        soUAF_Meta_V_ip4SrcAddr_V_write   =>     ssUSIF_FIFO_Udp_MetaSrcAddr_write,
+        soUAF_Meta_V_ip4SrcAddr_V_full_n  => not ssUSIF_FIFO_Udp_MetaSrcAddr_full,
+        soUAF_Meta_V_udpSrcPort_V_din     =>     ssUSIF_FIFO_Udp_MetaSrcPort_data,  
+        soUAF_Meta_V_udpSrcPort_V_write   =>     ssUSIF_FIFO_Udp_MetaSrcPort_write,
+        soUAF_Meta_V_udpSrcPort_V_full_n  => not ssUSIF_FIFO_Udp_MetaSrcPort_full,
+        soUAF_Meta_V_ip4DstAddr_V_din     =>     ssUSIF_FIFO_Udp_MetaDstAddr_data,  
+        soUAF_Meta_V_ip4DstAddr_V_write   =>     ssUSIF_FIFO_Udp_MetaDstAddr_write,
+        soUAF_Meta_V_ip4DstAddr_V_full_n  => not ssUSIF_FIFO_Udp_MetaDstAddr_full,
+        soUAF_Meta_V_udpDstPort_V_din     =>     ssUSIF_FIFO_Udp_MetaDstPort_data,  
+        soUAF_Meta_V_udpDstPort_V_write   =>     ssUSIF_FIFO_Udp_MetaDstPort_write,
+        soUAF_Meta_V_udpDstPort_V_full_n  => not ssUSIF_FIFO_Udp_MetaDstPort_full
       ); -- End-of: UdpShellInterface
   end generate;
 
@@ -1548,9 +1548,9 @@ begin
         --------------------------------------------------------
         -- From USIF / UDP Rx Data Interfaces
         --------------------------------------------------------
-        siUSIF_Data_V_dout     => ssFIFO_UAF_Udp_Data_data,
-        siUSIF_Data_V_read     => ssFIFO_UAF_Udp_Data_read,
-        siUSIF_Data_V_empty_n  => not ssFIFO_UAF_Udp_Data_empty,
+        siUSIF_Data_V_dout                 =>     ssFIFO_UAF_Udp_Data_data,
+        siUSIF_Data_V_read                 =>     ssFIFO_UAF_Udp_Data_read,
+        siUSIF_Data_V_empty_n              => not ssFIFO_UAF_Udp_Data_empty,
         --
         siUSIF_Meta_V_ip4SrcAddr_V_dout    =>     ssFIFO_UAF_Udp_MetaSrcAddr_data,
         siUSIF_Meta_V_ip4SrcAddr_V_read    =>     ssFIFO_UAF_Udp_MetaSrcAddr_read,
@@ -1567,9 +1567,9 @@ begin
         --------------------------------------------------------
         -- To USIF / UDP Tx Data Interfaces
         --------------------------------------------------------
-        soUSIF_Data_V_din      => ssUAF_FIFO_Udp_Data_data,
-        soUSIF_Data_V_write    => ssUAF_FIFO_Udp_Data_write,
-        soUSIF_Data_V_full_n   => not ssUAF_FIFO_Udp_Data_full,        
+        soUSIF_Data_V_din                 =>     ssUAF_FIFO_Udp_Data_data,
+        soUSIF_Data_V_write               =>     ssUAF_FIFO_Udp_Data_write,
+        soUSIF_Data_V_full_n              => not ssUAF_FIFO_Udp_Data_full,        
         --
         soUSIF_Meta_V_ip4SrcAddr_V_din    =>     ssUAF_FIFO_Udp_MetaSrcAddr_data,
         soUSIF_Meta_V_ip4SrcAddr_V_write  =>     ssUAF_FIFO_Udp_MetaSrcAddr_write,   
@@ -1584,9 +1584,9 @@ begin
         soUSIF_Meta_V_udpDstPort_V_write  =>     ssUAF_FIFO_Udp_MetaDstPort_write, 
         soUSIF_Meta_V_udpDstPort_V_full_n => not ssUAF_FIFO_Udp_MetaDstPort_full,        
         --
-        soUSIF_DLen_V_V_din    => ssUAF_FIFO_Udp_DLen_data,
-        soUSIF_DLen_V_V_write  => ssUAF_FIFO_Udp_DLen_write,
-        soUSIF_DLen_V_V_full_n => not ssUAF_FIFO_Udp_DLen_full
+        soUSIF_DLen_V_V_din               =>     ssUAF_FIFO_Udp_DLen_data,
+        soUSIF_DLen_V_V_write             =>     ssUAF_FIFO_Udp_DLen_write,
+        soUSIF_DLen_V_V_full_n            => not ssUAF_FIFO_Udp_DLen_full
       );
   end generate;
   
