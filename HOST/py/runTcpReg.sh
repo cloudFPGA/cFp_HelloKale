@@ -272,7 +272,7 @@ fi
 
 
 if [ $RUN_IPERF = true ]; then
-  echo -e "###  UDP IPERF ######################################################" 
+  echo -e "###  TCP IPERF ######################################################" 
   
   # IPERF - Host-2-Fpga 
   iperf -c ${INSTANCE_IP} -p 8800 -t 10
@@ -286,7 +286,7 @@ if [ $RUN_IPERF = true ]; then
 fi
 
 echo -e "#####################################################################"
-echo -e "###                   END OF UDP TESTS                            ###"
+echo -e "###                   END OF TCP TESTS                            ###"
 echo -e "###                      (ERRORS=${ERRORS})                               ###"
 echo -e "#####################################################################"
 
