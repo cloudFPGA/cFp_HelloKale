@@ -571,8 +571,8 @@ void pTcpRxPath(
  *
  * @param[in]  piSHL_MmioEchoCtrl  Configures the echo function.
  * @param[in]  siTSIF_Data         TCP data stream from the SHELL [SHL].
- * @param[in]  siSHL_SessId        TCP session-id from [SHL].
- * @param[in]  siSHL_DatLen        TCP data-length from [SHL].
+ * @param[in]  siTSIF_SessId       TCP session-id from [SHL].
+ * @param[in]  siTSIF_DataLen      TCP data-length from [SHL].
  * @param[out] soTSIF_Data         TCP data stream to [SHL].
  * @param[out] soTSIF_SessId       TCP session-id to [SHL].
  * @param[out  soTSIF_DatLen       TCP data-length to [SHL].
@@ -590,8 +590,8 @@ void tcp_app_flash (
         //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
         stream<TcpAppData>  &siTSIF_Data,
-        stream<TcpSessId>   &siSHL_SessId,
-        stream<TcpDatLen>   &siSHL_DatLen,
+        stream<TcpSessId>   &siTSIF_SessId,
+        stream<TcpDatLen>   &siTSIF_DataLen,
         //------------------------------------------------------
         //-- SHELL / TCP Tx Data Interface
         //------------------------------------------------------
@@ -658,8 +658,8 @@ void tcp_app_flash (
             piSHL_MmioEchoCtrl,
         #endif
             siTSIF_Data,
-            siSHL_SessId,
-            siSHL_DatLen,
+            siTSIF_SessId,
+            siTSIF_DataLen,
             ssRXpToTXp_Data,
             ssRXpToTXp_SessId,
             ssRXpToTXp_DatLen,
