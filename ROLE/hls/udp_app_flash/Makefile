@@ -35,17 +35,17 @@ SRC_DEPS := $(shell find ./src -name *.cpp)
 	$(MAKE) clean
 	@touch $@
 
-.synth_guard: $(SRC_DEPS)
+.synth_guard: .csim_guard
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
 	@touch $@
 
-.ipSynth_guard: $(SRC_DEPS)
+.ipSynth_guard: .csim_guard
 	$(MAKE) ipClean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
 	@touch $@
 
-ip_top_prj/solution1/impl/ip: $(SRC_DEPS)
+ip_top_prj/solution1/impl/ip: .csim_guard
 	$(MAKE) ipClean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl ip_top
 	@touch $@
@@ -65,7 +65,7 @@ project:                 ## Creates the IP-CORE project for simulation, synthesi
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
 
-csim: .csim_guard        ## Runs the HLS C simulation of the IP-CORE project 
+csim: .csim_guard        ## Runs the HLS C simulation of the IP-CORE project
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; export hlsTbMode=0; vivado_hls -f run_hls.tcl ip_core
 
 csynth: .synth_guard     ## Runs the HLS C synthesis of the IP-CORE project
@@ -116,3 +116,4 @@ ipSyn:                   ## Exports the RTL design and executes logic synthesis 
 ipImpl:                  ## Exports the RTL design and performs both RTL synthesis and implementation
 	$(MAKE) ipClean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl ip_top
+

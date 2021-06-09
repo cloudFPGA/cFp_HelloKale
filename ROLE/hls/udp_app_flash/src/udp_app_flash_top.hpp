@@ -47,8 +47,9 @@
  *******************************************************************************/
 void udp_app_flash_top (
         //------------------------------------------------------
-        //-- SHELL / Mmio / Configuration Interfaces
+        //-- SHELL / Mmio Interfaces
         //------------------------------------------------------
+        CmdBit              *piSHL_Mmio_Enabe,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         //[NOT_USED] CmdBit      piSHL_Mmio_PostPktEn,
         //[NOT_USED] CmdBit      piSHL_Mmio_CaptPktEn,

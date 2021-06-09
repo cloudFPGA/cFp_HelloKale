@@ -124,8 +124,9 @@ using namespace hls;
 #else
     void udp_app_flash_top (
         //------------------------------------------------------
-        //-- SHELL / Mmio / Configuration Interfaces
+        //-- SHELL / Mmio Interfaces
         //------------------------------------------------------
+        CmdBit              *piSHL_Mmio_En,
     #if defined UAF_USE_NON_FIFO_IO
         ap_uint<2>  piSHL_Mmio_EchoCtrl,
         ap_uint<1>  piSHL_Mmio_PostPktEn,
@@ -188,7 +189,8 @@ using namespace hls;
 
     //-- INSTANTIATE TOPLEVEL --------------------------------------------------
     udp_app_flash (
-        //-- SHELL / Mmio / Configuration Interfaces
+        //-- SHELL / Mmio Interfaces
+        piSHL_Mmio_En,
     #if defined UAF_USE_NON_FIFO_IO
         piSHL_Mmio_EchoCtrl,
         piSHL_Mmio_PostPktEn,

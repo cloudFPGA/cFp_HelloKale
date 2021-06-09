@@ -71,8 +71,9 @@ enum EchoCtrl {
 void udp_app_flash (
 
         //------------------------------------------------------
-        //-- SHELL / Mmio / Configuration Interfaces
+        //-- SHELL / Mmio Interfaces
         //------------------------------------------------------
+        CmdBit              *piSHL_Mmio_En,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         //[NOT_USED] CmdBit      piSHL_Mmio_PostPktEn,
         //[NOT_USED] CmdBit      piSHL_Mmio_CaptPktEn,

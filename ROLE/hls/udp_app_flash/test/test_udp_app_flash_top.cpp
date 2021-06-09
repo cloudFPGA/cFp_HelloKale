@@ -86,6 +86,7 @@ int main(int argc, char *argv[]) {
     //      hls_stream ports.
     //   @E [SIM-4] *** C/RTL co-simulation finished: FAIL **
    //------------------------------------------------------
+    CmdBit              sSHL_UAF_Mmio_Enable    = CMD_ENABLE;
 #if TB_MODE == 0
     ap_uint<2>          sSHL_UAF_Mmio_EchoCtrl  = ECHO_CTRL_DISABLED;
     ap_uint<1>          sSHL_UAF_Mmio_PostPktEn = 0;
@@ -222,7 +223,8 @@ int main(int argc, char *argv[]) {
         int tbRun = (nrErr == 0) ? (nrUSIF_UAF_Chunks + TB_GRACE_TIME) : 0;
         while (tbRun) {
             udp_app_flash_top(
-                    //-- SHELL / Mmio / Configuration Interfaces
+                    //-- SHELL / Mmio Interfaces
+                    &sSHL_UAF_Mmio_Enable,
                     //[NOT_USED] sSHL_UAF_Mmio_EchoCtrl,
                     //[NOT_USED] sSHL_UAF_Mmio_PostPktEn,
                     //[NOT_USED] sSHL_UAF_Mmio_CaptPktEn,

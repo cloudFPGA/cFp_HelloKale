@@ -474,6 +474,7 @@ architecture BringUp of Role_Kale is
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
       --------------------------------------------------------
+      piSHL_Mmio_En_V        : in  std_logic_vector( 0 downto 0);
       --[NOT_USED] piSHL_Mmio_EchoCtrl_V  : in  std_logic_vector(  1 downto 0);
       --[NOT_USED] piSHL_MmioPostDgmEn_V  : in  std_logic;
       --[NOT_USED] piSHL_MmioCaptDgmEn_V  : in  std_logic;
@@ -513,20 +514,21 @@ architecture BringUp of Role_Kale is
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
-      ap_clk                           : in  std_logic;
-      ap_rst                           : in  std_logic;
+      ap_clk                             : in  std_logic;
+      ap_rst                             : in  std_logic;
       --------------------------------------------------------
       -- From SHELL / Mmio Interfaces
-      --------------------------------------------------------       
+      --------------------------------------------------------
+      piSHL_Mmio_En_V                    : in  std_logic_vector( 0 downto 0);
       --[NOT_USED] piSHL_Mmio_EchoCtrl_V  : in  std_logic_vector(  1 downto 0);
       --[NOT_USED] piSHL_Mmio_PostDgmEn_V : in  std_logic;
       --[NOT_USED] piSHL_Mmio_CaptDgmEn_V : in  std_logic;
       --------------------------------------------------------
       -- From USIF / UDP Rx Data Interfaces
       --------------------------------------------------------
-      siUSIF_Data_V_dout               : in  std_logic_vector( 72 downto 0);  -- 64+8+1
-      siUSIF_Data_V_empty_n            : in  std_logic;
-      siUSIF_Data_V_read               : out std_logic;
+      siUSIF_Data_V_dout                 : in  std_logic_vector( 72 downto 0);  -- 64+8+1
+      siUSIF_Data_V_empty_n              : in  std_logic;
+      siUSIF_Data_V_read                 : out std_logic;
       --
       siUSIF_Meta_V_ip4SrcAddr_V_dout    : in  std_logic_vector(31 DOWNTO 0);
       siUSIF_Meta_V_ip4SrcAddr_V_empty_n : in  std_logic;
@@ -543,9 +545,9 @@ architecture BringUp of Role_Kale is
       --------------------------------------------------------
       -- To USIF / UDP Tx Data Interfaces
       --------------------------------------------------------
-      soUSIF_Data_V_din                : out std_logic_vector( 72 downto 0);
-      soUSIF_Data_V_write              : out std_logic;
-      soUSIF_Data_V_full_n             : in  std_logic;
+      soUSIF_Data_V_din                  : out std_logic_vector( 72 downto 0);
+      soUSIF_Data_V_write                : out std_logic;
+      soUSIF_Data_V_full_n               : in  std_logic;
       --               
       soUSIF_Meta_V_ip4SrcAddr_V_din     : out std_logic_vector(31 DOWNTO 0);
       soUSIF_Meta_V_ip4SrcAddr_V_write   : out std_logic;
@@ -560,9 +562,9 @@ architecture BringUp of Role_Kale is
       soUSIF_Meta_V_udpDstPort_V_write   : out std_logic;
       soUSIF_Meta_V_udpDstPort_V_full_n  : in  std_logic;
       --
-      soUSIF_DLen_V_V_din              : out std_logic_vector( 15 downto 0);
-      soUSIF_DLen_V_V_write            : out std_logic;
-      soUSIF_DLen_V_V_full_n           : in  std_logic
+      soUSIF_DLen_V_V_din                : out std_logic_vector( 15 downto 0);
+      soUSIF_DLen_V_V_write              : out std_logic;
+      soUSIF_DLen_V_V_full_n             : in  std_logic
     );
   end component UdpApplicationFlash;
 
@@ -1498,7 +1500,8 @@ begin
         aresetn                   => not piSHL_Mmio_Ly7Rst,
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
-        --------------------------------------------------------      
+        --------------------------------------------------------
+        piSHL_Mmio_En_V(0)       => piSHL_Mmio_Ly7En,
         --[NOT_USED] piSHL_Mmio_EchoCtrl_V   => piSHL_Mmio_UdpEchoCtrl,
         --[NOT_USED] piSHL_Mmio_PostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
         --[NOT_USED] piSHL_Mmio_CaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
@@ -1541,7 +1544,8 @@ begin
         ap_rst                 => piSHL_Mmio_Ly7Rst,
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
-        --------------------------------------------------------      
+        --------------------------------------------------------
+        piSHL_Mmio_En_V(0)     => piSHL_Mmio_Ly7En,  
         --[NOT_USED] piSHL_Mmio_EchoCtrl_V   => piSHL_Mmio_UdpEchoCtrl,
         --[NOT_USED] piSHL_Mmio_PostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
         --[NOT_USED] piSHL_Mmio_CaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,

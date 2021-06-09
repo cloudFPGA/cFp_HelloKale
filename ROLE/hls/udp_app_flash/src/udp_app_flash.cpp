@@ -70,6 +70,7 @@ using namespace std;
 /*******************************************************************************
  * @brief Echo loopback between the Rx and Tx ports of the UDP connection.
  *
+ * @param[in]  piSHL_Enable Enable signal from [SHELL].
  * @param[in]  siRXp_Data   UDP datagram from RxPath (RXp).
  * @param[in]  siRXp_Meta   UDP metadata from [RXp].
  * @param[in]  siRXp_DLen   UDP data len from [RXp].
@@ -84,6 +85,7 @@ using namespace std;
  * [TODO - Implement this process as a real store-and-forward]
  *******************************************************************************/
 void pUdpEchoStoreAndForward(
+        CmdBit              *piSHL_Enable,
         stream<UdpAppData>  &siRXp_Data,
         stream<UdpAppMetb>  &siRXp_Meta,
         stream<UdpAppDLen>  &siRXp_DLen,
@@ -103,6 +105,10 @@ void pUdpEchoStoreAndForward(
     #pragma HLS reset variable=esf_fsmState
     static UdpAppDLen          esf_byteCnt;
     #pragma HLS reset variable=esf_byteCnt
+
+    if (*piSHL_Enable != 1) {
+        return;
+    }
 
     //=====================================================
     //== PROCESS DATA FORWARDING
@@ -133,6 +139,7 @@ void pUdpEchoStoreAndForward(
 /*******************************************************************************
  * @brief Transmit Path - From THIS to USIF.
  *
+ * @param[in]  piSHL_Mmio_Enable   Enable signal from [SHELL].
  * @param[in]  piSHL_Mmio_EchoCtrl Configuration of the echo function.
  * @param[in]  siEPt_Data          Datagram from pEchoPassTrough (EPt).
  * @param[in]  siEPt_Meta          Metadata from [EPt].
@@ -161,6 +168,7 @@ void pUdpEchoStoreAndForward(
  *     bit of the data stream is set.
  *******************************************************************************/
 void pUdpTxPath(
+        CmdBit              *piSHL_Mmio_Enable,
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
         stream<UdpAppMetb>  &siEPt_Meta,
@@ -179,7 +187,8 @@ void pUdpTxPath(
     const char *myName  = concat3(THIS_NAME, "/", "TXp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { TXP_IDLE=0, TXP_DATA_EPT, TXP_DATA_ESF} \
+    static enum FsmStates { TXP_IDLE=0,   TXP_DATA_EPT,
+                            TXP_DATA_ESF, TXP_DRAIN_INPUT_FIFOS } \
                                txp_fsmState = TXP_IDLE;
     #pragma HLS reset variable=txp_fsmState
     static enum DgmMode   { STRM_MODE=0, DGRM_MODE } \
@@ -196,7 +205,10 @@ void pUdpTxPath(
 
     switch (txp_fsmState) {
     case TXP_IDLE:
-        if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and
+        if (*piSHL_Mmio_Enable == CMD_DISABLE) {
+            txp_fsmState  = TXP_DRAIN_INPUT_FIFOS;
+        }
+        else if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and
             !siEPt_DLen.empty() and !soUSIF_DLen.full()) {
             appMeta = siEPt_Meta.read();
             appDLen = siEPt_DLen.read();
@@ -214,6 +226,7 @@ void pUdpTxPath(
             soUSIF_DLen.write(appDLen);
             txp_fsmState = TXP_DATA_ESF;
         }
+
         if (appDLen == 0) {
             txp_fwdMode = STRM_MODE;
             txp_lenCnt = 0;
@@ -221,6 +234,30 @@ void pUdpTxPath(
         else {
             txp_fwdMode = DGRM_MODE;
             txp_lenCnt = appDLen;
+        }
+        break;
+    case TXP_DRAIN_INPUT_FIFOS:
+        // Drain all the incoming FIFOs as long as MMIO control signal is disabled
+        if(!siEPt_Data.empty()) {
+            siEPt_Data.read();
+        }
+        else if(!siEPt_Meta.empty()) {
+            siEPt_Meta.read();
+        }
+        else if(!siEPt_DLen.empty()) {
+        	siEPt_Meta.read();
+        }
+        else if(!siESf_Data.empty()) {
+            siEPt_Data.read();
+        }
+        else if(!siESf_Meta.empty()) {
+            siEPt_Meta.read();
+        }
+        else if(!siESf_DLen.empty()) {
+            siEPt_Meta.read();
+        }
+        else {
+            txp_fsmState = TXP_IDLE;
         }
         break;
     case TXP_DATA_EPT:
@@ -405,6 +442,7 @@ void pUdpTxPath(
 /*******************************************************************************
  * @brief UDP Receive Path (RXp) - From SHELL->ROLE/USIF to THIS.
  *
+ * @param[in]  piSHL_Mmio_Enable   Enable signal from [SHELL].
  * @param[in]  piSHL_Mmio_EchoCtrl Configuration of the echo function.
  * @param[in]  siUSIF_Data         Datagram from UdpShellInterface (USIF).
  * @param[in]  siUSIF_Meta         Metadata from [USIF].
@@ -418,9 +456,12 @@ void pUdpTxPath(
  * @details This Process waits for a new datagram to read and forwards it to the
  *   EchoPathThrough (EPt) or EchoStoreAndForward (ESf) process upon the setting
  *   of the UDP destination port.
- *   (FYI-This function used to be performed by the 'piSHL_Mmio_EchoCtrl' bits).
+ * @warning When operating with AP_FIFOs instead of AXIS interfaces, it may be
+ *   necessary to drain the incoming FIFos after a reset
+ *    (see e.g. the state RXP_DRAIN_INPUT_FIFOS)
  *******************************************************************************/
 void pUdpRxPath(
+        CmdBit               *piSHL_Mmio_Enable,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
         stream<UdpAppMetb>   &siUSIF_Meta,
@@ -440,7 +481,8 @@ void pUdpRxPath(
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { RXP_IDLE=0, RXP_META_EPT, RXP_META_ESF,
                                         RXP_DATA_EPT, RXP_DATA_ESF,
-                                        RXP_DLEN_EPT, RXP_DLEN_ESF} \
+                                        RXP_DLEN_EPT, RXP_DLEN_ESF,
+                                        RXP_DRAIN_INPUT_FIFOS } \
                                rxp_fsmState = RXP_IDLE;
     #pragma HLS reset variable=rxp_fsmState
 
@@ -453,7 +495,10 @@ void pUdpRxPath(
 
     switch (rxp_fsmState) {
     case RXP_IDLE:
-        if (!siUSIF_Meta.empty()) {
+        if (*piSHL_Mmio_Enable == CMD_DISABLE) {
+            rxp_fsmState  = RXP_DRAIN_INPUT_FIFOS;
+        }
+        else if (!siUSIF_Meta.empty()) {
             siUSIF_Meta.read(rxp_appMeta);
             rxp_byteCnt = 0;
             switch (rxp_appMeta.udpDstPort) {
@@ -468,6 +513,18 @@ void pUdpRxPath(
                 rxp_fsmState  = RXP_META_ESF;
                 break;
             }
+        }
+        break;
+    case RXP_DRAIN_INPUT_FIFOS:
+        // Drain all the incoming FIFOs as long as MMIO control signal is disabled
+        if(!siUSIF_Data.empty()) {
+            siUSIF_Data.read();
+        }
+        else if(!siUSIF_Meta.empty()) {
+            siUSIF_Data.read();
+        }
+        else {
+            rxp_fsmState = RXP_IDLE;
         }
         break;
     case RXP_META_EPT:
@@ -594,6 +651,7 @@ void pUdpRxPath(
 /*******************************************************************************
  * @brief   Main process of the UDP Application Flash (UAF)
  *
+ * @param[in]  piSHL_Mmio_En        Enable signal from [SHELL/MMIO].
  * @param[in]  piSHL_Mmio_EchoCtrl  Configures the echo function.
  * @param[in]  piSHL_Mmio_PostPktEn Enables posting of UDP packets.
  * @param[in]  piSHL_Mmio_CaptPktEn Enables capture of UDP packets.
@@ -614,8 +672,9 @@ void pUdpRxPath(
 void udp_app_flash (
 
         //------------------------------------------------------
-        //-- SHELL / Mmio / Configuration Interfaces
+        //-- SHELL / Mmio Interfaces
         //------------------------------------------------------
+        CmdBit              *piSHL_Mmio_En,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         //[NOT_USED] ap_uint<1>  piSHL_Mmio_PostPktEn,
         //[NOT_USED] ap_uint<1>  piSHL_Mmio_CaptPktEn,
@@ -635,7 +694,7 @@ void udp_app_flash (
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-    #pragma HLS INLINE
+    #pragma HLS INLINE off  // OBSOLETE_20210607 - Trying INLINE off
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -683,6 +742,7 @@ void udp_app_flash (
     //
     //-------------------------------------------------------------------------
     pUdpRxPath(
+            piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             siUSIF_Data,
             siUSIF_Meta,
@@ -694,6 +754,7 @@ void udp_app_flash (
             ssRXpToESf_DLen);
 
     pUdpEchoStoreAndForward(
+            piSHL_Mmio_En,
             ssRXpToESf_Data,
             ssRXpToESf_Meta,
             ssRXpToESf_DLen,
@@ -702,6 +763,7 @@ void udp_app_flash (
             ssESfToTXp_DLen);
 
     pUdpTxPath(
+            piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             ssRXpToTXp_Data,
             ssRXpToTXp_Meta,

@@ -66,15 +66,15 @@ project:                 ## Creates the IP-CORE project for simulation, synthesi
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
 
 csim: .csim_guard        ## Runs the HLS C simulation of the IP-CORE project
-	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
 
 csynth: .synth_guard     ## Runs the HLS C synthesis of the IP-CORE project
 
 cosim: .synth_guard      ## Runs the HLS C/RTL cosimulation of the IP-CORE project 
-	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
 
 regression: .synth_guard ## Runs a sequence of HLS csim, csynth and cosim over the IP-CORE project
-	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_core
 
 help:                    ## Shows this help message
     # This target is for self documentation of the Makefile. 
