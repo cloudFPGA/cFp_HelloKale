@@ -129,9 +129,7 @@ void pUdpEchoStoreAndForward(
          !siRXp_DLen.empty() and !soTXp_DLen.full() ) {
         UdpAppMetb appMeta = siRXp_Meta.read();
         UdpAppDLen appDLen = siRXp_DLen.read();
-        // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-        soTXp_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, appMeta.udpDstPort,
-                                    appMeta.ip4SrcAddr, appMeta.udpSrcPort));
+        soTXp_Meta.write(appMeta);
         soTXp_DLen.write(appDLen);
     }
 }    // End-of: pEchoStoreAndForward()
@@ -187,8 +185,8 @@ void pUdpTxPath(
     const char *myName  = concat3(THIS_NAME, "/", "TXp");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { TXP_IDLE=0,   TXP_DATA_EPT,
-                            TXP_DATA_ESF, TXP_DRAIN_INPUT_FIFOS } \
+    static enum FsmStates { TXP_IDLE=0,   TXP_META,
+                            TXP_DATA_EPT, TXP_DATA_ESF, TXP_DRAIN_INPUT_FIFOS } \
                                txp_fsmState = TXP_IDLE;
     #pragma HLS reset variable=txp_fsmState
     static enum DgmMode   { STRM_MODE=0, DGRM_MODE } \
@@ -197,10 +195,12 @@ void pUdpTxPath(
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ap_int<17>  txp_lenCnt;
+    static UdpAppMetb  txp_appMeta;
+    static UdpAppDLen  txp_appDLen;
+    static enum EchoMode   { EPT_MODE=0, ESF_MODE } \
+                       txp_echoMode = EPT_MODE;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    UdpAppMetb    appMeta;
-    UdpAppDLen    appDLen;
     UdpAppData    appData;
 
     switch (txp_fsmState) {
@@ -208,33 +208,118 @@ void pUdpTxPath(
         if (*piSHL_Mmio_Enable == CMD_DISABLE) {
             txp_fsmState  = TXP_DRAIN_INPUT_FIFOS;
         }
-        else if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and
-            !siEPt_DLen.empty() and !soUSIF_DLen.full()) {
-            appMeta = siEPt_Meta.read();
-            appDLen = siEPt_DLen.read();
-            // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-            soUSIF_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, appMeta.udpDstPort,
-                                         appMeta.ip4SrcAddr, appMeta.udpSrcPort));
-            soUSIF_DLen.write(appDLen);
-            txp_fsmState = TXP_DATA_EPT;
+        else if (!siEPt_Meta.empty() and !siEPt_DLen.empty()) {
+            txp_appMeta = siEPt_Meta.read();
+            txp_appDLen = siEPt_DLen.read();
+            txp_echoMode = EPT_MODE;
+            txp_fsmState = TXP_META;
         }
-        else if (!siESf_Meta.empty() and !soUSIF_Meta.full() and
-                 !siESf_DLen.empty() and !soUSIF_DLen.full()) {
-            appMeta = siESf_Meta.read();
-            appDLen = siESf_DLen.read();
-            soUSIF_Meta.write(appMeta);
-            soUSIF_DLen.write(appDLen);
-            txp_fsmState = TXP_DATA_ESF;
+        else if (!siESf_Meta.empty() and !siESf_DLen.empty()) {
+            txp_appMeta = siESf_Meta.read();
+            txp_appDLen = siESf_DLen.read();
+            txp_echoMode = ESF_MODE;
+            txp_fsmState = TXP_META;
         }
-
-        if (appDLen == 0) {
+        if (txp_appDLen == 0) {
             txp_fwdMode = STRM_MODE;
             txp_lenCnt = 0;
         }
         else {
             txp_fwdMode = DGRM_MODE;
-            txp_lenCnt = appDLen;
+            txp_lenCnt = txp_appDLen;
         }
+        break;
+    case TXP_META:
+        if (!soUSIF_Meta.full() and !soUSIF_DLen.full()) {
+            // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
+            soUSIF_Meta.write(UdpAppMetb(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
+                                         txp_appMeta.ip4SrcAddr, txp_appMeta.udpSrcPort));
+            soUSIF_DLen.write(txp_appDLen);
+            if (txp_echoMode == EPT_MODE) {
+                txp_fsmState = TXP_DATA_EPT;
+            }
+            else {
+                txp_fsmState = TXP_DATA_ESF;
+            }
+        }
+        break;
+    case TXP_DATA_EPT:
+        if (!siEPt_Data.empty() and !soUSIF_Data.full()) {
+            /*** OBSOLETE_20210609 *************
+            appData = siEPt_Data.read();
+            if (txp_fwdMode == STRM_MODE) {
+                txp_lenCnt = txp_lenCnt + appData.getLen();  // Just for tracing
+                if (appData.getTLast()) {
+                    txp_fsmState = TXP_IDLE;
+                    if (DEBUG_LEVEL & TRACE_TXP) {
+                        printInfo(myName, "ECHO_PATH_THRU + STREAM   MODE - Finished forwarding %d bytes.\n", txp_lenCnt.to_uint());
+                    }
+                }
+            }
+            else {
+                //OBSOLETE_20210609 txp_lenCnt = txp_lenCnt - appData.getLen();
+                //OBSOLETE_20210609 if ((txp_lenCnt <= 0) or (appData.getTLast())) {
+                if (appData.getTLast()) {
+                    txp_fsmState = TXP_IDLE;
+                    if (DEBUG_LEVEL & TRACE_TXP) {
+                        printInfo(myName, "ECHO_PATH_THRU + DATAGRAM MODE - Finished datagram forwarding.\n");
+                    }
+                }
+                else {
+                    appData.setTLast(0);
+                }
+            }
+            soUSIF_Data.write(appData);
+            *********************************/
+            appData = siEPt_Data.read();
+            if (appData.getTLast()) {
+                txp_fsmState = TXP_IDLE;
+                if (DEBUG_LEVEL & TRACE_TXP) {
+                    printInfo(myName, "ECHO_PATH_THRU - Finished forwarding stream.\n");
+                }
+            }
+            soUSIF_Data.write(appData);
+        }
+        break;
+    case TXP_DATA_ESF:
+        /*** OBSOLETE_20210609 **************
+        if (!siESf_Data.empty() and !soUSIF_Data.full()) {
+            appData = siESf_Data.read();
+            if (txp_fwdMode == STRM_MODE) {
+                txp_lenCnt = txp_lenCnt + appData.getLen();  // Just for tracing
+                if (appData.getTLast()) {
+                    txp_fsmState = TXP_IDLE;
+                    if (DEBUG_LEVEL & TRACE_TXP) {
+                        printInfo(myName, "ECHO_STORE_FWD + STREAM   MODE - Finished forwarding %d bytes.\n", txp_lenCnt.to_uint());
+                    }
+                }
+            }
+            else {
+                //OBSOLETE_20210609 txp_lenCnt = txp_lenCnt - appData.getLen();
+                //OBSOLETE_20210609 if ((txp_lenCnt <= 0) or (appData.getTLast())) {
+                if (appData.getTLast()) {
+                    txp_fsmState = TXP_IDLE;
+                    if (DEBUG_LEVEL & TRACE_TXP) {
+                        printInfo(myName, "ECHO_STORE_FWD + DATAGRAM MODE - Finished datagram forwarding.\n");
+                    }
+                }
+                else {
+                    appData.setTLast(0);
+                }
+            }
+            soUSIF_Data.write(appData);
+        }
+        ****************************/
+        if (!siESf_Data.empty() and !soUSIF_Data.full()) {
+        appData = siESf_Data.read();
+        if (appData.getTLast()) {
+            txp_fsmState = TXP_IDLE;
+            if (DEBUG_LEVEL & TRACE_TXP) {
+                printInfo(myName, "ECHO_STORE_FWD - Finished forwarding stream.\n");
+            }
+        }
+        soUSIF_Data.write(appData);
+    }
         break;
     case TXP_DRAIN_INPUT_FIFOS:
         // Drain all the incoming FIFOs as long as MMIO control signal is disabled
@@ -260,182 +345,7 @@ void pUdpTxPath(
             txp_fsmState = TXP_IDLE;
         }
         break;
-    case TXP_DATA_EPT:
-        if (!siEPt_Data.empty() and !soUSIF_Data.full()) {
-            appData = siEPt_Data.read();
-            if (txp_fwdMode == STRM_MODE) {
-                txp_lenCnt = txp_lenCnt + appData.getLen();  // Just for tracing
-                if (appData.getTLast()) {
-                    txp_fsmState = TXP_IDLE;
-                    if (DEBUG_LEVEL & TRACE_TXP) {
-                        printInfo(myName, "ECHO_PATH_THRU + STREAM   MODE - Finished forwarding %d bytes.\n", txp_lenCnt.to_uint());
-                    }
-                }
-            }
-            else {
-                txp_lenCnt -= appData.getLen();
-                if ((txp_lenCnt <= 0) or (appData.getTLast())) {
-                    appData.setTLast(TLAST);
-                    txp_fsmState = TXP_IDLE;
-                    if (DEBUG_LEVEL & TRACE_TXP) {
-                        printInfo(myName, "ECHO_PATH_THRU + DATAGRAM MODE - Finished datagram forwarding.\n");
-                    }
-                }
-                else {
-                    appData.setTLast(0);
-                }
-            }
-            soUSIF_Data.write(appData);
-        }
-        break;
-    case TXP_DATA_ESF:
-        if (!siESf_Data.empty() and !soUSIF_Data.full()) {
-            appData = siESf_Data.read();
-            if (txp_fwdMode == STRM_MODE) {
-                txp_lenCnt = txp_lenCnt + appData.getLen();  // Just for tracing
-                if (appData.getTLast()) {
-                    txp_fsmState = TXP_IDLE;
-                    if (DEBUG_LEVEL & TRACE_TXP) {
-                        printInfo(myName, "ECHO_STORE_FWD + STREAM   MODE - Finished forwarding %d bytes.\n", txp_lenCnt.to_uint());
-                    }
-                }
-            }
-            else {
-                txp_lenCnt -= appData.getLen();
-                if ((txp_lenCnt <= 0) or (appData.getTLast())) {
-                    appData.setTLast(TLAST);
-                    txp_fsmState = TXP_IDLE;
-                    if (DEBUG_LEVEL & TRACE_TXP) {
-                        printInfo(myName, "ECHO_STORE_FWD + DATAGRAM MODE - Finished datagram forwarding.\n");
-                    }
-                }
-                else {
-                    appData.setTLast(0);
-                }
-            }
-            soUSIF_Data.write(appData);
-        }
-        break;
     }  // End-of: switch (txp_fsmState) {
-
-    /*** UNUSED_VERSION_BASED_ON_MMIO_ECHO_CTRL_BITS *****************
-    switch (txp_fsmState) {
-    case TXP_META:
-        switch(piSHL_Mmio_EchoCtrl) {
-        case ECHO_PATH_THRU:
-            if (!siEPt_Meta.empty() and !soUSIF_Meta.full() and
-                !siEPt_DLen.empty() and !soUSIF_DLen.full()) {
-                UdpAppMetb appMeta = siEPt_Meta.read();
-                UdpAppDLen appDLen = siEPt_DLen.read();
-                // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-                soUSIF_Meta.write(SocketPair(
-                            SockAddr(appMeta.dst.addr, appMeta.dst.port),
-                            SockAddr(appMeta.src.addr, appMeta.src.port)));
-                soUSIF_DLen.write(appDLen);
-                if (appDLen == 0) {
-                    txp_dgmMode = STRM_MODE;
-                }
-                else {
-                    txp_dgmMode = DGRM_MODE;
-                }
-                txp_lenCnt = 0;
-                txp_lenCnt = appDLen.to_int();
-                txp_fsmState = TXP_STREAM;
-            }
-            break;
-        case ECHO_STORE_FWD:
-            if (!siESf_Meta.empty() and !soUSIF_Meta.full() and
-                !siESf_DLen.empty() and !soUSIF_DLen.full()) {
-                UdpAppMetb appMeta = siESf_Meta.read();
-                UdpAppDLen appDLen = siESf_DLen.read();
-                soUSIF_Meta.write(appMeta);
-                soUSIF_DLen.write(appDLen);
-                if (appDLen == 0) {
-                    txp_dgmMode = STRM_MODE;
-                }
-                else {
-                    txp_dgmMode = DGRM_MODE;
-                    txp_lenCnt  = appDLen;
-                }
-                txp_fsmState = TXP_STREAM;
-            }
-            break;
-        case ECHO_OFF:
-            // Always drain and drop the metadata and datagram length (if any)
-            if ( !siEPt_Meta.empty() ) { siEPt_Meta.read(); }
-            if ( !siEPt_DLen.empty() ) { siEPt_DLen.read(); }
-            if ( !siESf_Meta.empty() ) { siESf_Meta.read(); }
-            if ( !siESf_DLen.empty() ) { siESf_DLen.read(); }
-            txp_fsmState = TXP_STREAM;
-            break;
-        default:
-            // Reserved configuration ==> Do nothing
-            break;
-        }  // End-of: switch(piSHL_Mmio_EchoCtrl) {
-        break;
-    case TXP_STREAM:
-        switch(piSHL_Mmio_EchoCtrl) {
-        case ECHO_PATH_THRU:
-            if (!siEPt_Data.empty() and !soUSIF_Data.full()) {
-                UdpAppData appData = siEPt_Data.read();
-                if (txp_dgmMode == STRM_MODE) {
-                    soUSIF_Data.write(appData);
-                    txp_lenCnt = txp_lenCnt + appData.getLen();
-                    if (appData.getTLast()) {
-                        txp_fsmState = TXP_META;
-                        if (DEBUG_LEVEL & TRACE_TXP) {
-                            printInfo(myName, "ECHO_PATH_THRU - Finished forwarding a datagram of len=%d.\n", txp_lenCnt.to_uint());
-                        }
-                    }
-                }
-                else {
-                    txp_lenCnt -= appData.getLen();
-                    if (txp_lenCnt <= 0) {
-                        appData.setTLast(TLAST);
-                        txp_fsmState = TXP_META;
-                    }
-                    else {
-                        appData.setTLast(0);
-                    }
-                    soUSIF_Data.write(appData);
-                }
-            }
-            break;
-        case ECHO_STORE_FWD:
-            if (!siESf_Data.empty() and !soUSIF_Data.full()) {
-                UdpAppData appData = siESf_Data.read();
-                if (txp_dgmMode == STRM_MODE) {
-                    soUSIF_Data.write(appData);
-                    if (appData.getTLast()) {
-                        txp_fsmState = TXP_META;
-                    }
-                }
-                else {
-                    txp_lenCnt -= appData.getLen();
-                    if (txp_lenCnt <= 0) {
-                        appData.setTLast(TLAST);
-                        txp_fsmState = TXP_META;
-                    }
-                    else {
-                        appData.setTLast(0);
-                    }
-                    soUSIF_Data.write(appData);
-                }
-            }
-            break;
-        case ECHO_OFF:
-            // Always drain and drop the datagrams (if any)
-            if ( !siEPt_Data.empty() ) { siEPt_Data.read(); }
-            if ( !siESf_Data.empty() ) { siESf_Data.read(); }
-            txp_fsmState = TXP_META;
-            break;
-        default:
-            // Reserved configuration ==> Do nothing
-            break;
-        }  // End-of: switch(piSHL_Mmio_EchoCtrl) {
-        break;
-    }  // End-of: switch (txp_fsmState) {
-    ******************************************************************/
 
 }  // End-of: pTxPath()
 
@@ -510,7 +420,8 @@ void pUdpRxPath(
             default:
                 // (DstPort != 8803) Echo this traffic in store-and-forward mode
                 if (DEBUG_LEVEL & TRACE_RXP) { printInfo(myName, "Entering Rx store-and-forward mode (DstPort=%4.4d)\n", rxp_appMeta.udpDstPort.to_uint()); }
-                rxp_fsmState  = RXP_META_ESF;
+                //TMP_OBSOLETE_20210609 rxp_fsmState  = RXP_META_ESF;
+                rxp_fsmState  = RXP_META_EPT;
                 break;
             }
         }
@@ -534,14 +445,32 @@ void pUdpRxPath(
             rxp_fsmState = RXP_DATA_EPT;
         }
         break;
+    case RXP_META_ESF:
+        if (!soESf_Meta.full()) {
+            //-- Forward incoming metadata to pEchoStoreAndForward
+            soESf_Meta.write(rxp_appMeta);
+            rxp_fsmState = RXP_DATA_ESF;
+        }
+        break;
     case RXP_DATA_EPT:
         if (!siUSIF_Data.empty() and !soEPt_Data.full()) {
             //-- Read incoming data and forward to pEchoPathThrough
             siUSIF_Data.read(appData);
             soEPt_Data.write(appData);
-            rxp_byteCnt += appData.getLen();
+            rxp_byteCnt = rxp_byteCnt + appData.getLen();
             if (appData.getTLast()) {
                 rxp_fsmState = RXP_DLEN_EPT;
+            }
+        }
+        break;
+    case RXP_DATA_ESF:
+        if (!siUSIF_Data.empty() and !soESf_Data.full()) {
+            //-- Read incoming data and forward to pEchoStoreAndForward
+            siUSIF_Data.read(appData);
+            soESf_Data.write(appData);
+            rxp_byteCnt = rxp_byteCnt + appData.getLen();
+            if (appData.getTLast()) {
+                rxp_fsmState = RXP_DLEN_ESF;
             }
         }
         break;
@@ -552,25 +481,6 @@ void pUdpRxPath(
             rxp_fsmState = RXP_IDLE;
         }
         break;
-    case RXP_META_ESF:
-        if (!soESf_Meta.full()) {
-            //-- Forward incoming metadata to pEchoStoreAndForward
-            soESf_Meta.write(rxp_appMeta);
-            rxp_fsmState = RXP_DATA_ESF;
-        }
-        break;
-    case RXP_DATA_ESF:
-        if (!siUSIF_Data.empty() and !soESf_Data.full()) {
-            //-- Read incoming data and forward to pEchoStoreAndForward
-            UdpAppData appData;
-            siUSIF_Data.read(appData);
-            soESf_Data.write(appData);
-            rxp_byteCnt += appData.getLen();
-            if (appData.getTLast()) {
-                rxp_fsmState = RXP_DLEN_ESF;
-            }
-        }
-        break;
     case RXP_DLEN_ESF:
         if (!soESf_DLen.full()) {
             //-- Forward the computed data length to pEchoPathThrough
@@ -579,72 +489,6 @@ void pUdpRxPath(
         }
         break;
     }  // End-of: switch (rxp_fsmState) {
-
-    /*** UNUSED_VERSION_BASED_ON_MMIO_ECHO_CTRL_BITS *****************
-    switch (rxp_fsmState) {
-    case RXP_META:
-        rxp_byteCnt = 0;
-        switch(piSHL_Mmio_EchoCtrl) {
-        case ECHO_PATH_THRU:
-            //-- Read incoming metadata and forward to pEchoPathThrough
-            if (!siUSIF_Meta.empty() and !soEPt_Meta.full() and !soEPt_DLen.full()) {
-                soEPt_Meta.write(siUSIF_Meta.read());
-                soEPt_DLen.write(0);  // Tells [TXp] to operate in STREAMING-MODE
-                rxp_fsmState = RXP_STREAM;
-            }
-            break;
-        case ECHO_STORE_FWD:
-            //-- Read incoming metadata and forward to pEchoStoreAndForward
-            if ( !siUSIF_Meta.empty() and !soESf_Meta.full()) {
-               soESf_Meta.write(siUSIF_Meta.read());
-               rxp_fsmState = RXP_STREAM;
-           }
-           break;
-        case ECHO_OFF:
-        default:
-            // Drain and drop the metadata
-            if ( !siUSIF_Meta.empty() ) {
-                siUSIF_Meta.read();
-            }
-            rxp_fsmState = RXP_STREAM;
-            break;
-        }  // End-of: switch(piSHL_MmioEchoCtrl) {
-        break;
-    case RXP_STREAM:
-        switch(piSHL_Mmio_EchoCtrl) {
-        case ECHO_PATH_THRU:
-            //-- Read incoming data and forward to pEchoPathThrough
-            if (!siUSIF_Data.empty() and !soEPt_Data.full()) {
-                UdpAppData appData = siUSIF_Data.read();
-                soEPt_Data.write(appData);
-                rxp_byteCnt += appData.getLen();
-                if (appData.getTLast()) {
-                    rxp_fsmState = RXP_META;
-                }
-            }
-            break;
-        case ECHO_STORE_FWD:
-            //-- Read incoming data and forward to pEchoStoreAndForward
-            if ( !siUSIF_Data.empty() and !soESf_Data.full()) {
-                UdpAppData appData = siUSIF_Data.read();
-                soESf_Data.write(appData);
-                if (appData.getTLast()) {
-                    rxp_fsmState = RXP_META;
-                }
-            }
-            break;
-        case ECHO_OFF:
-        default:
-            // Drain and drop the datagram
-            if ( !siUSIF_Data.empty() ) {
-                UdpAppData appData = siUSIF_Data.read();
-            }
-            rxp_fsmState = RXP_META;
-            break;
-        }  // End-of: switch(piSHL_MmioEchoCtrl) {
-        break;
-    }  // End-of: switch (rxp_fsmState) {
-    ******************************************************************/
 
 }  // End-of: pRxPath()
 
@@ -694,7 +538,7 @@ void udp_app_flash (
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-    #pragma HLS INLINE off  // OBSOLETE_20210607 - Trying INLINE off
+    #pragma HLS INLINE off
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)

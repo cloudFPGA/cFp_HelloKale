@@ -227,15 +227,13 @@ using namespace std;
     #pragma HLS INTERFACE ap_fifo               port=siUAF_Data     name=siUAF_Data
     #pragma HLS DATA_PACK                   variable=siUAF_Data
     #pragma HLS INTERFACE ap_fifo               port=siUAF_Meta     name=siUAF_Meta
-    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
-    //    does not support packing structs which contain other structs!!!
+    #pragma HLS DATA_PACK                   variable=siUAF_Meta
     #pragma HLS INTERFACE ap_fifo               port=siUAF_DLen     name=siUAF_DLen
 
     #pragma HLS INTERFACE ap_fifo               port=soUAF_Data     name=soUAF_Data
     #pragma HLS DATA_PACK                   variable=soUAF_Data
     #pragma HLS INTERFACE ap_fifo               port=soUAF_Meta     name=soUAF_Meta
-    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
-    //    does not support packing structs which contain other structs!!!
+    #pragma HLS DATA_PACK                   variable=soUAF_Meta
   #else
     //-- Make use of AXIS on the UAF interfaces --------------------------------
     #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En

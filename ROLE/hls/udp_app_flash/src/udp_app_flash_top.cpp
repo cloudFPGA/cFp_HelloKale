@@ -158,13 +158,11 @@ using namespace hls;
     #pragma HLS INTERFACE ap_fifo   port=siUSIF_Data    name=siUSIF_Data
     #pragma HLS DATA_PACK       variable=siUSIF_Data
     #pragma HLS INTERFACE ap_fifo   port=siUSIF_Meta    name=siUSIF_Meta
-    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
-    //    does not support packing structs which contain other structs!!!
+    #pragma HLS DATA_PACK       variable=siUSIF_Meta
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_Data    name=soUSIF_Data
     #pragma HLS DATA_PACK       variable=soUSIF_Data
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_Meta    name=soUSIF_Meta
-    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
-    //    does not support packing structs which contain other structs!!!
+    #pragma HLS DATA_PACK       variable=soUSIF_Meta
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_DLen    name=soUSIF_DLen
   #else
     //-- [USIF] INTERFACES ------------------------------------------------------
