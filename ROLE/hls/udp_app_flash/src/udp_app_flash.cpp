@@ -165,7 +165,7 @@ void pUdpEchoStoreAndForward(
  *     bytes before generating a new UDP-over-IPv4 packet, unless the 'TLAST'
  *     bit of the data stream is set.
  *******************************************************************************/
-void pUdpTxPath(
+void pUdpTxPath_tmp(
         CmdBit              *piSHL_Mmio_Enable,
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
@@ -232,8 +232,9 @@ void pUdpTxPath(
     case TXP_META:
         if (!soUSIF_Meta.full() and !soUSIF_DLen.full()) {
             // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-            soUSIF_Meta.write(UdpAppMetb(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
-                                         txp_appMeta.ip4SrcAddr, txp_appMeta.udpSrcPort));
+            UdpAppMetb udpMeta(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
+                               txp_appMeta.ip4SrcAddr, txp_appMeta.udpSrcPort);
+            soUSIF_Meta.write(udpMeta);
             soUSIF_DLen.write(txp_appDLen);
             if (txp_echoMode == EPT_MODE) {
                 txp_fsmState = TXP_DATA_EPT;
@@ -349,6 +350,79 @@ void pUdpTxPath(
 
 }  // End-of: pTxPath()
 
+void pUdpTxPath(
+        CmdBit              *piSHL_Mmio_Enable,
+        //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
+        stream<UdpAppData>  &siEPt_Data,
+        stream<UdpAppMetb>  &siEPt_Meta,
+        stream<UdpAppDLen>  &siEPt_DLen,
+        stream<UdpAppData>  &soUSIF_Data,
+        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppDLen>  &soUSIF_DLen)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "TXp");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { TXP_IDLE=0,   TXP_META,
+                            TXP_DATA_EPT, TXP_DATA_ESF } \
+                               txp_fsmState = TXP_IDLE;
+    #pragma HLS reset variable=txp_fsmState
+    static enum DgmMode   { STRM_MODE=0, DGRM_MODE } \
+                               txp_fwdMode = DGRM_MODE;
+    #pragma HLS reset variable=txp_fwdMode
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static ap_int<17>  txp_lenCnt;
+    static UdpAppMetb  txp_appMeta;
+    static UdpAppDLen  txp_appDLen;
+    static enum EchoMode   { EPT_MODE=0, ESF_MODE } \
+                       txp_echoMode = EPT_MODE;
+
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    UdpAppData    appData;
+
+    switch (txp_fsmState) {
+    case TXP_IDLE:
+        if (!siEPt_Meta.empty() and !siEPt_DLen.empty()) {
+            txp_appMeta = siEPt_Meta.read();
+            txp_appDLen = siEPt_DLen.read();
+            txp_echoMode = EPT_MODE;
+            txp_fsmState = TXP_META;
+        }
+        txp_fwdMode = DGRM_MODE;
+        txp_lenCnt = txp_appDLen;
+        break;
+    case TXP_META:
+        if (!soUSIF_Meta.full() and !soUSIF_DLen.full()) {
+            // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
+            UdpAppMetb udpMeta(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
+                               txp_appMeta.ip4SrcAddr, txp_appMeta.udpSrcPort);
+            soUSIF_Meta.write(udpMeta);
+            soUSIF_DLen.write(txp_appDLen);
+            txp_fsmState = TXP_DATA_EPT;
+        }
+        break;
+    case TXP_DATA_EPT:
+        if (!siEPt_Data.empty() and !soUSIF_Data.full()) {
+            appData = siEPt_Data.read();
+            if (appData.getTLast()) {
+                txp_fsmState = TXP_IDLE;
+                if (DEBUG_LEVEL & TRACE_TXP) {
+                    printInfo(myName, "ECHO_PATH_THRU - Finished forwarding stream.\n");
+                }
+            }
+            soUSIF_Data.write(appData);
+        }
+        break;
+    }  // End-of: switch (txp_fsmState) {
+
+}  // End-of: pTxPath()
+
+
 /*******************************************************************************
  * @brief UDP Receive Path (RXp) - From SHELL->ROLE/USIF to THIS.
  *
@@ -370,7 +444,7 @@ void pUdpTxPath(
  *   necessary to drain the incoming FIFos after a reset
  *    (see e.g. the state RXP_DRAIN_INPUT_FIFOS)
  *******************************************************************************/
-void pUdpRxPath(
+void pUdpRxPath_tmp(
         CmdBit               *piSHL_Mmio_Enable,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
@@ -420,8 +494,7 @@ void pUdpRxPath(
             default:
                 // (DstPort != 8803) Echo this traffic in store-and-forward mode
                 if (DEBUG_LEVEL & TRACE_RXP) { printInfo(myName, "Entering Rx store-and-forward mode (DstPort=%4.4d)\n", rxp_appMeta.udpDstPort.to_uint()); }
-                //TMP_OBSOLETE_20210609 rxp_fsmState  = RXP_META_ESF;
-                rxp_fsmState  = RXP_META_EPT;
+                rxp_fsmState  = RXP_META_ESF;
                 break;
             }
         }
@@ -492,6 +565,73 @@ void pUdpRxPath(
 
 }  // End-of: pRxPath()
 
+void pUdpRxPath(
+        CmdBit               *piSHL_Mmio_Enable,
+        //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
+        stream<UdpAppData>   &siUSIF_Data,
+        stream<UdpAppMetb>   &siUSIF_Meta,
+        stream<UdpAppData>   &soEPt_Data,
+        stream<UdpAppMetb>   &soEPt_Meta,
+        stream<UdpAppDLen>   &soEPt_DLen)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "RXp");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { RXP_IDLE=0, RXP_META_EPT, RXP_META_ESF,
+                                        RXP_DATA_EPT, RXP_DATA_ESF,
+                                        RXP_DLEN_EPT, RXP_DLEN_ESF } \
+                               rxp_fsmState = RXP_IDLE;
+    #pragma HLS reset variable=rxp_fsmState
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static UdpAppMetb rxp_appMeta;
+    static UdpAppDLen rxp_byteCnt;
+
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    UdpAppData  appData;
+
+    switch (rxp_fsmState) {
+    case RXP_IDLE:
+        if (!siUSIF_Meta.empty()) {
+            siUSIF_Meta.read(rxp_appMeta);
+            rxp_byteCnt = 0;
+            rxp_fsmState  = RXP_META_EPT;
+        }
+        break;
+    case RXP_META_EPT:
+        if (!soEPt_Meta.full()) {
+            //-- Forward incoming metadata to pEchoPathThrough
+            soEPt_Meta.write(rxp_appMeta);
+            rxp_fsmState = RXP_DATA_EPT;
+        }
+        break;
+    case RXP_DATA_EPT:
+        if (!siUSIF_Data.empty() and !soEPt_Data.full()) {
+            //-- Read incoming data and forward to pEchoPathThrough
+            siUSIF_Data.read(appData);
+            soEPt_Data.write(appData);
+            rxp_byteCnt = rxp_byteCnt + appData.getLen();
+            if (appData.getTLast()) {
+                rxp_fsmState = RXP_DLEN_EPT;
+            }
+        }
+        break;
+    case RXP_DLEN_EPT:
+        if (!soEPt_DLen.full()) {
+            //-- Forward the computed data length to pEchoPathThrough
+            soEPt_DLen.write(rxp_byteCnt);
+            rxp_fsmState = RXP_IDLE;
+        }
+        break;
+    }  // End-of: switch (rxp_fsmState) {
+
+}  // End-of: pRxPath()
+
+
 /*******************************************************************************
  * @brief   Main process of the UDP Application Flash (UAF)
  *
@@ -513,7 +653,7 @@ void pUdpRxPath(
  *   interface(ap_hs) or an AXI-Stream interface (axis) because these two
  *   interfaces do not support non-blocking accesses.
  *******************************************************************************/
-void udp_app_flash (
+void udp_app_flash_tmp (
 
         //------------------------------------------------------
         //-- SHELL / Mmio Interfaces
@@ -585,7 +725,7 @@ void udp_app_flash (
     //           |                              \|/
     //
     //-------------------------------------------------------------------------
-    pUdpRxPath(
+    pUdpRxPath_tmp(
             piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             siUSIF_Data,
@@ -606,7 +746,7 @@ void udp_app_flash (
             ssESfToTXp_Meta,
             ssESfToTXp_DLen);
 
-    pUdpTxPath(
+    pUdpTxPath_tmp(
             piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             ssRXpToTXp_Data,
@@ -615,6 +755,96 @@ void udp_app_flash (
             ssESfToTXp_Data,
             ssESfToTXp_Meta,
             ssESfToTXp_DLen,
+            soUSIF_Data,
+            soUSIF_Meta,
+            soUSIF_DLen);
+
+}
+
+void udp_app_flash (
+
+        //------------------------------------------------------
+        //-- SHELL / Mmio Interfaces
+        //------------------------------------------------------
+        CmdBit              *piSHL_Mmio_En,
+        //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
+        //[NOT_USED] ap_uint<1>  piSHL_Mmio_PostPktEn,
+        //[NOT_USED] ap_uint<1>  piSHL_Mmio_CaptPktEn,
+
+        //------------------------------------------------------
+        //-- USIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>  &siUSIF_Data,
+        stream<UdpAppMetb>  &siUSIF_Meta,
+
+        //------------------------------------------------------
+        //-- USIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>  &soUSIF_Data,
+        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppDLen>  &soUSIF_DLen)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+    #pragma HLS INLINE off
+
+    //--------------------------------------------------------------------------
+    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //--------------------------------------------------------------------------
+
+    //-- Rx Path (RXp) ---------------------------------------------------------
+    static stream<UdpAppData>     ssRXpToTXp_Data    ("ssRXpToTXp_Data");
+    #pragma HLS STREAM   variable=ssRXpToTXp_Data    depth=2048
+    static stream<UdpAppMetb>     ssRXpToTXp_Meta    ("ssRXpToTXp_Meta");
+    #pragma HLS STREAM   variable=ssRXpToTXp_Meta    depth=64
+    static stream<UdpAppDLen>     ssRXpToTXp_DLen    ("ssRXpToTXp_DLen");
+    #pragma HLS STREAM   variable=ssRXpToTXp_DLen    depth=64
+
+    static stream<UdpAppData>     ssRXpToESf_Data    ("ssRXpToESf_Data");
+    #pragma HLS STREAM   variable=ssRXpToESf_Data    depth=1024
+    static stream<UdpAppMetb>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
+    #pragma HLS STREAM   variable=ssRXpToESf_Meta    depth=32
+    static stream<UdpAppDLen>     ssRXpToESf_DLen    ("ssRXpToESf_DLen");
+    #pragma HLS STREAM   variable=ssRXpToESf_DLen    depth=32
+
+    //-- Echo Store and Forward (ESf) ------------------------------------------
+    static stream<UdpAppData>     ssESfToTXp_Data    ("ssESfToTXp_Data");
+    #pragma HLS STREAM   variable=ssESfToTXp_Data    depth=1024
+    static stream<UdpAppMetb>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
+    #pragma HLS STREAM   variable=ssESfToTXp_Meta    depth=32
+    static stream<UdpAppDLen>     ssESfToTXp_DLen    ("ssESfToTXp_DLen");
+    #pragma HLS STREAM   variable=ssESfToTXp_DLen    depth=32
+
+    //-- PROCESS FUNCTIONS ----------------------------------------------------
+    //
+    //
+    //                      --------+
+    //              +--------> sEPt |---------+
+    //              |       --------+         |
+    //     +--+--+--+--+                   +--+--+--+--+
+    //     |   pRXp    |                   |   pTXp    |
+    //     +------+----+                   +-----+-----+
+    //          /|\                              |
+    //           |                               |
+    //           |                               |
+    //           |                              \|/
+    //
+    //-------------------------------------------------------------------------
+    pUdpRxPath(
+            piSHL_Mmio_En,
+            //[NOT_USED] piSHL_Mmio_EchoCtrl,
+            siUSIF_Data,
+            siUSIF_Meta,
+            ssRXpToTXp_Data,
+            ssRXpToTXp_Meta,
+            ssRXpToTXp_DLen);
+
+    pUdpTxPath(
+            piSHL_Mmio_En,
+            //[NOT_USED] piSHL_Mmio_EchoCtrl,
+            ssRXpToTXp_Data,
+            ssRXpToTXp_Meta,
+            ssRXpToTXp_DLen,
             soUSIF_Data,
             soUSIF_Meta,
             soUSIF_DLen);

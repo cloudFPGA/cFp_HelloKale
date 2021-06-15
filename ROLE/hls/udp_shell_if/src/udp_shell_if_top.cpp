@@ -39,7 +39,10 @@
 using namespace hls;
 using namespace std;
 
-#define USE_AP_FIFO
+/************************************************
+ * INTERFACE SYNTHESIS DIRECTIVES
+ ************************************************/
+#undef USE_AP_FIFO
 
 /*****************************************************************************
  * @brief   Top of UDP Shell Interface (USIF)
@@ -259,7 +262,7 @@ using namespace std;
     #pragma HLS DATA_PACK                   variable=siUAF_Meta
     #pragma HLS INTERFACE axis off              port=siUAF_DLen     name=siUAF_DLen
 
-    #pragma HLS INTERFACE axis off              port=siUAF_Data     name=soUAF_Data
+    #pragma HLS INTERFACE axis off              port=soUAF_Data     name=soUAF_Data
     #pragma HLS INTERFACE axis off              port=soUAF_Meta     name=soUAF_Meta
     #pragma HLS DATA_PACK                   variable=soUAF_Meta
   #endif

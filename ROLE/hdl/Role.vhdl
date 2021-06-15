@@ -347,6 +347,59 @@ architecture BringUp of Role_Kale is
   signal ssTARS_TSIF_DatLen_tready  : std_ulogic;
   
   --------------------------------------------------------
+  -- SIGNAL DECLARATIONS : USIF --> UARS --> UAF
+  --------------------------------------------------------
+  signal ssUSIF_UARS_Data_tdata     : std_ulogic_vector( 63 downto 0);
+  signal ssUSIF_UARS_Data_tkeep     : std_ulogic_vector(  7 downto 0);
+  signal ssUSIF_UARS_Data_tlast     : std_ulogic;
+  signal ssUSIF_UARS_Data_tvalid    : std_ulogic;
+  signal ssUSIF_UARS_Data_tready    : std_ulogic;
+  --
+  signal ssUSIF_UARS_Meta_tdata     : std_ulogic_vector( 95 downto 0);
+  signal ssUSIF_UARS_Meta_tvalid    : std_ulogic;
+  signal ssUSIF_UARS_Meta_tready    : std_ulogic;
+  -- -------------------------------------------
+  signal ssUARS_UAF_Data_tdata      : std_ulogic_vector( 63 downto 0);
+  signal ssUARS_UAF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
+  signal ssUARS_UAF_Data_tlast      : std_ulogic;
+  signal ssUARS_UAF_Data_tvalid     : std_ulogic;
+  signal ssUARS_UAF_Data_tready     : std_ulogic;
+  --
+  signal ssUARS_UAF_Meta_tdata      : std_ulogic_vector( 95 downto 0);
+  signal ssUARS_UAF_Meta_tvalid     : std_ulogic;
+  signal ssUARS_UAF_Meta_tready     : std_ulogic;
+  --------------------------------------------------------
+  -- SIGNAL DECLARATIONS : UAF --> UARS --> USIF
+  --------------------------------------------------------
+  signal ssUAF_UARS_Data_tdata      : std_ulogic_vector( 63 downto 0);
+  signal ssUAF_UARS_Data_tkeep      : std_ulogic_vector(  7 downto 0);
+  signal ssUAF_UARS_Data_tlast      : std_ulogic;
+  signal ssUAF_UARS_Data_tvalid     : std_ulogic;
+  signal ssUAF_UARS_Data_tready     : std_ulogic;
+  --
+  signal ssUAF_UARS_Meta_tdata      : std_ulogic_vector( 95 downto 0);
+  signal ssUAF_UARS_Meta_tvalid     : std_ulogic;
+  signal ssUAF_UARS_Meta_tready     : std_ulogic;
+  --
+  signal ssUAF_UARS_DLen_tdata      : std_ulogic_vector( 15 downto 0);
+  signal ssUAF_UARS_DLen_tvalid     : std_ulogic;
+  signal ssUAF_UARS_DLen_tready     : std_ulogic;
+  -- -------------------------------------------
+  signal ssUARS_USIF_Data_tdata     : std_ulogic_vector( 63 downto 0);
+  signal ssUARS_USIF_Data_tkeep     : std_ulogic_vector(  7 downto 0);
+  signal ssUARS_USIF_Data_tlast     : std_ulogic;
+  signal ssUARS_USIF_Data_tvalid    : std_ulogic;
+  signal ssUARS_USIF_Data_tready    : std_ulogic;
+  --
+  signal ssUARS_USIF_Meta_tdata     : std_ulogic_vector( 95 downto 0);
+  signal ssUARS_USIF_Meta_tvalid    : std_ulogic;
+  signal ssUARS_USIF_Meta_tready    : std_ulogic;
+  --
+  signal ssUARS_USIF_DLen_tdata     : std_ulogic_vector( 15 downto 0);
+  signal ssUARS_USIF_DLen_tvalid    : std_ulogic;
+  signal ssUARS_USIF_DLen_tready    : std_ulogic;
+
+  --------------------------------------------------------
   -- SIGNAL DECLARATIONS : USIF <--> UAF (Axis-based)
   --------------------------------------------------------
   -- USIF-> UAF / UDP Rx Data Interfaces
@@ -474,7 +527,7 @@ architecture BringUp of Role_Kale is
     );
   end component UdpApplicationFlash_Deprecated;  
 
-  component UdpApplicationFlash is
+  component UdpApplicationFlash_ApFifo is
     port (
       ------------------------------------------------------
       -- From SHELL / Clock and Reset
@@ -512,6 +565,51 @@ architecture BringUp of Role_Kale is
       soUSIF_DLen_V_V_din                : out std_logic_vector( 15 downto 0);
       soUSIF_DLen_V_V_write              : out std_logic;
       soUSIF_DLen_V_V_full_n             : in  std_logic
+    );
+  end component UdpApplicationFlash_ApFifo;
+  
+  component UdpApplicationFlash is
+    port (
+      ------------------------------------------------------
+      -- From SHELL / Clock and Reset
+      ------------------------------------------------------
+      ap_clk                 : in  std_logic;
+      ap_rst_n               : in  std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Mmio Interfaces
+      --------------------------------------------------------
+      piSHL_Mmio_En_V        : in  std_logic_vector( 0 downto 0);
+      --[NOT_USED] piSHL_Mmio_EchoCtrl_V  : in  std_logic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_Mmio_PostDgmEn_V : in  std_logic;
+      --[NOT_USED] piSHL_Mmio_CaptDgmEn_V : in  std_logic;
+      --------------------------------------------------------
+      -- From USIF / UDP Rx Data Interfaces
+      --------------------------------------------------------
+      siUSIF_Data_tdata      : in  std_logic_vector( 63 downto 0);
+      siUSIF_Data_tkeep      : in  std_logic_vector(  7 downto 0);
+      siUSIF_Data_tlast      : in  std_logic;
+      siUSIF_Data_tvalid     : in  std_logic;
+      siUSIF_Data_tready     : out std_logic;
+      --
+      siUSIF_Meta_V_tdata    : in  std_logic_vector(95 downto 0);
+      siUSIF_Meta_V_tvalid   : in  std_logic;
+      siUSIF_Meta_V_tready   : out std_logic;
+      --------------------------------------------------------
+      -- To USIF / UDP Tx Data Interfaces
+      --------------------------------------------------------
+      soUSIF_Data_tdata      : out std_logic_vector( 63 downto 0);
+      soUSIF_Data_tkeep      : out std_logic_vector(  7 downto 0);
+      soUSIF_Data_tlast      : out std_logic;
+      soUSIF_Data_tvalid     : out std_logic;
+      soUSIF_Data_tready     : in  std_logic;
+      --               
+      soUSIF_Meta_V_tdata    : out std_logic_vector(95 downto 0);
+      soUSIF_Meta_V_tvalid   : out std_logic;
+      soUSIF_Meta_V_tready   : in  std_logic; 
+      --
+      soUSIF_DLen_V_V_tdata  : out std_logic_vector(15 downto 0);
+      soUSIF_DLen_V_V_tvalid : out std_logic;
+      soUSIF_DLen_V_V_tready : in  std_logic 
     );
   end component UdpApplicationFlash;
 
@@ -603,7 +701,7 @@ architecture BringUp of Role_Kale is
   );
   end component UdpShellInterface_Deprecated;  
   
-  component UdpShellInterface is
+  component UdpShellInterface_ApFifo is
     port (
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
@@ -685,7 +783,95 @@ architecture BringUp of Role_Kale is
         soUAF_Meta_V_write      : out std_logic;
         soUAF_Meta_V_full_n     : in  std_logic  
     );
-    end component UdpShellInterface;
+    end component UdpShellInterface_ApFifo;
+    
+  component UdpShellInterface is
+    port (
+        ------------------------------------------------------
+        -- From SHELL / Clock and Reset
+        ------------------------------------------------------
+        ap_clk                  : in  std_logic;
+        ap_rst_n                : in  std_logic;
+        --------------------------------------------------------
+        -- SHELL / Mmio Interface
+        --------------------------------------------------------
+        piSHL_Mmio_En_V         : in  std_logic;
+        --------------------------------------------------------
+        -- SHELL / UDP Control Port Interfaces
+        --------------------------------------------------------
+        soSHL_LsnReq_V_V_tdata  : out std_logic_vector(15 downto 0);
+        soSHL_LsnReq_V_V_tvalid : out std_logic;
+        soSHL_LsnReq_V_V_tready : in  std_logic;
+        --
+        siSHL_LsnRep_V_tdata    : in  std_logic_vector( 7 downto 0);
+        siSHL_LsnRep_V_tvalid   : in  std_logic;
+        siSHL_LsnRep_V_tready   : out std_logic;
+        --      
+        soSHL_ClsReq_V_V_tdata  : out std_logic_vector(15 downto 0);
+        soSHL_ClsReq_V_V_tvalid : out std_logic;
+        soSHL_ClsReq_V_V_tready : in  std_logic;
+        --
+        siSHL_ClsRep_V_tdata    : in  std_logic_vector( 7 downto 0);
+        siSHL_ClsRep_V_tvalid   : in  std_logic;
+        siSHL_ClsRep_V_tready   : out std_logic;
+        --------------------------------------------------------
+        -- SHELL / Rx Data Interfaces
+        --------------------------------------------------------
+        siSHL_Data_tdata        : in  std_logic_vector(63 downto 0);
+        siSHL_Data_tkeep        : in  std_logic_vector( 7 downto 0);
+        siSHL_Data_tlast        : in  std_logic;
+        siSHL_Data_tvalid       : in  std_logic;
+        siSHL_Data_tready       : out std_logic;
+        --
+        siSHL_Meta_V_tdata      : in  std_logic_vector(95 downto 0);
+        siSHL_Meta_V_tvalid     : in  std_logic;
+        siSHL_Meta_V_tready     : out std_logic;
+        --------------------------------------------------------
+        -- SHELL / UDP Tx Data Interfaces
+        --------------------------------------------------------
+        soSHL_Data_tdata        : out std_logic_vector(63 downto 0);
+        soSHL_Data_tkeep        : out std_logic_vector( 7 downto 0);
+        soSHL_Data_tlast        : out std_logic;
+        soSHL_Data_tvalid       : out std_logic;
+        soSHL_Data_tready       : in std_logic;
+        --
+        soSHL_Meta_V_tdata      : out std_logic_vector(95 downto 0);
+        soSHL_Meta_V_tvalid     : out std_logic;
+        soSHL_Meta_V_tready     : in  std_logic;
+        --
+        soSHL_DLen_V_V_tdata    : out std_logic_vector(15 downto 0);
+        soSHL_DLen_V_V_tvalid   : out std_logic;
+        soSHL_DLen_V_V_tready   : in  std_logic;
+        --------------------------------------------------------
+        -- UAF / UDP Tx Data Interfaces
+        --------------------------------------------------------
+        siUAF_Data_tdata      : in  std_logic_vector(63 downto 0);
+        siUAF_Data_tkeep      : in  std_logic_vector( 7 downto 0);
+        siUAF_Data_tlast      : in  std_logic;
+        siUAF_Data_tvalid     : in  std_logic;
+        siUAF_Data_tready     : out std_logic;
+        --
+        siUAF_Meta_V_tdata    : in  std_logic_vector(95 downto 0);
+        siUAF_Meta_V_tvalid   : in  std_logic;
+        siUAF_Meta_V_tready   : out std_logic;
+        --     
+        siUAF_DLen_V_V_tdata  : in  std_logic_vector(15 downto 0);
+        siUAF_DLen_V_V_tvalid : in  std_logic;
+        siUAF_DLen_V_V_tready : out std_logic;
+        --------------------------------------------------------
+        -- UAF / Rx Data Interfaces
+        --------------------------------------------------------
+        soUAF_Data_tdata      : out std_logic_vector(63 downto 0);
+        soUAF_Data_tkeep      : out std_logic_vector( 7 downto 0);
+        soUAF_Data_tlast      : out std_logic;
+        soUAF_Data_tvalid     : out std_logic;
+        soUAF_Data_tready     : in  std_logic;
+        --
+        soUAF_Meta_V_tdata    : out std_logic_vector(95 downto 0);
+        soUAF_Meta_V_tvalid   : out std_logic;
+        soUAF_Meta_V_tready   : in  std_logic  
+    );
+  end component UdpShellInterface;  
  
   component TcpApplicationFlash_Deprecated is
     port (
@@ -1077,7 +1263,7 @@ architecture BringUp of Role_Kale is
     );
   end component MemTestFlash;
 
-  component AxisRegisterSlice_64
+  component AxisRegisterSlice_64_8_1
     port (
       aclk          : in  std_logic;
       aresetn       : in  std_logic;
@@ -1092,8 +1278,8 @@ architecture BringUp of Role_Kale is
       m_axis_tvalid : out std_logic;
       m_axis_tready : in  std_logic
     );
-  end component AxisRegisterSlice_64;
-
+  end component AxisRegisterSlice_64_8_1;
+  
   component AxisRegisterSlice_16
     port (
       aclk          : in  std_logic;
@@ -1106,6 +1292,19 @@ architecture BringUp of Role_Kale is
       m_axis_tdata  : out std_logic_vector(15 downto 0)
     );
   end component AxisRegisterSlice_16;
+  
+  component AxisRegisterSlice_96
+    port (
+      aclk          : in  std_logic;
+      aresetn       : in  std_logic;
+      s_axis_tvalid : in  std_logic;
+      s_axis_tready : out std_logic;
+      s_axis_tdata  : in  std_logic_vector(95 downto 0);
+      m_axis_tvalid : out std_logic;
+      m_axis_tready : in  std_logic;
+      m_axis_tdata  : out std_logic_vector(95 downto 0)
+    );
+  end component AxisRegisterSlice_96;
 
   component Fifo_16x16 is
     port (
@@ -1343,27 +1542,55 @@ begin
         --------------------------------------------------------
         -- UAF / UDP Tx Data Interfaces
         --------------------------------------------------------
-        siUAF_Data_V_dout          =>     ssFIFO_USIF_Udp_Data_data,
-        siUAF_Data_V_read          =>     ssFIFO_USIF_Udp_Data_read,
-        siUAF_Data_V_empty_n       => not ssFIFO_USIF_Udp_Data_empty,
+        siUAF_Data_tdata       => ssUARS_USIF_Data_tdata,
+        siUAF_Data_tkeep       => ssUARS_USIF_Data_tkeep,
+        siUAF_Data_tlast       => ssUARS_USIF_Data_tlast,
+        siUAF_Data_tvalid      => ssUARS_USIF_Data_tvalid,
+        siUAF_Data_tready      => ssUARS_USIF_Data_tready,
+        -- 
+        siUAF_Meta_V_tdata     => ssUARS_USIF_Meta_tdata,
+        siUAF_Meta_V_tvalid    => ssUARS_USIF_Meta_tvalid,
+        siUAF_Meta_V_tready    => ssUARS_USIF_Meta_tready,
         --
-        siUAF_Meta_V_dout          =>     ssFIFO_USIF_Udp_Meta_data,
-        siUAF_Meta_V_read          =>     ssFIFO_USIF_Udp_Meta_read,
-        siUAF_Meta_V_empty_n       => not ssFIFO_USIF_Udp_Meta_empty,
-        --
-        siUAF_DLen_V_V_dout        =>     ssFIFO_USIF_Udp_DLen_data,
-        siUAF_DLen_V_V_read        =>     ssFIFO_USIF_Udp_DLen_read,
-        siUAF_DLen_V_V_empty_n     => not ssFIFO_USIF_Udp_DLen_empty,
+        siUAF_DLen_V_V_tdata   => ssUARS_USIF_DLen_tdata,
+        siUAF_DLen_V_V_tvalid  => ssUARS_USIF_DLen_tvalid,
+        siUAF_DLen_V_V_tready  => ssUARS_USIF_DLen_tready,
         --------------------------------------------------------
         -- UAF / UDP Rx Data Interfaces
         --------------------------------------------------------
-        soUAF_Data_V_din           =>     ssUSIF_FIFO_Udp_Data_data,
-        soUAF_Data_V_write         =>     ssUSIF_FIFO_Udp_Data_write,
-        soUAF_Data_V_full_n        => not ssUSIF_FIFO_Udp_Data_full,
+        soUAF_Data_tdata       => ssUSIF_UARS_Data_tdata,
+        soUAF_Data_tkeep       => ssUSIF_UARS_Data_tkeep,
+        soUAF_Data_tlast       => ssUSIF_UARS_Data_tlast,
+        soUAF_Data_tvalid      => ssUSIF_UARS_Data_tvalid,
+        soUAF_Data_tready      => ssUSIF_UARS_Data_tready,
         --
-        soUAF_Meta_V_din           =>     ssUSIF_FIFO_Udp_Meta_data,  
-        soUAF_Meta_V_write         =>     ssUSIF_FIFO_Udp_Meta_write,
-        soUAF_Meta_V_full_n        => not ssUSIF_FIFO_Udp_Meta_full
+        soUAF_Meta_V_tdata     => ssUSIF_UARS_Meta_tdata,
+        soUAF_Meta_V_tvalid    => ssUSIF_UARS_Meta_tvalid,
+        soUAF_Meta_V_tready    => ssUSIF_UARS_Meta_tready
+--        --------------------------------------------------------
+--        -- UAF / UDP Tx Data Interfaces
+--        --------------------------------------------------------
+--        siUAF_Data_V_dout          =>     ssFIFO_USIF_Udp_Data_data,
+--        siUAF_Data_V_read          =>     ssFIFO_USIF_Udp_Data_read,
+--        siUAF_Data_V_empty_n       => not ssFIFO_USIF_Udp_Data_empty,
+--        --
+--        siUAF_Meta_V_dout          =>     ssFIFO_USIF_Udp_Meta_data,
+--        siUAF_Meta_V_read          =>     ssFIFO_USIF_Udp_Meta_read,
+--        siUAF_Meta_V_empty_n       => not ssFIFO_USIF_Udp_Meta_empty,
+--        --
+--        siUAF_DLen_V_V_dout        =>     ssFIFO_USIF_Udp_DLen_data,
+--        siUAF_DLen_V_V_read        =>     ssFIFO_USIF_Udp_DLen_read,
+--        siUAF_DLen_V_V_empty_n     => not ssFIFO_USIF_Udp_DLen_empty,
+--        --------------------------------------------------------
+--        -- UAF / UDP Rx Data Interfaces
+--        --------------------------------------------------------
+--        soUAF_Data_V_din           =>     ssUSIF_FIFO_Udp_Data_data,
+--        soUAF_Data_V_write         =>     ssUSIF_FIFO_Udp_Data_write,
+--        soUAF_Data_V_full_n        => not ssUSIF_FIFO_Udp_Data_full,
+--        --
+--        soUAF_Meta_V_din           =>     ssUSIF_FIFO_Udp_Meta_data,  
+--        soUAF_Meta_V_write         =>     ssUSIF_FIFO_Udp_Meta_write,
+--        soUAF_Meta_V_full_n        => not ssUSIF_FIFO_Udp_Meta_full
       ); -- End-of: UdpShellInterface
   end generate;
 
@@ -1437,7 +1664,7 @@ begin
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
         ap_clk                 => piSHL_156_25Clk,
-        ap_rst                 => piSHL_Mmio_Ly7Rst,
+        ap_rst_n               => not piSHL_Mmio_Ly7Rst,
         --------------------------------------------------------
         -- From SHELL / Mmio Interfaces
         --------------------------------------------------------
@@ -1445,30 +1672,58 @@ begin
         --[NOT_USED] piSHL_Mmio_EchoCtrl_V   => piSHL_Mmio_UdpEchoCtrl,
         --[NOT_USED] piSHL_Mmio_PostDgmEn_V  => piSHL_Mmio_UdpPostDgmEn,
         --[NOT_USED] piSHL_Mmio_CaptDgmEn_V  => piSHL_Mmio_UdpCaptDgmEn,
-        --------------------------------------------------------
+                --------------------------------------------------------
         -- From USIF / UDP Rx Data Interfaces
         --------------------------------------------------------
-        siUSIF_Data_V_dout     =>     ssFIFO_UAF_Udp_Data_data,
-        siUSIF_Data_V_read     =>     ssFIFO_UAF_Udp_Data_read,
-        siUSIF_Data_V_empty_n  => not ssFIFO_UAF_Udp_Data_empty,
+        siUSIF_Data_tdata     => ssUARS_UAF_Data_tdata,
+        siUSIF_Data_tkeep     => ssUARS_UAF_Data_tkeep,
+        siUSIF_Data_tlast     => ssUARS_UAF_Data_tlast,
+        siUSIF_Data_tvalid    => ssUARS_UAF_Data_tvalid,
+        siUSIF_Data_tready    => ssUARS_UAF_Data_tready,
         --
-        siUSIF_Meta_V_dout     =>     ssFIFO_UAF_Udp_Meta_data,
-        siUSIF_Meta_V_read     =>     ssFIFO_UAF_Udp_Meta_read,
-        siUSIF_Meta_V_empty_n  => not ssFIFO_UAF_Udp_Meta_empty,
+        siUSIF_Meta_V_tdata   => ssUARS_UAF_Meta_tdata,
+        siUSIF_Meta_V_tvalid  => ssUARS_UAF_Meta_tvalid,
+        siUSIF_Meta_V_tready  => ssUARS_UAF_Meta_tready,
         --------------------------------------------------------
         -- To USIF / UDP Tx Data Interfaces
         --------------------------------------------------------
-        soUSIF_Data_V_din      =>     ssUAF_FIFO_Udp_Data_data,
-        soUSIF_Data_V_write    =>     ssUAF_FIFO_Udp_Data_write,
-        soUSIF_Data_V_full_n   => not ssUAF_FIFO_Udp_Data_full,        
+        soUSIF_Data_tdata     => ssUAF_UARS_Data_tdata ,
+        soUSIF_Data_tkeep     => ssUAF_UARS_Data_tkeep ,
+        soUSIF_Data_tlast     => ssUAF_UARS_Data_tlast ,
+        soUSIF_Data_tvalid    => ssUAF_UARS_Data_tvalid,
+        soUSIF_Data_tready    => ssUAF_UARS_Data_tready,
         --
-        soUSIF_Meta_V_din      =>     ssUAF_FIFO_Udp_Meta_data,
-        soUSIF_Meta_V_write    =>     ssUAF_FIFO_Udp_Meta_write,   
-        soUSIF_Meta_V_full_n   => not ssUAF_FIFO_Udp_Meta_full,
+        soUSIF_Meta_V_tdata   => ssUAF_UARS_Meta_tdata ,
+        soUSIF_Meta_V_tvalid  => ssUAF_UARS_Meta_tvalid,
+        soUSIF_Meta_V_tready  => ssUAF_UARS_Meta_tready,
         --
-        soUSIF_DLen_V_V_din    =>     ssUAF_FIFO_Udp_DLen_data,
-        soUSIF_DLen_V_V_write  =>     ssUAF_FIFO_Udp_DLen_write,
-        soUSIF_DLen_V_V_full_n => not ssUAF_FIFO_Udp_DLen_full
+        soUSIF_DLen_V_V_tdata  => ssUAF_UARS_DLen_tdata ,
+        soUSIF_DLen_V_V_tvalid => ssUAF_UARS_DLen_tvalid,
+        soUSIF_DLen_V_V_tready => ssUAF_UARS_DLen_tready
+--        --------------------------------------------------------
+--        -- From USIF / UDP Rx Data Interfaces
+--        --------------------------------------------------------
+--        siUSIF_Data_V_dout     =>     ssFIFO_UAF_Udp_Data_data,
+--        siUSIF_Data_V_read     =>     ssFIFO_UAF_Udp_Data_read,
+--        siUSIF_Data_V_empty_n  => not ssFIFO_UAF_Udp_Data_empty,
+--        --
+--        siUSIF_Meta_V_dout     =>     ssFIFO_UAF_Udp_Meta_data,
+--        siUSIF_Meta_V_read     =>     ssFIFO_UAF_Udp_Meta_read,
+--        siUSIF_Meta_V_empty_n  => not ssFIFO_UAF_Udp_Meta_empty,
+--        --------------------------------------------------------
+--        -- To USIF / UDP Tx Data Interfaces
+--        --------------------------------------------------------
+--        soUSIF_Data_V_din      =>     ssUAF_FIFO_Udp_Data_data,
+--        soUSIF_Data_V_write    =>     ssUAF_FIFO_Udp_Data_write,
+--        soUSIF_Data_V_full_n   => not ssUAF_FIFO_Udp_Data_full,        
+--        --
+--        soUSIF_Meta_V_din      =>     ssUAF_FIFO_Udp_Meta_data,
+--        soUSIF_Meta_V_write    =>     ssUAF_FIFO_Udp_Meta_write,   
+--        soUSIF_Meta_V_full_n   => not ssUAF_FIFO_Udp_Meta_full,
+--        --
+--        soUSIF_DLen_V_V_din    =>     ssUAF_FIFO_Udp_DLen_data,
+--        soUSIF_DLen_V_V_write  =>     ssUAF_FIFO_Udp_DLen_write,
+--        soUSIF_DLen_V_V_full_n => not ssUAF_FIFO_Udp_DLen_full
       );
   end generate;
   
@@ -1483,77 +1738,146 @@ begin
   --#                                                                             #
   --###############################################################################
   gUdpTxFifos : if gVivadoVersion /= 2016 generate
-    FIFO_UDP_RX_DATA : Fifo_16x73
+    ARS_UDP_RX_DATA   : AxisRegisterSlice_64_8_1
       port map (
-        clk          => piSHL_156_25Clk,
-        srst         => piSHL_Mmio_Ly7Rst,
-        din          => ssUSIF_FIFO_Udp_Data_data,
-        wr_en        => ssUSIF_FIFO_Udp_Data_write,
-        full         => ssUSIF_FIFO_Udp_Data_full,
-        --           
-        dout         => ssFIFO_UAF_Udp_Data_data,
-        rd_en        => ssFIFO_UAF_Udp_Data_read,
-        empty        => ssFIFO_UAF_Udp_Data_empty,
-        wr_rst_busy  => open,
-        rd_rst_busy  => open
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssUSIF_UARS_Data_tdata,
+        s_axis_tkeep  => ssUSIF_UARS_Data_tkeep,
+        s_axis_tlast  => ssUSIF_UARS_Data_tlast,
+        s_axis_tvalid => ssUSIF_UARS_Data_tvalid,
+        s_axis_tready => ssUSIF_UARS_Data_tready,
+        --
+        m_axis_tdata  => ssUARS_UAF_Data_tdata,
+        m_axis_tkeep  => ssUARS_UAF_Data_tkeep,
+        m_axis_tlast  => ssUARS_UAF_Data_tlast,
+        m_axis_tvalid => ssUARS_UAF_Data_tvalid,
+        m_axis_tready => ssUARS_UAF_Data_tready
       );
-    FIFO_UDP_RX_META : Fifo_16x96                   
-      port map (                                    
-        clk          => piSHL_156_25Clk,            
-        srst         => piSHL_Mmio_Ly7Rst,          
-        din          => ssUSIF_FIFO_Udp_Meta_data,  
-        wr_en        => ssUSIF_FIFO_Udp_Meta_write, 
-        full         => ssUSIF_FIFO_Udp_Meta_full,  
-        --                                          
-        dout         => ssFIFO_UAF_Udp_Meta_data,  
-        rd_en        => ssFIFO_UAF_Udp_Meta_read,   
-        empty        => ssFIFO_UAF_Udp_Meta_empty,
-        wr_rst_busy  => open,                       
-        rd_rst_busy  => open                        
+    ARS_UDP_RX_META : AxisRegisterSlice_96
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssUSIF_UARS_Meta_tdata,
+        s_axis_tvalid => ssUSIF_UARS_Meta_tvalid,
+        s_axis_tready => ssUSIF_UARS_Meta_tready,
+        --
+        m_axis_tdata  => ssUARS_UAF_Meta_tdata, 
+        m_axis_tvalid => ssUARS_UAF_Meta_tvalid,
+        m_axis_tready => ssUARS_UAF_Meta_tready
       );
     --
-    FIFO_UDP_TX_DATA : Fifo_16x73
+    ARS_UDP_TX_DATA   : AxisRegisterSlice_64_8_1
       port map (
-        clk          => piSHL_156_25Clk,
-        srst         => piSHL_Mmio_Ly7Rst,
-        din          => ssUAF_FIFO_Udp_Data_data,
-        wr_en        => ssUAF_FIFO_Udp_Data_write,
-        full         => ssUAF_FIFO_Udp_Data_full,
-        --                      
-        dout         => ssFIFO_USIF_Udp_Data_data,
-        rd_en        => ssFIFO_USIF_Udp_Data_read,
-        empty        => ssFIFO_USIF_Udp_Data_empty,
-        wr_rst_busy  => open,
-        rd_rst_busy  => open
-    );
-    FIFO_UDP_TX_META : Fifo_16x96
-      port map (
-        clk          => piSHL_156_25Clk,
-        srst         => piSHL_Mmio_Ly7Rst,
-        din          => ssUAF_FIFO_Udp_Meta_data,
-        wr_en        => ssUAF_FIFO_Udp_Meta_write,
-        full         => ssUAF_FIFO_Udp_Meta_full,
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssUAF_UARS_Data_tdata,
+        s_axis_tkeep  => ssUAF_UARS_Data_tkeep,
+        s_axis_tlast  => ssUAF_UARS_Data_tlast,
+        s_axis_tvalid => ssUAF_UARS_Data_tvalid,
+        s_axis_tready => ssUAF_UARS_Data_tready,
         --
-        dout         => ssFIFO_USIF_Udp_Meta_data,
-        rd_en        => ssFIFO_USIF_Udp_Meta_read,
-        empty        => ssFIFO_USIF_Udp_Meta_empty,
-        wr_rst_busy  => open,
-        rd_rst_busy  => open
+        m_axis_tdata  => ssUARS_USIF_Data_tdata,
+        m_axis_tkeep  => ssUARS_USIF_Data_tkeep,
+        m_axis_tlast  => ssUARS_USIF_Data_tlast,
+        m_axis_tvalid => ssUARS_USIF_Data_tvalid,
+        m_axis_tready => ssUARS_USIF_Data_tready
       );
-    FIFO_UDP_TX_DLEN : Fifo_16x16
+    ARS_UDP_TX_META : AxisRegisterSlice_96
       port map (
-        clk          => piSHL_156_25Clk,
-        srst         => piSHL_Mmio_Ly7Rst,
-        din          => ssUAF_FIFO_Udp_DLen_data,
-        wr_en        => ssUAF_FIFO_Udp_DLen_write,
-        full         => ssUAF_FIFO_Udp_DLen_full,
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssUAF_UARS_Meta_tdata,
+        s_axis_tvalid => ssUAF_UARS_Meta_tvalid,
+        s_axis_tready => ssUAF_UARS_Meta_tready,
         --
-        dout         => ssFIFO_USIF_Udp_DLen_data,
-        rd_en        => ssFIFO_USIF_Udp_DLen_read,
-        empty        => ssFIFO_USIF_Udp_DLen_empty,
-        wr_rst_busy  => open,
-        rd_rst_busy  => open
-      );       
+        m_axis_tdata  => ssUARS_USIF_Meta_tdata, 
+        m_axis_tvalid => ssUARS_USIF_Meta_tvalid,
+        m_axis_tready => ssUARS_USIF_Meta_tready
+      );
+    ARS_UDP_TX_DLEN : AxisRegisterSlice_16
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssUAF_UARS_DLen_tdata,
+        s_axis_tvalid => ssUAF_UARS_DLen_tvalid,
+        s_axis_tready => ssUAF_UARS_DLen_tready,
+        --
+        m_axis_tdata  => ssUARS_USIF_DLen_tdata, 
+        m_axis_tvalid => ssUARS_USIF_DLen_tvalid,
+        m_axis_tready => ssUARS_USIF_DLen_tready
+      );
+--    FIFO_UDP_RX_DATA : Fifo_16x73
+--      port map (
+--        clk          => piSHL_156_25Clk,
+--        srst         => piSHL_Mmio_Ly7Rst,
+--        din          => ssUSIF_FIFO_Udp_Data_data,
+--        wr_en        => ssUSIF_FIFO_Udp_Data_write,
+--        full         => ssUSIF_FIFO_Udp_Data_full,
+--        --           
+--        dout         => ssFIFO_UAF_Udp_Data_data,
+--        rd_en        => ssFIFO_UAF_Udp_Data_read,
+--        empty        => ssFIFO_UAF_Udp_Data_empty,
+--        wr_rst_busy  => open,
+--        rd_rst_busy  => open
+--      );
+--    FIFO_UDP_RX_META : Fifo_16x96                   
+--      port map (                                    
+--        clk          => piSHL_156_25Clk,            
+--        srst         => piSHL_Mmio_Ly7Rst,          
+--        din          => ssUSIF_FIFO_Udp_Meta_data,  
+--        wr_en        => ssUSIF_FIFO_Udp_Meta_write, 
+--        full         => ssUSIF_FIFO_Udp_Meta_full,  
+--        --                                          
+--        dout         => ssFIFO_UAF_Udp_Meta_data,  
+--        rd_en        => ssFIFO_UAF_Udp_Meta_read,   
+--        empty        => ssFIFO_UAF_Udp_Meta_empty,
+--        wr_rst_busy  => open,                       
+--        rd_rst_busy  => open                        
+--      );
+--    --
+--    FIFO_UDP_TX_DATA : Fifo_16x73
+--      port map (
+--        clk          => piSHL_156_25Clk,
+--        srst         => piSHL_Mmio_Ly7Rst,
+--        din          => ssUAF_FIFO_Udp_Data_data,
+--        wr_en        => ssUAF_FIFO_Udp_Data_write,
+--        full         => ssUAF_FIFO_Udp_Data_full,
+--        --                      
+--        dout         => ssFIFO_USIF_Udp_Data_data,
+--        rd_en        => ssFIFO_USIF_Udp_Data_read,
+--        empty        => ssFIFO_USIF_Udp_Data_empty,
+--        wr_rst_busy  => open,
+--        rd_rst_busy  => open
+--    );
+--    FIFO_UDP_TX_META : Fifo_16x96
+--      port map (
+--        clk          => piSHL_156_25Clk,
+--        srst         => piSHL_Mmio_Ly7Rst,
+--        din          => ssUAF_FIFO_Udp_Meta_data,
+--        wr_en        => ssUAF_FIFO_Udp_Meta_write,
+--        full         => ssUAF_FIFO_Udp_Meta_full,
+--        --
+--        dout         => ssFIFO_USIF_Udp_Meta_data,
+--        rd_en        => ssFIFO_USIF_Udp_Meta_read,
+--        empty        => ssFIFO_USIF_Udp_Meta_empty,
+--        wr_rst_busy  => open,
+--        rd_rst_busy  => open
+--      );
+--    FIFO_UDP_TX_DLEN : Fifo_16x16
+--      port map (
+--        clk          => piSHL_156_25Clk,
+--        srst         => piSHL_Mmio_Ly7Rst,
+--        din          => ssUAF_FIFO_Udp_DLen_data,
+--        wr_en        => ssUAF_FIFO_Udp_DLen_write,
+--        full         => ssUAF_FIFO_Udp_DLen_full,
+--        --
+--        dout         => ssFIFO_USIF_Udp_DLen_data,
+--        rd_en        => ssFIFO_USIF_Udp_DLen_read,
+--        empty        => ssFIFO_USIF_Udp_DLen_empty,
+--        wr_rst_busy  => open,
+--        rd_rst_busy  => open
+--      );       
   end generate;
 
   --################################################################################
@@ -1801,7 +2125,7 @@ begin
   --#                                                                             #
   --###############################################################################
   gArsTcpRx : if gVivadoVersion /= 2016 generate
-    ARS_TCP_RX_DATA   : AxisRegisterSlice_64
+    ARS_TCP_RX_DATA   : AxisRegisterSlice_64_8_1
       port map (
         aclk          => piSHL_156_25Clk,
         aresetn       => not piSHL_Mmio_Ly7Rst,
@@ -1842,7 +2166,7 @@ begin
         m_axis_tready => ssTARS_TAF_DatLen_tready
       );
     --
-    ARS_TCP_TX_DATA   : AxisRegisterSlice_64
+    ARS_TCP_TX_DATA   : AxisRegisterSlice_64_8_1
       port map (
         aclk          => piSHL_156_25Clk,
         aresetn       => not piSHL_Mmio_Ly7Rst,

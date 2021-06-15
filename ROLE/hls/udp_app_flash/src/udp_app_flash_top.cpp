@@ -41,7 +41,7 @@ using namespace hls;
 /************************************************
  * INTERFACE SYNTHESIS DIRECTIVES
  ************************************************/
-#define UAF_USE_AP_FIFO
+#undef  UAF_USE_AP_FIFO
 #undef  UAF_USE_NON_FIFO_IO
 
 /*******************************************************************************
@@ -166,15 +166,13 @@ using namespace hls;
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_DLen    name=soUSIF_DLen
   #else
     //-- [USIF] INTERFACES ------------------------------------------------------
-    #pragma HLS INTERFACE axis  register off   port=siUSIF_Data    name=siUSIF_Data
-    #pragma HLS INTERFACE axis  register off   port=siUSIF_Meta    name=siUSIF_Meta
-    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
-    //    does not support packing structs which contain other structs!!!
-    #pragma HLS INTERFACE axis  register off   port=soUSIF_Data    name=soUSIF_Data
-    #pragma HLS INTERFACE axis  register off   port=soUSIF_Meta    name=soUSIF_Meta
-    // [WARNING] Do not pack 'siUSIF_Meta' because the DATA_PACK optimization
-    //    does not support packing structs which contain other structs!!!
-    #pragma HLS INTERFACE axis  register off   port=soUSIF_DLen    name=soUSIF_DLen
+    #pragma HLS INTERFACE axis off  port=siUSIF_Data    name=siUSIF_Data
+    #pragma HLS INTERFACE axis off  port=siUSIF_Meta    name=siUSIF_Meta
+    #pragma HLS DATA_PACK       variable=siUSIF_Meta
+    #pragma HLS INTERFACE axis off  port=soUSIF_Data    name=soUSIF_Data
+    #pragma HLS INTERFACE axis off  port=soUSIF_Meta    name=soUSIF_Meta
+    #pragma HLS DATA_PACK       variable=soUSIF_Meta
+    #pragma HLS INTERFACE axis off  port=soUSIF_DLen    name=soUSIF_DLen
   #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------

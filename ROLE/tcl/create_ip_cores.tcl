@@ -388,7 +388,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #    [0]   : TUSER Width (bits)
 #    [No]  : Enable ACLKEN
 #------------------------------------------------------------------------------
-set ipModName "AxisRegisterSlice_64"
+set ipModName "AxisRegisterSlice_64_8_1"
 set ipName    "axis_register_slice"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
