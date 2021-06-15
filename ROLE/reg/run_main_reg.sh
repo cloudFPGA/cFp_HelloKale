@@ -49,10 +49,10 @@ if [[ -z $usedRoleDir ]]; then
     exit_on_error 1
 fi
 
-$usedRoleDir/reg/run_csim_reg.sh
+bash $usedRoleDir/reg/run_csim_reg.sh
 exit_on_error $? 
 
-$usedRoleDir/reg/run_cosim_reg.sh
+bash  $usedRoleDir/reg/run_cosim_reg.sh
 exit_on_error $? 
 
 exit 0
