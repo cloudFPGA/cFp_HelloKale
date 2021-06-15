@@ -78,7 +78,7 @@ echo "<$0> ===   REGRESSION - ROLE - START OF CSIM "
 echo "<$0> ================================================================"
 export usedRoleDir=$cFpMonolithicRootDir/ROLE
 cd $usedRoleDir
-sh $usedRoleDir/reg/run_csim_reg.sh
+bash $usedRoleDir/reg/run_csim_reg.sh
 exit_on_error $? 
 echo "<$0> ----------------------------------------------------------------"
 echo "<$0> ---   REGRESSION - ROLE - END OF CSIM "
@@ -90,7 +90,7 @@ echo "<$0> ===   REGRESSION - ROLE - START OF COSIM "
 echo "<$0> ================================================================"
 export usedRoleDir=$cFpMonolithicRootDir/ROLE
 cd $usedRoleDir
-sh $usedRoleDir/reg/run_cosim_reg.sh
+bash $usedRoleDir/reg/run_cosim_reg.sh
 exit_on_error $? 
 echo "<$0> ----------------------------------------------------------------"
 echo "<$0> ---   REGRESSION - ROLE - END OF COSIM "
