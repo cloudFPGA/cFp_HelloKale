@@ -24,7 +24,7 @@
 # @param[in] $1 the return value of the previous command.
 #-----------------------------------------------------------
 function exit_on_error {
-    if [ $1 -ne 0 ]; then
+    if [[ $1 -ne 0 ]]; then
         echo "EXIT ON ERROR: Regression \'$0\' FAILED."
         echo "  Last return value was $1."
         exit $1
