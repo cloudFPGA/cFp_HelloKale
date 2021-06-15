@@ -165,7 +165,7 @@ void pUdpEchoStoreAndForward(
  *     bytes before generating a new UDP-over-IPv4 packet, unless the 'TLAST'
  *     bit of the data stream is set.
  *******************************************************************************/
-void pUdpTxPath_tmp(
+void pUdpTxPath(
         CmdBit              *piSHL_Mmio_Enable,
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
@@ -246,7 +246,6 @@ void pUdpTxPath_tmp(
         break;
     case TXP_DATA_EPT:
         if (!siEPt_Data.empty() and !soUSIF_Data.full()) {
-            /*** OBSOLETE_20210609 *************
             appData = siEPt_Data.read();
             if (txp_fwdMode == STRM_MODE) {
                 txp_lenCnt = txp_lenCnt + appData.getLen();  // Just for tracing
@@ -258,9 +257,8 @@ void pUdpTxPath_tmp(
                 }
             }
             else {
-                //OBSOLETE_20210609 txp_lenCnt = txp_lenCnt - appData.getLen();
-                //OBSOLETE_20210609 if ((txp_lenCnt <= 0) or (appData.getTLast())) {
-                if (appData.getTLast()) {
+                txp_lenCnt = txp_lenCnt - appData.getLen();
+                if ((txp_lenCnt <= 0) or (appData.getTLast())) {
                     txp_fsmState = TXP_IDLE;
                     if (DEBUG_LEVEL & TRACE_TXP) {
                         printInfo(myName, "ECHO_PATH_THRU + DATAGRAM MODE - Finished datagram forwarding.\n");
@@ -271,7 +269,7 @@ void pUdpTxPath_tmp(
                 }
             }
             soUSIF_Data.write(appData);
-            *********************************/
+            /*** OBSOLETE_20210615 *************
             appData = siEPt_Data.read();
             if (appData.getTLast()) {
                 txp_fsmState = TXP_IDLE;
@@ -280,10 +278,10 @@ void pUdpTxPath_tmp(
                 }
             }
             soUSIF_Data.write(appData);
+            ************************************/
         }
         break;
     case TXP_DATA_ESF:
-        /*** OBSOLETE_20210609 **************
         if (!siESf_Data.empty() and !soUSIF_Data.full()) {
             appData = siESf_Data.read();
             if (txp_fwdMode == STRM_MODE) {
@@ -296,9 +294,8 @@ void pUdpTxPath_tmp(
                 }
             }
             else {
-                //OBSOLETE_20210609 txp_lenCnt = txp_lenCnt - appData.getLen();
-                //OBSOLETE_20210609 if ((txp_lenCnt <= 0) or (appData.getTLast())) {
-                if (appData.getTLast()) {
+                txp_lenCnt = txp_lenCnt - appData.getLen();
+                if ((txp_lenCnt <= 0) or (appData.getTLast())) {
                     txp_fsmState = TXP_IDLE;
                     if (DEBUG_LEVEL & TRACE_TXP) {
                         printInfo(myName, "ECHO_STORE_FWD + DATAGRAM MODE - Finished datagram forwarding.\n");
@@ -310,7 +307,7 @@ void pUdpTxPath_tmp(
             }
             soUSIF_Data.write(appData);
         }
-        ****************************/
+        /*** OBSOLETE_20210609 **************
         if (!siESf_Data.empty() and !soUSIF_Data.full()) {
         appData = siESf_Data.read();
         if (appData.getTLast()) {
@@ -320,7 +317,7 @@ void pUdpTxPath_tmp(
             }
         }
         soUSIF_Data.write(appData);
-    }
+        ****************************/
         break;
     case TXP_DRAIN_INPUT_FIFOS:
         // Drain all the incoming FIFOs as long as MMIO control signal is disabled
@@ -350,7 +347,7 @@ void pUdpTxPath_tmp(
 
 }  // End-of: pTxPath()
 
-void pUdpTxPath(
+void pUdpTxPath_OBSOLETE_20210615(
         CmdBit              *piSHL_Mmio_Enable,
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
@@ -444,7 +441,7 @@ void pUdpTxPath(
  *   necessary to drain the incoming FIFos after a reset
  *    (see e.g. the state RXP_DRAIN_INPUT_FIFOS)
  *******************************************************************************/
-void pUdpRxPath_tmp(
+void pUdpRxPath(
         CmdBit               *piSHL_Mmio_Enable,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
@@ -565,7 +562,7 @@ void pUdpRxPath_tmp(
 
 }  // End-of: pRxPath()
 
-void pUdpRxPath(
+void pUdpRxPath_OBSOLETE_20210615(
         CmdBit               *piSHL_Mmio_Enable,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
@@ -653,7 +650,7 @@ void pUdpRxPath(
  *   interface(ap_hs) or an AXI-Stream interface (axis) because these two
  *   interfaces do not support non-blocking accesses.
  *******************************************************************************/
-void udp_app_flash_tmp (
+void udp_app_flash(
 
         //------------------------------------------------------
         //-- SHELL / Mmio Interfaces
@@ -725,7 +722,7 @@ void udp_app_flash_tmp (
     //           |                              \|/
     //
     //-------------------------------------------------------------------------
-    pUdpRxPath_tmp(
+    pUdpRxPath(
             piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             siUSIF_Data,
@@ -746,7 +743,7 @@ void udp_app_flash_tmp (
             ssESfToTXp_Meta,
             ssESfToTXp_DLen);
 
-    pUdpTxPath_tmp(
+    pUdpTxPath(
             piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             ssRXpToTXp_Data,
@@ -761,7 +758,7 @@ void udp_app_flash_tmp (
 
 }
 
-void udp_app_flash (
+void udp_app_flash_OBSOLETE_20210615 (
 
         //------------------------------------------------------
         //-- SHELL / Mmio Interfaces
@@ -830,7 +827,7 @@ void udp_app_flash (
     //           |                              \|/
     //
     //-------------------------------------------------------------------------
-    pUdpRxPath(
+    pUdpRxPath_OBSOLETE_20210615(
             piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             siUSIF_Data,
@@ -839,7 +836,7 @@ void udp_app_flash (
             ssRXpToTXp_Meta,
             ssRXpToTXp_DLen);
 
-    pUdpTxPath(
+    pUdpTxPath_OBSOLETE_20210615(
             piSHL_Mmio_En,
             //[NOT_USED] piSHL_Mmio_EchoCtrl,
             ssRXpToTXp_Data,
