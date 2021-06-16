@@ -82,7 +82,7 @@ bool readDatagramFromFile(
         SimUdpDatagram    &appDatagram,
         ifstream          &ifsData,
         SocketPair        &sockPair,
-        queue<UdpAppMetb> &udpMetaQueue,
+        queue<UdpAppMeta> &udpMetaQueue,
         int               &inpChunks,
         int               &inpDgrms,
         int               &inpBytes);
@@ -90,7 +90,7 @@ bool readDatagramFromFile(
 int createGoldenTxFiles(
         EchoCtrl          tbMode,
         string            inpData_FileName,
-        queue<UdpAppMetb> &udpMetaQueue,
+        queue<UdpAppMeta> &udpMetaQueue,
         string            outData_GoldName,
         string            outMeta_GoldName,
         string            outDLen_GoldName);
@@ -98,14 +98,14 @@ int createGoldenTxFiles(
 int createUdpRxTraffic(
         stream<AxisApp>    &ssData, 
         const string       ssDataName,
-        stream<UdpAppMetb> &ssMeta, 
+        stream<UdpAppMeta> &ssMeta, 
         const string       ssMetaName,
         string             datFile,
-        queue<UdpAppMetb>  &metaQueue,
+        queue<UdpAppMeta>  &metaQueue,
         int                &nrFeededChunks);
 
 bool drainUdpMetaStreamToFile(
-        stream<UdpAppMetb> &ss,
+        stream<UdpAppMeta> &ss,
         string             ssName,
         string             datFile,
         int                &nrChunks,

@@ -111,14 +111,14 @@ void udp_shell_if(
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &siUAF_Data,
-        stream<UdpAppMetb>      &siUAF_Meta,
+        stream<UdpAppMeta>      &siUAF_Meta,
         stream<UdpAppDLen>      &siUAF_DLen,
 
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &soUAF_Data,
-        stream<UdpAppMetb>      &soUAF_Meta
+        stream<UdpAppMeta>      &soUAF_Meta
 
 );
 

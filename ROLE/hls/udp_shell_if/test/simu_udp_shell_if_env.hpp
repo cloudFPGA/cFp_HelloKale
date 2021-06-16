@@ -71,10 +71,10 @@ void increaseSimTime(unsigned int cycles);
 void pUAF(
         //-- USIF / Rx Data Interface
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMetb>  &siUSIF_Meta,
+        stream<UdpAppMeta>  &siUSIF_Meta,
         //-- USIF / Tx Data Interface
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen);
 
 void pMMIO(
