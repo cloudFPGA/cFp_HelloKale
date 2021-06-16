@@ -321,7 +321,7 @@ void pReadPath(
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMetb>  &soUAF_Meta,
+        stream<UdpAppMeta>  &soUAF_Meta,
         stream<SocketPair>  &soWRp_SockPair,
         stream<UdpAppDLen>  &soWRp_DReq)
 {
@@ -370,7 +370,7 @@ void pReadPath(
         break;
     case RDP_FWD_META:
         if (!soUAF_Meta.full()) {
-            soUAF_Meta.write(UdpAppMetb(rdp_appMeta.src.addr, rdp_appMeta.src.port,
+            soUAF_Meta.write(UdpAppMeta(rdp_appMeta.src.addr, rdp_appMeta.src.port,
                                         rdp_appMeta.dst.addr, rdp_appMeta.dst.port));
             rdp_fsmState  = RDP_FWD_STREAM;
         }
@@ -445,7 +445,7 @@ void pReadPath(
 void pWritePath(
         CmdBit               *piSHL_Enable,
         stream<UdpAppData>   &siUAF_Data,
-        stream<UdpAppMetb>   &siUAF_Meta,
+        stream<UdpAppMeta>   &siUAF_Meta,
         stream<UdpAppDLen>   &siUAF_DLen,
         stream<SocketPair>   &siRDp_SockPair,
         stream<UdpAppDLen>   &siRDp_DReq,
@@ -471,7 +471,7 @@ void pWritePath(
     static UdpAppDLen wrp_appDReq;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    UdpAppMetb    appMeta;
+    UdpAppMeta    appMeta;
     SocketPair    tstSockPair;
     UdpAppDLen    appDLen;
     UdpAppData    appData;
@@ -616,14 +616,14 @@ void udp_shell_if(
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUAF_Data,
-        stream<UdpAppMetb>  &siUAF_Meta,
+        stream<UdpAppMeta>  &siUAF_Meta,
         stream<UdpAppDLen>  &siUAF_DLen,
 
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMetb>  &soUAF_Meta)
+        stream<UdpAppMeta>  &soUAF_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW

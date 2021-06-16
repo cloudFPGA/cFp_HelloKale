@@ -74,12 +74,12 @@ using namespace hls;
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMetb>  &siUSIF_Meta,
+        stream<UdpAppMeta>  &siUSIF_Meta,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
@@ -136,12 +136,12 @@ using namespace hls;
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMetb>  &siUSIF_Meta,
+        stream<UdpAppMeta>  &siUSIF_Meta,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------

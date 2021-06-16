@@ -111,10 +111,10 @@ void increaseSimTime(unsigned int cycles) {
 void pUAF(
         //-- USIF / Rx Data Interface
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMetb>  &siUSIF_Meta,
+        stream<UdpAppMeta>  &siUSIF_Meta,
         //-- USIF / Tx Data Interface
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
 
@@ -124,14 +124,14 @@ void pUAF(
     static enum RxFsmStates { RX_IDLE=0, RX_STREAM } uaf_rxFsmState=RX_IDLE;
 
     UdpAppData      appData;
-    UdpAppMetb      appMeta;
+    UdpAppMeta      appMeta;
 
     switch (uaf_rxFsmState ) {
     case RX_IDLE:
         if (!siUSIF_Meta.empty() and !soUSIF_Meta.full()) {
             siUSIF_Meta.read(appMeta);
             // Swap IP_SA/IP_DA and update UPD_SP/UDP_DP
-            soUSIF_Meta.write(UdpAppMetb(appMeta.ip4DstAddr, DEFAULT_FPGA_SND_PORT,
+            soUSIF_Meta.write(UdpAppMeta(appMeta.ip4DstAddr, DEFAULT_FPGA_SND_PORT,
                                          appMeta.ip4SrcAddr, DEFAULT_HOST_LSN_PORT));
             soUSIF_DLen.write(0);
             uaf_rxFsmState  = RX_STREAM;

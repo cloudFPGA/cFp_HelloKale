@@ -98,13 +98,13 @@ using namespace std;
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUAF_Data,
-        stream<UdpAppMetb>  &siUAF_Meta,
+        stream<UdpAppMeta>  &siUAF_Meta,
         stream<UdpAppDLen>  &siUAF_DLen,
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMetb>  &soUAF_Meta)
+        stream<UdpAppMeta>  &soUAF_Meta)
 {
 
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
@@ -196,13 +196,13 @@ using namespace std;
         //-- UAF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUAF_Data,
-        stream<UdpAppMetb>  &siUAF_Meta,
+        stream<UdpAppMeta>  &siUAF_Meta,
         stream<UdpAppDLen>  &siUAF_DLen,
         //------------------------------------------------------
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMetb>  &soUAF_Meta)
+        stream<UdpAppMeta>  &soUAF_Meta)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return

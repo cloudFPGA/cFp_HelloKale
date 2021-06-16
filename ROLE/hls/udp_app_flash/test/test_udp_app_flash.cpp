@@ -109,9 +109,9 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     stream<UdpAppData>  ssUSIF_UAF_Data  ("ssUSIF_UAF_Data");
-    stream<UdpAppMetb>  ssUSIF_UAF_Meta  ("ssUSIF_UAF_Meta");
+    stream<UdpAppMeta>  ssUSIF_UAF_Meta  ("ssUSIF_UAF_Meta");
     stream<UdpAppData>  ssUAF_USIF_Data  ("ssUAF_USIF_Data");
-    stream<UdpAppMetb>  ssUAF_USIF_Meta  ("ssUAF_USIF_Meta");
+    stream<UdpAppMeta>  ssUAF_USIF_Meta  ("ssUAF_USIF_Meta");
     stream<UdpAppDLen>  ssUAF_USIF_DLen  ("ssUAF_USIF_DLen");
 
     //------------------------------------------------------
@@ -202,7 +202,7 @@ int main(int argc, char *argv[]) {
         }
 
         //-- STEP-3: Create golden Tx files
-        queue<UdpAppMetb>   udpMetaQueue;
+        queue<UdpAppMeta>   udpMetaQueue;
         if (NTS_OK == createGoldenTxFiles(tbCtrlMode, string(argv[2]), udpMetaQueue,
                 ofsUSIF_Data_Gold_FileName, ofsUSIF_Meta_Gold_FileName, ofsUSIF_DLen_Gold_FileName) != NTS_OK) {
             printError(THIS_NAME, "Failed to create golden Tx files. \n");

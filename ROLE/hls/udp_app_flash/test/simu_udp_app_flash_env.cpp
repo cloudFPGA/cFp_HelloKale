@@ -105,7 +105,7 @@ void increaseSimTime(unsigned int cycles) {
  *******************************************************************************/
 bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
                           ifstream   &ifsData,    SocketPair     &sockPair,
-                          queue<UdpAppMetb> &udpMetaQueue,  int  &inpChunks,
+                          queue<UdpAppMeta> &udpMetaQueue,  int  &inpChunks,
                           int        &inpDgrms,   int            &inpBytes) {
 
     string          stringBuffer;
@@ -144,7 +144,7 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
             inpBytes += udpAppData.getLen();
             if (udpAppData.getLE_TLast() == 1) {
                 inpDgrms++;
-                udpMetaQueue.push(UdpAppMetb(sockPair.src.addr, sockPair.src.port,
+                udpMetaQueue.push(UdpAppMeta(sockPair.src.addr, sockPair.src.port,
                                              sockPair.dst.addr, sockPair.dst.port));
                 endOfDgm = true;
             }
@@ -170,7 +170,7 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
 int createGoldenTxFiles(
         EchoCtrl          tbCtrlMode,
         string            inpData_FileName,
-        queue<UdpAppMetb> &udpMetaQueue,
+        queue<UdpAppMeta> &udpMetaQueue,
         string            outData_GoldName,
         string            outMeta_GoldName,
         string            outDLen_GoldName)
@@ -341,9 +341,9 @@ int createGoldenTxFiles(
  ******************************************************************************/
 int createUdpRxTraffic(
         stream<AxisApp>    &ssData, const string      ssDataName,
-        stream<UdpAppMetb> &ssMeta, const string      ssMetaName,
+        stream<UdpAppMeta> &ssMeta, const string      ssMetaName,
         string             datFile,
-        queue<UdpAppMetb>  &metaQueue,
+        queue<UdpAppMeta>  &metaQueue,
         int                &nrFeededChunks)
 {
 
@@ -387,11 +387,11 @@ int createUdpRxTraffic(
   *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
-bool drainUdpMetaStreamToFile(stream<UdpAppMetb> &ss, string ssName,
+bool drainUdpMetaStreamToFile(stream<UdpAppMeta> &ss, string ssName,
         string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
     ofstream    outFileStream;
     char        currPath[FILENAME_MAX];
-    UdpAppMetb  udpMeta;
+    UdpAppMeta  udpMeta;
 
     const char *myName  = concat3(THIS_NAME, "/", "DUMTF");
 

@@ -87,10 +87,10 @@ using namespace std;
 void pUdpEchoStoreAndForward(
         CmdBit              *piSHL_Enable,
         stream<UdpAppData>  &siRXp_Data,
-        stream<UdpAppMetb>  &siRXp_Meta,
+        stream<UdpAppMeta>  &siRXp_Meta,
         stream<UdpAppDLen>  &siRXp_DLen,
         stream<UdpAppData>  &soTXp_Data,
-        stream<UdpAppMetb>  &soTXp_Meta,
+        stream<UdpAppMeta>  &soTXp_Meta,
         stream<UdpAppDLen>  &soTXp_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -127,7 +127,7 @@ void pUdpEchoStoreAndForward(
     //=====================================================
     if ( !siRXp_Meta.empty() and !soTXp_Meta.full() and
          !siRXp_DLen.empty() and !soTXp_DLen.full() ) {
-        UdpAppMetb appMeta = siRXp_Meta.read();
+        UdpAppMeta appMeta = siRXp_Meta.read();
         UdpAppDLen appDLen = siRXp_DLen.read();
         soTXp_Meta.write(appMeta);
         soTXp_DLen.write(appDLen);
@@ -169,13 +169,13 @@ void pUdpTxPath(
         CmdBit              *piSHL_Mmio_Enable,
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
-        stream<UdpAppMetb>  &siEPt_Meta,
+        stream<UdpAppMeta>  &siEPt_Meta,
         stream<UdpAppDLen>  &siEPt_DLen,
         stream<UdpAppData>  &siESf_Data,
-        stream<UdpAppMetb>  &siESf_Meta,
+        stream<UdpAppMeta>  &siESf_Meta,
         stream<UdpAppDLen>  &siESf_DLen,
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -195,7 +195,7 @@ void pUdpTxPath(
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ap_int<17>  txp_lenCnt;
-    static UdpAppMetb  txp_appMeta;
+    static UdpAppMeta  txp_appMeta;
     static UdpAppDLen  txp_appDLen;
     static enum EchoMode   { EPT_MODE=0, ESF_MODE } \
                        txp_echoMode = EPT_MODE;
@@ -232,7 +232,7 @@ void pUdpTxPath(
     case TXP_META:
         if (!soUSIF_Meta.full() and !soUSIF_DLen.full()) {
             // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-            UdpAppMetb udpMeta(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
+            UdpAppMeta udpMeta(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
                                txp_appMeta.ip4SrcAddr, txp_appMeta.udpSrcPort);
             soUSIF_Meta.write(udpMeta);
             soUSIF_DLen.write(txp_appDLen);
@@ -351,10 +351,10 @@ void pUdpTxPath_OBSOLETE_20210615(
         CmdBit              *piSHL_Mmio_Enable,
         //[NOT_USED} ap_uint<2> piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>  &siEPt_Data,
-        stream<UdpAppMetb>  &siEPt_Meta,
+        stream<UdpAppMeta>  &siEPt_Meta,
         stream<UdpAppDLen>  &siEPt_DLen,
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -374,7 +374,7 @@ void pUdpTxPath_OBSOLETE_20210615(
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ap_int<17>  txp_lenCnt;
-    static UdpAppMetb  txp_appMeta;
+    static UdpAppMeta  txp_appMeta;
     static UdpAppDLen  txp_appDLen;
     static enum EchoMode   { EPT_MODE=0, ESF_MODE } \
                        txp_echoMode = EPT_MODE;
@@ -396,7 +396,7 @@ void pUdpTxPath_OBSOLETE_20210615(
     case TXP_META:
         if (!soUSIF_Meta.full() and !soUSIF_DLen.full()) {
             // Swap IP_SA/IP_DA as well as UPD_SP/UDP_DP
-            UdpAppMetb udpMeta(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
+            UdpAppMeta udpMeta(txp_appMeta.ip4DstAddr, txp_appMeta.udpDstPort,
                                txp_appMeta.ip4SrcAddr, txp_appMeta.udpSrcPort);
             soUSIF_Meta.write(udpMeta);
             soUSIF_DLen.write(txp_appDLen);
@@ -445,12 +445,12 @@ void pUdpRxPath(
         CmdBit               *piSHL_Mmio_Enable,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
-        stream<UdpAppMetb>   &siUSIF_Meta,
+        stream<UdpAppMeta>   &siUSIF_Meta,
         stream<UdpAppData>   &soEPt_Data,
-        stream<UdpAppMetb>   &soEPt_Meta,
+        stream<UdpAppMeta>   &soEPt_Meta,
         stream<UdpAppDLen>   &soEPt_DLen,
         stream<UdpAppData>   &soESf_Data,
-        stream<UdpAppMetb>   &soESf_Meta,
+        stream<UdpAppMeta>   &soESf_Meta,
         stream<UdpAppDLen>   &soESf_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -468,7 +468,7 @@ void pUdpRxPath(
     #pragma HLS reset variable=rxp_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static UdpAppMetb rxp_appMeta;
+    static UdpAppMeta rxp_appMeta;
     static UdpAppDLen rxp_byteCnt;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
@@ -566,9 +566,9 @@ void pUdpRxPath_OBSOLETE_20210615(
         CmdBit               *piSHL_Mmio_Enable,
         //[NOT_USED] ap_uint<2>  piSHL_Mmio_EchoCtrl,
         stream<UdpAppData>   &siUSIF_Data,
-        stream<UdpAppMetb>   &siUSIF_Meta,
+        stream<UdpAppMeta>   &siUSIF_Meta,
         stream<UdpAppData>   &soEPt_Data,
-        stream<UdpAppMetb>   &soEPt_Meta,
+        stream<UdpAppMeta>   &soEPt_Meta,
         stream<UdpAppDLen>   &soEPt_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -585,7 +585,7 @@ void pUdpRxPath_OBSOLETE_20210615(
     #pragma HLS reset variable=rxp_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static UdpAppMetb rxp_appMeta;
+    static UdpAppMeta rxp_appMeta;
     static UdpAppDLen rxp_byteCnt;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
@@ -664,13 +664,13 @@ void udp_app_flash(
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMetb>  &siUSIF_Meta,
+        stream<UdpAppMeta>  &siUSIF_Meta,
 
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -684,14 +684,14 @@ void udp_app_flash(
     //-- Rx Path (RXp) ---------------------------------------------------------
     static stream<UdpAppData>     ssRXpToTXp_Data    ("ssRXpToTXp_Data");
     #pragma HLS STREAM   variable=ssRXpToTXp_Data    depth=2048
-    static stream<UdpAppMetb>     ssRXpToTXp_Meta    ("ssRXpToTXp_Meta");
+    static stream<UdpAppMeta>     ssRXpToTXp_Meta    ("ssRXpToTXp_Meta");
     #pragma HLS STREAM   variable=ssRXpToTXp_Meta    depth=64
     static stream<UdpAppDLen>     ssRXpToTXp_DLen    ("ssRXpToTXp_DLen");
     #pragma HLS STREAM   variable=ssRXpToTXp_DLen    depth=64
 
     static stream<UdpAppData>     ssRXpToESf_Data    ("ssRXpToESf_Data");
     #pragma HLS STREAM   variable=ssRXpToESf_Data    depth=1024
-    static stream<UdpAppMetb>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
+    static stream<UdpAppMeta>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
     #pragma HLS STREAM   variable=ssRXpToESf_Meta    depth=32
     static stream<UdpAppDLen>     ssRXpToESf_DLen    ("ssRXpToESf_DLen");
     #pragma HLS STREAM   variable=ssRXpToESf_DLen    depth=32
@@ -699,7 +699,7 @@ void udp_app_flash(
     //-- Echo Store and Forward (ESf) ------------------------------------------
     static stream<UdpAppData>     ssESfToTXp_Data    ("ssESfToTXp_Data");
     #pragma HLS STREAM   variable=ssESfToTXp_Data    depth=1024
-    static stream<UdpAppMetb>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
+    static stream<UdpAppMeta>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
     #pragma HLS STREAM   variable=ssESfToTXp_Meta    depth=32
     static stream<UdpAppDLen>     ssESfToTXp_DLen    ("ssESfToTXp_DLen");
     #pragma HLS STREAM   variable=ssESfToTXp_DLen    depth=32
@@ -772,13 +772,13 @@ void udp_app_flash_OBSOLETE_20210615 (
         //-- USIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
-        stream<UdpAppMetb>  &siUSIF_Meta,
+        stream<UdpAppMeta>  &siUSIF_Meta,
 
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUSIF_Data,
-        stream<UdpAppMetb>  &soUSIF_Meta,
+        stream<UdpAppMeta>  &soUSIF_Meta,
         stream<UdpAppDLen>  &soUSIF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -792,14 +792,14 @@ void udp_app_flash_OBSOLETE_20210615 (
     //-- Rx Path (RXp) ---------------------------------------------------------
     static stream<UdpAppData>     ssRXpToTXp_Data    ("ssRXpToTXp_Data");
     #pragma HLS STREAM   variable=ssRXpToTXp_Data    depth=2048
-    static stream<UdpAppMetb>     ssRXpToTXp_Meta    ("ssRXpToTXp_Meta");
+    static stream<UdpAppMeta>     ssRXpToTXp_Meta    ("ssRXpToTXp_Meta");
     #pragma HLS STREAM   variable=ssRXpToTXp_Meta    depth=64
     static stream<UdpAppDLen>     ssRXpToTXp_DLen    ("ssRXpToTXp_DLen");
     #pragma HLS STREAM   variable=ssRXpToTXp_DLen    depth=64
 
     static stream<UdpAppData>     ssRXpToESf_Data    ("ssRXpToESf_Data");
     #pragma HLS STREAM   variable=ssRXpToESf_Data    depth=1024
-    static stream<UdpAppMetb>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
+    static stream<UdpAppMeta>     ssRXpToESf_Meta    ("ssRXpToESf_Meta");
     #pragma HLS STREAM   variable=ssRXpToESf_Meta    depth=32
     static stream<UdpAppDLen>     ssRXpToESf_DLen    ("ssRXpToESf_DLen");
     #pragma HLS STREAM   variable=ssRXpToESf_DLen    depth=32
@@ -807,7 +807,7 @@ void udp_app_flash_OBSOLETE_20210615 (
     //-- Echo Store and Forward (ESf) ------------------------------------------
     static stream<UdpAppData>     ssESfToTXp_Data    ("ssESfToTXp_Data");
     #pragma HLS STREAM   variable=ssESfToTXp_Data    depth=1024
-    static stream<UdpAppMetb>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
+    static stream<UdpAppMeta>     ssESfToTXp_Meta    ("ssESfToTXp_Meta");
     #pragma HLS STREAM   variable=ssESfToTXp_Meta    depth=32
     static stream<UdpAppDLen>     ssESfToTXp_DLen    ("ssESfToTXp_DLen");
     #pragma HLS STREAM   variable=ssESfToTXp_DLen    depth=32

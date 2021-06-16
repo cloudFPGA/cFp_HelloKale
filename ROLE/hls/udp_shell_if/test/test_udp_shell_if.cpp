@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- UAF->USIF / UDP Tx Data Interface
     stream<UdpAppData>    ssUAF_USIF_Data     ("ssUAF_USIF_Data");
-    stream<UdpAppMetb>    ssUAF_USIF_Meta     ("ssUAF_USIF_Meta");
+    stream<UdpAppMeta>    ssUAF_USIF_Meta     ("ssUAF_USIF_Meta");
     stream<UdpAppDLen>    ssUAF_USIF_DLen     ("ssUAF_USIF_DLen");
     //-- USIF->UOE / UDP Tx Data Interface
     stream<UdpAppData>    ssUSIF_UOE_Data     ("ssUSIF_UOE_Data");
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
     stream<UdpAppMeta>    ssUOE_USIF_Meta     ("ssUOE_USIF_Meta");
     //-- USIF->UAF / UDP Rx Data Interface
     stream<UdpAppData>    ssUSIF_UAF_Data     ("ssUSIF_UAF_Data");
-    stream<UdpAppMetb>    ssUSIF_UAF_Meta     ("ssUSIF_UAF_Meta");
+    stream<UdpAppMeta>    ssUSIF_UAF_Meta     ("ssUSIF_UAF_Meta");
     //-- UOE / Control Port Interfaces
     stream<UdpPort>       ssUSIF_UOE_LsnReq   ("ssUSIF_UOE_LsnReq");
     stream<StsBool>       ssUOE_USIF_LsnRep   ("ssUOE_USIF_LsnRep");
