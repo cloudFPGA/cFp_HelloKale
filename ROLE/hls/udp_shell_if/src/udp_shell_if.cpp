@@ -350,15 +350,15 @@ void pReadPath(
     case RDP_IDLE:
         if (!siSHL_Meta.empty()) {
             siSHL_Meta.read(rdp_appMeta);
-            switch (rdp_appMeta.dst.port) {
+            switch (rdp_appMeta.udpDstPort) {
             case RECV_MODE_LSN_PORT:
                 // (DstPort == 8800) Sink this traffic stream
-                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Rx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
+                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Rx test mode (DstPort=%4.4d)\n", rdp_appMeta.udpDstPort.to_uint()); }
                 rdp_fsmState  = RDP_SINK_STREAM;
                 break;
             case XMIT_MODE_LSN_PORT:
                 // (DstPort == 8801) Enter the Tx test mode
-                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Tx test mode (DstPort=%4.4d)\n", rdp_appMeta.dst.port.to_uint()); }
+                if (DEBUG_LEVEL & TRACE_RDP) { printInfo(myName, "Entering Tx test mode (DstPort=%4.4d)\n", rdp_appMeta.udpDstPort.to_uint()); }
                 rdp_fsmState  = RDP_8801;
                 break;
             default:
@@ -370,8 +370,7 @@ void pReadPath(
         break;
     case RDP_FWD_META:
         if (!soUAF_Meta.full()) {
-            soUAF_Meta.write(UdpAppMeta(rdp_appMeta.src.addr, rdp_appMeta.src.port,
-                                        rdp_appMeta.dst.addr, rdp_appMeta.dst.port));
+            soUAF_Meta.write(rdp_appMeta);
             rdp_fsmState  = RDP_FWD_STREAM;
         }
         break;
@@ -398,7 +397,7 @@ void pReadPath(
         if (!siSHL_Data.empty() and !soWRp_SockPair.full() and !soWRp_DReq.full()) {
             // Extract the remote socket address and the requested #bytes to transmit
             siSHL_Data.read(appData);
-            SockAddr srcSockAddr(rdp_appMeta.dst.addr, rdp_appMeta.dst.port);
+            SockAddr srcSockAddr(rdp_appMeta.ip4DstAddr, rdp_appMeta.udpDstPort);
             SockAddr dstSockAddr(byteSwap32(appData.getLE_TData(31,  0)),   // IP4 address
                                  byteSwap16(appData.getLE_TData(47, 32)));  // TCP port
             Ly4Len bytesToSend = byteSwap16(appData.getLE_TData(63, 48));
@@ -506,8 +505,7 @@ void pWritePath(
             //-- Read the metadata and the length provided by [ROLE/UAF]
             siUAF_Meta.read(appMeta);
             siUAF_DLen.read(appDLen);
-            soSHL_Meta.write(SocketPair(SockAddr(appMeta.ip4SrcAddr, appMeta.udpSrcPort),
-                                        SockAddr(appMeta.ip4DstAddr, appMeta.udpDstPort)));
+            soSHL_Meta.write(appMeta);
             soSHL_DLen.write(appDLen);
             if (DEBUG_LEVEL & TRACE_WRP) {
                 printInfo(myName, "Received a datagram of length %d from ROLE.\n", appDLen.to_uint());

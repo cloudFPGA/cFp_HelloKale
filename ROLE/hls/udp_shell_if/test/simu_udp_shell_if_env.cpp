@@ -131,8 +131,9 @@ void pUAF(
         if (!siUSIF_Meta.empty() and !soUSIF_Meta.full()) {
             siUSIF_Meta.read(appMeta);
             // Swap IP_SA/IP_DA and update UPD_SP/UDP_DP
-            soUSIF_Meta.write(UdpAppMeta(appMeta.ip4DstAddr, DEFAULT_FPGA_SND_PORT,
-                                         appMeta.ip4SrcAddr, DEFAULT_HOST_LSN_PORT));
+            UdpAppMeta swappedMeta(appMeta.ip4DstAddr, DEFAULT_FPGA_SND_PORT,
+                                   appMeta.ip4SrcAddr, DEFAULT_HOST_LSN_PORT);
+            soUSIF_Meta.write(swappedMeta);
             soUSIF_DLen.write(0);
             uaf_rxFsmState  = RX_STREAM;
         }
@@ -307,13 +308,13 @@ void pUOE(
                     uoe_rxpState = RXP_DONE;
                 }
                 else {
-                    uoe_rxMeta.src.addr = DEFAULT_HOST_IP4_ADDR;
-                    uoe_rxMeta.src.port = DEFAULT_HOST_SND_PORT;
-                    uoe_rxMeta.dst.addr = DEFAULT_FPGA_IP4_ADDR;
+                    uoe_rxMeta.ip4SrcAddr = DEFAULT_HOST_IP4_ADDR;
+                    uoe_rxMeta.udpSrcPort = DEFAULT_HOST_SND_PORT;
+                    uoe_rxMeta.ip4DstAddr = DEFAULT_FPGA_IP4_ADDR;
                     switch (uoe_dgmCnt) {
                     case 1:
                     case 3:
-                        uoe_rxMeta.dst.port = RECV_MODE_LSN_PORT;
+                        uoe_rxMeta.udpDstPort = RECV_MODE_LSN_PORT;
                         uoe_rxByteCnt = echoDgrmLen;
                         gMaxSimCycles += (echoDgrmLen / 8);
                         uoe_waitEndOfTxTest = 0;
@@ -321,21 +322,21 @@ void pUOE(
                         break;
                     case 2:
                     case 4:
-                        uoe_rxMeta.dst.port = XMIT_MODE_LSN_PORT;
+                        uoe_rxMeta.udpDstPort = XMIT_MODE_LSN_PORT;
                         uoe_txByteCnt = testDgrmLen;
                         gMaxSimCycles += (testDgrmLen / 8);
                         uoe_waitEndOfTxTest = (testDgrmLen / 8) + 1;
                         uoe_rxpState = RXP_SEND_8801;
                         break;
                     default:
-                        uoe_rxMeta.dst.port = ECHO_MODE_LSN_PORT;
+                        uoe_rxMeta.udpDstPort = ECHO_MODE_LSN_PORT;
                         uoe_rxByteCnt = echoDgrmLen;
                         gMaxSimCycles += (echoDgrmLen / 8);
                         uoe_waitEndOfTxTest = 0;
                         uoe_rxpState = RXP_SEND_DATA;
                         // Swap IP_SA/IP_DA and update UPD_SP/UDP_DP
-                        UdpAppMeta udpGldMeta(SockAddr(uoe_rxMeta.dst.addr, DEFAULT_FPGA_SND_PORT),
-                                              SockAddr(uoe_rxMeta.src.addr, DEFAULT_HOST_LSN_PORT));
+                        SocketPair udpGldMeta(SockAddr(uoe_rxMeta.ip4DstAddr, DEFAULT_FPGA_SND_PORT),
+                                              SockAddr(uoe_rxMeta.ip4SrcAddr, DEFAULT_HOST_LSN_PORT));
                         // Dump this socket pair to a gold file
                         writeSocketPairToFile(udpGldMeta, metaGoldFile);
                         break;
@@ -343,7 +344,10 @@ void pUOE(
                     soUSIF_Meta.write(uoe_rxMeta);
                     if (DEBUG_LEVEL & TRACE_UOE) {
                         printInfo(myRxpName, "Sending metadata to [USIF].\n");
-                        printSockPair(myRxpName, uoe_rxMeta);
+                        //OBSOLETE_20210616 printSockPair(myRxpName, uoe_rxMeta);
+                        SocketPair udpRxMeta(SockAddr(uoe_rxMeta.ip4SrcAddr, uoe_rxMeta.udpSrcPort),
+                                             SockAddr(uoe_rxMeta.ip4DstAddr, uoe_rxMeta.udpDstPort));
+                        printSockPair(myRxpName, udpRxMeta);
                     }
                     uoe_dgmCnt += 1;
                 }
@@ -366,7 +370,7 @@ void pUOE(
                 if (DEBUG_LEVEL & TRACE_UOE) {
                     printAxisRaw(myRxpName, "Sending data chunk to [USIF]: ", appData);
                 }
-                if (uoe_rxMeta.dst.port != RECV_MODE_LSN_PORT) {
+                if (uoe_rxMeta.udpDstPort != RECV_MODE_LSN_PORT) {
                     writeAxisRawToFile(appData, dataGoldFile);
                 }
             }
@@ -386,7 +390,7 @@ void pUOE(
                     printAxisRaw(myRxpName, "Sending Tx data length request to [USIF]: ", appData);
                 }
                 //-- Update the Meta-Gold File
-                UdpAppMeta udpGldMeta(SockAddr(DEFAULT_FPGA_IP4_ADDR, uoe_rxMeta.dst.port),
+                SocketPair udpGldMeta(SockAddr(DEFAULT_FPGA_IP4_ADDR, uoe_rxMeta.udpDstPort),
                                       SockAddr(testSock.addr,         testSock.port));
                 // Dump this socket pair to a gold file
                 writeSocketPairToFile(udpGldMeta, metaGoldFile);
@@ -452,9 +456,12 @@ void pUOE(
                     else {
                         printInfo(myTxpName, "Receiving %d bytes of data from [USIF].\n", uoe_appDLen.to_int());
                     }
-                    printSockPair(myTxpName, appMeta);
+                    printSockPair(myTxpName, SocketPair(SockAddr(appMeta.ip4SrcAddr, appMeta.udpSrcPort),
+                                                        SockAddr(appMeta.ip4DstAddr, appMeta.udpDstPort)));
                 }
-                writeSocketPairToFile(appMeta, metaFile);
+                SocketPair appTxMeta(SockAddr(appMeta.ip4SrcAddr, appMeta.udpSrcPort),
+                                     SockAddr(appMeta.ip4DstAddr, appMeta.udpDstPort));
+                writeSocketPairToFile(appTxMeta, metaFile);
                 uoe_txpState = TXP_RECV_DATA;
             }
             break;
