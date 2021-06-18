@@ -83,6 +83,7 @@ bool readDatagramFromFile(
         ifstream          &ifsData,
         SocketPair        &sockPair,
         queue<UdpAppMeta> &udpMetaQueue,
+        queue<UdpAppDLen> &udpDLenQueue,
         int               &inpChunks,
         int               &inpDgrms,
         int               &inpBytes);
@@ -91,6 +92,7 @@ int createGoldenTxFiles(
         EchoCtrl          tbMode,
         string            inpData_FileName,
         queue<UdpAppMeta> &udpMetaQueue,
+        queue<UdpAppDLen> &udpDLenQueue,
         string            outData_GoldName,
         string            outMeta_GoldName,
         string            outDLen_GoldName);
@@ -100,8 +102,11 @@ int createUdpRxTraffic(
         const string       ssDataName,
         stream<UdpAppMeta> &ssMeta, 
         const string       ssMetaName,
+        stream<UdpAppDLen> &ssDLen,
+        const string       ssDLenName,
         string             datFile,
         queue<UdpAppMeta>  &metaQueue,
+        queue<UdpAppDLen>  &dlenQueue,
         int                &nrFeededChunks);
 
 bool drainUdpMetaStreamToFile(

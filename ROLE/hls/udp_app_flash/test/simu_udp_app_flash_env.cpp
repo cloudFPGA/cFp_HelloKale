@@ -98,6 +98,7 @@ void increaseSimTime(unsigned int cycles) {
  * @param[in]  ifsData      The input file stream to read from.
  * @param[out] sockPair     A ref to the current active socket pair.
  * @param[out] udpMetaQueue A ref to a container queue which holds the sequence of UDP socket-pairs.
+ * @param[out] udpDLenQueue A ref to a container queue which holds the sequence of UDP data lengths.
  * @param[out] inpChunks    A ref to the number of processed chunks.
  * @param[out] inptDgrms    A ref to the number of processed datagrams.
  * @param[out] inpBytes     A ref to the number of processed bytes.
@@ -105,12 +106,14 @@ void increaseSimTime(unsigned int cycles) {
  *******************************************************************************/
 bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
                           ifstream   &ifsData,    SocketPair     &sockPair,
-                          queue<UdpAppMeta> &udpMetaQueue,  int  &inpChunks,
+                          queue<UdpAppMeta> &udpMetaQueue,
+                          queue<UdpAppDLen> &udpDLenQueue,  int  &inpChunks,
                           int        &inpDgrms,   int            &inpBytes) {
 
     string          stringBuffer;
     vector<string>  stringVector;
     UdpAppData      udpAppData;
+    UdpAppDLen      udpAppDLen=0;
     bool            endOfDgm=false;
     bool            rc;
 
@@ -142,10 +145,12 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
                                           udpAppData.getLE_TLast()));
             inpChunks++;
             inpBytes += udpAppData.getLen();
+            udpAppDLen += udpAppData.getLen();
             if (udpAppData.getLE_TLast() == 1) {
                 inpDgrms++;
                 udpMetaQueue.push(UdpAppMeta(sockPair.src.addr, sockPair.src.port,
                                              sockPair.dst.addr, sockPair.dst.port));
+                udpDLenQueue.push(udpAppDLen);
                 endOfDgm = true;
             }
         }
@@ -161,6 +166,8 @@ bool readDatagramFromFile(const char *myName,     SimUdpDatagram &appDatagram,
  * @param[in]  inpData_FileName  The input data file to generate from.
  * @param[out] udpMetaQueue      A ref to a container queue which holds the
  *                                sequence of UDP socket-pairs.
+ * @param[out] udpDLenQueue      A ref to a container queue which holds the
+ *                                sequence of UDP datagram lengths.
  * @param[in]  outData_GoldName  The output datagram gold file to create.
  * @param[in]  outMeta_GoldName  The output metadata gold file to create.
  * @param[in]  outDLen_GoldName  The output data len gold file to create.
@@ -171,6 +178,7 @@ int createGoldenTxFiles(
         EchoCtrl          tbCtrlMode,
         string            inpData_FileName,
         queue<UdpAppMeta> &udpMetaQueue,
+        queue<UdpAppDLen> &udpDLenQueue,
         string            outData_GoldName,
         string            outMeta_GoldName,
         string            outDLen_GoldName)
@@ -248,7 +256,7 @@ int createGoldenTxFiles(
         bool           endOfDgm=false;
         //-- Retrieve one APP datagram from input DAT file (can be up to 2^16-1 bytes)
         endOfDgm = readDatagramFromFile(myName, appDatagram, ifsData,
-                                        currSockPair, udpMetaQueue,
+                                        currSockPair, udpMetaQueue, udpDLenQueue,
                                         inpChunks, inpDgrms, inpBytes);
         if (endOfDgm) {
             //-- Swap the IP_SA/IP_DA but keep UDP_SP/UDP/DP as is
@@ -333,17 +341,22 @@ int createGoldenTxFiles(
  * @param[in]     ssDataName  The name of the data stream to set.
  * @param[in/out] ssMeta      A ref to the metadata stream to set.
  * @param[in]     ssMetaName  The name of the metadata stream to set.
+ * @param[in/out] ssDLen      A ref to the data len stream to set.
+ * @param[in]     ssDLenName  The name of the data len stream to set.
  * @param[in]     datFileName The path to the DAT file to read from.
  * @param[in]     metaQueue   A ref to a queue of metadata.
- * @param[out]    nrChunks    a ref to the number of feeded chunks.
+ * @param[in]     dlenQueue   A ref to a queue of data len.
+ * @param[out]    nrChunks    A ref to the number of fed chunks.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
 int createUdpRxTraffic(
         stream<AxisApp>    &ssData, const string      ssDataName,
         stream<UdpAppMeta> &ssMeta, const string      ssMetaName,
+        stream<UdpAppDLen> &ssDLen, const string      ssMDLenName,
         string             datFile,
         queue<UdpAppMeta>  &metaQueue,
+        queue<UdpAppDLen>  &dlenQueue,
         int                &nrFeededChunks)
 {
 
@@ -369,6 +382,12 @@ int createUdpRxTraffic(
     while (!metaQueue.empty()) {
         ssMeta.write(metaQueue.front());
         metaQueue.pop();
+    }
+
+    //-- STEP-3: FEED DATA LEN STREAM ROM QUEUE -------------------------------
+    while (!dlenQueue.empty()) {
+        ssDLen.write(dlenQueue.front());
+        dlenQueue.pop();
     }
 
     return NTS_OK;

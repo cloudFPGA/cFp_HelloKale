@@ -52,6 +52,7 @@ using namespace hls;
  * @param[in]  piSHL_Mmio_CaptPktEn Enables capture of UDP packets.
  * @param[in]  siUSIF_Data          UDP datagram from UdpShellInterface (USIF).
  * @param[in]  siUSIF_Meta          UDP metadata from [USIF].
+ * @param[in]  siUSIF_DLen          UDP data len from [USIF].
  * @param[out] soUSIF_Data          UDP datagram to [USIF].
  * @param[out] soUSIF_Meta          UDP metadata to [USIF].
  * @param[out] soUSIF_DLen          UDP data len to [USIF].
@@ -75,6 +76,7 @@ using namespace hls;
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
         stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppDLen>  &siUSIF_DLen,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
@@ -97,6 +99,8 @@ using namespace hls;
     #pragma HLS resource core=AXI4Stream variable=siUSIF_Data    metadata="-bus_bundle siUSIF_Data"
     #pragma HLS resource core=AXI4Stream variable=siUSIF_Meta    metadata="-bus_bundle siUSIF_Meta"
     #pragma HLS DATA_PACK                variable=siUSIF_Meta
+    #pragma HLS resource core=AXI4Stream variable=siUSIF_DLen    metadata="-bus_bundle siUSIF_DLen"
+
     #pragma HLS resource core=AXI4Stream variable=soUSIF_Data    metadata="-bus_bundle soUSIF_Data"
     #pragma HLS resource core=AXI4Stream variable=soUSIF_Meta    metadata="-bus_bundle soUSIF_Meta"
     #pragma HLS DATA_PACK                variable=soUSIF_Meta
@@ -116,6 +120,7 @@ using namespace hls;
         //-- USIF / Rx Data Interfaces
         siUSIF_Data,
         siUSIF_Meta,
+        siUSIF_DLen,
         //-- USIF / Tx Data Interfaces
         soUSIF_Data,
         soUSIF_Meta,
@@ -137,6 +142,7 @@ using namespace hls;
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
         stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppDLen>  &siUSIF_DLen,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------
@@ -159,6 +165,8 @@ using namespace hls;
     #pragma HLS DATA_PACK       variable=siUSIF_Data
     #pragma HLS INTERFACE ap_fifo   port=siUSIF_Meta    name=siUSIF_Meta
     #pragma HLS DATA_PACK       variable=siUSIF_Meta
+    #pragma HLS INTERFACE ap_fifo   port=siUSIF_DLen    name=siUSIF_DLen
+
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_Data    name=soUSIF_Data
     #pragma HLS DATA_PACK       variable=soUSIF_Data
     #pragma HLS INTERFACE ap_fifo   port=soUSIF_Meta    name=soUSIF_Meta
@@ -169,6 +177,8 @@ using namespace hls;
     #pragma HLS INTERFACE axis off  port=siUSIF_Data    name=siUSIF_Data
     #pragma HLS INTERFACE axis off  port=siUSIF_Meta    name=siUSIF_Meta
     #pragma HLS DATA_PACK       variable=siUSIF_Meta
+    #pragma HLS INTERFACE axis off  port=siUSIF_DLen    name=siUSIF_DLen
+
     #pragma HLS INTERFACE axis off  port=soUSIF_Data    name=soUSIF_Data
     #pragma HLS INTERFACE axis off  port=soUSIF_Meta    name=soUSIF_Meta
     #pragma HLS DATA_PACK       variable=soUSIF_Meta
@@ -195,6 +205,7 @@ using namespace hls;
         //-- USIF / Rx Data Interfaces
         siUSIF_Data,
         siUSIF_Meta,
+        siUSIF_DLen,
         //-- USIF / Tx Data Interfaces
         soUSIF_Data,
         soUSIF_Meta,

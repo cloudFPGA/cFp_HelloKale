@@ -58,6 +58,7 @@ void udp_app_flash_top (
         //------------------------------------------------------
         stream<UdpAppData>  &siUSIF_Data,
         stream<UdpAppMeta>  &siUSIF_Meta,
+        stream<UdpAppDLen>  &siUSIF_DLen,
         //------------------------------------------------------
         //-- USIF / Tx Data Interfaces
         //------------------------------------------------------

@@ -104,6 +104,7 @@ ipProject:               ## Creates the IP-TOP project for exporting and packagi
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
 
 ipRegression: .synth_guard ## Runs a sequence of HLS ipCsim, ipSyn and ipCosim over the IP-TOP project
+	$(MAKE) ipClean
 	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl ip_top
 
 ip:                      ## Exports the RTL design and packages it as an IP

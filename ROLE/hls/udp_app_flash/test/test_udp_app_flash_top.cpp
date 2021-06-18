@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     stream<UdpAppData>  ssUSIF_UAF_Data  ("ssUSIF_UAF_Data");
     stream<UdpAppMeta>  ssUSIF_UAF_Meta  ("ssUSIF_UAF_Meta");
+    stream<UdpAppDLen>  ssUSIF_UAF_DLen  ("ssUSIF_UAF_DLen");
     stream<UdpAppData>  ssUAF_USIF_Data  ("ssUAF_USIF_Data");
     stream<UdpAppMeta>  ssUAF_USIF_Meta  ("ssUAF_USIF_Meta");
     stream<UdpAppDLen>  ssUAF_USIF_DLen  ("ssUAF_USIF_DLen");
@@ -203,7 +204,8 @@ int main(int argc, char *argv[]) {
 
         //-- STEP-3: Create golden Tx files
         queue<UdpAppMeta>   udpMetaQueue;
-        if (NTS_OK == createGoldenTxFiles(tbCtrlMode, string(argv[2]), udpMetaQueue,
+        queue<UdpAppDLen>   udpDLenQueue;
+        if (NTS_OK == createGoldenTxFiles(tbCtrlMode, string(argv[2]), udpMetaQueue, udpDLenQueue,
                 ofsUSIF_Data_Gold_FileName, ofsUSIF_Meta_Gold_FileName, ofsUSIF_DLen_Gold_FileName) != NTS_OK) {
             printError(THIS_NAME, "Failed to create golden Tx files. \n");
             nrErr++;
@@ -213,8 +215,9 @@ int main(int argc, char *argv[]) {
         int nrUSIF_UAF_Chunks=0;
         if (not createUdpRxTraffic(ssUSIF_UAF_Data, "ssUSIF_UAF_Data",
                                    ssUSIF_UAF_Meta, "ssUSIF_UAF_Meta",
+                                   ssUSIF_UAF_DLen, "ssUSIF_UAF_DLen",
                                    string(argv[2]),
-                                   udpMetaQueue,
+                                   udpMetaQueue, udpDLenQueue,
                                    nrUSIF_UAF_Chunks)) {
             printFatal(THIS_NAME, "Failed to create the USIF->UAF traffic as streams.\n");
         }
@@ -231,6 +234,7 @@ int main(int argc, char *argv[]) {
                     //-- USIF / Rx Data Interfaces
                     ssUSIF_UAF_Data,
                     ssUSIF_UAF_Meta,
+                    ssUSIF_UAF_DLen,
                     //-- USIF / Tx Data Interfaces
                     ssUAF_USIF_Data,
                     ssUAF_USIF_Meta,
