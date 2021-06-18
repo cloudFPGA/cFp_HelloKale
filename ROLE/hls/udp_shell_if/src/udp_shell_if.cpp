@@ -67,7 +67,7 @@ using namespace std;
 #define TRACE_LSN 1 <<  4
 #define TRACE_CLS 1 <<  5
 #define TRACE_ALL  0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
@@ -299,8 +299,10 @@ void pClose(
  * @param[in]  piSHL_Enable Enable signal from [SHELL].
  * @param[in]  siSHL_Data   Datagram from [SHELL].
  * @param[in]  siSHL_Meta   Metadata from [SHELL].
+ * @param[in]  siSHL_DLen   data len from [SHELL].
  * @param[out] soUAF_Data   Datagram to [UAF].
  * @param[out] soUAF_Meta   Metadata to [UAF].
+ * @param[out] soUAF_DLen   data len to [UAF].
  * @param[out] soWRp_Meta   Metadata to WritePath (WRp).
  * @param[out] soWRp_DReq   Data length request to [WRp].
  *
@@ -320,8 +322,10 @@ void pReadPath(
         CmdBit              *piSHL_Enable,
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
+        stream<UdpAppDLen>  &siSHL_DLen,
         stream<UdpAppData>  &soUAF_Data,
         stream<UdpAppMeta>  &soUAF_Meta,
+        stream<UdpAppDLen>  &soUAF_DLen,
         stream<SocketPair>  &soWRp_SockPair,
         stream<UdpAppDLen>  &soWRp_DReq)
 {
@@ -338,6 +342,7 @@ void pReadPath(
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static UdpAppMeta  rdp_appMeta;
+    static UdpAppDLen  rdp_appDLen;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     UdpAppData  appData;
@@ -348,8 +353,9 @@ void pReadPath(
 
     switch (rdp_fsmState ) {
     case RDP_IDLE:
-        if (!siSHL_Meta.empty()) {
+        if (!siSHL_Meta.empty() and !siSHL_DLen.empty()) {
             siSHL_Meta.read(rdp_appMeta);
+            siSHL_DLen.read(rdp_appDLen);
             switch (rdp_appMeta.udpDstPort) {
             case RECV_MODE_LSN_PORT:
                 // (DstPort == 8800) Sink this traffic stream
@@ -369,8 +375,9 @@ void pReadPath(
         }
         break;
     case RDP_FWD_META:
-        if (!soUAF_Meta.full()) {
+        if (!soUAF_Meta.full() and !soUAF_DLen.full()) {
             soUAF_Meta.write(rdp_appMeta);
+            soUAF_DLen.write(rdp_appDLen);
             rdp_fsmState  = RDP_FWD_STREAM;
         }
         break;
@@ -565,11 +572,13 @@ void pWritePath(
  * @param[in]  siSHL_ClsRep  Close port reply from [SHELL].
  * @param[in]  siSHL_Data    UDP datagram from [SHELL].
  * @param[in]  siSHL_Meta    UDP metadata from [SHELL].
+ * @param[in]  siSHL_DLen    UDP data len from [SHELL].
  * @param[out] soSHL_Data    UDP datagram to [SHELL].
  * @param[out] soSHL_Meta    UDP metadata to [SHELL].
  * @param[out] soSHL_DLen    UDP data len to [SHELL].
  * @param[in]  siUAF_Data    UDP datagram from UdpAppFlash (UAF).
  * @param[in]  siUAF_Meta    UDP metadata from [UAF].
+ * @param[in]  siUAF_DLen    UDP data len from [UAF].
  * @param[out] soUAF_Data    UDP datagram to [UAF].
  * @param[out] soUAF_Meta    UDP metadata to [UAF].
  * @param[out] soUAF_DLen    UDP data len to [UAF].
@@ -602,6 +611,7 @@ void udp_shell_if(
         //------------------------------------------------------
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
+        stream<UdpAppDLen>  &siSHL_DLen,
 
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
@@ -621,7 +631,8 @@ void udp_shell_if(
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMeta>  &soUAF_Meta)
+        stream<UdpAppMeta>  &soUAF_Meta,
+        stream<UdpAppDLen>  &soUAF_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
@@ -653,8 +664,10 @@ void udp_shell_if(
             piSHL_Mmio_En,
             siSHL_Data,
             siSHL_Meta,
+            siSHL_DLen,
             soUAF_Data,
             soUAF_Meta,
+            soUAF_DLen,
             ssRDpToWRp_SockPair,
             ssRDpToWRp_DReq);
 

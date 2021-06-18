@@ -62,6 +62,7 @@ void udp_shell_if_top(
         //------------------------------------------------------
         stream<UdpAppData>      &siSHL_Data,
         stream<UdpAppMeta>      &siSHL_Meta,
+        stream<UdpAppDLen>      &siSHL_DLen,
 
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
@@ -81,8 +82,8 @@ void udp_shell_if_top(
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &soUAF_Data,
-        stream<UdpAppMeta>      &soUAF_Meta
-
+        stream<UdpAppMeta>      &soUAF_Meta,
+        stream<UdpAppDLen>      &soUAF_DLen
 );
 
 #endif

@@ -97,6 +97,7 @@ void pUOE(
         //-- UOE->USIF / UDP Rx Data Interfaces
         stream<UdpAppData>    &soUSIF_Data,
         stream<UdpAppMeta>    &soUSIF_Meta,
+        stream<UdpAppDLen>    &soUSIF_DLen,
         //-- USIF->UOE / UDP Tx Data Interfaces
         stream<UdpAppData>    &siUSIF_Data,
         stream<UdpAppMeta>    &siUSIF_Meta,

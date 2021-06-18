@@ -59,6 +59,7 @@ using namespace std;
  * @param[out] soSHL_DLen    UDP data len to [SHELL].
  * @param[in]  siUAF_Data    UDP datagram from UdpAppFlash (UAF).
  * @param[in]  siUAF_Meta    UDP metadata from [UAF].
+ * @param[out] siUAF_DLen    UDP data len from [UAF].
  * @param[out] soUAF_Data    UDP datagram to [UAF].
  * @param[out] soUAF_Meta    UDP metadata to [UAF].
  * @param[out] soUAF_DLen    UDP data len to [UAF].
@@ -104,7 +105,8 @@ using namespace std;
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMeta>  &soUAF_Meta)
+        stream<UdpAppMeta>  &soUAF_Meta,
+        stream<UdpAppDLen>  &soUAF_DLen)
 {
 
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
@@ -140,6 +142,7 @@ using namespace std;
     #pragma HLS resource core=AXI4Stream variable=soUAF_Data    metadata="-bus_bundle soUAF_Data"
     #pragma HLS resource core=AXI4Stream variable=soUAF_Meta    metadata="-bus_bundle soUAF_Meta"
     #pragma HLS DATA_PACK                variable=soUAF_Meta
+    #pragma HLS resource core=AXI4Stream variable=soUAF_DLen    metadata="-bus_bundle soUAF_DLen"
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
@@ -166,7 +169,8 @@ using namespace std;
         siUAF_DLen,
         //-- UAF / Rx Data Interfaces
         soUAF_Data,
-        soUAF_Meta);
+        soUAF_Meta,
+        soUAF_DLen);
 }
 #else
     void udp_shell_if_top(
@@ -186,6 +190,7 @@ using namespace std;
         //------------------------------------------------------
         stream<UdpAppData>  &siSHL_Data,
         stream<UdpAppMeta>  &siSHL_Meta,
+        stream<UdpAppDLen>  &siSHL_DLen,
         //------------------------------------------------------
         //-- SHELL / Tx Data Interfaces
         //------------------------------------------------------
@@ -202,7 +207,8 @@ using namespace std;
         //-- UAF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>  &soUAF_Data,
-        stream<UdpAppMeta>  &soUAF_Meta)
+        stream<UdpAppMeta>  &soUAF_Meta,
+        stream<UdpAppDLen>  &soUAF_DLen)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -220,6 +226,7 @@ using namespace std;
     #pragma HLS INTERFACE axis off              port=siSHL_Data     name=siSHL_Data
     #pragma HLS INTERFACE axis off              port=siSHL_Meta     name=siSHL_Meta
     #pragma HLS DATA_PACK                   variable=siSHL_Meta
+    #pragma HLS INTERFACE axis off              port=siSHL_DLen     name=siSHL_DLen
 
     #pragma HLS INTERFACE axis off              port=soSHL_Data     name=soSHL_Data
     #pragma HLS INTERFACE axis off              port=soSHL_Meta     name=soSHL_Meta
@@ -237,6 +244,7 @@ using namespace std;
     #pragma HLS DATA_PACK                   variable=soUAF_Data
     #pragma HLS INTERFACE ap_fifo               port=soUAF_Meta     name=soUAF_Meta
     #pragma HLS DATA_PACK                   variable=soUAF_Meta
+    #pragma HLS INTERFACE ap_fifo               port=soUAF_DLen     name=soUAF_DLen
   #else
     //-- Make use of AXIS on the UAF interfaces --------------------------------
     #pragma HLS INTERFACE ap_stable register    port=piSHL_Mmio_En  name=piSHL_Mmio_En
@@ -250,6 +258,7 @@ using namespace std;
     #pragma HLS INTERFACE axis off              port=siSHL_Data     name=siSHL_Data
     #pragma HLS INTERFACE axis off              port=siSHL_Meta     name=siSHL_Meta
     #pragma HLS DATA_PACK                   variable=siSHL_Meta
+    #pragma HLS INTERFACE axis off              port=siSHL_DLen     name=siSHL_DLen
 
     #pragma HLS INTERFACE axis off              port=soSHL_Data     name=soSHL_Data
     #pragma HLS INTERFACE axis off              port=soSHL_Meta     name=soSHL_Meta
@@ -265,6 +274,7 @@ using namespace std;
     #pragma HLS INTERFACE axis off              port=soUAF_Data     name=soUAF_Data
     #pragma HLS INTERFACE axis off              port=soUAF_Meta     name=soUAF_Meta
     #pragma HLS DATA_PACK                   variable=soUAF_Meta
+    #pragma HLS INTERFACE axis off              port=soUAF_DLen     name=soUAF_DLen
   #endif
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -286,6 +296,7 @@ using namespace std;
         //-- SHELL / Rx Data Interfaces
         siSHL_Data,
         siSHL_Meta,
+        siSHL_DLen,
         //-- SHELL / Tx Data Interfaces
         soSHL_Data,
         soSHL_Meta,
@@ -296,7 +307,8 @@ using namespace std;
         siUAF_DLen,
         //-- UAF / Rx Data Interfaces
         soUAF_Data,
-        soUAF_Meta);
+        soUAF_Meta,
+        soUAF_DLen);
 
 }
 

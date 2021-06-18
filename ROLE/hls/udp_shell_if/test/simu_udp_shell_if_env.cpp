@@ -194,6 +194,7 @@ void pMMIO(
  * @param[out] poMMIO_Ready   Ready signal to [MMIO].
  * @param[out] soUSIF_Data    The UDP datagram to [USIF].
  * @param[out] soUSIF_Meta    The UDP metadata to [USIF].
+ * @param[out] soUSIF_DLen    The UDP data len to [USIF].
  * @param[in]  siUSIF_Data    The UDP datagram from [USIF].
  * @param[in]  siUSIF_Meta    The UDP metadata from [USIF].
  * @param[in]  siUSIF_DLen    The UDP data len from [USIF].
@@ -216,6 +217,7 @@ void pUOE(
         //-- UOE->USIF / UDP Rx Data Interfaces
         stream<UdpAppData>    &soUSIF_Data,
         stream<UdpAppMeta>    &soUSIF_Meta,
+        stream<UdpAppDLen>    &soUSIF_DLen,
         //-- USIF->UOE / UDP Tx Data Interfaces
         stream<UdpAppData>    &siUSIF_Data,
         stream<UdpAppMeta>    &siUSIF_Meta,
@@ -299,7 +301,7 @@ void pUOE(
     if (uoe_rxpIsReady) {
         switch (uoe_rxpState) {
         case RXP_SEND_META: // SEND METADATA TO [USIF]
-            if (!soUSIF_Meta.full()) {
+            if (!soUSIF_Meta.full() and !soUSIF_DLen.full()) {
                 if (uoe_waitEndOfTxTest) {
                     // Give USIF the time to finish sending all the requested bytes
                     uoe_waitEndOfTxTest--;
@@ -342,9 +344,9 @@ void pUOE(
                         break;
                     }
                     soUSIF_Meta.write(uoe_rxMeta);
+                    soUSIF_DLen.write(uoe_rxByteCnt);
                     if (DEBUG_LEVEL & TRACE_UOE) {
                         printInfo(myRxpName, "Sending metadata to [USIF].\n");
-                        //OBSOLETE_20210616 printSockPair(myRxpName, uoe_rxMeta);
                         SocketPair udpRxMeta(SockAddr(uoe_rxMeta.ip4SrcAddr, uoe_rxMeta.udpSrcPort),
                                              SockAddr(uoe_rxMeta.ip4DstAddr, uoe_rxMeta.udpDstPort));
                         printSockPair(myRxpName, udpRxMeta);

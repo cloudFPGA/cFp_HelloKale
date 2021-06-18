@@ -99,9 +99,11 @@ int main(int argc, char *argv[]) {
     //-- UOE->USIF / UDP Rx Data Interface
     stream<UdpAppData>    ssUOE_USIF_Data     ("ssUOE_USIF_Data");
     stream<UdpAppMeta>    ssUOE_USIF_Meta     ("ssUOE_USIF_Meta");
+    stream<UdpAppDLen>    ssUOE_USIF_DLen     ("ssUOE_USIF_DLen");
     //-- USIF->UAF / UDP Rx Data Interface
     stream<UdpAppData>    ssUSIF_UAF_Data     ("ssUSIF_UAF_Data");
     stream<UdpAppMeta>    ssUSIF_UAF_Meta     ("ssUSIF_UAF_Meta");
+    stream<UdpAppDLen>    ssUSIF_UAF_DLen     ("ssUSIF_UAF_DLen");
     //-- UOE / Control Port Interfaces
     stream<UdpPort>       ssUSIF_UOE_LsnReq   ("ssUSIF_UOE_LsnReq");
     stream<StsBool>       ssUOE_USIF_LsnRep   ("ssUOE_USIF_LsnRep");
@@ -241,6 +243,7 @@ int main(int argc, char *argv[]) {
             //-- UOE->USIF / UDP Rx Data Interfaces
             ssUOE_USIF_Data,
             ssUOE_USIF_Meta,
+            ssUOE_USIF_DLen,
             //-- USIF->UOE / UDP Tx Data Interfaces
             ssUSIF_UOE_Data,
             ssUSIF_UOE_Meta,
@@ -274,6 +277,7 @@ int main(int argc, char *argv[]) {
             //-- SHELL / Rx Data Interfaces
             ssUOE_USIF_Data,
             ssUOE_USIF_Meta,
+            ssUOE_USIF_DLen,
             //-- SHELL / Tx Data Interfaces
             ssUSIF_UOE_Data,
             ssUSIF_UOE_Meta,
@@ -284,7 +288,8 @@ int main(int argc, char *argv[]) {
             ssUAF_USIF_DLen,
             //-- UAF / Rx Data Interfaces
             ssUSIF_UAF_Data,
-            ssUSIF_UAF_Meta);
+            ssUSIF_UAF_Meta,
+            ssUSIF_UAF_DLen);
 
         //-------------------------------------------------
         //-- EMULATE ROLE/UdpApplicationFlash (UAF)
