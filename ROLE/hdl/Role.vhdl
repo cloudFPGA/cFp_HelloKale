@@ -71,6 +71,10 @@ entity Role_Kale is
     siSHL_Nts_Udp_Meta_tdata            : in    std_ulogic_vector( 95 downto 0);
     siSHL_Nts_Udp_Meta_tvalid           : in    std_ulogic;
     siSHL_Nts_Udp_Meta_tready           : out   std_ulogic;
+    ---- Axi4-Stream UDP Data Len ------------
+    siSHL_Nts_Udp_DLen_tdata            : in    std_ulogic_vector( 15 downto 0);
+    siSHL_Nts_Udp_DLen_tvalid           : in    std_ulogic;
+    siSHL_Nts_Udp_DLen_tready           : out   std_ulogic;
     ------------------------------------------------------
     -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
     ------------------------------------------------------
@@ -358,6 +362,10 @@ architecture BringUp of Role_Kale is
   signal ssUSIF_UARS_Meta_tdata     : std_ulogic_vector( 95 downto 0);
   signal ssUSIF_UARS_Meta_tvalid    : std_ulogic;
   signal ssUSIF_UARS_Meta_tready    : std_ulogic;
+  --
+  signal ssUSIF_UARS_DLen_tdata     : std_ulogic_vector( 15 downto 0);
+  signal ssUSIF_UARS_DLen_tvalid    : std_ulogic;
+  signal ssUSIF_UARS_DLen_tready    : std_ulogic;
   -- -------------------------------------------
   signal ssUARS_UAF_Data_tdata      : std_ulogic_vector( 63 downto 0);
   signal ssUARS_UAF_Data_tkeep      : std_ulogic_vector(  7 downto 0);
@@ -368,6 +376,10 @@ architecture BringUp of Role_Kale is
   signal ssUARS_UAF_Meta_tdata      : std_ulogic_vector( 95 downto 0);
   signal ssUARS_UAF_Meta_tvalid     : std_ulogic;
   signal ssUARS_UAF_Meta_tready     : std_ulogic;
+  --
+  signal ssUARS_UAF_DLen_tdata      : std_ulogic_vector( 15 downto 0);
+  signal ssUARS_UAF_DLen_tvalid     : std_ulogic;
+  signal ssUARS_UAF_DLen_tready     : std_ulogic;
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : UAF --> UARS --> USIF
   --------------------------------------------------------
@@ -412,6 +424,10 @@ architecture BringUp of Role_Kale is
   signal ssUSIF_UAF_Meta_tdata      : std_logic_vector(95 downto 0);
   signal ssUSIF_UAF_Meta_tvalid     : std_logic;
   signal ssUSIF_UAF_Meta_tready     : std_logic;
+    --
+  signal ssUSIF_UAF_DLen_tdata      : std_logic_vector(15 downto 0);
+  signal ssUSIF_UAF_DLen_tvalid     : std_logic;
+  signal ssUSIF_UAF_DLen_tready     : std_logic;
   
   -- UAF->USIF / UDP Tx Data Interfaces
   signal ssUAF_USIF_Data_tdata      : std_logic_vector(63 downto 0);
@@ -508,6 +524,10 @@ architecture BringUp of Role_Kale is
       siUSIF_Meta_tdata      : in  std_logic_vector(95 downto 0);
       siUSIF_Meta_tvalid     : in  std_logic;
       siUSIF_Meta_tready     : out std_logic;
+      --
+      siUSIF_DLen_tdata      : in  std_logic_vector(15 downto 0);
+      siUSIF_DLen_tvalid     : in  std_logic;
+      siUSIF_DLen_tready     : out std_logic;
       --------------------------------------------------------
       -- To USIF / UDP Tx Data Interfaces
       --------------------------------------------------------
@@ -551,6 +571,10 @@ architecture BringUp of Role_Kale is
       siUSIF_Meta_V_dout                 : in  std_logic_vector(95 DOWNTO 0);
       siUSIF_Meta_V_empty_n              : in  std_logic;
       siUSIF_Meta_V_read                 : out std_logic;
+      --
+      siUSIF_DLen_V_V_dout               : in  std_logic_vector(15 DOWNTO 0);
+      siUSIF_DLen_V_V_empty_n            : in  std_logic;
+      siUSIF_DLen_V_V_read               : out std_logic;
       --------------------------------------------------------
       -- To USIF / UDP Tx Data Interfaces
       --------------------------------------------------------
@@ -594,6 +618,10 @@ architecture BringUp of Role_Kale is
       siUSIF_Meta_V_tdata    : in  std_logic_vector(95 downto 0);
       siUSIF_Meta_V_tvalid   : in  std_logic;
       siUSIF_Meta_V_tready   : out std_logic;
+            --
+      siUSIF_DLen_V_V_tdata  : in  std_logic_vector(15 downto 0);
+      siUSIF_DLen_V_V_tvalid : in  std_logic;
+      siUSIF_DLen_V_V_tready : out std_logic;
       --------------------------------------------------------
       -- To USIF / UDP Tx Data Interfaces
       --------------------------------------------------------
@@ -654,6 +682,10 @@ architecture BringUp of Role_Kale is
       siSHL_Meta_tdata      : in  std_logic_vector(95 downto 0);
       siSHL_Meta_tvalid     : in  std_logic;
       siSHL_Meta_tready     : out std_logic;
+      --
+      siSHL_DLen_tdata      : in  std_logic_vector(15 downto 0);
+      siSHL_DLen_tvalid     : in  std_logic;
+      siSHL_DLen_tready     : out std_logic;
       --------------------------------------------------------
       -- SHELL / UDP Tx Data Interfaces
       --------------------------------------------------------
@@ -697,7 +729,11 @@ architecture BringUp of Role_Kale is
       --
       soUAF_Meta_tdata      : out std_logic_vector(95 downto 0);
       soUAF_Meta_tvalid     : out std_logic;
-      soUAF_Meta_tready     : in  std_logic
+      soUAF_Meta_tready     : in  std_logic;
+      --
+      soUAF_DLen_tdata      : out std_logic_vector(15 downto 0);
+      soUAF_DLen_tvalid     : out std_logic;
+      soUAF_DLen_tready     : in  std_logic
   );
   end component UdpShellInterface_Deprecated;  
   
@@ -742,6 +778,10 @@ architecture BringUp of Role_Kale is
         siSHL_Meta_V_tdata      : in  std_logic_vector(95 downto 0);
         siSHL_Meta_V_tvalid     : in  std_logic;
         siSHL_Meta_V_tready     : out std_logic;
+        --
+        siSHL_DLen_V_V_tdata    : in  std_logic_vector(15 downto 0);
+        siSHL_DLen_V_V_tvalid   : in  std_logic;
+        siSHL_DLen_V_V_tready   : out std_logic;
         --------------------------------------------------------
         -- SHELL / UDP Tx Data Interfaces
         --------------------------------------------------------
@@ -781,10 +821,15 @@ architecture BringUp of Role_Kale is
         --
         soUAF_Meta_V_din        : out std_logic_vector(95 downto 0);
         soUAF_Meta_V_write      : out std_logic;
-        soUAF_Meta_V_full_n     : in  std_logic  
+        soUAF_Meta_V_full_n     : in  std_logic;
+        --
+        soUAF_DLen_V_din        : out std_logic_vector(15 downto 0);
+        soUAF_DLen_V_write      : out std_logic;
+        soUAF_DLen_V_full_n     : in  std_logic 
     );
-    end component UdpShellInterface_ApFifo;
-    
+ 
+  end component UdpShellInterface_ApFifo;
+ 
   component UdpShellInterface is
     port (
         ------------------------------------------------------
@@ -826,6 +871,10 @@ architecture BringUp of Role_Kale is
         siSHL_Meta_V_tdata      : in  std_logic_vector(95 downto 0);
         siSHL_Meta_V_tvalid     : in  std_logic;
         siSHL_Meta_V_tready     : out std_logic;
+        --
+        siSHL_DLen_V_V_tdata    : in  std_logic_vector(15 downto 0);
+        siSHL_DLen_V_V_tvalid   : in  std_logic;
+        siSHL_DLen_V_V_tready   : out std_logic;
         --------------------------------------------------------
         -- SHELL / UDP Tx Data Interfaces
         --------------------------------------------------------
@@ -869,7 +918,11 @@ architecture BringUp of Role_Kale is
         --
         soUAF_Meta_V_tdata    : out std_logic_vector(95 downto 0);
         soUAF_Meta_V_tvalid   : out std_logic;
-        soUAF_Meta_V_tready   : in  std_logic  
+        soUAF_Meta_V_tready   : in  std_logic;
+        --
+        soUAF_DLen_V_V_tdata  : out std_logic_vector(15 downto 0);
+        soUAF_DLen_V_V_tvalid : out std_logic;
+        soUAF_DLen_V_V_tready : in  std_logic    
     );
   end component UdpShellInterface;  
  
@@ -1436,6 +1489,10 @@ begin
           siSHL_Meta_tdata       => siSHL_Nts_Udp_Meta_tdata,
           siSHL_Meta_tvalid      => siSHL_Nts_Udp_Meta_tvalid,
           siSHL_Meta_tready      => siSHL_Nts_Udp_Meta_tready,
+          --
+          siSHL_DLen_tdata       => siSHL_Nts_Udp_DLen_tdata,
+          siSHL_DLen_tvalid      => siSHL_Nts_Udp_DLen_tvalid,
+          siSHL_DLen_tready      => siSHL_Nts_Udp_DLen_tready,
           --------------------------------------------------------
           -- SHELL / UDP Tx Data Interfaces
           --------------------------------------------------------
@@ -1479,7 +1536,11 @@ begin
           --
           soUAF_Meta_tdata       => ssUSIF_UAF_Meta_tdata,
           soUAF_Meta_tvalid      => ssUSIF_UAF_Meta_tvalid,
-          soUAF_Meta_tready      => ssUSIF_UAF_Meta_tready
+          soUAF_Meta_tready      => ssUSIF_UAF_Meta_tready,
+          --
+          soUAF_DLen_tdata       => ssUSIF_UAF_DLen_tdata,
+          soUAF_DLen_tvalid      => ssUSIF_UAF_DLen_tvalid,
+          soUAF_DLen_tready      => ssUSIF_UAF_DLen_tready
         ); -- End-of: UdpShellInterface_Deprecated
   else generate
       USIF : UdpShellInterface
@@ -1487,110 +1548,94 @@ begin
         ------------------------------------------------------
         -- From SHELL / Clock and Reset
         ------------------------------------------------------
-        ap_clk                     => piSHL_156_25Clk,
-        ap_rst_n                   => not piSHL_Mmio_Ly7Rst,
+        ap_clk                  => piSHL_156_25Clk,
+        ap_rst_n                => not piSHL_Mmio_Ly7Rst,
         --------------------------------------------------------
         -- SHELL / Mmio Interface
         --------------------------------------------------------
-        piSHL_Mmio_En_V            => piSHL_Mmio_Ly7En,
+        piSHL_Mmio_En_V         => piSHL_Mmio_Ly7En,
         --------------------------------------------------------
         -- SHELL / UDP Control Port Interfaces
         --------------------------------------------------------
-        soSHL_LsnReq_V_V_tdata     => soSHL_Nts_Udp_LsnReq_tdata ,
-        soSHL_LsnReq_V_V_tvalid    => soSHL_Nts_Udp_LsnReq_tvalid,
-        soSHL_LsnReq_V_V_tready    => soSHL_Nts_Udp_LsnReq_tready,
+        soSHL_LsnReq_V_V_tdata  => soSHL_Nts_Udp_LsnReq_tdata ,
+        soSHL_LsnReq_V_V_tvalid => soSHL_Nts_Udp_LsnReq_tvalid,
+        soSHL_LsnReq_V_V_tready => soSHL_Nts_Udp_LsnReq_tready,
         --
-        siSHL_LsnRep_V_tdata       => siSHL_Nts_Udp_LsnRep_tdata ,
-        siSHL_LsnRep_V_tvalid      => siSHL_Nts_Udp_LsnRep_tvalid,
-        siSHL_LsnRep_V_tready      => siSHL_Nts_Udp_LsnRep_tready,
+        siSHL_LsnRep_V_tdata    => siSHL_Nts_Udp_LsnRep_tdata ,
+        siSHL_LsnRep_V_tvalid   => siSHL_Nts_Udp_LsnRep_tvalid,
+        siSHL_LsnRep_V_tready   => siSHL_Nts_Udp_LsnRep_tready,
         --
-        soSHL_ClsReq_V_V_tdata     => soSHL_Nts_Udp_ClsReq_tdata ,
-        soSHL_ClsReq_V_V_tvalid    => soSHL_Nts_Udp_ClsReq_tvalid,
-        soSHL_ClsReq_V_V_tready    => soSHL_Nts_Udp_ClsReq_tready,
+        soSHL_ClsReq_V_V_tdata  => soSHL_Nts_Udp_ClsReq_tdata ,
+        soSHL_ClsReq_V_V_tvalid => soSHL_Nts_Udp_ClsReq_tvalid,
+        soSHL_ClsReq_V_V_tready => soSHL_Nts_Udp_ClsReq_tready,
         --
-        siSHL_ClsRep_V_tdata       => siSHL_Nts_Udp_ClsRep_tdata ,
-        siSHL_ClsRep_V_tvalid      => siSHL_Nts_Udp_ClsRep_tvalid,
-        siSHL_ClsRep_V_tready      => siSHL_Nts_Udp_ClsRep_tready,
+        siSHL_ClsRep_V_tdata    => siSHL_Nts_Udp_ClsRep_tdata ,
+        siSHL_ClsRep_V_tvalid   => siSHL_Nts_Udp_ClsRep_tvalid,
+        siSHL_ClsRep_V_tready   => siSHL_Nts_Udp_ClsRep_tready,
         --------------------------------------------------------
         -- SHELL / UDP Rx Data Interfaces
         --------------------------------------------------------
-        siSHL_Data_tdata           => siSHL_Nts_Udp_Data_tdata,
-        siSHL_Data_tkeep           => siSHL_Nts_Udp_Data_tkeep,       
-        siSHL_Data_tlast           => siSHL_Nts_Udp_Data_tlast,
-        siSHL_Data_tvalid          => siSHL_Nts_Udp_Data_tvalid,
-        siSHL_Data_tready          => siSHL_Nts_Udp_Data_tready,
-        --
-        siSHL_Meta_V_tdata         => siSHL_Nts_Udp_Meta_tdata,
-        siSHL_Meta_V_tvalid        => siSHL_Nts_Udp_Meta_tvalid,
-        siSHL_Meta_V_tready        => siSHL_Nts_Udp_Meta_tready,
+        siSHL_Data_tdata        => siSHL_Nts_Udp_Data_tdata,
+        siSHL_Data_tkeep        => siSHL_Nts_Udp_Data_tkeep,       
+        siSHL_Data_tlast        => siSHL_Nts_Udp_Data_tlast,
+        siSHL_Data_tvalid       => siSHL_Nts_Udp_Data_tvalid,
+        siSHL_Data_tready       => siSHL_Nts_Udp_Data_tready,
+      
+        siSHL_Meta_V_tdata      => siSHL_Nts_Udp_Meta_tdata,
+        siSHL_Meta_V_tvalid     => siSHL_Nts_Udp_Meta_tvalid,
+        siSHL_Meta_V_tready     => siSHL_Nts_Udp_Meta_tready,
+      
+        siSHL_DLen_V_V_tdata    => siSHL_Nts_Udp_DLen_tdata,
+        siSHL_DLen_V_V_tvalid   => siSHL_Nts_Udp_DLen_tvalid,
+        siSHL_DLen_V_V_tready   => siSHL_Nts_Udp_DLen_tready,
         --------------------------------------------------------
         -- SHELL / UDP Tx Data Interfaces
         --------------------------------------------------------
-        soSHL_Data_tdata           => soSHL_Nts_Udp_Data_tdata,
-        soSHL_Data_tkeep           => soSHL_Nts_Udp_Data_tkeep,       
-        soSHL_Data_tlast           => soSHL_Nts_Udp_Data_tlast,
-        soSHL_Data_tvalid          => soSHL_Nts_Udp_Data_tvalid,
-        soSHL_Data_tready          => soSHL_Nts_Udp_Data_tready,
-        --      
-        soSHL_Meta_V_tdata         => soSHL_Nts_Udp_Meta_tdata,
-        soSHL_Meta_V_tvalid        => soSHL_Nts_Udp_Meta_tvalid,
-        soSHL_Meta_V_tready        => soSHL_Nts_Udp_Meta_tready,
-        --
-        soSHL_DLen_V_V_tdata       => soSHL_Nts_Udp_DLen_tdata,
-        soSHL_DLen_V_V_tvalid      => soSHL_Nts_Udp_DLen_tvalid,
-        soSHL_DLen_V_V_tready      => soSHL_Nts_Udp_DLen_tready,
+        soSHL_Data_tdata        => soSHL_Nts_Udp_Data_tdata,
+        soSHL_Data_tkeep        => soSHL_Nts_Udp_Data_tkeep,       
+        soSHL_Data_tlast        => soSHL_Nts_Udp_Data_tlast,
+        soSHL_Data_tvalid       => soSHL_Nts_Udp_Data_tvalid,
+        soSHL_Data_tready       => soSHL_Nts_Udp_Data_tready,
+        --   
+        soSHL_Meta_V_tdata      => soSHL_Nts_Udp_Meta_tdata,
+        soSHL_Meta_V_tvalid     => soSHL_Nts_Udp_Meta_tvalid,
+        soSHL_Meta_V_tready     => soSHL_Nts_Udp_Meta_tready,
+       
+        soSHL_DLen_V_V_tdata    => soSHL_Nts_Udp_DLen_tdata,
+        soSHL_DLen_V_V_tvalid   => soSHL_Nts_Udp_DLen_tvalid,
+        soSHL_DLen_V_V_tready   => soSHL_Nts_Udp_DLen_tready,
         --------------------------------------------------------
         -- UAF / UDP Tx Data Interfaces
         --------------------------------------------------------
-        siUAF_Data_tdata       => ssUARS_USIF_Data_tdata,
-        siUAF_Data_tkeep       => ssUARS_USIF_Data_tkeep,
-        siUAF_Data_tlast       => ssUARS_USIF_Data_tlast,
-        siUAF_Data_tvalid      => ssUARS_USIF_Data_tvalid,
-        siUAF_Data_tready      => ssUARS_USIF_Data_tready,
+        siUAF_Data_tdata        => ssUARS_USIF_Data_tdata,
+        siUAF_Data_tkeep        => ssUARS_USIF_Data_tkeep,
+        siUAF_Data_tlast        => ssUARS_USIF_Data_tlast,
+        siUAF_Data_tvalid       => ssUARS_USIF_Data_tvalid,
+        siUAF_Data_tready       => ssUARS_USIF_Data_tready,
         -- 
-        siUAF_Meta_V_tdata     => ssUARS_USIF_Meta_tdata,
-        siUAF_Meta_V_tvalid    => ssUARS_USIF_Meta_tvalid,
-        siUAF_Meta_V_tready    => ssUARS_USIF_Meta_tready,
+        siUAF_Meta_V_tdata      => ssUARS_USIF_Meta_tdata,
+        siUAF_Meta_V_tvalid     => ssUARS_USIF_Meta_tvalid,
+        siUAF_Meta_V_tready     => ssUARS_USIF_Meta_tready,
         --
-        siUAF_DLen_V_V_tdata   => ssUARS_USIF_DLen_tdata,
-        siUAF_DLen_V_V_tvalid  => ssUARS_USIF_DLen_tvalid,
-        siUAF_DLen_V_V_tready  => ssUARS_USIF_DLen_tready,
+        siUAF_DLen_V_V_tdata    => ssUARS_USIF_DLen_tdata,
+        siUAF_DLen_V_V_tvalid   => ssUARS_USIF_DLen_tvalid,
+        siUAF_DLen_V_V_tready   => ssUARS_USIF_DLen_tready,
         --------------------------------------------------------
         -- UAF / UDP Rx Data Interfaces
         --------------------------------------------------------
-        soUAF_Data_tdata       => ssUSIF_UARS_Data_tdata,
-        soUAF_Data_tkeep       => ssUSIF_UARS_Data_tkeep,
-        soUAF_Data_tlast       => ssUSIF_UARS_Data_tlast,
-        soUAF_Data_tvalid      => ssUSIF_UARS_Data_tvalid,
-        soUAF_Data_tready      => ssUSIF_UARS_Data_tready,
+        soUAF_Data_tdata        => ssUSIF_UARS_Data_tdata,
+        soUAF_Data_tkeep        => ssUSIF_UARS_Data_tkeep,
+        soUAF_Data_tlast        => ssUSIF_UARS_Data_tlast,
+        soUAF_Data_tvalid       => ssUSIF_UARS_Data_tvalid,
+        soUAF_Data_tready       => ssUSIF_UARS_Data_tready,
         --
-        soUAF_Meta_V_tdata     => ssUSIF_UARS_Meta_tdata,
-        soUAF_Meta_V_tvalid    => ssUSIF_UARS_Meta_tvalid,
-        soUAF_Meta_V_tready    => ssUSIF_UARS_Meta_tready
---        --------------------------------------------------------
---        -- UAF / UDP Tx Data Interfaces
---        --------------------------------------------------------
---        siUAF_Data_V_dout          =>     ssFIFO_USIF_Udp_Data_data,
---        siUAF_Data_V_read          =>     ssFIFO_USIF_Udp_Data_read,
---        siUAF_Data_V_empty_n       => not ssFIFO_USIF_Udp_Data_empty,
---        --
---        siUAF_Meta_V_dout          =>     ssFIFO_USIF_Udp_Meta_data,
---        siUAF_Meta_V_read          =>     ssFIFO_USIF_Udp_Meta_read,
---        siUAF_Meta_V_empty_n       => not ssFIFO_USIF_Udp_Meta_empty,
---        --
---        siUAF_DLen_V_V_dout        =>     ssFIFO_USIF_Udp_DLen_data,
---        siUAF_DLen_V_V_read        =>     ssFIFO_USIF_Udp_DLen_read,
---        siUAF_DLen_V_V_empty_n     => not ssFIFO_USIF_Udp_DLen_empty,
---        --------------------------------------------------------
---        -- UAF / UDP Rx Data Interfaces
---        --------------------------------------------------------
---        soUAF_Data_V_din           =>     ssUSIF_FIFO_Udp_Data_data,
---        soUAF_Data_V_write         =>     ssUSIF_FIFO_Udp_Data_write,
---        soUAF_Data_V_full_n        => not ssUSIF_FIFO_Udp_Data_full,
---        --
---        soUAF_Meta_V_din           =>     ssUSIF_FIFO_Udp_Meta_data,  
---        soUAF_Meta_V_write         =>     ssUSIF_FIFO_Udp_Meta_write,
---        soUAF_Meta_V_full_n        => not ssUSIF_FIFO_Udp_Meta_full
+        soUAF_Meta_V_tdata      => ssUSIF_UARS_Meta_tdata,
+        soUAF_Meta_V_tvalid     => ssUSIF_UARS_Meta_tvalid,
+        soUAF_Meta_V_tready     => ssUSIF_UARS_Meta_tready,
+        --
+        soUAF_DLen_V_V_tdata    => ssUSIF_UARS_DLen_tdata,
+        soUAF_DLen_V_V_tvalid   => ssUSIF_UARS_DLen_tvalid,
+        soUAF_DLen_V_V_tready   => ssUSIF_UARS_DLen_tready
       ); -- End-of: UdpShellInterface
   end generate;
 
@@ -1640,6 +1685,10 @@ begin
         siUSIF_Meta_tdata     => ssUSIF_UAF_Meta_tdata,
         siUSIF_Meta_tvalid    => ssUSIF_UAF_Meta_tvalid,
         siUSIF_Meta_tready    => ssUSIF_UAF_Meta_tready,
+        --
+        siUSIF_DLen_tdata     => ssUSIF_UAF_DLen_tdata,
+        siUSIF_DLen_tvalid    => ssUSIF_UAF_DLen_tvalid,
+        siUSIF_DLen_tready    => ssUSIF_UAF_DLen_tready,
         --------------------------------------------------------
         -- To USIF / UDP Tx Data Interfaces
         --------------------------------------------------------
@@ -1684,6 +1733,10 @@ begin
         siUSIF_Meta_V_tdata   => ssUARS_UAF_Meta_tdata,
         siUSIF_Meta_V_tvalid  => ssUARS_UAF_Meta_tvalid,
         siUSIF_Meta_V_tready  => ssUARS_UAF_Meta_tready,
+        --
+        siUSIF_DLen_V_V_tdata => ssUARS_UAF_DLen_tdata,
+        siUSIF_DLen_V_V_tvalid=> ssUARS_UAF_DLen_tvalid,
+        siUSIF_DLen_V_V_tready=> ssUARS_UAF_DLen_tready,
         --------------------------------------------------------
         -- To USIF / UDP Tx Data Interfaces
         --------------------------------------------------------
@@ -1700,30 +1753,6 @@ begin
         soUSIF_DLen_V_V_tdata  => ssUAF_UARS_DLen_tdata ,
         soUSIF_DLen_V_V_tvalid => ssUAF_UARS_DLen_tvalid,
         soUSIF_DLen_V_V_tready => ssUAF_UARS_DLen_tready
---        --------------------------------------------------------
---        -- From USIF / UDP Rx Data Interfaces
---        --------------------------------------------------------
---        siUSIF_Data_V_dout     =>     ssFIFO_UAF_Udp_Data_data,
---        siUSIF_Data_V_read     =>     ssFIFO_UAF_Udp_Data_read,
---        siUSIF_Data_V_empty_n  => not ssFIFO_UAF_Udp_Data_empty,
---        --
---        siUSIF_Meta_V_dout     =>     ssFIFO_UAF_Udp_Meta_data,
---        siUSIF_Meta_V_read     =>     ssFIFO_UAF_Udp_Meta_read,
---        siUSIF_Meta_V_empty_n  => not ssFIFO_UAF_Udp_Meta_empty,
---        --------------------------------------------------------
---        -- To USIF / UDP Tx Data Interfaces
---        --------------------------------------------------------
---        soUSIF_Data_V_din      =>     ssUAF_FIFO_Udp_Data_data,
---        soUSIF_Data_V_write    =>     ssUAF_FIFO_Udp_Data_write,
---        soUSIF_Data_V_full_n   => not ssUAF_FIFO_Udp_Data_full,        
---        --
---        soUSIF_Meta_V_din      =>     ssUAF_FIFO_Udp_Meta_data,
---        soUSIF_Meta_V_write    =>     ssUAF_FIFO_Udp_Meta_write,   
---        soUSIF_Meta_V_full_n   => not ssUAF_FIFO_Udp_Meta_full,
---        --
---        soUSIF_DLen_V_V_din    =>     ssUAF_FIFO_Udp_DLen_data,
---        soUSIF_DLen_V_V_write  =>     ssUAF_FIFO_Udp_DLen_write,
---        soUSIF_DLen_V_V_full_n => not ssUAF_FIFO_Udp_DLen_full
       );
   end generate;
   
@@ -1738,7 +1767,7 @@ begin
   --#                                                                             #
   --###############################################################################
   gUdpTxFifos : if gVivadoVersion /= 2016 generate
-    ARS_UDP_RX_DATA   : AxisRegisterSlice_64_8_1
+    ARS_UDP_RX_DATA : AxisRegisterSlice_64_8_1
       port map (
         aclk          => piSHL_156_25Clk,
         aresetn       => not piSHL_Mmio_Ly7Rst,
@@ -1767,7 +1796,20 @@ begin
         m_axis_tready => ssUARS_UAF_Meta_tready
       );
     --
-    ARS_UDP_TX_DATA   : AxisRegisterSlice_64_8_1
+    ARS_UDP_RX_DLEN : AxisRegisterSlice_16
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssUSIF_UARS_DLen_tdata,
+        s_axis_tvalid => ssUSIF_UARS_DLen_tvalid,
+        s_axis_tready => ssUSIF_UARS_DLen_tready,
+        --
+        m_axis_tdata  => ssUARS_UAF_DLen_tdata, 
+        m_axis_tvalid => ssUARS_UAF_DLen_tvalid,
+        m_axis_tready => ssUARS_UAF_DLen_tready
+      );
+    --
+    ARS_UDP_TX_DATA : AxisRegisterSlice_64_8_1
       port map (
         aclk          => piSHL_156_25Clk,
         aresetn       => not piSHL_Mmio_Ly7Rst,

@@ -222,6 +222,10 @@ architecture structural of topFMKU60 is
   signal ssSHL_ROL_Nts_Udp_Meta_tdata       : std_ulogic_vector( 95 downto 0);
   signal ssSHL_ROL_Nts_Udp_Meta_tvalid      : std_ulogic;
   signal ssSHL_ROL_Nts_Udp_Meta_tready      : std_ulogic;
+  ---- Axi4-Stream UDP Data Len -----------
+  signal ssSHL_ROL_Nts_Udp_DLen_tdata       : std_ulogic_vector( 15 downto 0);
+  signal ssSHL_ROL_Nts_Udp_DLen_tvalid      : std_ulogic;
+  signal ssSHL_ROL_Nts_Udp_DLen_tready      : std_ulogic;
   
   -- SHELL-->ROLE / Nts/ Udp / Rx Ctrl Interfaces
   ---- Axi4-Stream UDP Listen Request -----
@@ -512,6 +516,10 @@ architecture structural of topFMKU60 is
       soROL_Nts_Udp_Meta_tdata          : out   std_logic_vector( 95 downto 0);
       soROL_Nts_Udp_Meta_tvalid         : out   std_ulogic;
       soROL_Nts_Udp_Meta_tready         : in    std_ulogic;
+      ---- Axi4-Stream UDP Data Len -----------
+      soROL_Nts_Udp_DLen_tdata          : out   std_logic_vector( 15 downto 0);
+      soROL_Nts_Udp_DLen_tvalid         : out   std_ulogic;
+      soROL_Nts_Udp_DLen_tready         : in    std_ulogic;
       ------------------------------------------------------
       -- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL<-->ROLE)
       ------------------------------------------------------
@@ -709,7 +717,11 @@ architecture structural of topFMKU60 is
       ---- Axi4-Stream UDP Metadata ------------
       siSHL_Nts_Udp_Meta_tdata            : in    std_ulogic_vector( 95 downto 0);
       siSHL_Nts_Udp_Meta_tvalid           : in    std_ulogic;
-      siSHL_Nts_Udp_Meta_tready           : out   std_ulogic; 
+      siSHL_Nts_Udp_Meta_tready           : out   std_ulogic;
+      ---- Axi4-Stream UDP Data Len ------------
+      siSHL_Nts_Udp_DLen_tdata            : in    std_ulogic_vector( 15 downto 0);
+      siSHL_Nts_Udp_DLen_tvalid           : in    std_ulogic;
+      siSHL_Nts_Udp_DLen_tready           : out   std_ulogic; 
       ------------------------------------------------------
       -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
       -----------------------------------------------------
@@ -1082,6 +1094,10 @@ begin
       soROL_Nts_Udp_Meta_tdata      => ssSHL_ROL_Nts_Udp_Meta_tdata ,
       soROL_Nts_Udp_Meta_tvalid     => ssSHL_ROL_Nts_Udp_Meta_tvalid,
       soROL_Nts_Udp_Meta_tready     => ssSHL_ROL_Nts_Udp_Meta_tready,
+      ---- Axi4-Stream UDP Data Len -----------
+      soROL_Nts_Udp_DLen_tdata      => ssSHL_ROL_Nts_Udp_DLen_tdata ,
+      soROL_Nts_Udp_DLen_tvalid     => ssSHL_ROL_Nts_Udp_DLen_tvalid,
+      soROL_Nts_Udp_DLen_tready     => ssSHL_ROL_Nts_Udp_DLen_tready,
       ------------------------------------------------------
       -- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
@@ -1280,6 +1296,10 @@ begin
       siSHL_Nts_Udp_Meta_tdata          => ssSHL_ROL_Nts_Udp_Meta_tdata ,
       siSHL_Nts_Udp_Meta_tvalid         => ssSHL_ROL_Nts_Udp_Meta_tvalid,
       siSHL_Nts_Udp_Meta_tready         => ssSHL_ROL_Nts_Udp_Meta_tready,
+      ---- Axi4-Stream UDP Metadata ------------
+      siSHL_Nts_Udp_DLen_tdata          => ssSHL_ROL_Nts_Udp_DLen_tdata ,
+      siSHL_Nts_Udp_DLen_tvalid         => ssSHL_ROL_Nts_Udp_DLen_tvalid,
+      siSHL_Nts_Udp_DLen_tready         => ssSHL_ROL_Nts_Udp_DLen_tready,
       -----------------------------------------------------
       -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
