@@ -285,6 +285,8 @@ parser.add_argument('-mp', '--mngr_port',   type=int, default=8080,
                            help='The TCP port of the cloudFPGA Resource Manager (default is 8080)')
 parser.add_argument('-mt', '--multi_threading',       action="store_true",
                            help='Enable multi_threading')
+parser.add_argument('-nr', '--no_restart',            action="store_true",
+                           help='Do not restart the FPGA for this run')
 parser.add_argument('-sd', '--seed',        type=int, default=-1,
                            help='The initial number to seed the pseudo-random number generator.')
 parser.add_argument('-sz', '--size',        type=int, default=-1,
@@ -329,7 +331,11 @@ portResMngr = getResourceManagerPort(args)
 
 #  STEP-4: Trigger the FPGA role to restart (i.e. perform SW reset of the role)
 # -----------------------------------------------------------------------------
-restartApp(instId, ipResMngr, portResMngr, args.user_name, args.user_passwd)
+if not args.no_restart:
+    # restartApp(instId, ipResMngr, portResMngr, args.user_name, args.user_passwd)
+    print("[INFO] *******************************\n")
+else:
+    print("[INFO] This run is executed without restarting the application.\n")
 
 #  STEP-5: Ping the FPGA
 # -----------------------------------------------------------------------------
