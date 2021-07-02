@@ -42,7 +42,7 @@ cPORT_RES_MNGR="8080"
 #  GLOBAL VARIABLES INITIALIZATION
 # -----------------------------------------------------------------------------
 ERRORS=0
-LOOP=1
+LOOP=10
 INSTANCE_IP=""
 CURL_REPLY=""
 
@@ -245,8 +245,18 @@ if [ $RUN_RECV = true ]; then
       python3 tc_UdpRecv.py -lc 10                   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 0; \
       if [ $? -ne 0 ]; then echo -e "#### ERRORS=${ERRORS} ####"; exit 2; fi; \
     fi
-  done  
+  done
+
+  # RECV - Large fixed datagrams
+  for value in {1..${LOOP}}; \
+  do \
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
+      python3 tc_UdpRecv.py -lc 1000 -sz 65535       -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
+    fi
+  done
+  
 fi
+
 
 if [ $RUN_ECHO = true ]; then
   echo -e "###  UDP ECHO  ######################################################" 
@@ -288,7 +298,4 @@ echo -e "###                   END OF UDP TESTS                            ###"
 echo -e "###                      (ERRORS=${ERRORS})                               ###"
 echo -e "#####################################################################"
 
-
-### FAILING UDP CASES #####
-# for value in {1..10}; do python3 tc_UdpRecv.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -lc 1000 -sz 65535     ; done # Fixed size
 
