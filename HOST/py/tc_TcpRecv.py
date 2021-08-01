@@ -385,7 +385,8 @@ if args.verbose:
 dpHost = 2718  # Default TCP cF-Themisto ports are in range 2718-2750
 hostListenAssociation = (str(ipHostStr), dpHost)
 
-#  STEP-7b: Create a TCP/IP socket for listening to FPGA client(s) and allow its re-use
+#  STEP-7b: Create a TCP/IP socket for listening to FPGA client(s). Allow
+#   its re-use and set its OS buffer size to 64KB+
 # -----------------------------------------------------------------------------
 try:
     tcpListenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -393,6 +394,10 @@ except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 tcpListenSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# [TODO] curSO_RCVBUF = tcpListenSock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+# [TODO] tcpListenSock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF,    100*1024)
+# [TODO] newSO_RCVBUF = tcpListenSock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+# [TODO] print("[INFO] The socket receive size was changed from %d to %d" % (curSO_RCVBUF, curSO_RCVBUF))
 
 # STEP-7c: Bind the listen socket of the HOST (compulsory) and start listening on it.
 #  bind() -> associates the listen socket with a specific IP address and TCP port.
