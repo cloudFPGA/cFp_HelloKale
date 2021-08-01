@@ -221,13 +221,15 @@ except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
 
-#  STEP-7b: Create a UDP/IP server socket for listening to FPGA client
+#  STEP-7b: Create a UDP/IP server socket for listening to FPGA client and set
+#   its OS buffer size to 64KB+
 # -----------------------------------------------------------------------------
 try:
     udpServerSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 except Exception as exc:
     print("[EXCEPTION] %s" % exc)
     exit(1)
+udpServerSock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 100*1024)
 
 # STEP-8a: Bind the client socket before connect (optional).
 #  This trick enables us to ask the kernel to select a specific source IP and
@@ -241,8 +243,8 @@ if 0:
         print("[EXCEPTION] %s" % exc)
         exit(1)
 
-# STEP-8b: Bind the server socket before connect (compulsory).
-#  Issued here to associate the server socket with a specific remote IP address and UDP port.
+#  STEP-8b: Bind the server socket before connect (compulsory).
+#   Issued here to associate the server socket with a specific remote IP address and UDP port.
 # -----------------------------------------------------------------------------
 hostname  = socket.gethostname()
 ipHostStr = socket.gethostbyname(hostname)
