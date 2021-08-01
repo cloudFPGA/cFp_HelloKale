@@ -96,35 +96,34 @@ def tcp_tx_ramp(sock, message, count, verbose=False):
      :param count    The number of segments to send.
      :param verbose  Enables verbosity.
      :return         None"""
+    size = len(message) * count
     if verbose:
-        print("[INFO] The following message of %d bytes will be sent out incrementally %d times:\n  Message=%s\n" %
-              (len(message), count, message.decode()))
-    nrErr = 0
-    loop = 0
-    txByteCnt = 0
+        print("[INFO] A buffer of %d bytes with incremental integers will be sent out.\n" % size)
+
+    size = int(size/8)
+    strStream = ""
+    for i in range(0, size):
+        strStream += "{:08d}".format(i)
+    strStream += '\n'
+    bytStream = strStream.encode()
+
     startTime = datetime.datetime.now()
-    while loop < count:
-        i = 1
-        while i <= len(message):
-            subMsg = message[0:i]
-            #  Send segment
-            # -------------------
-            try:
-                sock.sendall(subMsg)
-            except socket.error as exc:
-                # Any exception
-                print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
-                exit(1)
-            finally:
-                pass
-            txByteCnt += len(subMsg)
-            if verbose:
-                print("Loop=%d | TxBytes=%d | Msg=%s" % (loop, len(subMsg), subMsg))
-            i += 1
-        loop += 1
+
+    #  Send stream
+    # -------------------
+    try:
+        sock.sendall(bytStream)
+    except socket.error as exc:
+        # Any exception
+        print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
+        exit(1)
+    finally:
+        pass
+
     endTime = datetime.datetime.now()
     elapseTime = endTime - startTime
 
+    txByteCnt = len(message) * count
     if txByteCnt < 1000000:
         print("[INFO] Transferred a total of %d bytes." % txByteCnt)
     elif txByteCnt < 1000000000:
