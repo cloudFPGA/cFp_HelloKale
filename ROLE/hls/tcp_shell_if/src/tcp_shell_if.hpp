@@ -203,8 +203,13 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- SHELL / Close Interfaces
         //------------------------------------------------------
-        stream<TcpAppClsReq>  &soSHL_ClsReq
-        //-- Not Used         &siSHL_ClsSts
+        stream<TcpAppClsReq>  &soSHL_ClsReq,
+        //-- Not Used         &siSHL_ClsSts,
+
+        //------------------------------------------------------
+        //-- DEBUG Probes
+        //------------------------------------------------------
+        stream<ap_uint<32> >  &soDBG_SinkCnt
 
 );
 

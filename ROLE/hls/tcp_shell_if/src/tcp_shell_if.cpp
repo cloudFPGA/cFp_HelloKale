@@ -78,7 +78,7 @@ using namespace std;
 #define TRACE_RRH     1 <<  7
 #define TRACE_RRM     1 <<  8
 #define TRACE_ALL      0xFFFF
-#define DEBUG_LEVEL (TRACE_RRH | TRACE_RDP)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
  * @brief Stream Data Mover - Moves data chunks from incoming stream to outgoing
@@ -1019,7 +1019,6 @@ void pReadRequestHandler(
  * @param[in]  piSHL_Enable  Enable signal from [SHELL].
  * @param[in]  siSHL_Data    Data stream from [SHELL].
  * @param[in]  siSHL_Meta    Session Id from [SHELL].
- //OBSOLETE_20210325 * @param[out] soRRh_EnquSig Signals the enqueue of a new chunk to ReadRequestHandler (RRh).
  * @param[out] soRDp_Data    Data stream to ReadPath (RDp).
  * @param[out] soRDp_Meta    Metadata stream [RDp].
  *
@@ -1213,49 +1212,45 @@ void pReadRequestHandler(
             }
             break;
         case RDR_GEN_DLEN:
-            if (rrh_freeSpace < cMinDataReqLen) {
-                if (DEBUG_LEVEL & TRACE_RRH) {
-                    printInfo(myName, "FreeSpace=%4d is too low. Waiting for buffer to drain. \n",
-                                      rrh_freeSpace.to_uint());
-                }
-                break;
-            }
-            else {
+            if (rrh_freeSpace >= cMinDataReqLen) {
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "FreeSpace=%4d | NotifBytes=%4d \n",
                               rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
                 }
-            }
-            // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
-            if (rrh_freeSpace < rdr_notif.tcpDatLen) {
-                rdr_datLenReq        = rrh_freeSpace;
-                rdr_notif.tcpDatLen -= rrh_freeSpace;
-                rrh_freeSpace        = 0;
+                // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
+                if (rrh_freeSpace < rdr_notif.tcpDatLen) {
+                    rdr_datLenReq        = rrh_freeSpace;
+                    rdr_notif.tcpDatLen -= rrh_freeSpace;
+                    rrh_freeSpace        = 0;
+                }
+                else {
+                    rdr_datLenReq        = rdr_notif.tcpDatLen;
+                    rrh_freeSpace       -= (rdr_notif.tcpDatLen & ~(ARW/8-1));
+                    rdr_notif.tcpDatLen  = 0;
+                }
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                     printInfo(myName, "DataLenReq=%d\n", rdr_datLenReq.to_uint());
+                 }
+                rdr_fsmState = RDR_SEND_DREQ;
             }
             else {
-                rdr_datLenReq        = rdr_notif.tcpDatLen;
-                rrh_freeSpace       -= (rdr_notif.tcpDatLen & ~(ARW/8-1));
-                rdr_notif.tcpDatLen  = 0;
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "FreeSpace=%4d is too low. Waiting for buffer to drain. \n",
+                                      rrh_freeSpace.to_uint());
+               }
             }
-            if (DEBUG_LEVEL & TRACE_RRH) {
-                 printInfo(myName, "DataLenReq=%d\n", rdr_datLenReq.to_uint());
-             }
-            rdr_fsmState = RDR_SEND_DREQ;
             break;
         case RDR_SEND_DREQ:
             if (!soRRm_DReq.full() and !soRDp_FwdCmd.full()) {
                 soRRm_DReq.write(TcpAppRdReq(rdr_notif.sessionID, rdr_datLenReq));
                 switch (rdr_notif.tcpDstPort) {
                     case RECV_MODE_LSN_PORT: // 8800
-                        //OBSOLETE_20210514 soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, NOP));
                         soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_DROP, NOP));
                         break;
                     case XMIT_MODE_LSN_PORT: // 8801
-                        //OBSOLETE_20210514 soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_DROP, GEN));
                         soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_DROP, GEN));
                         break;
                     default:
-                        //OBSOLETE_20210514 soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_notif.tcpDatLen, CMD_KEEP, NOP));
                         soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_KEEP, NOP));
                         break;
                 }
@@ -1310,16 +1305,17 @@ void pReadRequestMover(
 /*******************************************************************************
  * @brief Read Path (RDp)
  *
- * @param[in]  piSHL_Enable  Enable signal from [SHELL].
- * @param[in]  siSHL_Data    Data stream from [SHELL].
- * @param[in]  siSHL_Meta    Session Id from [SHELL].
- * @param[in]  siRRh_FwdCmd  A command to keep/drop a stream from ReadRequestHandler (RRh).
+ * @param[in]  piSHL_Enable     Enable signal from [SHELL].
+ * @param[in]  siSHL_Data       Data stream from [SHELL].
+ * @param[in]  siSHL_Meta       Session Id from [SHELL].
+ * @param[in]  siRRh_FwdCmd     A command to keep/drop a stream from ReadRequestHandler (RRh).
  * @param[out] soCOn_OpnSockReq The remote socket to open to Connect (COn).
  * @param[out] soCOn_TxCountReq The #bytes to be transmitted once connection is opened by [COn].
- * @param[out] soRRh_DequSig Signals the dequeue of a chunk to ReadRequestHandler (RRh).
- * @param[out] soTAF_Data    Data stream to [TAF].
- * @param[out] soTAF_SessId  The session-id to [TAF].
- * @param[out] soTAF_DatLen  The data-length to [TAF].
+ * @param[out] soRRh_DequSig    Signals the dequeue of a chunk to ReadRequestHandler (RRh).
+ * @param[out] soTAF_Data       Data stream to [TAF].
+ * @param[out] soTAF_SessId     The session-id to [TAF].
+ * @param[out] soTAF_DatLen     The data-length to [TAF].
+ * @param[out] soDBG_SinkCount  Counts the number of sinked bytes (for debug).
  *
  * @details
  *  This process waits for new data to read and either forwards them to the
@@ -1336,16 +1332,17 @@ void pReadRequestMover(
  *       the extracted fields to the Connect (COn) process.
  *******************************************************************************/
 void pReadPath(
-        CmdBit              *piSHL_Enable,
-        stream<TcpAppData>  &siSHL_Data,
-        stream<TcpAppMeta>  &siSHL_Meta,
-        stream<ForwardCmd>  &siRRh_FwdCmd,
-        stream<SockAddr>    &soCOn_OpnSockReq,
-        stream<TcpDatLen>   &soCOn_TxCountReq,
-        stream<SigBit>      &soRRh_DequSig,
-        stream<TcpAppData>  &soTAF_Data,
-        stream<TcpSessId>   &soTAF_SessId,
-        stream<TcpDatLen>   &soTAF_DatLen)
+        CmdBit               *piSHL_Enable,
+        stream<TcpAppData>   &siSHL_Data,
+        stream<TcpAppMeta>   &siSHL_Meta,
+        stream<ForwardCmd>   &siRRh_FwdCmd,
+        stream<SockAddr>     &soCOn_OpnSockReq,
+        stream<TcpDatLen>    &soCOn_TxCountReq,
+        stream<SigBit>       &soRRh_DequSig,
+        stream<TcpAppData>   &soTAF_Data,
+        stream<TcpSessId>    &soTAF_SessId,
+        stream<TcpDatLen>    &soTAF_DatLen,
+        stream<ap_uint<32> > &soDBG_SinkCount)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -1359,6 +1356,8 @@ void pReadPath(
                             RDP_SINK_META, RDP_SINK_STREAM } \
                                rdp_fsmState=RDP_IDLE;
     #pragma HLS reset variable=rdp_fsmState
+    static ap_uint<32>         rdp_sinkCnt=0;
+    #pragma HLS reset variable=rdp_sinkCnt
 
     //-- STATIC VARIABLES ------------------------------------------------------
     static ForwardCmd  rdp_fwdCmd;
@@ -1419,6 +1418,8 @@ void pReadPath(
             siSHL_Data.read(appData);
             soRRh_DequSig.write(1);
             if (DEBUG_LEVEL & TRACE_RDP) { printAxisRaw(myName, "Sink Data =", appData); }
+            rdp_sinkCnt += appData.getLen();
+            soDBG_SinkCount.write(rdp_sinkCnt);
             if (appData.getTLast()) {
                 rdp_fsmState  = RDP_IDLE;
             }
@@ -1672,6 +1673,7 @@ void pWritePath(
  * @param[out] soSHL_OpnReq  TCP open connection request to [SHELL].
  * @param[in]  siSHL_OpnRep  TCP open connection reply from [SHELL].
  * @param[out] soSHL_ClsReq  TCP close connection request to [SHELL].
+ * @param[out] soDBG_SinkCnt Counts the number of sinked bytes (for debug).
  *******************************************************************************/
 void tcp_shell_if(
 
@@ -1724,7 +1726,12 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- SHELL / Close Interfaces
         //------------------------------------------------------
-        stream<TcpAppClsReq>  &soSHL_ClsReq)
+        stream<TcpAppClsReq>  &soSHL_ClsReq,
+
+        //------------------------------------------------------
+        //-- DEBUG Probes
+        //------------------------------------------------------
+        stream<ap_uint<32> >  &soDBG_SinkCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
@@ -1799,7 +1806,8 @@ void tcp_shell_if(
             ssRDpToRRh_Dequeue,
             soTAF_Data,
             soTAF_SessId,
-            soTAF_DatLen);
+            soTAF_DatLen,
+            soDBG_SinkCnt);
 
     pReadNotificationHandler(
             piSHL_Mmio_En,

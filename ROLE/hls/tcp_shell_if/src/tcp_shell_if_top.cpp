@@ -60,6 +60,7 @@ using namespace std;
  * @param[out] soSHL_OpnReq  TCP open connection request to [SHELL].
  * @param[in]  siSHL_OpnRep  TCP open connection reply from [SHELL].
  * @param[out] soSHL_ClsReq  TCP close connection request to [SHELL].
+ * @param[out] soDBG_SinkCnt Counts the number of sinked bytes (for debug).
  *******************************************************************************/
 #if HLS_VERSION == 2016
     void tcp_shell_if_top(
@@ -225,7 +226,11 @@ using namespace std;
         //------------------------------------------------------
         //-- SHELL / Close Interfaces
         //------------------------------------------------------
-        stream<TcpAppClsReq>  &soSHL_ClsReq)
+        stream<TcpAppClsReq>  &soSHL_ClsReq,
+        //------------------------------------------------------
+        //-- DEBUG Probes
+        //------------------------------------------------------
+        stream<ap_uint<32> >  &soDBG_SinkCnt)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -263,6 +268,8 @@ using namespace std;
 
     #pragma HLS INTERFACE axis off              port=soSHL_ClsReq   name=soSHL_ClsReq
 
+    #pragma HLS INTERFACE axis off              port=soDBG_SinkCnt  name=soDBG_SinkCnt
+
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
   #if HLS_VERSION == 2017
     #pragma HLS DATAFLOW
@@ -297,8 +304,9 @@ using namespace std;
         soSHL_OpnReq,
         siSHL_OpnRep,
         //-- TOE / Close Interfaces
-        soSHL_ClsReq);
-
+        soSHL_ClsReq,
+        //-- DEBUG Interfaces
+        soDBG_SinkCnt);
 }
 
 #endif  //  HLS_VERSION

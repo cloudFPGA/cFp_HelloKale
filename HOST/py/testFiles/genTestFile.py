@@ -30,6 +30,7 @@ import argparse
 import datetime
 import os.path
 import random
+import re
 import time
 
 # ### REQUIRED TESTCASE MODULES ###############################################
@@ -44,53 +45,84 @@ import time
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser(description='A script to generate the content of test files for use with the socat command.')
 # Positional arguments
-parser.add_argument('-f',  '--file',        required=True, type=str, default='',
+parser.add_argument('-f',  '--file',        required=False, type=str, default='',
                            help='The <filename> to generate.')
-parser.add_argument('-sz', '--size',        required=True, type=int, default=-1,
-                           help='The size of the file to generate (in bytes).')
+parser.add_argument('-sz', '--size',        required=True, type=str, default='',
+                           help='The size of the file to generate (e.g. 512, 32K, 8M, 1G).')
 # Optional arguments
 parser.add_argument('-inc',  '--increment',  action="store_true",
                            help='Generate a ramp of incremented numbers')
 parser.add_argument('-dec',  '--decrement',  action="store_true",
                            help='Generate a ramp of decremented numbers')
-parser.add_argument('-rand', '--random',     action="store_true",
+parser.add_argument('-rnd',  '--random',     action="store_true",
                            help='Generate random numbers')
-parser.add_argument('-v',    '--verbose',      action="store_true",
+parser.add_argument('-v',    '--verbose',    action="store_true",
                            help='Enable verbosity')
 args = parser.parse_args()
 
-if args.file == '':
-    print("\nERROR: A file name is required.\n")
+# Parse the size argument
+suffixFileName = ""
+match = re.search("^[0-9]", args.size)
+if match:
+    charList = re.findall("[0-9]", args.size)
+    strInt = ""
+    for e in charList:
+        strInt += e
+    suffixFileName += strInt
+    reqSize = int(strInt)
+    if len(args.size) > len(charList):
+        if args.size[len(charList)] == 'K':
+            reqSize = reqSize*1024
+            suffixFileName += 'K'
+        elif args.size[len(charList)] == 'M':
+            reqSize = reqSize*1024*1024
+            suffixFileName += 'M'
+        elif args.size[len(charList)] == 'G':
+            reqSize = reqSize*1024*1024*1024
+            suffixFileName += 'G'
+        else:
+            print("Unknown or un-supported prefix symbol '%c'.\n" % args.size[len(charList)])
+            exit(1)
+else:
+    print("ERROR: The file size must start with a digit!\n")
     exit(1)
 
-if args.size == -1:
-    print("\nERROR: A file size is required.\n")
-    exit(1)
-elif args.size % 8:
+if reqSize % 8:
     print("\nERROR: The size must be a multiple of 8 bytes.")
     exit(1)
 
 if args.increment == 0 and args.decrement == 0 and args.random == 0:
-    print("\nERROR: A generator type is required (rand, inc or dec).\n")
+    print("\nERROR: A generator type is required (rnd, inc or dec).\n")
     exit(1)
 
-#  STEP-2: Check if file already exists
+#  STEP-2: Generate filename and check if file already exists
 # -----------------------------------------------------------------------------
-if os.path.exists(args.file):
+fileName = ""
+if args.file == "":
+    if args.increment:
+        fileName = "inc_" + suffixFileName
+    if args.decrement:
+        fileName = "dec_" + suffixFileName
+    if args.random:
+        fileName = "rnd_" + suffixFileName
+else:
+    fileName = args.file
+
+if os.path.exists(fileName):
     print("\nWARNING: File already exist.")
     answer = input("\tOverwrite (y/n): ")
     if answer != 'y':
         exit(0)
     else:
-        os.remove(args.file)
+        os.remove(fileName)
 
 #  STEP-3: Open file and generate content
 # -----------------------------------------------------------------------------
-outFile = open(args.file, 'w')
+outFile = open(fileName, 'w')
 
 if args.increment:
-    size = int(args.size / 8)
     strStream = ""
+    size = int(reqSize / 8)
     for x in range(0, size):
         swapStr = ""
         strTmp = "{:08d}".format(x)
@@ -111,15 +143,35 @@ if args.increment:
     if size < 1024:
         print("STREAM=%s" % strStream)
 elif args.decrement:
-    size = int(args.size / 8)
-    for x in range(size-1, 0):
-        outFile.write("{:08d}".format(x))
+    size = int(reqSize / 8)
+    strStream = ""
+    for x in range(size-1, 0, -1):
+        swapStr = ""
+        strTmp = "{:08d}".format(x)
+        # Swap the generated 8 bytes
+        swapStr += strTmp[7]
+        swapStr += strTmp[6]
+        swapStr += strTmp[5]
+        swapStr += strTmp[4]
+        swapStr += strTmp[3]
+        swapStr += strTmp[2]
+        swapStr += strTmp[1]
+        swapStr += strTmp[0]
+        # OBSOLETE_20210801 outFile.write("{:08d}".format(x))
+        outFile.write(swapStr)
+        if size < 1024:
+            strStream += strTmp
+    strStream += '\n'
+    if size < 1024:
+        print("STREAM=%s" % strStream)
 else:
-    size = int(args.size / 2)
+    size = int(reqSize / 2)
+    strStream = ""
     for x in range(0, size):
         y = random.randint(0, 255)
         outFile.write("{:02x}".format(y))
 
 outFile.close()
 
-
+print("\nINFO: The following file was created:")
+os.system("ls -lh " + fileName)

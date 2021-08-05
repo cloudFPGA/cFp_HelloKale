@@ -94,6 +94,31 @@ void increaseSimTime(unsigned int cycles) {
     gMaxSimCycles += cycles;
 }
 
+/*****************************************************************************
+ * @brief Empty the DebugSinkCounter stream and throw it away.
+ *
+ * @param[in/out] ss        A ref to the stream to drain.
+ * @param[in]     ssName    The name of the stream to drain.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+bool drainDebugSinkCounter(stream<ap_uint<32> > &ss, string ssName) {
+    int          nr=0;
+    const char  *myName  = concat3(THIS_NAME, "/", "DUMTF");
+    ap_uint<32>  currCount;
+    ap_uint<32>  prevCount=0;
+
+    //-- READ FROM STREAM
+    while (!(ss.empty())) {
+        ss.read(currCount);
+        if (currCount != (prevCount+1)) {
+            printWarn(myName, "Houston, we have a problem !\n");
+        }
+        prevCount = currCount;
+    }
+    return(NTS_OK);
+}
+
 /*******************************************************************************
  * @brief Emulate the behavior of the ROLE/TcpAppFlash (TAF).
  *

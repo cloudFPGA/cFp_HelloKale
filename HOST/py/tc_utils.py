@@ -79,7 +79,7 @@ def num_to_char(num):
 def str_static_gen(size):
     """Returns an encoded static string with length >= 'size'."""
     msg = '           Hello World          '
-    while (len(msg)) < (size-1):
+    while (len(msg)) < (size-2):
         msg += num_to_char(len(msg) % 16)
     msg += '\n'
     return msg.encode()
@@ -87,7 +87,7 @@ def str_static_gen(size):
 
 def str_rand_gen(size):
     """Returns an encoded random string of length 'size'."""
-    msg = "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size-1))
+    msg = "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size-2))
     msg += '\n'
     return msg.encode()
 

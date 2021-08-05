@@ -318,6 +318,13 @@ architecture BringUp of Role_Kale is
   signal ssTARS_TAF_DatLen_tdata    : std_ulogic_vector( 15 downto 0);
   signal ssTARS_TAF_DatLen_tvalid   : std_ulogic;
   signal ssTARS_TAF_DatLen_tready   : std_ulogic;  
+  
+  --------------------------------------------------------
+  -- SIGNAL DECLARATIONS : TSIF --> ARS --> DEBUG
+  --------------------------------------------------------
+  signal ssTSIF_ARS_SinkCnt_tdata   : std_ulogic_vector( 31 downto 0);
+  signal ssTSIF_ARS_SinkCnt_tvalid  : std_ulogic;
+  signal ssTSIF_ARS_SinkCnt_tready  : std_ulogic; 
 
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : TAF --> TARS --> TSIF
@@ -490,6 +497,13 @@ architecture BringUp of Role_Kale is
   signal ssFIFO_USIF_Udp_DLen_empty        : std_logic;
 
   signal sSHL_Mem_Mp0_Write_tlast          : std_ulogic_vector(0 downto 0);
+  
+  --------------------------------------------------------
+  -- DEBUG SIGNALS
+  --------------------------------------------------------
+  signal sTSIF_DBG_SinkCnt                 : std_logic_vector(31 downto 0);
+  attribute mark_debug                     : string;
+  attribute mark_debug of sTSIF_DBG_SinkCnt : signal is "true"; -- Set to "true' if you need/want to trace these signals
   
   --============================================================================
   --  VARIABLE DECLARATIONS
@@ -1250,7 +1264,14 @@ architecture BringUp of Role_Kale is
       ---- TCP Close Request Stream 
       soSHL_ClsReq_V_V_tdata  : out std_ulogic_vector( 15 downto 0);
       soSHL_ClsReq_V_V_tvalid : out std_ulogic;
-      soSHL_ClsReq_V_V_tready : in  std_ulogic
+      soSHL_ClsReq_V_V_tready : in  std_ulogic;
+      ------------------------------------------------------
+      -- DEBUG Interfaces
+      ------------------------------------------------------
+      ---- Sink Counter Stream
+      soDBG_SinkCnt_V_V_tdata : out std_ulogic_vector( 31 downto 0);
+      soDBG_SinkCnt_V_V_tvalid: out std_ulogic;
+      soDBG_SinkCnt_V_V_tready: in  std_ulogic       
     );
   end component TcpShellInterface;
   
@@ -1332,6 +1353,19 @@ architecture BringUp of Role_Kale is
       m_axis_tready : in  std_logic
     );
   end component AxisRegisterSlice_64_8_1;
+  
+  component AxisRegisterSlice_32
+    port (
+      aclk          : in  std_logic;
+      aresetn       : in  std_logic;
+      s_axis_tdata  : in  std_logic_vector(31 downto 0);
+      s_axis_tvalid : in  std_logic;
+      s_axis_tready : out std_logic;
+      m_axis_tdata  : out std_logic_vector(31 downto 0);
+      m_axis_tvalid : out std_logic;
+      m_axis_tready : in  std_logic
+    );
+  end component AxisRegisterSlice_32;
   
   component AxisRegisterSlice_16
     port (
@@ -2152,7 +2186,14 @@ begin
         ---- TCP Close Request Stream 
         soSHL_ClsReq_V_V_tdata    => soSHL_Nts_Tcp_ClsReq_tdata,
         soSHL_ClsReq_V_V_tvalid   => soSHL_Nts_Tcp_ClsReq_tvalid,
-        soSHL_ClsReq_V_V_tready   => soSHL_Nts_Tcp_ClsReq_tready
+        soSHL_ClsReq_V_V_tready   => soSHL_Nts_Tcp_ClsReq_tready,
+        ------------------------------------------------------
+        -- DEBUG Interfaces
+        ------------------------------------------------------
+        ---- Sink Counter Stream
+        soDBG_SinkCnt_V_V_tdata   => ssTSIF_ARS_SinkCnt_tdata,
+        soDBG_SinkCnt_V_V_tvalid  => ssTSIF_ARS_SinkCnt_tvalid,
+        soDBG_SinkCnt_V_V_tready  => ssTSIF_ARS_SinkCnt_tready 
       ); -- End of: TcpShellInterface
   end generate;
   
@@ -2166,7 +2207,7 @@ begin
   --#       #       ####   #         #   #  #  #  ####                            #
   --#                                                                             #
   --###############################################################################
-  gArsTcpRx : if gVivadoVersion /= 2016 generate
+  gArsTcp : if gVivadoVersion /= 2016 generate
     ARS_TCP_RX_DATA   : AxisRegisterSlice_64_8_1
       port map (
         aclk          => piSHL_156_25Clk,
@@ -2247,6 +2288,19 @@ begin
         m_axis_tdata  => ssTARS_TSIF_DatLen_tdata, 
         m_axis_tvalid => ssTARS_TSIF_DatLen_tvalid,
         m_axis_tready => ssTARS_TSIF_DatLen_tready
+      );
+    -- 
+    ARS_TCP_DBG_SINK_CNT : AxisRegisterSlice_32
+      port map (
+        aclk          => piSHL_156_25Clk,
+        aresetn       => not piSHL_Mmio_Ly7Rst,
+        s_axis_tdata  => ssTSIF_ARS_SinkCnt_tdata,
+        s_axis_tvalid => ssTSIF_ARS_SinkCnt_tvalid,
+        s_axis_tready => ssTSIF_ARS_SinkCnt_tready,
+        --
+        m_axis_tdata  => sTSIF_DBG_SinkCnt,
+        m_axis_tvalid => open,
+        m_axis_tready => '1'
       );
   end generate;
     

@@ -375,6 +375,33 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [32]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [4]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_32"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {4} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [64]
 #------------------------------------------------------------------------------
 #  Signal Properties

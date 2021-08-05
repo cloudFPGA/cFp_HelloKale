@@ -113,6 +113,8 @@ int main(int argc, char *argv[]) {
     //-- TSIF / Connect Interfaces
     stream<TcpAppOpnReq> ssTSIF_TOE_OpnReq("ssTSIF_TOE_OpnReq");
     stream<TcpAppClsReq> ssTSIF_TOE_ClsReq("ssTSIF_TOE_ClsReq");
+    //-- DEBUG Interface
+    stream<ap_uint<32> > ssTSIF_DBG_SinkCnt("ssTSIF_DBG_CinkCnt");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -300,7 +302,9 @@ int main(int argc, char *argv[]) {
             //-- TOE / Tx Open Interfaces
             ssTSIF_TOE_OpnReq, ssTOE_TSIF_OpnRep,
             //-- TOE / Close Interfaces
-            ssTSIF_TOE_ClsReq);
+            ssTSIF_TOE_ClsReq,
+            //-- DEBUG Interfaces
+            ssTSIF_DBG_SinkCnt);
 
         //-------------------------------------------------
         //-- EMULATE ROLE/TcpApplicationFlash
@@ -325,6 +329,14 @@ int main(int argc, char *argv[]) {
     printInfo(THIS_NAME,
           "############################################################################\n");
     stepSim();
+
+    //---------------------------------------------------------------
+    //-- DRAIN THE TSIF SINK COUNTER STREAM
+    //---------------------------------------------------------------
+    if (not drainDebugSinkCounter(ssTSIF_DBG_SinkCnt, "ssTSIF_DBG_SinkCnt")) {
+            printError(THIS_NAME, "Failed to drain debug sink counter from DUT. \n");
+        nrErr++;
+    }
 
     //---------------------------------------------------------------
     //-- COMPARE RESULT DATA FILE WITH GOLDEN FILE

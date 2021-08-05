@@ -67,12 +67,12 @@ const int cMinWAIT = cMaxSessions;  // To avoid that TSIF accumulates the byte c
 #define DEFAULT_SESSION_LEN     32
 
 
-
 /*******************************************************************************
  * SIMULATION UTILITY HELPERS
  ********************************************************************************/
 void stepSim();
 void increaseSimTime(unsigned int cycles);
+bool drainDebugSinkCounter(stream<ap_uint<32> > &ss, string ssName);
 
 /******************************************************************************
  * SIMULATION ENVIRONMENT FUNCTIONS
