@@ -241,8 +241,7 @@ def tcp_txrx_ramp(sock, message, count, verbose=False):
     rxByteCnt = 0
     startTime = datetime.datetime.now()
     while loop < count:
-        i = 12  # [FIXME- Must be '1']
-        print("[FIXME - Message size starts at 12 bytes instead of 1! ]")
+        i = 1
         while i <= len(message):
             subMsg = message[0:i]
             #  Send datagram
