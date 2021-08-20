@@ -96,25 +96,33 @@ def tcp_tx_ramp(sock, message, count, verbose=False):
      :param count    The number of segments to send.
      :param verbose  Enables verbosity.
      :return         None"""
-    size = len(message) * count
-    if verbose:
-        print("[INFO] A buffer of %d bytes with incremental integers will be sent out.\n" % size)
-
-    size = int(size / 8)
     strStream = ""
-    for i in range(0, size):
-        strTmp = "{:08d}".format(i)
-        # Swap the generated 8 bytes
-        strStream += strTmp[7]
-        strStream += strTmp[6]
-        strStream += strTmp[5]
-        strStream += strTmp[4]
-        strStream += strTmp[3]
-        strStream += strTmp[2]
-        strStream += strTmp[1]
-        strStream += strTmp[0]
-    strStream += '\n'
+    size = len(message) * count
+    if size <= 8:
+        for i in range(0, size-1):
+            strStream += '0'
+    else:
+        rampSize = int(size/8)
+        for i in range(0, rampSize):
+            strTmp = "{:08d}".format(i)
+            # Swap the generated 8 bytes
+            strStream += strTmp[7]
+            strStream += strTmp[6]
+            strStream += strTmp[5]
+            strStream += strTmp[4]
+            strStream += strTmp[3]
+            strStream += strTmp[2]
+            strStream += strTmp[1]
+            strStream += strTmp[0]
+        for i in range(0, int(size % 8)):
+            strStream += 'E'
     bytStream = strStream.encode()
+
+    if verbose:
+        print("[INFO] The following byte stream of %d bytes will be sent out:\n  Message=%s\n" %
+              (len(message), bytStream.decode()))
+
+    startTime = datetime.datetime.now()
 
     #  Send stream
     # -------------------
