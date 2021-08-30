@@ -106,17 +106,19 @@ bool drainDebugSinkCounter(stream<ap_uint<32> > &ss, string ssName) {
     int          nr=0;
     const char  *myName  = concat3(THIS_NAME, "/", "DUMTF");
     ap_uint<32>  currCount;
-    ap_uint<32>  prevCount=0;
+    ap_uint<32>  prevCount=0xFFFFFFFF;
+    bool         rc=NTS_OK;
 
     //-- READ FROM STREAM
     while (!(ss.empty())) {
         ss.read(currCount);
-        if (currCount != (prevCount+1)) {
-            printWarn(myName, "Houston, we have a problem !\n");
+        if (currCount == prevCount) {
+            printWarn(myName, "Houston, we have a problem !\n\tcurrCount=%d|prevCount=%d\n", currCount.to_uint(), prevCount.to_uint());
+            rc=NTS_KO;
         }
         prevCount = currCount;
     }
-    return(NTS_OK);
+    return(rc);
 }
 
 /*******************************************************************************

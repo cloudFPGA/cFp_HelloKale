@@ -1213,10 +1213,6 @@ void pReadRequestHandler(
             break;
         case RDR_GEN_DLEN:
             if (rrh_freeSpace >= cMinDataReqLen) {
-                if (DEBUG_LEVEL & TRACE_RRH) {
-                    printInfo(myName, "FreeSpace=%4d | NotifBytes=%4d \n",
-                              rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
-                }
                 // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
                 if (rrh_freeSpace < rdr_notif.tcpDatLen) {
                     rdr_datLenReq        = rrh_freeSpace;
@@ -1225,18 +1221,22 @@ void pReadRequestHandler(
                 }
                 else {
                     rdr_datLenReq        = rdr_notif.tcpDatLen;
-                    rrh_freeSpace       -= (rdr_notif.tcpDatLen & ~(ARW/8-1));
+                    rrh_freeSpace       -= (rdr_notif.tcpDatLen) & ~((TcpDatLen)(ARW/8-1));
+                    if (rdr_notif.tcpDatLen & ~((TcpDatLen)(ARW/8))) {
+                        rrh_freeSpace   -= (ARW/8);
+                    }
                     rdr_notif.tcpDatLen  = 0;
                 }
                 if (DEBUG_LEVEL & TRACE_RRH) {
-                     printInfo(myName, "DataLenReq=%d\n", rdr_datLenReq.to_uint());
-                 }
+                    printInfo(myName, "DataLenReq=%4d | FreeSpace=%4d | NotifBytes=%4d \n",
+                              rdr_datLenReq.to_uint(), rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
+                }
                 rdr_fsmState = RDR_SEND_DREQ;
             }
             else {
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "FreeSpace=%4d is too low. Waiting for buffer to drain. \n",
-                                      rrh_freeSpace.to_uint());
+                              rrh_freeSpace.to_uint());
                }
             }
             break;
@@ -1744,13 +1744,13 @@ void tcp_shell_if(
 
     //-- Input Read Buffer (IRb)
     static stream<TcpAppData>      ssIRbToRDp_Data       ("ssIRbToRDp_Data");
-    #pragma HLS stream    variable=ssIRbToRDp_Data       depth=cIBuffChunks
+    #pragma HLS stream    variable=ssIRbToRDp_Data       depth=cDepth_IRbToRDp_Data
     static stream<TcpAppMeta>      ssIRbToRDp_Meta       ("ssIRbToRDp_Meta");
-    #pragma HLS stream    variable=ssIRbToRDp_Meta       depth=cIBuffChunks
+    #pragma HLS stream    variable=ssIRbToRDp_Meta       depth=cDepth_IRbToRDp_Meta
 
     //-- Read Notification Handler (RNh)
     static stream <TcpAppNotif>    ssRNhToRRh_Notif      ("ssRNhToRRh_Notif");
-    #pragma HLS stream    variable=ssRNhToRRh_Notif      depth=cIBuffNotifs
+    #pragma HLS stream    variable=ssRNhToRRh_Notif      depth=cDepth_RNhToRRh_Notif
 
     //-- Read Request Handler (RRh)
     static stream<ForwardCmd>      ssRRhToRDp_FwdCmd     ("ssRRhToRDp_FwdCmd");
