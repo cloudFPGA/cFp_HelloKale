@@ -37,13 +37,26 @@
 #include "../../../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/nts_utils.hpp"
 
 //-------------------------------------------------------------------
-//-- CONSTANTS FOR THE TCp SHELL INTERFACE
+//-- CONSTANTS FOR THE INTERNAL STREAM DEPTHS
+//-------------------------------------------------------------------
+const int cDepth_IRbToRDp_Data       = 256;  // SizeOf input data read buffer (in #chunks)
+const int cDepth_IRbToRDp_Meta       = 256;  // SizeOf input meta read buffer (in #metadata)
+
+const int cDepth_RNhToRRh_Notif      =  64;  // SizeOf input notif buffer (in #notifications)
+const int cDepth_RRhToRDp_FwdCmd     =   8;  // SizeOf output data request buffer (in #requests)
+const int cDepth_RRhToRRm_DReq       = cDepth_RRhToRDp_FwdCmd;
+
+const int cDepth_RDpToRRh_Dequeue    =   4;
+const int cDepth_RDpToCOn_OpnSockReq =   2;
+const int cDepth_RDpToCOn_TxCountReq = cDepth_RDpToCOn_OpnSockReq;
+
+const int cDepth_COnToWRp_TxBytesReq =   2;
+const int cDepth_COnToWRp_TxSessId   = cDepth_COnToWRp_TxBytesReq;
+
+//-------------------------------------------------------------------
+//-- CONSTANTS FOR THE TCP SHELL INTERFACE
 //-------------------------------------------------------------------
 const int cMaxSessions   = TOE_MAX_SESSIONS;
-const int cDepth_RNhToRRh_Notif =  64;  // SizeOf input notif buffer (in #notifications)
-const int cOBuffDReqs    = 8;    // SizeOf output data request buffer (in #requests)
-const int cDepth_IRbToRDp_Data  = 256;  // SizeOf input data read buffer (in #chunks)
-const int cDepth_IRbToRDp_Meta  = 256;  // SizeOf input meta read buffer (in #metadata)
 
 const int cIBuffBytes    = cDepth_IRbToRDp_Data * (ARW/8);
 const int cMinDataReqLen = 128;  // The minimum DReq length we want to generate

@@ -1054,26 +1054,6 @@ void pInputReadBuffer(
         soRDp_Data.write(siSHL_Data.read());
     }
 
-    /*** OBSOLETE_20210325 ************
-    switch (irb_fsmState ) {
-    case IRB_IDLE:
-        if (!siSHL_Meta.empty() and !soRDp_Meta.full()) {
-            soRDp_Meta.write(siSHL_Meta.read());
-            irb_fsmState = IRB_STREAM;
-        }
-        break;
-    case IRB_STREAM:
-        if (!siSHL_Data.empty() and !soRDp_Data.full() and !soRRh_EnquSig.full()) {
-            TcpAppData currChunk = siSHL_Data.read();
-            soRDp_Data.write(currChunk);
-            soRRh_EnquSig.write(1);
-            if (currChunk.getTLast()) {
-                irb_fsmState = IRB_IDLE;
-            }
-        }
-        break;
-    }
-    ***********************************/
 }
 
 /*******************************************************************************
@@ -1754,24 +1734,24 @@ void tcp_shell_if(
 
     //-- Read Request Handler (RRh)
     static stream<ForwardCmd>      ssRRhToRDp_FwdCmd     ("ssRRhToRDp_FwdCmd");
-    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd     depth=cOBuffDReqs
+    #pragma HLS stream    variable=ssRRhToRDp_FwdCmd     depth=cDepth_RRhToRDp_FwdCmd
     #pragma HLS DATA_PACK variable=ssRRhToRDp_FwdCmd
     static stream<TcpAppRdReq>     ssRRhToRRm_DReq       ("ssRRhToRRm_DReq");
-    #pragma HLS stream    variable=ssRRhToRRm_DReq       depth=cOBuffDReqs
+    #pragma HLS stream    variable=ssRRhToRRm_DReq       depth=cDepth_RRhToRRm_DReq
 
     //-- Read Path (RDp)
     static stream<SigBit>          ssRDpToRRh_Dequeue    ("ssRDpToRRh_Dequeue");
-    #pragma HLS stream    variable=ssRDpToRRh_Dequeue    depth=4
+    #pragma HLS stream    variable=ssRDpToRRh_Dequeue    depth=cDepth_RDpToRRh_Dequeue
     static stream<SockAddr>        ssRDpToCOn_OpnSockReq ("ssRDpToCOn_OpnSockReq");
-    #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=2
+    #pragma HLS stream    variable=ssRDpToCOn_OpnSockReq depth=cDepth_RDpToCOn_OpnSockReq
     static stream<TcpDatLen>       ssRDpToCOn_TxCountReq ("ssRDpToCOn_TxCountReq");
-    #pragma HLS stream    variable=ssRDpToCOn_TxCountReq depth=2
+    #pragma HLS stream    variable=ssRDpToCOn_TxCountReq depth=cDepth_RDpToCOn_TxCountReq
 
     //-- Connect (COn)
     static stream<TcpDatLen>       ssCOnToWRp_TxBytesReq ("ssCOnToWRp_TxBytesReq");
-    #pragma HLS stream    variable=ssCOnToWRp_TxBytesReq depth=2
+    #pragma HLS stream    variable=ssCOnToWRp_TxBytesReq depth=cDepth_COnToWRp_TxBytesReq
     static stream<SessionId>       ssCOnToWRp_TxSessId   ("ssCOnToWRp_TxSessId");
-    #pragma HLS stream    variable=ssCOnToWRp_TxSessId   depth=2
+    #pragma HLS stream    variable=ssCOnToWRp_TxSessId   depth=cDepth_COnToWRp_TxSessId
 
     //-- PROCESS FUNCTIONS -----------------------------------------------------
     pConnect(
