@@ -89,8 +89,179 @@ def tcp_tx_loop(sock, message, count, verbose=False):
     print("##################################################")
     print()
 
-def tcp_tx_ramp(sock, message, count, verbose=False):
-    """TCP Tx Single-Thread Ramp. Send an incremental number of bytes from 1 to len(message).
+def tcp_tx_long(sock, message, count, verbose=False):
+    """TCP Tx Single-Thread Loop.
+     :param sock     The socket to send/receive to/from.
+     :param message  The message string to sent.
+     :param count    The number of segments to send.
+     :param verbose  Enables verbosity.
+     :return         None"""
+    if verbose:
+        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
+              (len(message), count, message.decode()))
+    nrErr = 0
+    loop  = 0
+    totalByteCnt = 0
+    txWinByteCnt = 0
+    startTime = datetime.datetime.now()
+    while loop < count:
+        #  Send segment
+        # -------------------
+        try:
+            sock.sendall(message)
+        except socket.error as exc:
+            # Any exception
+            print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
+            exit(1)
+        finally:
+            pass
+        txWinByteCnt += len(message)
+        totalByteCnt += len(message)
+        if verbose:
+            print("Loop=%d | TotalTxBytes=%d" % (loop+1, totalByteCnt))
+        loop += 1
+    endTime = datetime.datetime.now()
+    elapseTime = endTime - startTime
+
+    if totalByteCnt < 1000000:
+        print("[INFO] Transferred a total of %d bytes." % totalByteCnt)
+    elif totalByteCnt < 1000000000:
+        megaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f MB." % megaBytes)
+    else:
+        gigaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
+
+    bandwidth = (totalByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+    print("#####################################################")
+    if bandwidth < 1000:
+        print("#### TCP Tx (DEBUG) with bandwidth = %6.1f Mb/s ####" % bandwidth)
+    else:
+        bandwidth = bandwidth / 1000
+        print("#### TCP Tx (DEBUG) with bandwidth = %2.1f Gb/s ####" % bandwidth)
+    print("#####################################################")
+    print()
+
+def tcp_tx_slowpace(sock, message, count, pause, verbose=False):
+    """TCP Tx test at reduce speed (by inserting a sleep duration in between two transmissions)
+     :param sock     The socket to send/receive to/from.
+     :param message  The message string to sent.
+     :param count    The number of segments to send.
+     :param pause    The idle duration between two segments (in seconds)
+     :param verbose  Enables verbosity.
+     :return         None"""
+    if verbose:
+        print("[INFO] TCP-TX-SLOW-PACE: The following message of %d bytes will be sent out %d times with an inter-gap time of %f seconds:\n  Message=%s\n" %
+              (len(message), count, pause, message.decode()))
+    nrErr = 0
+    loop  = 0
+    totalByteCnt = 0
+    txWinByteCnt = 0
+    startTime = datetime.datetime.now()
+    while loop < count:
+        #  Send segment
+        # -------------------
+        try:
+            sock.sendall(message)
+        except socket.error as exc:
+            # Any exception
+            print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
+            exit(1)
+        finally:
+            pass
+        txWinByteCnt += len(message)
+        totalByteCnt += len(message)
+        if verbose:
+            print("Loop=%6d | TotalTxBytes=%6d | Pause=%4f sec" % (loop+1, totalByteCnt, pause))
+        time.sleep(pause)
+        txWinByteCnt = 0
+        loop += 1
+    endTime = datetime.datetime.now()
+    elapseTime = endTime - startTime
+
+    if totalByteCnt < 1000000:
+        print("[INFO] Transferred a total of %d bytes." % totalByteCnt)
+    elif totalByteCnt < 1000000000:
+        megaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f MB." % megaBytes)
+    else:
+        gigaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
+
+    bandwidth = (totalByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+    print("#####################################################")
+    if bandwidth < 1000:
+        print("#### TCP Tx (DEBUG) with bandwidth = %6.1f Mb/s ####" % bandwidth)
+    else:
+        bandwidth = bandwidth / 1000
+        print("#### TCP Tx (DEBUG) with bandwidth = %2.1f Gb/s ####" % bandwidth)
+    print("#####################################################")
+    print()
+
+def tcp_tx_long_hitkey(sock, message, count, verbose=False):
+    """TCP Tx Single-Thread Loop.
+     :param sock     The socket to send/receive to/from.
+     :param message  The message string to sent.
+     :param count    The number of segments to send.
+     :param verbose  Enables verbosity.
+     :return         None"""
+    if verbose:
+        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
+              (len(message), count, message.decode()))
+    nrErr = 0
+    loop  = 0
+    totalByteCnt = 0
+    txWinByteCnt = 0
+    startTime = datetime.datetime.now()
+    while loop < count:
+        #  Send segment
+        # -------------------
+        try:
+            sock.sendall(message)
+        except socket.error as exc:
+            # Any exception
+            print("[EXCEPTION] Socket error while transmitting :: %s" % exc)
+            exit(1)
+        finally:
+            pass
+        txWinByteCnt += len(message)
+        totalByteCnt += len(message)
+        if verbose:
+            print("Loop=%d | TotalTxBytes=%d" % (loop+1, totalByteCnt))
+        if totalByteCnt >= 330*1024:
+            if verbose:
+                cr = input("  Hit <CR> to continue: ")
+            else:
+                print("Pause | TotalTxBytes=%d" % totalByteCnt)
+                time.sleep(0.1)
+                txWinByteCnt = 0
+        loop += 1
+    endTime = datetime.datetime.now()
+    elapseTime = endTime - startTime
+
+    if totalByteCnt < 1000000:
+        print("[INFO] Transferred a total of %d bytes." % totalByteCnt)
+    elif totalByteCnt < 1000000000:
+        megaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f MB." % megaBytes)
+    else:
+        gigaBytes = (totalByteCnt * 1.0) / (1024 * 1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
+
+    bandwidth = (totalByteCnt * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+    print("#####################################################")
+    if bandwidth < 1000:
+        print("#### TCP Tx (DEBUG) with bandwidth = %6.1f Mb/s ####" % bandwidth)
+    else:
+        bandwidth = bandwidth / 1000
+        print("#### TCP Tx (DEBUG) with bandwidth = %2.1f Gb/s ####" % bandwidth)
+    print("#####################################################")
+    print()
+
+
+def tcp_tx_ramp_data(sock, message, count, verbose=False):
+    """TCP Tx Single-Thread Ramp. Send a buffer of bytes with 64-bit unsigned integers ramping from
+        1 to len(message).
      :param sock     The socket to send/receive to/from.
      :param message  The message string to sent.
      :param count    The number of segments to send.
@@ -180,6 +351,8 @@ parser.add_argument('-mp', '--mngr_port',   type=int, default=8080,
                            help='The TCP port of the cloudFPGA Resource Manager (default is 8080)')
 parser.add_argument('-sd', '--seed',        type=int, default=-1,
                            help='The initial number to seed the pseudorandom number generator.')
+parser.add_argument('-st', '--sleep_time',  type=float, default=0.0,
+                           help='Enforce a sleep time in between two segments (in seconds)')
 parser.add_argument('-sz', '--size',        type=int, default=-1,
                            help='The size of the datagram to generate.')
 parser.add_argument('-un', '--user_name',   type=str, default='',
@@ -300,7 +473,7 @@ print("\t\t size = %d" % size)
 count = args.loop_count
 print("\t\t loop = %d" % count)
 
-if seed % 1:
+if seed % 2:
     message = str_rand_gen(size)
 else:
     message = str_static_gen(size)
@@ -312,9 +485,18 @@ verbose = args.verbose
 print("[INFO] This testcase is sending traffic from HOST-to-FPGA. ")
 print("[INFO] It is run in single-threading mode.\n")
 if seed == 0:
-    tcp_tx_ramp(tcpSock, message, count, args.verbose)
+    # CREATE A BUFFER WITH INCREMENTAL DATA NUMBERS
+    message = "X" * size
+    tcp_tx_ramp_data(tcpSock, message, count, args.verbose)
 else:
-    tcp_tx_loop(tcpSock, message, count, args.verbose)
+    if args.sleep_time > 0.0:
+        # RUN THE TEST AT LOW SPEED
+        tcp_tx_slowpace(tcpSock, message, count, args.sleep_time, args.verbose)
+    else:
+        tcp_tx_loop(tcpSock, message, count, args.verbose)
+        #OBSOLETE tcp_tx_long(tcpSock, message, count, args.verbose)
+        #OBSOLETE tcp_tx_long_hitkey(tcpSock, message, count, args.verbose)
+
 
 #  STEP-14: Close socket
 # -----------------------
