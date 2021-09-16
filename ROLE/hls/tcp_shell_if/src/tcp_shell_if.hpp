@@ -224,7 +224,8 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- DEBUG Probes
         //------------------------------------------------------
-        stream<ap_uint<32> >  &soDBG_SinkCnt
+        stream<ap_uint<32> >  &soDBG_SinkCnt,
+        stream<ap_uint<16> >  &soDBG_InpBufSpace
 
 );
 

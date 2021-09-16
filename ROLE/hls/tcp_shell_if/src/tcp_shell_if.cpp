@@ -1142,7 +1142,8 @@ void pReadRequestHandler(
         stream<TcpAppNotif>    &siRNh_Notif,
         stream<SigBit>         &siRDp_DequSig,
         stream<TcpAppRdReq>    &soRRm_DReq,
-        stream<ForwardCmd>     &soRDp_FwdCmd)
+        stream<ForwardCmd>     &soRDp_FwdCmd,
+        stream<ap_uint<16> >   &soDBG_freeSpace)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -1150,8 +1151,16 @@ void pReadRequestHandler(
 
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
 
+    //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
+    static enum FsmStates { RRH_IDLE, RRH_GEN_DLEN, RRH_SEND_DREQ} \
+                                                  rrh_fasmState=RRH_IDLE;
+    #pragma HLS reset                    variable=rrh_fasmState
     static ap_uint<log2Ceil<cIBuffBytes>::val+1>  rrh_freeSpace=cIBuffBytes;
     #pragma HLS reset                    variable=rrh_freeSpace
+
+    //-- STATIC VARIABLES ------------------------------------------------------
+    static  TcpAppNotif rrh_notif;
+    static  TcpDatLen   rrh_datLenReq;
 
     if (*piSHL_Enable != 1) {
         return;
@@ -1171,47 +1180,38 @@ void pReadRequestHandler(
     //==========================================================================
     //== pRxDataRequester (Rdr)
     //==========================================================================
-    //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
-    static enum FsmStates { RDR_IDLE, RDR_GEN_DLEN, RDR_SEND_DREQ} \
-                               rdr_fsmState=RDR_IDLE;
-    #pragma HLS reset variable=rdr_fsmState
-
-    //-- STATIC VARIABLES ------------------------------------------------------
-    static  TcpAppNotif rdr_notif;
-    static  TcpDatLen   rdr_datLenReq;
-
-    switch(rdr_fsmState) {
-        case RDR_IDLE:
+    switch(rrh_fasmState) {
+        case RRH_IDLE:
             if (!siRNh_Notif.empty()) {
-                siRNh_Notif.read(rdr_notif);
-                rdr_fsmState = RDR_GEN_DLEN;
+                siRNh_Notif.read(rrh_notif);
+                rrh_fasmState = RRH_GEN_DLEN;
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "Received a new notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
-                              rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
+                              rrh_notif.sessionID.to_uint(), rrh_notif.tcpDatLen.to_uint(), rrh_notif.tcpDstPort.to_uint());
                 }
             }
             break;
-        case RDR_GEN_DLEN:
+        case RRH_GEN_DLEN:
             if (rrh_freeSpace >= cMinDataReqLen) {
                 // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
-                if (rrh_freeSpace < rdr_notif.tcpDatLen) {
-                    rdr_datLenReq        = rrh_freeSpace;
-                    rdr_notif.tcpDatLen -= rrh_freeSpace;
+                if (rrh_freeSpace < rrh_notif.tcpDatLen) {
+                    rrh_datLenReq        = rrh_freeSpace;
+                    rrh_notif.tcpDatLen -= rrh_freeSpace;
                     rrh_freeSpace        = 0;
                 }
                 else {
-                    rdr_datLenReq        = rdr_notif.tcpDatLen;
-                    rrh_freeSpace       -= (rdr_notif.tcpDatLen) & ~((TcpDatLen)(ARW/8-1));
-                    if (rdr_notif.tcpDatLen & ~((TcpDatLen)(ARW/8))) {
+                    rrh_datLenReq        = rrh_notif.tcpDatLen;
+                    rrh_freeSpace       -= (rrh_notif.tcpDatLen) & ~((TcpDatLen)(ARW/8-1));
+                    if (rrh_notif.tcpDatLen & ~((TcpDatLen)(ARW/8))) {
                         rrh_freeSpace   -= (ARW/8);
                     }
-                    rdr_notif.tcpDatLen  = 0;
+                    rrh_notif.tcpDatLen  = 0;
                 }
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "DataLenReq=%4d | FreeSpace=%4d | NotifBytes=%4d \n",
-                              rdr_datLenReq.to_uint(), rrh_freeSpace.to_uint(), rdr_notif.tcpDatLen.to_uint());
+                              rrh_datLenReq.to_uint(), rrh_freeSpace.to_uint(), rrh_notif.tcpDatLen.to_uint());
                 }
-                rdr_fsmState = RDR_SEND_DREQ;
+                rrh_fasmState = RRH_SEND_DREQ;
             }
             else {
                 if (DEBUG_LEVEL & TRACE_RRH) {
@@ -1220,37 +1220,46 @@ void pReadRequestHandler(
                }
             }
             break;
-        case RDR_SEND_DREQ:
+        case RRH_SEND_DREQ:
             if (!soRRm_DReq.full() and !soRDp_FwdCmd.full()) {
-                soRRm_DReq.write(TcpAppRdReq(rdr_notif.sessionID, rdr_datLenReq));
-                switch (rdr_notif.tcpDstPort) {
+                soRRm_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_datLenReq));
+                switch (rrh_notif.tcpDstPort) {
                     case RECV_MODE_LSN_PORT: // 8800
-                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_DROP, NOP));
+                        soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_datLenReq, CMD_DROP, NOP));
                         break;
                     case XMIT_MODE_LSN_PORT: // 8801
-                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_DROP, GEN));
+                        soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_datLenReq, CMD_DROP, GEN));
                         break;
                     default:
-                        soRDp_FwdCmd.write(ForwardCmd(rdr_notif.sessionID, rdr_datLenReq, CMD_KEEP, NOP));
+                        soRDp_FwdCmd.write(ForwardCmd(rrh_notif.sessionID, rrh_datLenReq, CMD_KEEP, NOP));
                         break;
                 }
-                if (rdr_notif.tcpDatLen == 0) {
-                    rdr_fsmState = RDR_IDLE;
+                if (rrh_notif.tcpDatLen == 0) {
+                    rrh_fasmState = RRH_IDLE;
                     if (DEBUG_LEVEL & TRACE_RRH) {
                          printInfo(myName, "Done with notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
-                                   rdr_notif.sessionID.to_uint(), rdr_notif.tcpDatLen.to_uint(), rdr_notif.tcpDstPort.to_uint());
+                                   rrh_notif.sessionID.to_uint(), rrh_notif.tcpDatLen.to_uint(), rrh_notif.tcpDstPort.to_uint());
                      }
                 }
                 else {
-                    rdr_fsmState = RDR_GEN_DLEN;
+                    rrh_fasmState = RRH_GEN_DLEN;
                 }
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "Sending DReq(SessId=%2d, DatLen=%4d) to SHELL (requested TcpDstPort was %4d).\n",
-                              rdr_notif.sessionID.to_uint(), rdr_datLenReq.to_uint(), rdr_notif.tcpDstPort.to_uint());
+                              rrh_notif.sessionID.to_uint(), rrh_datLenReq.to_uint(), rrh_notif.tcpDstPort.to_uint());
                 }
             }
             break;
     }
+
+    //-- ALWAYS -------------------------------------------
+     if (!soDBG_freeSpace.full()) {
+        soDBG_freeSpace.write(rrh_freeSpace);
+     }
+     else {
+         printFatal(myName, "Cannot write soDBG_freeSpace stream...");
+     }
+
 }
 
 /*******************************************************************************
@@ -1711,7 +1720,8 @@ void tcp_shell_if(
         //------------------------------------------------------
         //-- DEBUG Probes
         //------------------------------------------------------
-        stream<ap_uint<32> >  &soDBG_SinkCnt)
+        stream<ap_uint<32> >  &soDBG_SinkCnt,
+        stream<ap_uint<16> >  &soDBG_InpBufSpace)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
@@ -1808,7 +1818,8 @@ void tcp_shell_if(
             ssRNhToRRh_Notif,
             ssRDpToRRh_Dequeue,
             ssRRhToRRm_DReq,
-            ssRRhToRDp_FwdCmd);
+            ssRRhToRDp_FwdCmd,
+            soDBG_InpBufSpace);
 
     pReadRequestMover(
             piSHL_Mmio_En,

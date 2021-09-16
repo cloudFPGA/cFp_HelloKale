@@ -55,6 +55,43 @@ using namespace std;
   extern unsigned int gMaxSimCycles;
 #endif
 
+#define THIS_NAME "TB"  // TestBench
+
+#define TRACE_OFF      0x0000
+#define TRACE_DDC      1 <<  1
+#define TRACE_ALL      0xFFFF
+
+#define DEBUG_LEVEL (TRACE_OFF | TRACE_DDC)
+
+/*****************************************************************************
+ * @brief Empty a debug stream and throw it away.
+ *
+ * @param[in/out] ss        A ref to the stream to drain.
+ * @param[in]     ssName    The name of the stream to drain.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+template<typename T> bool drainDebugCounter(stream<T> &ss, string ssName) {
+    int          nr=0;
+    const char  *myName  = concat3(THIS_NAME, "/", "DDC");
+    T  currCount;
+    T  prevCount=0;
+
+    //-- READ FROM STREAM
+    while (!(ss.empty())) {
+        ss.read(currCount);
+        if (currCount != prevCount) {
+            if (DEBUG_LEVEL & TRACE_DDC) {
+                printInfo(myName, "Detected a change on stream '%s' (currCounter=%d). \n",
+                          ssName.c_str(), currCount.to_uint());
+            }
+        }
+        prevCount = currCount;
+    }
+    return(NTS_OK);
+}
+
+
 /*******************************************************************************
  * @brief Main function for the test of the TCP Shell Interface (TSIF) TOP.
  *
@@ -114,7 +151,8 @@ int main(int argc, char *argv[]) {
     stream<TcpAppOpnReq> ssTSIF_TOE_OpnReq("ssTSIF_TOE_OpnReq");
     stream<TcpAppClsReq> ssTSIF_TOE_ClsReq("ssTSIF_TOE_ClsReq");
     //-- DEBUG Interface
-    stream<ap_uint<32> > ssTSIF_DBG_SinkCnt("ssTSIF_DBG_CinkCnt");
+    stream<ap_uint<32> > ssTSIF_DBG_SinkCnt("ssTSIF_DBG_SinkCnt");
+    stream<ap_uint<16> > ssTSIF_DBG_InpBufSpace("ssTSIF_DBG_InpBufSpace");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -304,7 +342,8 @@ int main(int argc, char *argv[]) {
             //-- TOE / Close Interfaces
             ssTSIF_TOE_ClsReq,
             //-- DEBUG Interfaces
-            ssTSIF_DBG_SinkCnt);
+            ssTSIF_DBG_SinkCnt,
+            ssTSIF_DBG_InpBufSpace);
 
         //-------------------------------------------------
         //-- EMULATE ROLE/TcpApplicationFlash
@@ -331,10 +370,14 @@ int main(int argc, char *argv[]) {
     stepSim();
 
     //---------------------------------------------------------------
-    //-- DRAIN THE TSIF SINK COUNTER STREAM
+    //-- DRAIN THE TSIF SINK and FREESPACE COUNTER STREAMS
     //---------------------------------------------------------------
     if (not drainDebugSinkCounter(ssTSIF_DBG_SinkCnt, "ssTSIF_DBG_SinkCnt")) {
             printError(THIS_NAME, "Failed to drain debug sink counter from DUT. \n");
+        nrErr++;
+    }
+    if (not drainDebugCounter(ssTSIF_DBG_InpBufSpace, "ssTSIF_DBG_InpBufSpace")) {
+            printError(THIS_NAME, "Failed to drain debug counter from DUT. \n");
         nrErr++;
     }
 

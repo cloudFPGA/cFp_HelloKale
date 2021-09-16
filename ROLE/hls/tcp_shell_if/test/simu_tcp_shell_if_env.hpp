@@ -74,6 +74,7 @@ void stepSim();
 void increaseSimTime(unsigned int cycles);
 bool drainDebugSinkCounter(stream<ap_uint<32> > &ss, string ssName);
 
+
 /******************************************************************************
  * SIMULATION ENVIRONMENT FUNCTIONS
  *******************************************************************************/

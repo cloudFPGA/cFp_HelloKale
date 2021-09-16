@@ -230,7 +230,8 @@ using namespace std;
         //------------------------------------------------------
         //-- DEBUG Probes
         //------------------------------------------------------
-        stream<ap_uint<32> >  &soDBG_SinkCnt)
+        stream<ap_uint<32> >  &soDBG_SinkCnt,
+        stream<ap_uint<16> >  &soDBG_InpBufSpace)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -268,7 +269,8 @@ using namespace std;
 
     #pragma HLS INTERFACE axis off              port=soSHL_ClsReq   name=soSHL_ClsReq
 
-    #pragma HLS INTERFACE axis off              port=soDBG_SinkCnt  name=soDBG_SinkCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_SinkCnt     name=soDBG_SinkCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_InpBufSpace name=soDBG_InpBufSpace
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
   #if HLS_VERSION == 2017
@@ -306,7 +308,8 @@ using namespace std;
         //-- TOE / Close Interfaces
         soSHL_ClsReq,
         //-- DEBUG Interfaces
-        soDBG_SinkCnt);
+        soDBG_SinkCnt,
+        soDBG_InpBufSpace);
 }
 
 #endif  //  HLS_VERSION

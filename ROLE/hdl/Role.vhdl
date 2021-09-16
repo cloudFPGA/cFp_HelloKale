@@ -501,9 +501,13 @@ architecture BringUp of Role_Kale is
   --------------------------------------------------------
   -- DEBUG SIGNALS
   --------------------------------------------------------
-  signal sTSIF_DBG_SinkCnt                 : std_logic_vector(31 downto 0);
   attribute mark_debug                     : string;
-  attribute mark_debug of sTSIF_DBG_SinkCnt : signal is "true"; -- Set to "true' if you need/want to trace these signals
+  --
+  signal sTSIF_DBG_SinkCnt                 : std_logic_vector(31 downto 0);
+  attribute mark_debug of sTSIF_DBG_SinkCnt: signal is "true"; -- Set to "true' if you need/want to trace these signals
+  --
+  signal sTSIF_DBG_InpBufSpace             : std_logic_vector(15 downto 0);
+  attribute mark_debug of sTSIF_DBG_InpBufSpace : signal is "true"; -- Set to "true' if you need/want to trace these signals
   
   --============================================================================
   --  VARIABLE DECLARATIONS
@@ -1271,7 +1275,11 @@ architecture BringUp of Role_Kale is
       ---- Sink Counter Stream
       soDBG_SinkCnt_V_V_tdata : out std_ulogic_vector( 31 downto 0);
       soDBG_SinkCnt_V_V_tvalid: out std_ulogic;
-      soDBG_SinkCnt_V_V_tready: in  std_ulogic       
+      soDBG_SinkCnt_V_V_tready: in  std_ulogic;
+      ---- Input Buffer Space
+      soDBG_InpBufSpace_V_V_tdata : out std_ulogic_vector( 15 downto 0);
+      soDBG_InpBufSpace_V_V_tvalid: out std_ulogic;
+      soDBG_InpBufSpace_V_V_tready: in  std_ulogic
     );
   end component TcpShellInterface;
   
@@ -2191,9 +2199,13 @@ begin
         -- DEBUG Interfaces
         ------------------------------------------------------
         ---- Sink Counter Stream
-        soDBG_SinkCnt_V_V_tdata   => ssTSIF_ARS_SinkCnt_tdata,
-        soDBG_SinkCnt_V_V_tvalid  => ssTSIF_ARS_SinkCnt_tvalid,
-        soDBG_SinkCnt_V_V_tready  => ssTSIF_ARS_SinkCnt_tready 
+        soDBG_SinkCnt_V_V_tdata      => ssTSIF_ARS_SinkCnt_tdata,
+        soDBG_SinkCnt_V_V_tvalid     => ssTSIF_ARS_SinkCnt_tvalid,
+        soDBG_SinkCnt_V_V_tready     => ssTSIF_ARS_SinkCnt_tready,
+        ---- Input Buffer Space Stream
+        soDBG_InpBufSpace_V_V_tdata  => sTSIF_DBG_InpBufSpace,
+        soDBG_InpBufSpace_V_V_tvalid => open,
+        soDBG_InpBufSpace_V_V_tready => '1'
       ); -- End of: TcpShellInterface
   end generate;
   
