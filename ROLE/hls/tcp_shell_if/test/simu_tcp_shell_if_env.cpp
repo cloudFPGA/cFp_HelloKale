@@ -67,6 +67,8 @@ extern unsigned int gMaxSimCycles; //  = cSimToeStartupDelay + cGraceTime;
 #define TRACE_TOE_TXP 1 <<  5
 #define TRACE_TAF     1 <<  6
 #define TRACE_MMIO    1 <<  7
+#define TRACE_DDSK    1 <<  8
+#define TRACE_DDSP    1 <<  9
 #define TRACE_ALL     0xFFFF
 #define DEBUG_LEVEL (TRACE_OFF)
 
@@ -117,6 +119,41 @@ bool drainDebugSinkCounter(stream<ap_uint<32> > &ss, string ssName) {
             rc=NTS_KO;
         }
         prevCount = currCount;
+    }
+    return(rc);
+}
+
+/*****************************************************************************
+ * @brief Empty the DebugSpaceCounter stream and check its last value.
+ *
+ * @param[in/out] ss        A ref to the stream to drain.
+ * @param[in]     ssName    The name of the stream to drain.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+bool drainDebugSpaceCounter(stream<ap_uint<16> > &ss, string ssName) {
+    int          nr=0;
+    const char  *myName  = concat3(THIS_NAME, "/", "DUMTF");
+    ap_uint<16>  currCount;
+    ap_uint<16>  prevCount=0xFFFFFFFF;
+    bool         rc=NTS_OK;
+
+    //-- READ FROM STREAM
+    while (!(ss.empty())) {
+        ss.read(currCount);
+        if (currCount != prevCount) {
+            if (DEBUG_LEVEL & TRACE_DDSP) {
+                printInfo(myName, "Detected a change on stream '%s' (currCounter=%d). \n",
+                          ssName.c_str(), currCount.to_uint());
+            }
+        }
+        prevCount = currCount;
+    }
+    //-- ASSESS THE LAST COUNTER VALUE
+    if (currCount.to_uint() != cIBuffBytes) {
+        printError(myName, "The free input buffer space (%d) did not settle back to its initial value (%d)!\n",
+                   currCount.to_uint(), cIBuffBytes);
+        rc = NTS_KO;
     }
     return(rc);
 }
@@ -338,9 +375,9 @@ void pTOE(
                 switch (toe_segCnt) {
                     case 0:
                         toe_hostTcpDstPort = RECV_MODE_LSN_PORT;
-                        toe_notifByteCnt   = testDatLen;
+                        toe_notifByteCnt   = echoDatLen;
                         toe_sessId         = 0;
-                        gMaxSimCycles     += (testDatLen / 8);
+                        gMaxSimCycles     += (echoDatLen / 8);
                         break;
                     case 1: //-- Request TSIF to open an active port
                         toe_hostTcpDstPort = XMIT_MODE_LSN_PORT;
@@ -372,7 +409,7 @@ void pTOE(
                 if (toe_openedSess.find(toe_sessId) == toe_openedSess.end()) {
                     toe_openedSess[toe_sessId] = InterruptEntry(0, 0);
                 }
-                 toe_segCnt += 1;
+                toe_segCnt += 1;
                 toe_hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
                 toe_hostTcpSrcPort = DEFAULT_HOST_TCP_SRC_PORT;
                 // Set the TCP destination port and byte count of the current session

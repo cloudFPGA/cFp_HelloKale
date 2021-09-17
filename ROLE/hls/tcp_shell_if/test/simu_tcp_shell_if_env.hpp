@@ -73,6 +73,7 @@ const int cMinWAIT = cMaxSessions;  // To avoid that TSIF accumulates the byte c
 void stepSim();
 void increaseSimTime(unsigned int cycles);
 bool drainDebugSinkCounter(stream<ap_uint<32> > &ss, string ssName);
+bool drainDebugSpaceCounter(stream<ap_uint<16> > &ss, string ssName);
 
 
 /******************************************************************************

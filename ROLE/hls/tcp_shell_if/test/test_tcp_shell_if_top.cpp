@@ -55,13 +55,11 @@ using namespace std;
   extern unsigned int gMaxSimCycles;
 #endif
 
-#define THIS_NAME "TB"  // TestBench
-
 #define TRACE_OFF      0x0000
 #define TRACE_DDC      1 <<  1
 #define TRACE_ALL      0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF | TRACE_DDC)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*****************************************************************************
  * @brief Empty a debug stream and throw it away.
@@ -376,8 +374,8 @@ int main(int argc, char *argv[]) {
             printError(THIS_NAME, "Failed to drain debug sink counter from DUT. \n");
         nrErr++;
     }
-    if (not drainDebugCounter(ssTSIF_DBG_InpBufSpace, "ssTSIF_DBG_InpBufSpace")) {
-            printError(THIS_NAME, "Failed to drain debug counter from DUT. \n");
+    if (not drainDebugSpaceCounter(ssTSIF_DBG_InpBufSpace, "ssTSIF_DBG_InpBufSpace")) {
+            printError(THIS_NAME, "Failed to drain debug space counter from DUT. \n");
         nrErr++;
     }
 

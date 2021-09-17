@@ -1147,14 +1147,13 @@ void pReadRequestHandler(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "RRh");
 
     //-- LOCAL STATIC VARIABLES W/ RESET ---------------------------------------
     static enum FsmStates { RRH_IDLE, RRH_GEN_DLEN, RRH_SEND_DREQ} \
-                                                  rrh_fasmState=RRH_IDLE;
-    #pragma HLS reset                    variable=rrh_fasmState
+                                                  rrh_fsmState=RRH_IDLE;
+    #pragma HLS reset                    variable=rrh_fsmState
     static ap_uint<log2Ceil<cIBuffBytes>::val+1>  rrh_freeSpace=cIBuffBytes;
     #pragma HLS reset                    variable=rrh_freeSpace
 
@@ -1166,61 +1165,86 @@ void pReadRequestHandler(
         return;
     }
 
-    //==========================================================================
-    //== pRxBufferManager (Rbm)
-    //==========================================================================
-    if (!siRDp_DequSig.empty()) {
-        siRDp_DequSig.read();
-        rrh_freeSpace += (ARW/8);
-        if (DEBUG_LEVEL & TRACE_RRH) {
-            printInfo(myName, "FreeSpace=%4d bytes\n", rrh_freeSpace.to_uint());
-        }
-    }
-
-    //==========================================================================
-    //== pRxDataRequester (Rdr)
-    //==========================================================================
-    switch(rrh_fasmState) {
+    //-- MAIN PROCESS ----------------------------------------------------------
+    switch(rrh_fsmState) {
         case RRH_IDLE:
+            //-- Always handle dequeue signal
+            if (!siRDp_DequSig.empty()) {
+                siRDp_DequSig.read();
+                rrh_freeSpace += (ARW/8);
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "FreeSpace=%4d bytes\n", rrh_freeSpace.to_uint());
+                }
+            }
             if (!siRNh_Notif.empty()) {
                 siRNh_Notif.read(rrh_notif);
-                rrh_fasmState = RRH_GEN_DLEN;
-                if (DEBUG_LEVEL & TRACE_RRH) {
-                    printInfo(myName, "Received a new notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
-                              rrh_notif.sessionID.to_uint(), rrh_notif.tcpDatLen.to_uint(), rrh_notif.tcpDstPort.to_uint());
+                rrh_fsmState = RRH_GEN_DLEN;
+                    if (DEBUG_LEVEL & TRACE_RRH) {
+                        printInfo(myName, "Received a new notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
+                                  rrh_notif.sessionID.to_uint(), rrh_notif.tcpDatLen.to_uint(), rrh_notif.tcpDstPort.to_uint());
                 }
             }
             break;
         case RRH_GEN_DLEN:
             if (rrh_freeSpace >= cMinDataReqLen) {
-                // Requested bytes = max(rdr_notif.byteCnt, rrh_freeSpace)
+                //-- Issue a new SEND request = max(rdr_notif.byteCnt, rrh_freeSpace)
                 if (rrh_freeSpace < rrh_notif.tcpDatLen) {
+                    //-- Requested bytes = rrh_freeSpace
                     rrh_datLenReq        = rrh_freeSpace;
                     rrh_notif.tcpDatLen -= rrh_freeSpace;
-                    rrh_freeSpace        = 0;
+                    //-- Handle dequeue signal
+                    if (!siRDp_DequSig.empty()) {
+                        siRDp_DequSig.read();
+                        rrh_freeSpace += (ARW/8);
+                    }
+                    else {
+                        rrh_freeSpace = 0;
+                    }
                 }
                 else {
+                    //-- Requested bytes = rdr_notif.byteCnt
                     rrh_datLenReq        = rrh_notif.tcpDatLen;
                     rrh_freeSpace       -= (rrh_notif.tcpDatLen) & ~((TcpDatLen)(ARW/8-1));
-                    if (rrh_notif.tcpDatLen & ~((TcpDatLen)(ARW/8))) {
-                        rrh_freeSpace   -= (ARW/8);
+                    if (rrh_notif.tcpDatLen & (TcpDatLen)((ARW/8)-1)) {
+                        // The requested length is not aligned w/ the input buffer
+                        // width and this will consume another input buffer chunk.
+                        rrh_freeSpace -= (ARW/8);
+                        //-- Handle dequeue signal
+                        if (!siRDp_DequSig.empty()) {
+                            siRDp_DequSig.read();
+                            rrh_freeSpace += (ARW/8);
+                        }
                     }
                     rrh_notif.tcpDatLen  = 0;
                 }
-                if (DEBUG_LEVEL & TRACE_RRH) {
-                    printInfo(myName, "DataLenReq=%4d | FreeSpace=%4d | NotifBytes=%4d \n",
-                              rrh_datLenReq.to_uint(), rrh_freeSpace.to_uint(), rrh_notif.tcpDatLen.to_uint());
-                }
-                rrh_fasmState = RRH_SEND_DREQ;
+                rrh_fsmState = RRH_SEND_DREQ;
             }
             else {
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "FreeSpace=%4d is too low. Waiting for buffer to drain. \n",
                               rrh_freeSpace.to_uint());
                }
+               //-- Handle dequeue signal
+               if (!siRDp_DequSig.empty()) {
+                   siRDp_DequSig.read();
+                   rrh_freeSpace += (ARW/8);
+               }
+            }
+            // Debug Trace
+            if (DEBUG_LEVEL & TRACE_RRH) {
+                printInfo(myName, "DataLenReq=%4d | FreeSpace=%4d | NotifBytes=%4d \n",
+                          rrh_datLenReq.to_uint(), rrh_freeSpace.to_uint(), rrh_notif.tcpDatLen.to_uint());
             }
             break;
         case RRH_SEND_DREQ:
+            //-- Always handle dequeue signal
+            if (!siRDp_DequSig.empty()) {
+                siRDp_DequSig.read();
+                rrh_freeSpace += (ARW/8);
+                if (DEBUG_LEVEL & TRACE_RRH) {
+                    printInfo(myName, "FreeSpace=%4d bytes\n", rrh_freeSpace.to_uint());
+                }
+            }
             if (!soRRm_DReq.full() and !soRDp_FwdCmd.full()) {
                 soRRm_DReq.write(TcpAppRdReq(rrh_notif.sessionID, rrh_datLenReq));
                 switch (rrh_notif.tcpDstPort) {
@@ -1235,21 +1259,21 @@ void pReadRequestHandler(
                         break;
                 }
                 if (rrh_notif.tcpDatLen == 0) {
-                    rrh_fasmState = RRH_IDLE;
+                    rrh_fsmState = RRH_IDLE;
                     if (DEBUG_LEVEL & TRACE_RRH) {
                          printInfo(myName, "Done with notification (SessId=%2d | DatLen=%4d | TcpDstPort=%4d).\n",
                                    rrh_notif.sessionID.to_uint(), rrh_notif.tcpDatLen.to_uint(), rrh_notif.tcpDstPort.to_uint());
-                     }
+                    }
                 }
                 else {
-                    rrh_fasmState = RRH_GEN_DLEN;
+                    rrh_fsmState = RRH_GEN_DLEN;
                 }
                 if (DEBUG_LEVEL & TRACE_RRH) {
                     printInfo(myName, "Sending DReq(SessId=%2d, DatLen=%4d) to SHELL (requested TcpDstPort was %4d).\n",
                               rrh_notif.sessionID.to_uint(), rrh_datLenReq.to_uint(), rrh_notif.tcpDstPort.to_uint());
-                }
             }
-            break;
+        }
+        break;
     }
 
     //-- ALWAYS -------------------------------------------
