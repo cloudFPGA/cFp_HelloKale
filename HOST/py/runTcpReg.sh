@@ -204,53 +204,52 @@ if [ $RUN_SEND = true ]; then
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
-fi
 
   # SEND - Ramp of 1 MB
   for value in {1..${LOOP}}; \
   do \
     if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpSend.py                          -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${ROLE_IP} -ii ${INSTANCE_ID} -sd 0 -sz 1024 -lc 1024
+      python3 tc_TcpSend.py                          -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 0 -sz 1024 -lc 1024
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
 
-  # SEND - 100MB at 100Mb/s rate
+  # SEND - 10MB
   for value in {1..${LOOP}}; \
   do \
     if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${ROLE_IP} -ii ${INSTANCE_ID} -sd 7 -sz 1024 -lc 100000  -st 0.00001
+python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 8 -sz 1024 -lc 10240  -st 0.00000
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
 
-  # SEND - 1GB at slow rate
+  # SEND - 100MB
   for value in {1..${LOOP}}; \
   do \
     if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${ROLE_IP} -ii ${INSTANCE_ID} -sd 8 -sz 1024 -lc 1000000 -st 0.0005
+python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 7 -sz 1024 -lc 102400  -st 0.00000
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
 
-  # SEND - 100MB at 100Mb/s rate
+  # SEND - 1GB
   for value in {1..${LOOP}}; \
   do \
     if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${ROLE_IP} -ii ${INSTANCE_ID} -sd 8 -sz 1024 -lc 100000  -st 0.00001
+python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 8 -sz 1024 -lc 1024000 -st 0.0000
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
 
-  # SEND - 1GB at slow rate 
+  # SEND - 10GB at slow rate 
   for value in {1..${LOOP}}; \
   do \
     if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${ROLE_IP} -ii ${INSTANCE_ID} -sd 7 -sz 1024 -lc 1000000 -st 0.0005
+python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 7 -sz 1024 -lc 10240000 -st 0.0000
       if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
     fi
   done
-
+fi
 
 if [ $RUN_RECV = true ]; then
   echo -e "###  TCP RECV  ######################################################" 
