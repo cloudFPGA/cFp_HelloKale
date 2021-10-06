@@ -208,3 +208,37 @@ def pingFpga(ipFpga):
     if rc != 0:
         print("[ERROR] FPGA does not reply to \'ping\'!")
         exit(1)
+
+def display_throughput(byteCount, elapseTime):
+    """Display the throughput in human readable form.
+     :param byteCount:  The number of bytes transferred.
+     :param elapseTime: The duration of the transfer.
+     :return:           Nothing
+     """
+    if byteCount < 1000000:
+        print("[INFO] Transferred a total of %d bytes." % byteCount)
+    elif byteCount < 1000000000:
+        megaBytes = (byteCount * 1.0) / (1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f MB." % megaBytes)
+    else:
+        gigaBytes = (byteCount * 1.0) / (1024 * 1024 * 1024 * 1.0)
+        print("[INFO] Transferred a total of %.1f GB." % gigaBytes)
+    throughput = (byteCount * 8 * 1.0) / (elapseTime.total_seconds() * 1024 * 1024)
+
+    strMsg = ""
+    if throughput < 1000:
+        strMsg = "#### DONE with throughput = %.1f Mb/s ####" % throughput
+    else:
+        throughput = throughput / 1000
+        strMsg = "#### DONE with throughput = %.1f Gb/s ####" % throughput
+
+    strHashLine = ""
+    for i in range(0, len(strMsg)):
+        strHashLine += "#"
+
+    print(strHashLine)
+    print(strMsg)
+    print(strHashLine)
+    print()
+
+

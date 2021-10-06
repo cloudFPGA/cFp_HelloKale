@@ -185,147 +185,157 @@ echo -e
 echo -e
 
 if [ $RUN_SEND = true ]; then
-  echo -e "###  TCP SEND  ######################################################" 
+  echo -e "#####################################################################" 
+  echo -e "###  TCP SEND                                                    ####" 
+  echo -e "#####################################################################" 
 
-  # SEND - Ramp from 1 to size
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpSend.py -sd 0 -lc 5 -sz 100     -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  # SEND - A ramp of increasing segment sizes from 1 to 'size' (use -t to enforce the push of the segment)
+  for value in {1..${LOOP}};
+  do
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then
+      python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 1 -lc 2     -sz 1352 -st 0.0005;
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi;
     fi
   done
 
-  # SEND - Random size
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpSend.py -lc 10                   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  # SEND - A data payload ramp of 1 MB
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 0 -lc 1024  -sz 1024; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
-  # SEND - Ramp of 1 MB
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpSend.py                          -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 0 -sz 1024 -lc 1024
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  # SEND - A data payload ramp of 10 MB
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 0 -lc 10240  -sz 1024; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
-  # SEND - 10MB
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 8 -sz 1024 -lc 10240  -st 0.00000
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  # SEND - 100 MB of constant data
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 2 -lc 102400 -sz 1024 -st 0.00000
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
-  # SEND - 100MB
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 7 -sz 1024 -lc 102400  -st 0.00000
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  # SEND - 100MB of random data 
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 3 -lc 77557 -sz 1352 -st 0.00000
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
   # SEND - 1GB
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 8 -sz 1024 -lc 1024000 -st 0.0000
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 8 -lc 1024000 -sz 1024 -st 0.0000
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
   # SEND - 10GB at slow rate 
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 7 -sz 1024 -lc 10240000 -st 0.0000
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpSend.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -sd 7 -lc 10240000 -sz 1024 -st 0.0000
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 fi
 
+
+
 if [ $RUN_RECV = true ]; then
-  echo -e "###  TCP RECV  ######################################################" 
+  echo -e "#####################################################################" 
+  echo -e "###  TCP RECV                                                    ####" 
+  echo -e "#####################################################################"
 
   # RECV - Ramp
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpRecv.py -sd 0 -sz 256            -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpRecv.py -sd 0 -sz 256            -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
   # RECV - Fixed size
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpRecv.py -lc 64 -sz 1024          -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpRecv.py -lc 64 -sz 1024          -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
   # RECV - Fixed size
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpRecv.py -lc 32 -sz 2048          -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpRecv.py -lc 32 -sz 2048          -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 
   # RECV - Random size
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpRecv.py -lc 10                   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpRecv.py -lc 10                   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
 fi
 
 
 if [ $RUN_ECHO = true ]; then
-  echo -e "###  TCP ECHO  ######################################################" 
+  echo -e "#####################################################################" 
+  echo -e "###  TCP ECHO                                                    ####" 
+  echo -e "#####################################################################" 
 
   # ECHO - Fixed size
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpEcho.py -lc 10 -sz ${cZYC2_MSS}   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpEcho.py -lc 10 -sz ${cZYC2_MSS}   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done
   
   # ECHO - Random size
-  for value in {1..${LOOP}}; \
-  do \
-    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then \
-      python3 tc_TcpEcho.py -lc 10                   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; \
-      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; \
+  for value in {1..${LOOP}}; 
+  do 
+    if [ ${ERRORS} -lt ${MAX_ERRORS} ]; then 
+      python3 tc_TcpEcho.py -lc 10                   -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} ; 
+      if [ $? -ne 0 ]; then ((ERRORS++)); echo -e "#### ERRORS=${ERRORS} ####";  fi; 
     fi
   done  
 fi
 
 
 if [ $RUN_IPERF = true ]; then
-  echo -e "###  TCP IPERF ######################################################" 
+  echo -e "#####################################################################" 
+  echo -e "###  TCP IPERF                                                   ####" 
+  echo -e "#####################################################################" 
   
   # IPERF - Host-2-Fpga 
   iperf -c ${INSTANCE_IP} -p 8800 -t 10
-  echo -e "Done with 10 seconds of Iperf. \n"
-  if [ $? -eq 0 ]; \
-  then \
-    echo -e "Done with ${LENGTH_OF_IPREF_TEST} seconds of Iperf. \n"; \
-  else \
-    ((ERRORS++)); echo "#### ERRORS=${ERRORS} ####"; fi; \
+  echo -e "Done with 10 seconds of Iperf. n"
+  if [ $? -eq 0 ]; 
+  then 
+    echo -e "Done with ${LENGTH_OF_IPREF_TEST} seconds of Iperf. n"; 
+  else 
+    ((ERRORS++)); echo "#### ERRORS=${ERRORS} ####"; fi; 
   
 fi
 
