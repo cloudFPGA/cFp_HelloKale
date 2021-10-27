@@ -211,7 +211,7 @@ entity Role_Kale is
     -- SHELL / Mem / Mp1 Interface
     --------------------------------------------------------
     ---- Write Address Channel ---------
-    moSHL_Mem_Mp1_AWID                  : out   std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_AWID                  : out   std_ulogic_vector(  7 downto 0);
     moSHL_Mem_Mp1_AWADDR                : out   std_ulogic_vector( 32 downto 0);
     moSHL_Mem_Mp1_AWLEN                 : out   std_ulogic_vector(  7 downto 0);
     moSHL_Mem_Mp1_AWSIZE                : out   std_ulogic_vector(  2 downto 0);
@@ -225,12 +225,12 @@ entity Role_Kale is
     moSHL_Mem_Mp1_WVALID                : out   std_ulogic;
     moSHL_Mem_Mp1_WREADY                : in    std_ulogic;
     ---- Write Response Channel --------
-    moSHL_Mem_Mp1_BID                   : in    std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_BID                   : in    std_ulogic_vector(  7 downto 0);
     moSHL_Mem_Mp1_BRESP                 : in    std_ulogic_vector(  1 downto 0);
     moSHL_Mem_Mp1_BVALID                : in    std_ulogic;
     moSHL_Mem_Mp1_BREADY                : out   std_ulogic;
     ---- Read Address Channel ----------
-    moSHL_Mem_Mp1_ARID                  : out   std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_ARID                  : out   std_ulogic_vector(  7 downto 0);
     moSHL_Mem_Mp1_ARADDR                : out   std_ulogic_vector( 32 downto 0);
     moSHL_Mem_Mp1_ARLEN                 : out   std_ulogic_vector(  7 downto 0);
     moSHL_Mem_Mp1_ARSIZE                : out   std_ulogic_vector(  2 downto 0);
@@ -238,7 +238,7 @@ entity Role_Kale is
     moSHL_Mem_Mp1_ARVALID               : out   std_ulogic;
     moSHL_Mem_Mp1_ARREADY               : in    std_ulogic;
     ---- Read Data Channel -------------
-    moSHL_Mem_Mp1_RID                   : in    std_ulogic_vector(  3 downto 0);
+    moSHL_Mem_Mp1_RID                   : in    std_ulogic_vector(  7 downto 0);
     moSHL_Mem_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
     moSHL_Mem_Mp1_RRESP                 : in    std_ulogic_vector(  1 downto 0);
     moSHL_Mem_Mp1_RLAST                 : in    std_ulogic;

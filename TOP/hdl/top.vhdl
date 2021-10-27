@@ -338,32 +338,32 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Mem_Mp0_Write_tvalid     : std_ulogic;
   signal ssROL_SHL_Mem_Mp0_Write_tready     : std_ulogic;
   -- Memory Port #1 ------------------------------
-  signal smROL_SHL_Mem_Mp1_AWID             : std_ulogic_vector(3 downto 0);
-  signal smROL_SHL_Mem_Mp1_AWADDR           : std_ulogic_vector(32 downto 0);
-  signal smROL_SHL_Mem_Mp1_AWLEN            : std_ulogic_vector(7 downto 0);
-  signal smROL_SHL_Mem_Mp1_AWSIZE           : std_ulogic_vector(2 downto 0);
-  signal smROL_SHL_Mem_Mp1_AWBURST          : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWID             : std_ulogic_vector(  7 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWADDR           : std_ulogic_vector( 32 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWLEN            : std_ulogic_vector(  7 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWSIZE           : std_ulogic_vector(  2 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWBURST          : std_ulogic_vector(  1 downto 0);
   signal smROL_SHL_Mem_Mp1_AWVALID          : std_ulogic;
   signal smROL_SHL_Mem_Mp1_AWREADY          : std_ulogic;
   signal smROL_SHL_Mem_Mp1_WDATA            : std_ulogic_vector(511 downto 0);
-  signal smROL_SHL_Mem_Mp1_WSTRB            : std_ulogic_vector(63 downto 0);
+  signal smROL_SHL_Mem_Mp1_WSTRB            : std_ulogic_vector( 63 downto 0);
   signal smROL_SHL_Mem_Mp1_WLAST            : std_ulogic;
   signal smROL_SHL_Mem_Mp1_WVALID           : std_ulogic;
   signal smROL_SHL_Mem_Mp1_WREADY           : std_ulogic;
-  signal smROL_SHL_Mem_Mp1_BID              : std_ulogic_vector(3 downto 0);
-  signal smROL_SHL_Mem_Mp1_BRESP            : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_BID              : std_ulogic_vector(  7 downto 0);
+  signal smROL_SHL_Mem_Mp1_BRESP            : std_ulogic_vector(  1 downto 0);
   signal smROL_SHL_Mem_Mp1_BVALID           : std_ulogic;
   signal smROL_SHL_Mem_Mp1_BREADY           : std_ulogic;
-  signal smROL_SHL_Mem_Mp1_ARID             : std_ulogic_vector(3 downto 0);
-  signal smROL_SHL_Mem_Mp1_ARADDR           : std_ulogic_vector(32 downto 0);
-  signal smROL_SHL_Mem_Mp1_ARLEN            : std_ulogic_vector(7 downto 0);
-  signal smROL_SHL_Mem_Mp1_ARSIZE           : std_ulogic_vector(2downto 0);
-  signal smROL_SHL_Mem_Mp1_ARBURST          : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARID             : std_ulogic_vector(  7 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARADDR           : std_ulogic_vector( 32 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARLEN            : std_ulogic_vector(  7 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARSIZE           : std_ulogic_vector(  2 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARBURST          : std_ulogic_vector(  1 downto 0);
   signal smROL_SHL_Mem_Mp1_ARVALID          : std_ulogic;
   signal smROL_SHL_Mem_Mp1_ARREADY          : std_ulogic;
-  signal smROL_SHL_Mem_Mp1_RID              : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_RID              : std_ulogic_vector(  7 downto 0);
   signal smROL_SHL_Mem_Mp1_RDATA            : std_ulogic_vector(511 downto 0);
-  signal smROL_SHL_Mem_Mp1_RRESP            : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_RRESP            : std_ulogic_vector(  1 downto 0);
   signal smROL_SHL_Mem_Mp1_RLAST            : std_ulogic;
   signal smROL_SHL_Mem_Mp1_RVALID           : std_ulogic;
   signal smROL_SHL_Mem_Mp1_RREADY           : std_ulogic;
@@ -390,8 +390,6 @@ architecture structural of topFMKU60 is
   signal sROL_SHL_Mmio_RdReg                : std_ulogic_vector( 15 downto 0);
    ---- APP_WRROL[0:1] ---------------------
   signal sSHL_ROL_Mmio_WrReg                : std_ulogic_vector( 15 downto 0);
-  -- Delayed reset counter 
-  signal sRstDelayCounter                   : std_ulogic_vector(5 downto 0);
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -638,7 +636,7 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
-      miROL_Mem_Mp1_AWID                : in    std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_AWID                : in    std_ulogic_vector(  7 downto 0);
       miROL_Mem_Mp1_AWADDR              : in    std_ulogic_vector( 32 downto 0);
       miROL_Mem_Mp1_AWLEN               : in    std_ulogic_vector(  7 downto 0);
       miROL_Mem_Mp1_AWSIZE              : in    std_ulogic_vector(  2 downto 0);
@@ -650,18 +648,18 @@ architecture structural of topFMKU60 is
       miROL_Mem_Mp1_WLAST               : in    std_ulogic;
       miROL_Mem_Mp1_WVALID              : in    std_ulogic;
       miROL_Mem_Mp1_WREADY              : out   std_ulogic;
-      miROL_Mem_Mp1_BID                 : out   std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_BID                 : out   std_ulogic_vector(  7 downto 0);
       miROL_Mem_Mp1_BRESP               : out   std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_BVALID              : out   std_ulogic;
       miROL_Mem_Mp1_BREADY              : in    std_ulogic;
-      miROL_Mem_Mp1_ARID                : in    std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_ARID                : in    std_ulogic_vector(  7 downto 0);
       miROL_Mem_Mp1_ARADDR              : in    std_ulogic_vector( 32 downto 0);
       miROL_Mem_Mp1_ARLEN               : in    std_ulogic_vector(  7 downto 0);
       miROL_Mem_Mp1_ARSIZE              : in    std_ulogic_vector(  2 downto 0);
       miROL_Mem_Mp1_ARBURST             : in    std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_ARVALID             : in    std_ulogic;
       miROL_Mem_Mp1_ARREADY             : out   std_ulogic;
-      miROL_Mem_Mp1_RID                 : out   std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_RID                 : out   std_ulogic_vector(  7 downto 0);
       miROL_Mem_Mp1_RDATA               : out   std_ulogic_vector(511 downto 0);
       miROL_Mem_Mp1_RRESP               : out   std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_RLAST               : out   std_ulogic;
@@ -857,32 +855,32 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- SHELL / Mem / Mp1 Interface
       ------------------------------------------------------
-      moSHL_Mem_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
-      moSHL_Mem_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
-      moSHL_Mem_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
-      moSHL_Mem_Mp1_AWSIZE                : out   std_ulogic_vector(2 downto 0);
-      moSHL_Mem_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_AWID                  : out   std_ulogic_vector(  7 downto 0);
+      moSHL_Mem_Mp1_AWADDR                : out   std_ulogic_vector( 32 downto 0);
+      moSHL_Mem_Mp1_AWLEN                 : out   std_ulogic_vector(  7 downto 0);
+      moSHL_Mem_Mp1_AWSIZE                : out   std_ulogic_vector(  2 downto 0);
+      moSHL_Mem_Mp1_AWBURST               : out   std_ulogic_vector(  1 downto 0);
       moSHL_Mem_Mp1_AWVALID               : out   std_ulogic;
       moSHL_Mem_Mp1_AWREADY               : in    std_ulogic;
       moSHL_Mem_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
-      moSHL_Mem_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
+      moSHL_Mem_Mp1_WSTRB                 : out   std_ulogic_vector( 63 downto 0);
       moSHL_Mem_Mp1_WLAST                 : out   std_ulogic;
       moSHL_Mem_Mp1_WVALID                : out   std_ulogic;
       moSHL_Mem_Mp1_WREADY                : in    std_ulogic;
-      moSHL_Mem_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
-      moSHL_Mem_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_BID                   : in    std_ulogic_vector(  7 downto 0);
+      moSHL_Mem_Mp1_BRESP                 : in    std_ulogic_vector(  1 downto 0);
       moSHL_Mem_Mp1_BVALID                : in    std_ulogic;
       moSHL_Mem_Mp1_BREADY                : out   std_ulogic;
-      moSHL_Mem_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
-      moSHL_Mem_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
-      moSHL_Mem_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
-      moSHL_Mem_Mp1_ARSIZE                : out   std_ulogic_vector(2 downto 0);
-      moSHL_Mem_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_ARID                  : out   std_ulogic_vector(  7 downto 0);
+      moSHL_Mem_Mp1_ARADDR                : out   std_ulogic_vector( 32 downto 0);
+      moSHL_Mem_Mp1_ARLEN                 : out   std_ulogic_vector(  7 downto 0);
+      moSHL_Mem_Mp1_ARSIZE                : out   std_ulogic_vector(  2 downto 0);
+      moSHL_Mem_Mp1_ARBURST               : out   std_ulogic_vector(  1 downto 0);
       moSHL_Mem_Mp1_ARVALID               : out   std_ulogic;
       moSHL_Mem_Mp1_ARREADY               : in    std_ulogic;
-      moSHL_Mem_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_RID                   : in    std_ulogic_vector(  7 downto 0);
       moSHL_Mem_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
-      moSHL_Mem_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_RRESP                 : in    std_ulogic_vector(  1 downto 0);
       moSHL_Mem_Mp1_RLAST                 : in    std_ulogic;
       moSHL_Mem_Mp1_RVALID                : in    std_ulogic;
       moSHL_Mem_Mp1_RREADY                : out   std_ulogic;
