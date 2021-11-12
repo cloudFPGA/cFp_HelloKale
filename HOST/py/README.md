@@ -1,17 +1,17 @@
-HOST / py
+cFp_HelloKale / HOST / py
 ==========================
-**Python scripts for interacting with the role of the cFp_Monolithic project.**
+**Python scripts for interacting with the role of the cFp_HelloKale project.**
 
 ## ABOUT
-This directory contains a set of _Python_ scripts for a host CPU to interact with the role of the 
-_cFp_Monolithic_ project.
+This directory contains a set of _Python_ scripts for a host CPU to interact with the 
+role of the _cFp_HelloKale_ project.
 
 ## Environment requirements
 To ease the execution of the local python test scripts, we recommend _Python v3.6_ or 
 higher, and the use of a virtual environment.  
 
 ## Step-1: How to create a Virtual Environment
-This section is an extract from the [Python Packaging User Guide](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
+This section is an extract from the [_Python Packaging User Guide_](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 It summarises the installation procedure of packages using `pip` and the creation of a virtual 
 environment manager (venv) for Python 3.
 
@@ -39,22 +39,22 @@ Make sure you are in the _HOST/py_ directory and run the following command.
 ```
 
 #### Step-1.3: How to activate a virtual environment
-Before you can start installing or using packages in your virtual environment you need to activate
-it. Activating a virtual environment will put the virtual environment-specific python and pip 
-executables into your shell’s PATH.
+Before you can start installing or using packages in your virtual environment you need to 
+activate it. Activating a virtual environment will put the virtual environment-specific 
+python and pip executables into your shell’s PATH.
 ```
     $ source ./venv/bin/activate
 ```
-You can confirm you’re in your virtual environment if your python interpreter points to your `venv`
-directory.
+You can confirm you’re in your virtual environment if your python interpreter points to 
+your `venv` directory.
 ```
     $ which python3
     python3 is $PWD/venv/bin/python3 
 ```
 
 #### Step-1.4: How to install required packages
-Now that you’re in the virtual environment of this project, let's install the dependent packages as
-listed in the `requirements.txt` file. 
+Now that you’re in the virtual environment of this project, let's install the dependent 
+packages as listed in the `requirements.txt` file. 
 ```
     $ pip3 install -r requirements.txt
 ``` 
@@ -65,14 +65,14 @@ In the remaining of part of this document, we assume (and we recommend) that you
 _python3.6_ or above.
 
 ##### Step-2.1: Activate the virtual environment
-Change to _HOST/py_ directory and activate the virtual environment of this project by running the 
-following command.
+Change to _HOST/py_ directory and activate the virtual environment of this project by 
+running the following command.
 ```
     $ cd HOST/py
     $ source venv/bin/activate
 ```
-If the _py/venv_ directory does not exist, you first need to create it by following the procedure 
-described in <[Step-1](#step-1-how-to-create-a-virtual-environment)>.
+If the _py/venv_ directory does not exist, you first need to create it by following the 
+procedure described in <[Step-1](#step-1-how-to-create-a-virtual-environment)>.
 
 ##### Step-2.2: To execute a UDP or TCP transmit test
 Enter one of the following commands from the _HOST/py_ directory. 
