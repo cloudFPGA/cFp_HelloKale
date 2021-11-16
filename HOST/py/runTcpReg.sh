@@ -345,5 +345,4 @@ echo -e "###                      (ERRORS=${ERRORS})                            
 echo -e "#####################################################################"
 
 
-### FAILING TCP CASES #####
-# for value in {1..10}; do python3 tc_TcpEcho.py -un ${ZYC2_USER} -up ${ZYC2_PASS} -fi ${INSTANCE_IP} -ii ${INSTANCE_ID} -lc 1000               ; done # Random Size
+exit ${ERRORS}
