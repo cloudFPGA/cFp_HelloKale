@@ -97,4 +97,4 @@ $ ping <instance_ip>        (e.g. ping 10.12.200.21)
 ## How to test the features of the cFp_HelloKale
 As mentioned above, the role of the project _cFp_HelloKale_ implements a set of TCP-, UDP- 
 and DDR4-oriented tests and functions. These features can be called or exercised from a 
-remote host as explained in section [_**HOST**_](./HOST/README.md). 
+remote host as explained in section [_**HOST**_](./HOST/README.md).
