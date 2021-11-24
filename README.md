@@ -51,6 +51,9 @@ $ git clone git@github.com:cloudFPGA/cFp_HelloKale.git
 $ cd cFp_HelloKale
 $ git submodule init
 $ git submodule update
+$ cd cFDK
+$ git checkout master
+$ cd ..
 ```
 #### Step-2: Setup your environment
 ```
