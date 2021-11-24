@@ -63,14 +63,14 @@ connections.
 Enter the following command and type in a stream of characters at the console. That 
 stream will be echoed back by the FPGA instance.
 ```
-    $ socat - TCP4:<image_ip>:8803    (e.g. socat - TCP4:10.12.200.163 8803)
+    $ socat - TCP4:<image_ip>:8803    (e.g. socat - TCP4:10.12.200.163:8803)
 ```
 
 ##### Step-2: To test the establishment of a UDP connection
 Enter the following command and type in a stream of characters at the console. That 
 stream will be echoed back by the FPGA instance.
 ```
-    $ socat - UDP4 <image_ip> 8803    (e.g. socat - UDP4 10.12.200.163 8803)
+    $ socat - UDP4:<image_ip>:8803    (e.g. socat - UDP4:10.12.200.163:8803)
 ```
 
 ## How To iPerf 
