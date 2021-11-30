@@ -22,8 +22,8 @@
  * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (TAF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE_TAF
- * \addtogroup ROLE_TAF_TEST
+ * \ingroup tcp_app_flash
+ * \addtogroup tcp_app_flash
  * \{
  ******************************************************************************/
 

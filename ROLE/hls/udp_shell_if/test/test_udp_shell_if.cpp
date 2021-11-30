@@ -39,8 +39,8 @@
  *               |        (UOE)          +---------+
  *               +-----------------------+
  *
- * \ingroup ROLE_USIF
- * \addtogroup ROLE_USIF_TEST
+ * \ingroup udp_shell_if
+ * \addtogroup udp_shell_if
  * \{
  *****************************************************************************/
 

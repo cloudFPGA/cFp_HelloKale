@@ -22,8 +22,8 @@
  * Component   : cFp_BringUp / ROLE
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TSIF
+ * \ingroup tcp_shell_if
+ * \addtogroup tcp_shell_if
  * \{
  *******************************************************************************/
 

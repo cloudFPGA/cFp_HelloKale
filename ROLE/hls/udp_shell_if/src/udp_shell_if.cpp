@@ -40,8 +40,8 @@
  *
  * [TODO] - The DEFAULT_FPGA_LSN_PORT (0x2263=8803) and the DEFAULT_HOST_IP4_ADDR must be made programmable.
  *
- * \ingroup ROLE
- * \addtogroup ROLE_USIF
+ * \ingroup udp_shell_if 
+ * \addtogroup udp_shell_if 
  * \{
  *******************************************************************************/
 

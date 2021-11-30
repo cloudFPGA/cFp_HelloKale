@@ -27,8 +27,8 @@
  * @details    : Data structures, types and prototypes definitions for the UDP
  *                application embedded in the role of the cFp_BringUp.
  *
- * \ingroup ROLE_UAF
- * \addtogroup ROLE_UAF
+ * \ingroup udp_app_flash
+ * \addtogroup udp_app_flash 
  * \{
  *******************************************************************************/
 

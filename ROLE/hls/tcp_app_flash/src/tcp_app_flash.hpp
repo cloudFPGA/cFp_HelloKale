@@ -27,8 +27,8 @@
  * @details  : This application implements a set of TCP-oriented tests and
  *  functions for the bring-up of a cloudFPGA module.
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TAF
+ * \ingroup tcp_app_flash 
+ * \addtogroup tcp_app_flash 
  * \{
  *******************************************************************************/
 

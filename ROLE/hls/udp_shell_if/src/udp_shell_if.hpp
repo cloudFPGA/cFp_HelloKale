@@ -22,8 +22,8 @@
  * Component   : cFp_BringUp/ROLE
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_USIF
+ * \ingroup udp_shell_if 
+ * \addtogroup udp_shell_if 
  * \{
  *******************************************************************************/
 

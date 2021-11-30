@@ -35,8 +35,8 @@
  *                      |       |
  *                      |      \|/
  *
- * \ingroup ROLE_TAF
- * \addtogroup ROLE_TAF_TEST
+ * \ingroup tcp_app_flash
+ * \addtogroup tcp_app_flash
  * \{
  *******************************************************************************/
 

@@ -18,7 +18,7 @@
  * @file       LinkDef.h
  * @brief      A header file defining a logical hierarchy of groups/subroups
  *             for the documentation of the current project.
- * @author     DID,FAB
+ * @author     did, fab
  * @details    The structure is as follows:
  *             [+] cFp_HelloKale
  *              +-- [+] tcp_app_flash
@@ -30,18 +30,21 @@
  *              +-- [+] udp_shell_if
  *                   +-- udp_shell_if_test
  *
+ * @note: Every cFp_<Project> must be part of the 'cFp' module.
  *****************************************************************************/
 
 
 /*****************************************************************************
  *
- *  cFp_HelloKale : This Module
- *
- *   - FYI: Every cFp_<Project> is part of the 'cFp' module.
+ *  cFp_HelloKale : This is a 'Hello World' project targetting the SHELL of 
+ *   type 'Kale' which is a shell with minimalist support for accessing the
+ *   hardware components of the FPGA card.
+ *   The ROLE of the project implements a set of TCP- and UDP-oriented tests
+ *   and functions to experiment with network sockets.
  *
  *****************************************************************************/
 
-/** \defgroup cFp_HelloKale cFp_helloKale
+/** \defgroup cFp_HelloKale cFp_HelloKale
  *  @ingroup cFp
  * 
  *  \brief This is the root of the current 'cFp_HelloKale' project.

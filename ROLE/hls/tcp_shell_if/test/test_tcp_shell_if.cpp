@@ -35,8 +35,8 @@
  *                      |       |
  *                      |      \|/
  *
- * \ingroup ROLE_TSIF
- * \addtogroup ROLE_TSIF_TEST
+ * \ingroup tcp_shell_if
+ * \addtogroup tcp_shell_if
  * \{
  *****************************************************************************/
 

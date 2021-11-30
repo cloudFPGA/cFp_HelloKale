@@ -22,8 +22,8 @@
  * Component   : cFp_Monolithic / ROLE
  * Language    : Vivado HLS
  *
- * \ingroup ROLE_UAF
- * \addtogroup ROLE_UAF_TEST
+ * \ingroup udp_app_flash
+ * \addtogroup udp_app_flash
  * \{
  *******************************************************************************/
 
