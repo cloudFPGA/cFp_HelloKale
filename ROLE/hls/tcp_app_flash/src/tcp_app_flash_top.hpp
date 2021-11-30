@@ -19,16 +19,16 @@
  * @brief    : Top of TCP Application Flash (TAF)
  *
  * System:   : cloudFPGA
- * Component : cFp_BringUp / ROLE
+ * Component : cFp_HelloKale / ROLE
  * Language  : Vivado HLS
  *
  *----------------------------------------------------------------------------
  *
  * @details  :  Data structures, types and prototypes definitions for the TCP
- *                application embedded in the role of the cFp_BringUp.
+ *                application embedded in the role of the cFp_HelloKale.
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TAF
+ * \ingroup tcp_app_flash
+ * \addtogroup tcp_app_flash
  * \{
  *******************************************************************************/
 

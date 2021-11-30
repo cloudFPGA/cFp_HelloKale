@@ -19,7 +19,7 @@
  * @brief      : Simulation environment for the TCP Application Flash (TAF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (TAF)
+ * Component   : cFp_HelloKale/ROLE/TcpApplicationFlash (TAF)
  * Language    : Vivado HLS
  *
  * \ingroup tcp_app_flash

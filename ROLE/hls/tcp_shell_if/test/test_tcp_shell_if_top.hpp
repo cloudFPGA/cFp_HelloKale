@@ -19,11 +19,11 @@
  * @brief      : Testbench for the toplevel of TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE/TcpShellInterface (TSIF)
+ * Component   : cFp_HelloKale/ROLE/TcpShellInterface (TSIF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE_TSIF
- * \addtogroup ROLE_TSIF_TEST
+ * \ingroup tcp_shell_if
+ * \addtogroup tcp_shell_if
  * \{
  *****************************************************************************/
 

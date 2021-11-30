@@ -19,16 +19,16 @@
  * @brief      : Top of UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp / ROLE
+ * Component   : cFp_HelloKale / ROLE
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the UDP
- *                application embedded in the role of the cFp_BringUp.
+ *                application embedded in the role of the cFp_HelloKale.
  *
- * \ingroup ROLE_UAF
- * \addtogroup ROLE_UAF
+ * \ingroup udp_app_flash
+ * \addtogroup udp_app_flash
  * \{
  *******************************************************************************/
 

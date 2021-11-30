@@ -19,11 +19,11 @@
  * @brief      : Top of TCP Shell Interface (TSIF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp / ROLE
+ * Component   : cFp_HelloKale / ROLE
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_TSIF
+ * \ingroup tcp_shell_if
+ * \addtogroup tcp_shell_if
  * \{
  *******************************************************************************/
 

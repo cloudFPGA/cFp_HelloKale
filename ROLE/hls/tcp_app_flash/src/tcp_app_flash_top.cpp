@@ -29,8 +29,8 @@
  *   RTL ports. The type of interfaces that are created by interface synthesis
  *   are directed by the pragma 'HLS INTERFACE'.
  * 
- * \ingroup ROLE
- * \addtogroup ROLE_TAF
+ * \ingroup tcp_app_flash
+ * \addtogroup tcp_app_flash
  * \{
  *******************************************************************************/
 

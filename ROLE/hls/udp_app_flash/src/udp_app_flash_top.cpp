@@ -19,7 +19,7 @@
  * @brief      : Top level with I/O ports for UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic / ROLE
+ * Component   : cFp_HelloKale / ROLE
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
@@ -29,8 +29,8 @@
  *   RTL ports. The type of interfaces that are created by interface synthesis
  *   are directed by the pragma 'HLS INTERFACE'.
  *
- * \ingroup ROLE
- * \addtogroup ROLE_UAF
+ * \ingroup udp_app_flash
+ * \addtogroup udp_app_flash
  * \{
  *******************************************************************************/
 

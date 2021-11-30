@@ -22,8 +22,8 @@
  * Component   : cFp_Monolithic/ROLE/TcpShellInterface (TSIF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE_TSIF
- * \addtogroup ROLE_TSIF_TEST
+ * \ingroup tcp_shell_if
+ * \addtogroup tcp_shell_if
  * \{
  *****************************************************************************/
 

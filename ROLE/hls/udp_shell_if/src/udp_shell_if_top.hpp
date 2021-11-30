@@ -19,11 +19,11 @@
  * @brief      : Top of UDP Shell Interface (USIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp / ROLE
+ * Component   : cFp_HelloKale / ROLE
  * Language    : Vivado HLS
  *
- * \ingroup ROLE
- * \addtogroup ROLE_USIF
+ * \ingroup udp_shell_if
+ * \addtogroup udp_shell_if
  * \{
  *******************************************************************************/
 

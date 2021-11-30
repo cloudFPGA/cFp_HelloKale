@@ -19,11 +19,11 @@
  * @brief      : Simulation environment for the UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp/ROLE/TcpApplicationFlash (UAF)
+ * Component   : cFp_HelloKale/ROLE/UdpApplicationFlash (UAF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE_UAF
- * \addtogroup ROLE_UAF_TEST
+ * \ingroup udp_app_flash
+ * \addtogroup udp_app_flash
  * \{
  ******************************************************************************/
 

@@ -19,7 +19,7 @@
  * @brief      : Testbench for the UDP Shell Interface (USIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic / ROLE
+ * Component   : cFp_HelloKale / ROLE
  * Language    : Vivado HLS
  *
  *               +-----------------------+
@@ -39,8 +39,8 @@
  *               |        (UOE)          +
  *               +-----------------------+
  *
- * \ingroup ROLE_USIF
- * \addtogroup ROLE_USIF_TEST
+ * \ingroup udp_shell_if
+ * \addtogroup udp_shell_if
  * \{
  *****************************************************************************/
 

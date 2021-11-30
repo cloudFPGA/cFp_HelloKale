@@ -19,13 +19,13 @@
  * @brief      : UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_BringUp / ROLE
+ * Component   : cFp_HelloKale / ROLE
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
  *
  * @details This application implements a set of UDP-oriented tests which are
- *  embedded into the role of the cFp_BringUp.
+ *  embedded into the role of the cFp_HelloKale.
  *  The UAF connects to the SHELL via a UDP Shell Interface (USIF) block. The
  *  main purpose of the USIF is to provide a placeholder for the opening of one
  *  or multiple listening port(s). Its use is not a prerequisite, but it is

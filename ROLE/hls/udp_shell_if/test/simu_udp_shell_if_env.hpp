@@ -19,11 +19,11 @@
  * @brief      : Simulation environment for the UDP Shell Interface (USIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic/ROLE/UdpShellInterface (USIF)
+ * Component   : cFp_HelloKale/ROLE/UdpShellInterface (USIF)
  * Language    : Vivado HLS
  *
- * \ingroup ROLE_USIF
- * \addtogroup ROLE_USIF_TEST
+ * \ingroup udp_shell_if
+ * \addtogroup udp_shell_if
  * \{
  *******************************************************************************/
 
