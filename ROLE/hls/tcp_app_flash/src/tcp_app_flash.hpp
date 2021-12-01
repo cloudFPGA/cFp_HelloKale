@@ -15,7 +15,7 @@
  */
 
 /*******************************************************************************
- * @file     : tcp_app_flash.cpp
+ * @file     : tcp_app_flash.hpp
  * @brief    : TCP Application Flash (TAF)
  *
  * System:   : cloudFPGA

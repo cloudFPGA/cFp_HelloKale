@@ -15,7 +15,7 @@
  */
 
 /*******************************************************************************
- * @file       : udp_app_flash_top.cpp
+ * @file       : udp_app_flash_top.hpp
  * @brief      : Top of UDP Application Flash (UAF)
  *
  * System:     : cloudFPGA
