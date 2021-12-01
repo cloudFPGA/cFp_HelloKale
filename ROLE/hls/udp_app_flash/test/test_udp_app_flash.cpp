@@ -19,7 +19,7 @@
  * @brief      : Testbench for the UDP Application Flash (UAF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic/ROLE/UdpApplicationFlash (UAF)
+ * Component   : cFp_HelloKale/ROLE/UdpApplicationFlash (UAF)
  * Language    : Vivado HLS
  *
  *               +-----------------------+

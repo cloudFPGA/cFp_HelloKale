@@ -19,7 +19,7 @@
  * @brief      : Testbench for the UDP Shell Interface (USIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic/ROLE/UdpShellInterface (USIF)
+ * Component   : cFp_HelloKale/ROLE/UdpShellInterface (USIF)
  * Language    : Vivado HLS
  *
  *               +-----------------------+

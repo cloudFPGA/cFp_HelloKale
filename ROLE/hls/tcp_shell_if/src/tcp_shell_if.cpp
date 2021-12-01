@@ -19,7 +19,7 @@
  * @brief      : TCP Shell Interface (TSIF)
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic / ROLE
+ * Component   : cFp_HelloKale/ROLE/TCP Shell Interface (TSIF)
  * Language    : Vivado HLS
  *
  *------------------------------------------------------------------------------
