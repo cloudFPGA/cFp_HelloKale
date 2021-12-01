@@ -19,7 +19,7 @@
  * @brief      : Simulation environment for the TCP Shell Interface (TSIF).
  *
  * System:     : cloudFPGA
- * Component   : cFp_Monolithic/ROLE/TcpShellInterface (TSIF)
+ * Component   : ROLE/TcpShellInterface (TSIF)
  * Language    : Vivado HLS
  *
  *               +-----------------------+
