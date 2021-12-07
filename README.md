@@ -12,7 +12,7 @@ This section describes the toplevel design (**TOP**) of the _cFp_HelloKale_ proj
 was developed for the bring-up and the testing of the FMKU2595 module when it is equipped 
 with a XCKU060. 
 As shown in the figure below, the toplevel of _cFp_HelloKale_ consists of:
-  - a SHELL of type [_**Kale**_](https://github.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md) 
+  - a SHELL of type [_**Kale**_](https://github.com/cloudFPGA/cFDK/blob/main/DOC/Kale.md) 
   which is a shell with minimalist support for accessing the hardware components of the 
   FPGA card. 
   - a ROLE of type [_**BringUp**_](./DOC/BringUpRole.md) which implements a set of TCP-, 
@@ -23,7 +23,7 @@ As shown in the figure below, the toplevel of _cFp_HelloKale_ consists of:
 <br>
 
 **Info/Warning**
-  - The shell [_**Kale**_](https://github.com/cloudFPGA/cFDK/blob/master/DOC/Kale.md) does 
+  - The shell [_**Kale**_](https://github.com/cloudFPGA/cFDK/blob/main/DOC/Kale.md) does 
   not support Partial Reconfiguration (PR). 
   It was specifically developed for the bring-up of a new FPGA module or for the deployment 
   of a static implementation. As a result, the generated bitstream is always a static 
@@ -52,7 +52,7 @@ $ cd cFp_HelloKale
 $ git submodule init
 $ git submodule update
 $ cd cFDK
-$ git checkout master
+$ git checkout main
 $ cd ..
 ```
 #### Step-2: Setup your environment
