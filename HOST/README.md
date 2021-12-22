@@ -15,25 +15,19 @@ exercised from a remote host.
 It is good practise to ping your FPGA instance before trying to run any further test.
 
 ##### Step-1: Do you have a valid bitfile?
-If not, refer to section [_How to build the project_](../README.md#how-to-build-the-project) 
+If not, refer to section [How to build the project](../README.md#how-to-build-the-project) 
 in this [file](../README.md) and generate a new bitfile for the current cloudFPGA project.
 
 ##### Step-2: Request and program an FPGA instance
-Follow the procedure described [TBD](TODO) and write down your _'instance_ip'_ address and 
-your _'instance_id'_.
- 
+Follow the procedure described in the section 
+[How to deploy a cloudFPGA instance](../README.md#how-to-deploy-a-cloudfpga-instance) and 
+write down your _'instance_ip'_ address and your _'instance_id'_.
+
 ##### Step-3: Ping your FPGA instance
 You can `ping` your FPGA instance with the following command:
 ```
     $ ping <instance_ip>        (e.g. ping 10.12.200.21)
 ````
-
-## How To Python 
-The [_HOST/py_](./py/README.md) directory contains a set of _Python_ scripts for 
-interacting with the role of the _cFp_HelloKale_ project. 
-
-* Follow this <[link](./py/README.md)> if you want to read about these scripts.  
-
 
 ## How To Netcat
 _Netcat_ (often abbreviated to `nc`) is a computer networking utility for reading from and 
@@ -109,5 +103,9 @@ Enter the following command to connect with your FPGA instance on UDP port *8800
     [  3] Sent 892 datagrams
 ```
 
-
+## How to Socket Programming with Python 
+If you want to experiment with socket communications between a host and a cloudFPGA module,
+visit the [HOST/py](./py/README.md) directory which contains a set of _Python_ scripts with
+socket programming examples for interacting with the role of the _cFp_HelloKale_ project. 
+ 
 

@@ -4,22 +4,24 @@ cFp_HelloKale / HOST / py
 
 ## ABOUT
 This directory contains a set of _Python_ scripts for a host CPU to interact with the 
-role of the _cFp_HelloKale_ project.
+role of the _cFp_HelloKale_ project via TCP and UDP sockets. These scripts are named
+`./tc_<Prot><Action>.py` with `<Prot> = [TCP|UDP]` and `Action = [Echo|Send|Recv]`.
 
 ## Environment requirements
-To ease the execution of the local python test scripts, we recommend _Python v3.6_ or 
-higher, and the use of a virtual environment.  
+To ease the execution of the Python test scripts on the local host, we recommend _Python v3.6_ 
+or higher, and the use of a virtual environment.  
 
 ## Step-1: How to create a Virtual Environment
-This section is an extract from the [_Python Packaging User Guide_](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
+This section is an extract from the 
+[_Python Packaging User Guide_](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 It summarises the installation procedure of packages using `pip` and the creation of a virtual 
-environment manager (venv) for Python 3.
+environment manager (venv) for Python3.
 
 Skip this part and goto <[Step-2](#step-2-how-to-python)> if you have already created a 
 _py/venv_ directory.
 
 #### Step-1.1: How to install pip 
-_pip_ is the reference Python package manager. It’s used to install and update packages. 
+`pip` is the reference Python package manager. It’s used to install and update packages. 
 
 Ensure that your user installation of `pip` is up-to-date.
 ```
@@ -59,9 +61,8 @@ packages as listed in the `requirements.txt` file.
     $ pip3 install -r requirements.txt
 ``` 
 
-
-## Step-2: How To Python 
-In the remaining of part of this document, we assume (and we recommend) that you  are using 
+## Step-2: How to Socket Programming with Python 
+In the remaining part of this document, we assume (and we recommend) that you  are using 
 _python3.6_ or above.
 
 ##### Step-2.1: Activate the virtual environment

@@ -54,29 +54,30 @@ It consists of:
 
 The current directory contains a *Makefile* which handles all the required steps to generate 
 a *bitfile* (a.k.a *bitstream*). During the build, both SHELL and ROLE dependencies are analyzed 
-to solely re-compile and re-synthesize the components that must be recreated. 
+to solely re-compile and re-synthesize the components that must be recreated.
+ 
 ```
-$ SANDBOX=`pwd`
+    $ SANDBOX=`pwd`  (a short for your working directory)
 ```
 
 ### Step-1: Clone the project
 ```
-$ cd ${SANDBOX}
-$ git clone --recursive git@github.com:cloudFPGA/cFp_HelloKale.git
-$ cd cFp_HelloKale/cFDK
-$ git checkout main
-$ cd ../..
+    $ cd ${SANDBOX}
+    $ git clone --recursive git@github.com:cloudFPGA/cFp_HelloKale.git
+    $ cd cFp_HelloKale/cFDK
+    $ git checkout main
+    $ cd ../..
 ```
 ### Step-2: Setup your environment
 ```
-$ cd ${SANDBOX}
-$ source env/setenv.sh
+    $ cd ${SANDBOX}
+    $ source env/setenv.sh
 ```
 
 ### Step-3: Generate a static bitstream 
 ```
-$ cd ${SANDBOX}
-$ make monolithic
+    $ cd ${SANDBOX}
+    $ make monolithic
 ```
 You find your newly created bitstream in the folder `${SANDBOX}/cFp_HelloKale/dcps`, under the name 
 `4_topFMKU60_impl_default_monolithic.bit`.  
@@ -86,8 +87,8 @@ If the design was successfully implemented, you can opt to save its correspondin
 checkpoint in the '_./dcps_' directory. This will accelerate the next build by exploiting the 
 incremental place-and-route features of Vivado.
 ```
-$ cd ${SANDBOX}
-$ make save_mono_incr
+    $ cd ${SANDBOX}
+    $ make save_mono_incr
 ``` 
 To request an incremental build, use the command ```$ make monolithic_incr``` instead of 
 ```$ make monolithic```.
@@ -122,7 +123,7 @@ beforehand as described [here](https://github.com/cloudFPGA/cFSP).
 If cFSP is installed, you can upload the generated bitstream located at 
 ```${SANDBOX}/cFp_HelloKale/4_topFMKU60_impl_monolithic.bit``` with the following command:
 ```
-$ ./cfsp image post --image_file=${SANDBOX}/cFp_HelloKale/4_topFMKU60_impl_monolithic.bit
+    $ ./cfsp image post --image_file=${SANDBOX}/cFp_HelloKale/4_topFMKU60_impl_monolithic.bit
 ```
 Similarly to the GUI-API procedure, do not forget to write down the image "*id*" returned by 
 the server. 
@@ -154,7 +155,7 @@ instance.
 
 To create a similar instance via the cFSP-API, enter the following command:
 ```
-$ ./cfsp instance post --image_id=31a0d56e-6037-415f-9b13-6b4e625e9a29
+    $ ./cfsp instance post --image_id=31a0d56e-6037-415f-9b13-6b4e625e9a29
 ```
 Next, and similarly to the GUI-API procedure, do not forget to write down the "*role_ip*" returned
 by the server. 
@@ -170,19 +171,19 @@ your deployed FPGA and assess its availability.
 
 Use the following command to ping the FPGA with its IP address (retrieved in Step-5).
 ```
-$ ping <role_ip>        (e.g. ping 10.12.200.247)
+    $ ping <role_ip>        (e.g. ping 10.12.200.247)
 
-PING 10.12.200.247 (10.12.200.247) 56(84) bytes of data.
-64 bytes from 10.12.200.247: icmp_seq=1 ttl=62 time=1.26 ms
-64 bytes from 10.12.200.247: icmp_seq=2 ttl=62 time=0.900 ms
-64 bytes from 10.12.200.247: icmp_seq=3 ttl=62 time=0.837 ms
-64 bytes from 10.12.200.247: icmp_seq=4 ttl=62 time=0.780 ms
+    PING 10.12.200.247 (10.12.200.247) 56(84) bytes of data.
+    64 bytes from 10.12.200.247: icmp_seq=1 ttl=62 time=1.26 ms
+    64 bytes from 10.12.200.247: icmp_seq=2 ttl=62 time=0.900 ms
+    64 bytes from 10.12.200.247: icmp_seq=3 ttl=62 time=0.837 ms
+    64 bytes from 10.12.200.247: icmp_seq=4 ttl=62 time=0.780 ms
 ```
-### Step-7: Network tools and Socket communication 
-
-How to test more features of the cFp_HelloKale
+### Step-7: Network tools and Socket communication
 
 As mentioned above, the role of the project *cFp_HelloKale* implements a set of TCP-, UDP- 
 and DDR4-oriented tests and functions. These features can be called or exercised from a 
 remote host via network tools and network communication sockets as explained in the 
-following [**HOST**](./HOST/README.md) section.
+following two links:
+ * [How to cF Socket Programming with Python](./HOST/py/README.md)
+ * [How to cF Network Tools](./HOST/README.md)
