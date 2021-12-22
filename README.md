@@ -92,18 +92,17 @@ $ make save_mono_incr
 To request an incremental build, use the command ```$ make monolithic_incr``` instead of 
 ```$ make monolithic```.
 
-
 ## How to deploy a cloudFPGA instance
 
 ### Step-4: Upload the generated bitstream
 In order to program a cloudFPGA instance with your newly generated bitfile, you first need 
 to upload it to the cloudFPGA **Resource Manager** (cFRM). The below step-4a and step-4b 
-will cover the two offered options for uploading a bitstream.  
+cover the two offered options for uploading a bitstream.  
 
 #### Step-4a: Upload image with the GUI-API  
 The cloudFPGA resource manager provides a web-based graphical user interface to its API. It is 
 available as a [Swagger UI](https://swagger.io/tools/swagger-ui/) at 
-```http://10.12.0.132:8080/ui/#/```.
+```http://10.12.0.132:8080/ui/#/```
 
 To upload your generated bitstream, expand the *Swagger* menu `Images` and the operation 
 `[POST] ​/images - Upload an image`. Then, fill in the requested fields as exemplified below.
@@ -130,21 +129,60 @@ the server.
 
 ![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/4.png#center)
 
- 
 ### Step-5: Request a cloudFPGA instance and deploy it
-Request a cloudFPGA instance to be programmed and deployed with your previously uploaded 
-bitfile.
-[ TODO - How-to-request-an-instance ]
+
+Now that your FPGA image has been uploaded to the cFRM, you can request a cloudFPGA instance to 
+be programmed and deployed with it. The below step-5a and step-5b will cover the two offered 
+options for creating a new cF instance.
+
+#### Step-5a: Create an instance with the GUI-API
+
+To create an instance via the GUI-API, point your web browser at 
+```http://10.12.0.132:8080/ui/#/```
+
+Expand the *Swagger* menu `Instances` and the operation 
+`[POST] ​/instances - Create an instance`. Then, fill in the requested fields as exemplified below.
+
+![Swagger-Instances-Post-Create-Req](./DOC/imgs/Img-Swagger-Instances-POST-Create-Req.png#center)
+
+Next, scroll down to the server's response and write down the "*role_ip*" for later accessing your
+instance.  
+
+![Swagger-Instances-Post-Create-Res](./DOC/imgs/Img-Swagger-Instances-POST-Create-Res.png#center)
+
+#### Step-5b: Create an instance with the cFSP-API
+
+To create a similar instance via the cFSP-API, enter the following command:
+```
+$ ./cfsp instance post --image_id=31a0d56e-6037-415f-9b13-6b4e625e9a29
+```
+Next, and similarly to the GUI-API procedure, do not forget to write down the "*role_ip*" returned
+by the server. 
+
+![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/10.png#center)
+
+## How to access your cloudFPGA instance
 
 ### Step-6: Ping the deployed FPGA
-It is good practise to ping your deployed FPGA to assess its availability.
 
-Use the following command to ping the FPGA with its IP address (see Step-5).
-```
-$ ping <instance_ip>        (e.g. ping 10.12.200.21)
-```
+Now that you retrieved the IP address of your FPGA instance in step-5, it is good practise to ping 
+your deployed FPGA and assess its availability.
 
-## How to test the features of the cFp_HelloKale
-As mentioned above, the role of the project _cFp_HelloKale_ implements a set of TCP-, UDP- 
+Use the following command to ping the FPGA with its IP address (retrieved in Step-5).
+```
+$ ping <role_ip>        (e.g. ping 10.12.200.247)
+
+PING 10.12.200.247 (10.12.200.247) 56(84) bytes of data.
+64 bytes from 10.12.200.247: icmp_seq=1 ttl=62 time=1.26 ms
+64 bytes from 10.12.200.247: icmp_seq=2 ttl=62 time=0.900 ms
+64 bytes from 10.12.200.247: icmp_seq=3 ttl=62 time=0.837 ms
+64 bytes from 10.12.200.247: icmp_seq=4 ttl=62 time=0.780 ms
+```
+### Step-7: Network tools and Socket communication 
+
+How to test more features of the cFp_HelloKale
+
+As mentioned above, the role of the project *cFp_HelloKale* implements a set of TCP-, UDP- 
 and DDR4-oriented tests and functions. These features can be called or exercised from a 
-remote host as explained in section [_**HOST**_](./HOST/README.md).
+remote host via network tools and network communication sockets as explained in the 
+following [**HOST**](./HOST/README.md) section.
