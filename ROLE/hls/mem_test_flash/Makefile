@@ -1,5 +1,5 @@
 # *
-# * Copyright 2016 -- 2020 IBM Corporation
+# * Copyright 2016 -- 2021 IBM Corporation
 # *
 # * Licensed under the Apache License, Version 2.0 (the "License");
 # * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@#rm -rf $@
 	rm -rf ${ipName}_prj
 	@cp ./src/memory_size_real.hpp ./src/dynamic.hpp
-	#OBSOLETE-20190906	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@#touch ${ipName}_prj
 	@rm -f ./src/dynamic.hpp
@@ -58,7 +57,6 @@ project: ## Creates the HLS project
 
 csim: ## Runs the HLS C simulation
 	@cp ./src/memory_size_debug.hpp ./src/dynamic.hpp
-	#OBSOLETE-20190906	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 	@rm -f ./src/dynamic.hpp
 
@@ -66,7 +64,6 @@ cosim: ## Runs the HLS C/RTL cosimulation
 	@#rm -rf ${ipName}_prj
 	@/bin/echo -e "This CoSim runs with smaller test sizes than the synthezised design!\nSo it must be rebuild again for the synthesis.\n"
 	@cp ./src/memory_size_debug.hpp ./src/dynamic.hpp
-	#OBSOLETE-20190906	export hlsSim=0; export hlsCoSim=1; vivado_hls -f run_hls.tcl
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 	@rm -rf ${ipName}_prj/solution1/impl/ip
 	@rm -f ./src/dynamic.hpp

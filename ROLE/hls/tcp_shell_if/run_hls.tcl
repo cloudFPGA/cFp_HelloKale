@@ -1,5 +1,5 @@
 # *
-# * Copyright 2016 -- 2020 IBM Corporation
+# * Copyright 2016 -- 2021 IBM Corporation
 # *
 # * Licensed under the Apache License, Version 2.0 (the "License");
 # * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ set ipName         "tcp_shell_if"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
-set ipDisplayName  "TCP Shell interface for cFp_Monolithic (TSIF)"
+set ipDisplayName  "TCP Shell interface (TSIF)"
 set ipDescription  "An interface between the bring-up role of the FMKU60 and the TCP offload engine of the shell Kale."
 set ipVendor       "IBM"
 set ipLibrary      "hls"

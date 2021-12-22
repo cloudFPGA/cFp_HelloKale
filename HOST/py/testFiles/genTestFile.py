@@ -1,5 +1,5 @@
 # *
-# * Copyright 2016 -- 2020 IBM Corporation
+# * Copyright 2016 -- 2021 IBM Corporation
 # * 
 # * Licensed under the Apache License, Version 2.0 (the "License");
 # * you may not use this file except in compliance with the License.
@@ -135,7 +135,6 @@ if args.increment:
         swapStr += strTmp[2]
         swapStr += strTmp[1]
         swapStr += strTmp[0]
-        # OBSOLETE_20210801 outFile.write("{:08d}".format(x))
         outFile.write(swapStr)
         if size < 1024:
             strStream += strTmp
@@ -157,7 +156,6 @@ elif args.decrement:
         swapStr += strTmp[2]
         swapStr += strTmp[1]
         swapStr += strTmp[0]
-        # OBSOLETE_20210801 outFile.write("{:08d}".format(x))
         outFile.write(swapStr)
         if size < 1024:
             strStream += strTmp

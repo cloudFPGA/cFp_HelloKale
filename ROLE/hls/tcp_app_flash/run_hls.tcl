@@ -1,5 +1,5 @@
 # *
-# * Copyright 2016 -- 2020 IBM Corporation
+# * Copyright 2016 -- 2021 IBM Corporation
 # *
 # * Licensed under the Apache License, Version 2.0 (the "License");
 # * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ set ipName         "tcp_app_flash"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
-set ipDisplayName  "TCP Application for cFp_Monolithic (TCP_APP)"
+set ipDisplayName  "TCP Application (TCP_APP)"
 set ipDescription  "A set of tests and functions embedded into the bring-up role of the FMKU60."
 set ipVendor       "IBM"
 set ipLibrary      "hls"

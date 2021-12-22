@@ -1,4 +1,4 @@
-#  **ABOUT: _~/FMKU60/RoleFlash/tcl_**
+#  **ABOUT: _~/tcl_**
 
 ## **Overview**
 

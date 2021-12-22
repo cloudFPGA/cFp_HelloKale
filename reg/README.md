@@ -1,27 +1,32 @@
 cloudFPGA Regression
 ====================
 
-A regression is a suite of functional verification tests executed against the cFp_Flash project. Such a regression is typically called by a Jenkins server during the software development process.
+A regression is a suite of functional verification tests executed against the cFp_HelloKale project. 
+Such a regression is typically called by a Jenkins server during the software development process.
 
 A regression is executed by calling a shell script such as:
-  - `run_main.sh` which performs a '_build monolithic_' of the FPGA followed by a RTL/CO-SIMULATION of the HLS-based IP cores.
+  - `run_main.sh` which performs a '_build monolithic_' of the FPGA followed by a RTL/CO-SIMULATION 
+     of the HLS-based IP cores.
 
 **Warning**
-The above scripts must be executed from the cFp_Flash root directory which must be defined ahead with the _$cFpFlashRootDir_ variable. Any other environment variable must also be sourced beforehand.
+The above scripts must be executed from the cFp_HelloKale root directory which must be defined ahead 
+with the _$cFpHelloKaleRootDir_ variable. Any other environment variable must also be sourced beforehand.
 
 **Example** 
-The main cFp_Flash regression script can be called as follows:
+The main cFp_HelloKale regression script can be called as follows:
 
 ```
 source /tools/Xilinx/Vivado/2017.4/settings64.sh
 
 echo $PWD
-export cFpFlashRootDir=$PWD
+export cFpHelloKaleRootDir=$PWD
 
-$cFpFlashRootDir/reg/run_main.sh
+$cFpHelloKaleRootDir/reg/run_main.sh
 ```
 
 **About the _run_main_ script**  
-The `run_main.sh` script is the main entry point for running a regression. It sets all necessary cF-environment variables, like a typical `env/setenv.sh` script would do. Next, if other scripts are to be run, they are expected to be called by `run_main.sh`.
+The `run_main.sh` script is the main entry point for running a regression. It sets all necessary 
+cF-environment variables, like a typical `env/setenv.sh` script would do. Next, if other scripts 
+are to be run, they are expected to be called by `run_main.sh`.
 
 

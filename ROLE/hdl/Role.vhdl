@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 -- *    of the FPGA module. 
 -- *    The current role implements a set of TCP, UDP and DDR4 tests for the  
 -- *    bring-up of the FPGA module FMKU60. This role is typically paired with
--- *    the shell 'Kale' by the cloudFPGA project 'cFp_Monolithic'.
+-- *    the shell 'Kale' by the cloudFPGA project 'cFp_HelloKale'.
 -- *
 -- *****************************************************************************
 
@@ -1693,7 +1693,7 @@ begin
   --###############################################################################
   
   --==========================================================================
-  --==  INST: UDP-APPLICATION_FLASH (UAF) for cFp_Monolithic
+  --==  INST: UDP-APPLICATION_FLASH (UAF) for cFp_HelloKale
   --==   This application implements a set of UDP-oriented tests. The [UAF]
   --==   connects to the SHELL via a UDP Shell Interface (USIF) block. The
   --==   main purpose of the [USIF] is to provide a placeholder for the 
@@ -2328,7 +2328,7 @@ begin
   --################################################################################
   
   --==========================================================================
-  --==  INST: TCP-APPLICATION_FLASH (TAF) for cFp_Monolithic
+  --==  INST: TCP-APPLICATION_FLASH (TAF) for cFp_HelloKale
   --==   This application implements a set of TCP-oriented tests. The [TAF]
   --==   connects to the SHELL via a TCP Shell Interface (TSIF) block. The
   --==   main purpose of the [TSIF] is to provide a placeholder for the 

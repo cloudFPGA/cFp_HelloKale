@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -366,7 +366,6 @@ void pTSIF(
     if (gSimCycCnt == STARTUP_DELAY) {
         printf("\n## PART-1 : TEST OF THE PASS-THROUGH MODE ####################\n");
         tsif_rxSegCnt = 0;
-        //OBSOLETE_20210316 poTAF_EchoCtrl  = ECHO_PATH_THRU;
 
         //-- STEP-2.0 : REMOVE PREVIOUS OUTPUT FILES
         std::remove(ofRawFileName1.c_str());

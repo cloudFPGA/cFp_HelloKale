@@ -1,6 +1,6 @@
 HOST / py / testFiles
 ==========================
-**Test files for troubleshooting the TCP network interface of the cFp_Monolithic project.**
+**Test files for troubleshooting the TCP network interface of the cFp_HelloKale project.**
 
 ## ABOUT
 This directory contains a _Python_ script for generating a set of test files for use as data payload in bidiretcionnal data transfers between the HOST and an FPGA module. 

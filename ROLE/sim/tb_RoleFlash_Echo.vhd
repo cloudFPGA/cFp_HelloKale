@@ -1,7 +1,23 @@
+-- /*******************************************************************************
+--  * Copyright 2016 -- 2021 IBM Corporation
+--  *
+--  * Licensed under the Apache License, Version 2.0 (the "License");
+--  * you may not use this file except in compliance with the License.
+--  * You may obtain a copy of the License at
+--  *
+--  *     http://www.apache.org/licenses/LICENSE-2.0
+--  *
+--  * Unless required by applicable law or agreed to in writing, software
+--  * distributed under the License is distributed on an "AS IS" BASIS,
+--  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--  * See the License for the specific language governing permissions and
+--  * limitations under the License.
+-- *******************************************************************************/
+
+
   -- ******************************************************************************
   -- *
-  -- *                        Zurich cloudFPGA
-  -- *            All rights reserved -- Property of IBM
+  -- *                            cloudFPGA
   -- *
   -- *-----------------------------------------------------------------------------
   -- *
@@ -508,7 +524,6 @@
               return;
             end if;
           else
-            --OBSOLET   sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
             write(myLine, string'("[INFO] Cannot write to ROLE/UDP/Axis (sROL_Shl_Nts0_Udp_Axis_tready =0"));
             writeline(output, myLine);
             vErr := VErr + 1;
@@ -516,46 +531,6 @@
           
         end loop;
 
---        if (sSHL_Rol_Nts0_Udp_Axis_tready = '1') then        
---            if (vI > 8*8) then
---              -- Start and continue with chunks of 64-bits 
---              sSHL_Rol_Nts0_Udp_Axis_tdata  <= vVec(vI-1 downto vI-64);
---              sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
---              sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
---              sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
---              if (sROL_Shl_Nts0_Udp_Axis_tready = '1') then
---                vI := vI - 64;
---              end if;
---            else
---              if (vI /= 0) then
---                -- Last chunk to be transfered
---                sSHL_Rol_Nts0_Udp_Axis_tdata(63 downto 64-vI) <= vVec(vI-1 downto 0);
---                sSHL_Rol_Nts0_Udp_Axis_tlast  <= '1';
---                sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
---                case (vI) is
---                  when 1*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"80";
---                  when 2*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"C0";
---                  when 3*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"E0";
---                  when 4*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F0";
---                  when 5*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F8";
---                  when 6*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FC";
---                  when 7*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FE";
---                  when 8*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
---                end case;
---                if (sROL_Shl_Nts0_Udp_Axis_tready = '1') then
---                  vI := 0;
---                end if;
---              else
---                -- End of the Axis Write transfer
---                sSHL_Rol_Nts0_Udp_Axis_tdata  <= (others=>'X');
---                sSHL_Rol_Nts0_Udp_Axis_tkeep  <= (others=>'X');
---                sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
---                sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
---                return;
---              end if;
---            end if;
---          end if;
-        
       end procedure pdAxisWrite_SHL_Rol_Nts0_Udp;
   
       
