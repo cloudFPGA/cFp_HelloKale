@@ -128,7 +128,7 @@ If cFSP is installed, you can upload the generated bitstream located at
 Similarly to the GUI-API procedure, do not forget to write down the image "*id*" returned by 
 the server. 
 
-![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/4.png#center)
+![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/4.png?raw=true#center)
 
 ### Step-5: Request a cloudFPGA instance and deploy it
 
@@ -160,7 +160,7 @@ To create a similar instance via the cFSP-API, enter the following command:
 Next, and similarly to the GUI-API procedure, do not forget to write down the "*role_ip*" returned
 by the server. 
 
-![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/10.png#center)
+![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/10.png?raw=true#center)
 
 ## How to access your cloudFPGA instance
 
