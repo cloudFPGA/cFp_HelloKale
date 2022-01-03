@@ -52,7 +52,7 @@ function exit_on_error {
 if [[  $# -eq 1 ]]; then
     echo "<$0> The regression root directory is passed as an argument:"
     echo "<$0>   Regression root directory = '$1' "
-    export cFpHElloKaleRootDir=$1
+    export cFpHelloKaleRootDir=$1
 fi
 
 # STEP-1b: Confirm that '$cFpHelloKaleRootDir' is set
@@ -103,7 +103,7 @@ echo "<$0> ----------------------------------------------------------------"
 echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - ROLE - START OF COSIM "
 echo "<$0> ================================================================"
-export usedRoleDir=$cFpHellloKaleRootDir/ROLE
+export usedRoleDir=$cFpHelloKaleRootDir/ROLE
 cd $usedRoleDir
 bash $usedRoleDir/reg/run_cosim_reg.sh
 exit_on_error $? 
