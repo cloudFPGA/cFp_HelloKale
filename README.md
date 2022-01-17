@@ -31,7 +31,7 @@ It consists of:
     * a [Network Transport Stack (NTS)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/NTS.md),
     * a [DDR4 Memory sub-system (MEM)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/MEM/MEM.md), 
     * a [Memory Mapped IO (MMIO)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/MMIO/MMIO.md) sub-system.
-  - a ROLE of type [_**HelloKale**_](./DOC/BringUpRole.md) which implements a set of TCP-, 
+  - a ROLE of type [_**HelloKale**_](./DOC/README.md) which implements a set of TCP-, 
   UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module.
 
 ![Block diagram of the BringUpTop](./DOC/imgs/Fig-TOP-BringUp.png#center)
