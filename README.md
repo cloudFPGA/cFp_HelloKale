@@ -70,13 +70,13 @@ to solely re-compile and re-synthesize the components that must be recreated.
 ```
 ### Step-2: Setup your environment
 ```
-    $ cd ${SANDBOX}
+    $ cd ${SANDBOX}/cFp_HelloKale
     $ source env/setenv.sh
 ```
 
 ### Step-3: Generate a static bitstream 
 ```
-    $ cd ${SANDBOX}
+    $ cd ${SANDBOX}/cFp_HelloKale
     $ make monolithic
 ```
 You find your newly created bitstream in the folder `${SANDBOX}/cFp_HelloKale/dcps`, under the name 
@@ -87,7 +87,7 @@ If the design was successfully implemented, you can opt to save its correspondin
 checkpoint in the '_./dcps_' directory. This will accelerate the next build by exploiting the 
 incremental place-and-route features of Vivado.
 ```
-    $ cd ${SANDBOX}
+    $ cd ${SANDBOX}/cFp_HelloKale
     $ make save_mono_incr
 ``` 
 To request an incremental build, use the command ```$ make monolithic_incr``` instead of 
