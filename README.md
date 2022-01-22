@@ -2,8 +2,7 @@
 
 A cloudFPGA project built upon the shell *Kale*. 
 
-:Info: The cloudFPGA documentation is available as GitHub Pages at:
-[https://cloudfpga.github.io/Doc/](https://cloudfpga.github.io/Doc/pages/INTRODUCTION/introduction.html)
+:information_source: The cloudFPGA documentation is available at [https://cloudfpga.github.io/Doc](https://cloudfpga.github.io/Doc/pages/INTRODUCTION/introduction.html)
 
 ## Overview
 
