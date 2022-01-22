@@ -2,7 +2,13 @@
 
 A cloudFPGA project built upon the shell *Kale*. 
 
+:Info: The cloudFPGA documentation is available as GitHub Pages at:
+[https://cloudfpga.github.io/Doc/](https://cloudfpga.github.io/Doc/pages/INTRODUCTION/introduction.html)
+
 ## Overview
+
+The integration of a user application and a cloudFPGA shell into a top-level design is what 
+constitutes a [cloudFPGA project](https://cloudfpga.github.io/Doc/pages/PROJECTS/cfprojects.html#). 
 
 This project builds on the shell [Kale](https://github.com/cloudFPGA/cFDK/blob/main/DOC/Kale.md) 
 which is a shell with minimalist support for accessing the hardware components of the FPGA 
@@ -36,7 +42,6 @@ It consists of:
 
 ![Block diagram of the BringUpTop](./DOC/imgs/Fig-TOP-BringUp.png#center)
 <p align="center">Toplevel block diagram of the cFp_HelloKale project</p>
-<br>
 
 **Info/Warning**
   - The shell [_**Kale**_](https://github.com/cloudFPGA/cFDK/blob/main/DOC/Kale.md) does 
@@ -121,9 +126,9 @@ This method is provided by the **cloudFPGA Support Package** (cFSP) which must b
 beforehand as described [here](https://github.com/cloudFPGA/cFSP).   
   
 If cFSP is installed, you can upload the generated bitstream located at 
-```${SANDBOX}/cFp_HelloKale/4_topFMKU60_impl_monolithic.bit``` with the following command:
+```${SANDBOX}/cFp_HelloKale/dcps/4_topFMKU60_impl_monolithic.bit``` with the following command:
 ```
-    $ ./cfsp image post --image_file=${SANDBOX}/cFp_HelloKale/4_topFMKU60_impl_monolithic.bit
+    $ ./cfsp image post --image_file=${SANDBOX}/cFp_HelloKale/dcps/4_topFMKU60_impl_monolithic.bit
 ```
 Similarly to the GUI-API procedure, do not forget to write down the image "*id*" returned by 
 the server. 
