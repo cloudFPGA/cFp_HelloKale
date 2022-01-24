@@ -1,9 +1,9 @@
 # cFp_HelloKale
 
-A cloudFPGA project built upon the shell *Kale*. 
+A cloudFPGA project built upon the shell **Kale**.
 
 :information_source: The cloudFPGA documentation is available at [https://cloudfpga.github.io/Doc](https://cloudfpga.github.io/Doc/pages/INTRODUCTION/introduction.html)
-
+   
 ## Overview
 
 The integration of a user application and a cloudFPGA shell into a top-level design is what 
@@ -59,19 +59,22 @@ It consists of:
 The current directory contains a *Makefile* which handles all the required steps to generate 
 a *bitfile* (a.k.a *bitstream*). During the build, both SHELL and ROLE dependencies are analyzed 
 to solely re-compile and re-synthesize the components that must be recreated.
- 
 ```
     $ SANDBOX=`pwd`  (a short for your working directory)
 ```
-
 ### Step-1: Clone the project
 ```
     $ cd ${SANDBOX}
-    $ git clone --recursive git@github.com:cloudFPGA/cFp_HelloKale.git
+    $ git clone --recursive https://github.com/cloudFPGA/cFp_HelloKale.git     
     $ cd cFp_HelloKale/cFDK
     $ git checkout main
     $ cd ../..
 ```
+:information_source: If you have a GitHub account and SSH keys set up, you may clone with:
+```
+    $ git clone --recursive git@github.com:cloudFPGA/cFp_HelloKale.git
+```
+
 ### Step-2: Setup your environment
 ```
     $ cd ${SANDBOX}/cFp_HelloKale
