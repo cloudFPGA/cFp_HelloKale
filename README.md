@@ -47,8 +47,7 @@ It consists of:
   not support **Partial Reconfiguration** (PR). 
   It was specifically developed for the bring-up of a new FPGA module or for the deployment 
   of a static implementation. As a result, the generated bitstream is always a static 
-  bitstream. 
-  Refer to the project [_cFp_HelloThemisto_](https://github.com/cloudFPGA/cFp_HelloThemisto) 
+  bitstream. Refer to the project [_cFp_HelloThemisto_](https://github.com/cloudFPGA/cFp_HelloThemisto) 
   for an example of a shell that supports PR.
   - The static nature of the generated bitstream precludes its deployment over the 
   datacenter network and requires the use of a JTAG interface to download and configure 
@@ -59,9 +58,12 @@ It consists of:
 The current directory contains a *Makefile* which handles all the required steps to generate 
 a *bitfile* (a.k.a *bitstream*). During the build, both SHELL and ROLE dependencies are analyzed 
 to solely re-compile and re-synthesize the components that must be recreated.
+
 ```
     $ SANDBOX=`pwd`  (a short for your working directory)
 ```
+:warning: The following build procedure is only compatible with *Vivado* **2017.4** to **2020.1** versions included (for the time being).  
+
 ### Step-1: Clone the project
 ```
     $ cd ${SANDBOX}
@@ -86,8 +88,15 @@ to solely re-compile and re-synthesize the components that must be recreated.
     $ cd ${SANDBOX}/cFp_HelloKale
     $ make monolithic
 ```
-You find your newly created bitstream in the folder `${SANDBOX}/cFp_HelloKale/dcps`, under the name 
-`4_topFMKU60_impl_default_monolithic.bit`.  
+The build is successful if you get the following message after ~90 minutes, indicating that a bitsream was 
+generated. You will find this newly created bitstream in the folder `${SANDBOX}/cFp_HelloKale/dcps`, 
+under the name `4_topFMKU60_impl_default_monolithic.bit`.
+```
+    <cloudFPGA> ################################################################################
+    <cloudFPGA> ##  DONE WITH BITSTREAM GENERATION RUN 
+    <cloudFPGA> ################################################################################
+    <cloudFPGA> End at: HH:MM:SS Day Month Day Year
+```
 
 #### Step-3.1: Save a checkpoint (optional)
 If the design was successfully implemented, you can opt to save its corresponding 
@@ -252,3 +261,46 @@ remote host via network tools and network communication sockets as explained in 
 following two links:
  * [How to cF Socket Programming with Python](./HOST/py/README.md)
  * [How to cF Network Tools](./HOST/README.md)
+
+
+## How to cleanup (optional)
+
+### Step-8: How to remove a bitstream from the image database (optional)
+To remove a bitfile from the cFRM database, use either of the following two procedures.
+
+#### Step-8a: Delete an image with the GUI-API  
+Expand the operation `[DELETE] ​/images/{image_id} - Delete an image` of the *Swagger* menu `Images`, and
+fill in the requested fields as exemplified below.
+
+![Swagger-Images-Delete-Delete-Req](./DOC/imgs/Img-Swagger-Images-DELETE-Delete-Req.png#center)
+
+:bulb: You can retrieve a list of all your images by expanding the `[GET] ​/images - Get all images of a user` 
+of the *Swagger* menu `Images` and providing your credentials.
+ 
+### Step-8b: Delete the image with the cFSP-API 
+The second option offered to you is use the command-line interface to the cFRM API.
+```
+    $ cd ${SANDBOX}/cFSP
+    
+    $ ./cfsp image delete <id>  # E.g. "31a0d56e-6037-415f-9b13-6b4e625e9a29"
+```
+
+### Step-9: How to delete an instance (optional)
+To end an instance and return it to cFRM's pool of resources, use either of the following two procedures.
+ 
+#### Step-9a: Delete an instance with the GUI-API  
+Expand the operation `[DELETE] ​/instances/{instance_id} - Remove an instance` of the *Swagger* menu `Instances`, 
+and fill in the requested fields as exemplified below.
+
+![Swagger-Instances-Delete-Remove-Req](./DOC/imgs/Img-Swagger-Instances-DELETE-Remove-Req.png#center)
+
+:bulb: You can retrieve a list of all your instances by expanding the `[GET] ​/instances - Get all instances of a user` 
+of the *Swagger* menu `Instances ` and providing your credentials.
+
+### Step-9b: Delete the instance with the cFSP-API
+The second option offered to you is use the command-line interface to the cFRM API.
+```
+    $ cd ${SANDBOX}/cFSP
+    
+    $ ./cfsp instance delete <instance_id>  # E.g. "17"
+```
