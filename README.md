@@ -1,9 +1,9 @@
 # cFp_HelloKale
 
-A cloudFPGA project built upon the shell *Kale*. 
+A cloudFPGA project built upon the shell **Kale**.
 
 :information_source: The cloudFPGA documentation is available at [https://cloudfpga.github.io/Doc](https://cloudfpga.github.io/Doc/pages/INTRODUCTION/introduction.html)
-
+   
 ## Overview
 
 The integration of a user application and a cloudFPGA shell into a top-level design is what 
@@ -59,19 +59,22 @@ It consists of:
 The current directory contains a *Makefile* which handles all the required steps to generate 
 a *bitfile* (a.k.a *bitstream*). During the build, both SHELL and ROLE dependencies are analyzed 
 to solely re-compile and re-synthesize the components that must be recreated.
- 
 ```
     $ SANDBOX=`pwd`  (a short for your working directory)
 ```
-
 ### Step-1: Clone the project
 ```
     $ cd ${SANDBOX}
+    
     $ git clone --recursive git@github.com:cloudFPGA/cFp_HelloKale.git
+        (if you don't have a GitHub account and/or SSH keys set up, use the command: 
+         git clone --recursive https://github.com/cloudFPGA/cFp_HelloKale.git)     
+    
     $ cd cFp_HelloKale/cFDK
     $ git checkout main
     $ cd ../..
 ```
+
 ### Step-2: Setup your environment
 ```
     $ cd ${SANDBOX}/cFp_HelloKale
@@ -101,7 +104,7 @@ To request an incremental build, use the command ```$ make monolithic_incr``` in
 
 ### Step-4: Upload the generated bitstream
 In order to program a cloudFPGA instance with your newly generated bitfile, you first need 
-to upload it to the cloudFPGA **Resource Manager** (cFRM). The below step-4a and step-4b 
+to upload it to the **cloudFPGA Resource Manager** (cFRM). The below step-4a and step-4b 
 cover the two offered options for uploading a bitstream.  
 
 #### Step-4a: Upload image with the GUI-API  
@@ -121,24 +124,69 @@ use in the next step.
     
 #### Step-4b: Upload image with the cFSP-API 
 The second option for uploading a bitstream is based on a command-line interface to the cFRM API.
-This method is provided by the **cloudFPGA Support Package** (cFSP) which must be installed 
-beforehand as described [here](https://github.com/cloudFPGA/cFSP).   
-  
-If cFSP is installed, you can upload the generated bitstream located at 
-```${SANDBOX}/cFp_HelloKale/dcps/4_topFMKU60_impl_monolithic.bit``` with the following command:
-```
-    $ ./cfsp image post --image_file=${SANDBOX}/cFp_HelloKale/dcps/4_topFMKU60_impl_monolithic.bit
-```
-Similarly to the GUI-API procedure, do not forget to write down the image "*id*" returned by 
-the server. 
+This method is provided by the [cloudFPGA Support Package (cFSP)](https://github.com/cloudFPGA/cFSP) 
+which must be installed beforehand as follows:
 
-![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/4.png?raw=true#center)
+```
+    $ cd ${SANDBOX}
+    
+    $ git clone https://github.com/cloudFPGA/cFSP.git
+    $ cd cFSP
+    $ which python3     # (we recommend python 3.6 or higher) 
+    /usr/bin/python3
+    $ virtualenv -p /usr/bin/python3 cfenv
+    $ source cfenv/bin/activate
+    $ pip install -r requirements.txt
+``` 
+
+Once cFSP is installed, add your cloudFPGA credentials. This process creates a file called `user.json` and 
+with your cloudFPGA credentials in it. The credentials consist of the `username`, the `password` and the 
+`projectname` that were provided to you when you registered.
+```
+    $ cd ${SANDBOX}/cFSP
+    
+    $ ./cfsp user load --username=<YOUR_USERNAME> --password=<YOUR_PASSWORD> --project=<YOUR_PROJECTNAME>
+    
+    $ ./cfsp user show
+```
+The output of these two commands will look like this:
+```
+    0%|                                                                                                                | 0/1 [00:00<?, ?it/s]INFO: Repeat #0
+    Writing credentials template to ./user.json
+    ['load']
+    100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 3305.20it/s]
+  
+    0%|                                                                                                                | 0/1 [00:00<?, ?it/s]INFO: Repeat #0
+    User     : YOUR_USERNAME
+    Password : YOUR_PASSWORD
+    Project  : YOUR_PROJECTNAME
+    ['show']
+    100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 5801.25it/s]    
+```
+
+Finally, upload the generated bitstream located in the `dcps` folder of the `${SANDBOX}/cFp_HelloKale` project. 
+```
+    $ cd ${SANDBOX}/cFSP
+    
+    $ ./cfsp image post --image_file=${SANDBOX}/cFp_HelloKale/dcps/4_topFMKU60_impl_default_monolithic.bit
+```
+Similarly to the GUI-API procedure, do not forget to write down the image `id` returned by the server 
+(e.g. '842d2c6b-33d4-454c-8255-f4b127bd9cf3'). 
+```
+     0%|                                                                                                                | 0/1 [00:00<?, ?it/s]INFO: Repeat #0
+    {'breed': None,
+     'comment': None,
+     'fpga_board': None,
+     'id': '842d2c6b-33d4-454c-8255-f4b127bd9cf3',
+     'shell_type': None}
+    100%|████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:02<00:00,  2.91s/it]
+```
 
 ### Step-5: Request a cloudFPGA instance and deploy it
 
 Now that your FPGA image has been uploaded to the cFRM, you can request a cloudFPGA instance to 
-be programmed and deployed with it. The below step-5a and step-5b will cover the two offered 
-options for creating a new cF instance.
+be programmed and deployed with it. The below step-5a and step-5b will cover both possible options to 
+create a new cF instance.
 
 #### Step-5a: Create an instance with the GUI-API
 
@@ -159,12 +207,25 @@ instance.
 
 To create a similar instance via the cFSP-API, enter the following command:
 ```
+    $ cd ${SANDBOX}/cFSP
+    
     $ ./cfsp instance post --image_id=31a0d56e-6037-415f-9b13-6b4e625e9a29
 ```
-Next, and similarly to the GUI-API procedure, do not forget to write down the "*role_ip*" returned
-by the server. 
-
-![cFSP-Image-Post-Upload-Res](https://github.com/cloudFPGA/cFSP/blob/master/doc/img/10.png?raw=true#center)
+Next, and similarly to the GUI-API procedure, do not forget to write down the `role_ip` (e.g. '10.12.200.15') 
+and the `instance_id` (e.g. '76') returned by the server.
+```
+     0%|                                                                                                                | 0/1 [00:00<?, ?it/s]INFO: Repeat #0
+    {'fpga_board': 'FMKU60',
+     'image_id': '842d2c6b-33d4-454c-8255-f4b127bd9cf3',
+     'instance_id': 76,
+     'project_name': 'cf_ALL',
+     'role_ip': '10.12.200.15',
+     'shell_type': 'NO_SRA',
+     'slot_num': 15,
+     'status': 'USED',
+     'user_id': 'cfdummy'}
+    100%|████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:20<00:00, 80.94s/it]
+```
 
 ## How to access your cloudFPGA instance
 
