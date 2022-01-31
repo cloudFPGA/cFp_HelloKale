@@ -148,23 +148,28 @@ which must be installed beforehand as follows:
     $ pip install -r requirements.txt
 ``` 
 
-Once cFSP is installed, add your cloudFPGA credentials. This process creates a file called `user.json` and 
-with your cloudFPGA credentials in it. The credentials consist of the `username`, the `password` and the 
-`projectname` that were provided to you when you registered.
+Once the `cFSP` is installed, you must add your cloudFPGA credentials as follows. with the following command:
 ```
     $ cd ${SANDBOX}/cFSP
     
     $ ./cfsp user load --username=<YOUR_USERNAME> --password=<YOUR_PASSWORD> --project=<YOUR_PROJECTNAME>
-    
-    $ ./cfsp user show
 ```
-The output of these two commands will look like this:
+The credentials consist of the `username`, the `password` and the `projectname` that were provided 
+to you when you registered. 
+The above command creates a file called `user.json` containing these credentials as depicted by the
+output of this command:
 ```
     0%|                                                                                                                | 0/1 [00:00<?, ?it/s]INFO: Repeat #0
     Writing credentials template to ./user.json
     ['load']
-    100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 3305.20it/s]
-  
+    100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 3305.20it/s]    
+```
+
+You can watch the content of the credential file with:
+```
+    $ cd ${SANDBOX}/cFSP
+      
+    $ ./cfsp user show
     0%|                                                                                                                | 0/1 [00:00<?, ?it/s]INFO: Repeat #0
     User     : YOUR_USERNAME
     Password : YOUR_PASSWORD
