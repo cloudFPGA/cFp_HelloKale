@@ -83,15 +83,14 @@ def str_static_gen(size):
     while (len(msg)) < (size):
         msg += num_to_char(len(msg) % 16)
     msg = (msg[:size]) if len(msg) > size else msg
-    return msg.encode()
+    return msg.encode('ascii', 'replace')
 
 
 def str_rand_gen(size):
     """Returns an encoded random string of length 'size'."""
     msg = '\n'
     msg += "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size-1))
-    return msg.encode()
-
+    return msg.encode('ascii', 'replace')
 
 def getFpgaIpv4(args):
     """Retrieve the IPv4 address of the FPGA module.
@@ -190,7 +189,7 @@ def restartApp(instId, ipResMngr, portResMngr, user_name, user_passwd):
                  + "&password=" + user_passwd
         # DEBUG print("Generated request URL = ", reqUrl)
         r1 = requests.patch(reqUrl)
-        print(r1.content.decode())
+        print(r1.content.decode('ascii'))
     except Exception as e:
         print("ERROR: Failed to reset the FPGA role")
         print(str(e))
