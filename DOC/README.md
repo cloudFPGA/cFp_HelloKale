@@ -28,9 +28,9 @@ A block diagram of the ROLE is depicted in Figure 1. It features:
 
 ### List of Interfaces
 
-| Acronym                             | Description                   | File
-|:------------------------------------|:------------------------------|:--------------
-| **[SHELL](../../cFDK/DOC/Kale.md)** | Interface to shell _Kale_.    | [Shell](../../cFDK/SRA/LIB/SHELL/Kale/Shell.v)
+| Acronym                             | Description                        | File
+|:------------------------------------|:-----------------------------------|:--------------
+| **[SHELL]((https://github.com/cloudFPGA/cFDK/tree/master/DOC/Kale.md))** | Interface to shell _Kale_.    | [Shell](https://github.com/cloudFPGA/cFDK/blob/main/SRA/LIB/SHELL/Kale/Shell.v)
            
 <br>
 
@@ -38,11 +38,11 @@ A block diagram of the ROLE is depicted in Figure 1. It features:
 
 | Acronym                     | Description                | File
 |:----------------------------|:---------------------------|:--------------
-| **[TSIF](./TSIF.md)**       | TCP Shell InterFace        | [tcp_shell_if](../hls/tcp_shell_if/src/tcp_shell_if.hpp)
-| **[USIF](./USIF.md)**       | UDP Shell InterFace        | [udp_shell_if](../hls/udp_shell_if/src/udp_shell_if.hpp)
-| **[TAF](./TAF.md)**         | TCP Application Flash      | [tcp_app_flash](../hls/tcp_app_flash/src/tcp_app_flash.hpp)
-| **[UAF](./UAF.md)**         | UDP Application Flash      | [udp_app_flash](../hls/udp_app_flash/src/udp_app_flash.hpp)
-| **[MTA](./MTA.md)**         | Memory Test Application    | [FIXME-TODO](../hls/mem_test_app/src/mem_test_app.hpp)
+| **[TSIF](./TSIF.md)**       | TCP Shell InterFace        | [tcp_shell_if](../ROLE/hls/tcp_shell_if/src/tcp_shell_if.hpp)
+| **[USIF](./USIF.md)**       | UDP Shell InterFace        | [udp_shell_if](../ROLE/hls/udp_shell_if/src/udp_shell_if.hpp)
+| **[TAF](./TAF.md)**         | TCP Application Flash      | [tcp_app_flash](../ROLE/hls/tcp_app_flash/src/tcp_app_flash.hpp)
+| **[UAF](./UAF.md)**         | UDP Application Flash      | [udp_app_flash](../ROLE/hls/udp_app_flash/src/udp_app_flash.hpp)
+| **[MTA](./MTA.md)**         | Memory Test Application    | [FIXME-TODO](../ROLE/hls/mem_test_app/src/mem_test_app.hpp)
 <br>
 
 
