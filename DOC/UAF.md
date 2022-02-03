@@ -1,10 +1,10 @@
 ### UDP Application Flash (UAF)
 
 This page describes the set of UDP-oriented tests which are embedded into the 
-_cFp_Monolithic/_[_Role_BringUp_](../BringUpRole.md).
+_cFp_HelloKale/_[_Role_BringUp_](../BringUpRole.md).
 
 #### Overview
-The _**UDP Application Flash (UAF)**_ connects to _cFp_Monolithic/_[_Shell_Kale_](../../cFDK/DOC/Kale.md)
+The _**UDP Application Flash (UAF)**_ connects to _cFp_HelloKale/_[_Shell_Kale_](https://github.com/cloudFPGA/cFDK/blob/main/DOC/Kale.md)
 via the _UDP Shell Interface ([USIF](./USIF.md))_ block. 
 The main purpose of the USIF is to provide a placeholder for the control flow related functions. 
 Its use is not a prerequisite, but it is provided here with the aim of decoupling the data-path from
@@ -23,7 +23,7 @@ forwards them to the process _EchoPathThrough (EPt)_ or the _EchoStoreAndForward
 the *EPt* and forwards them to the *USIF*.
 
 
-![Block diagram of cFp_Monolithic/ROLE/UAF](./imgs/Fig-UAF-Structure.png#center)
+![Block diagram of cFp_HelloKale/ROLE/UAF](./imgs/Fig-UAF-Structure.png#center)
 
 <p align="center"><b>Figure-1: Block diagram of the UDP Application Flash</b></p>
 <br>

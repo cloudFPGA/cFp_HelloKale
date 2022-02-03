@@ -30,7 +30,7 @@ A block diagram of the ROLE is depicted in Figure 1. It features:
 
 | Acronym                             | Description                        | File
 |:------------------------------------|:-----------------------------------|:--------------
-| **[SHELL](https://github.com/cloudFPGA/cFDK/tree/master/DOC/Kale.md))** | Interface to shell _Kale_.    | [Shell](https://github.com/cloudFPGA/cFDK/blob/main/SRA/LIB/SHELL/Kale/Shell.v)
+| **[SHELL](https://github.com/cloudFPGA/cFDK/tree/master/DOC/Kale.md)** | Interface to shell _Kale_.    | [Shell](https://github.com/cloudFPGA/cFDK/blob/main/SRA/LIB/SHELL/Kale/Shell.v)
            
 <br>
 
