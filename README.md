@@ -31,13 +31,14 @@ The shell-role-architecture used by the project *cFp_HelloKale* is shown in the 
 It consists of: 
   - a SHELL of type [_**Kale**_](https://github.com/cloudFPGA/cFDK/blob/main/DOC/Kale.md) 
   which is a shell with minimalist support for accessing the hardware components of the 
-  FPGA module FMKU060. The shell *Kale *includes the following building blocks: 
+  FPGA module FMKU060. The shell *Kale* includes the following building blocks: 
     * a [10 Gigabit Ethernet (ETH)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/ETH/ETH.md) sub-system,
     * a [Network Transport Stack (NTS)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/NTS.md),
     * a [DDR4 Memory sub-system (MEM)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/MEM/MEM.md), 
     * a [Memory Mapped IO (MMIO)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/MMIO/MMIO.md) sub-system.
   - a ROLE of type [_**HelloKale**_](./DOC/README.md) which implements a set of TCP-, 
-  UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module.
+  UDP- and DDR4-oriented tests and functions for the bring-up the cloudFPGA module. 
+    * the documentation of the *HelloKale* code is available [here](https://cloudfpga.github.io/Dox/group__cFp__HelloKale.html).   
 
 ![Block diagram of the BringUpTop](./DOC/imgs/Fig-TOP-BringUp.png#center)
 <p align="center">Toplevel block diagram of the cFp_HelloKale project</p>
