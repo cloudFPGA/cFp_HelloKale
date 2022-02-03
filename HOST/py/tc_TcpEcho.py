@@ -12,7 +12,7 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
-# */
+# *
 
 # *****************************************************************************
 # * @file       : tc_TcpEcho.py
@@ -50,14 +50,14 @@ def tcp_tx(sock, message, count, verbose=False):
     :return None"""
     if verbose:
         print("The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
-              (len(message), count, message.decode()))
+              (len(message), count, message.decode('ascii')))
 
     # Create a Tx Reference File
     echoTxFile = open(gEchoTxPath, 'w')
     if count <= 1000:
         loop = 0
         while loop < count:
-            echoTxFile.write(message.decode())
+            echoTxFile.write(message.decode('ascii'))
             loop += 1
 
     # Start Data Transmission
@@ -107,7 +107,7 @@ def tcp_rx(sock, message, count, verbose):
             data = sock.recv(expectedBytes - rxBytes)
             rxBytes += len(data)
             if count <= 1000:
-                echoRxFile.write(data.decode())
+                echoRxFile.write(data.decode('ascii'))
         except socket.error as exc:
             print("[EXCEPTION] Socket error while receiving :: %s" % exc)
         else:
@@ -159,7 +159,7 @@ def tcp_txrx_loop(sock, message, count, verbose=False):
      :return         None"""
     if verbose:
         print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
-              (len(message), count, message.decode()))
+              (len(message), count, message.decode('ascii')))
     nrErr = 0
     txMssgCnt = 0
     rxMssgCnt = 0
@@ -169,7 +169,7 @@ def tcp_txrx_loop(sock, message, count, verbose=False):
 
     # Init the Tx reference stream
     for i in range(count):
-        txStream = txStream + message.decode()
+        txStream = txStream + message.decode('ascii')
 
     startTime = datetime.datetime.now()
 
@@ -189,6 +189,8 @@ def tcp_txrx_loop(sock, message, count, verbose=False):
             data = tcpSock.recv(len(message))
             rxByteCnt += len(data)
             rxMssgCnt += 1
+            if verbose:
+                print("%d:%s" % (rxMssgCnt, data.decode('ascii')))
         except IOError as e:
             # On non blocking connections - when there are no incoming data, error is going to be
             # raised. Some operating systems will indicate that using AGAIN, and some using
@@ -206,13 +208,16 @@ def tcp_txrx_loop(sock, message, count, verbose=False):
             # exit(1)
         finally:
             pass
-        rxStream = rxStream + data.decode()
+        rxStream = rxStream + data.decode('ascii')
 
     endTime = datetime.datetime.now()
 
+    if verbose:
+        print("\n")
+
     # Compare Tx and Rx stream
     if rxStream != txStream:
-        print(" KO | Received stream = %s" % data.decode())
+        print(" KO | Received stream = %s" % data.decode('ascii'))
         print("    | Expected stream = %s" % rxStream)
         nrErr += 1
     elif verbose:
@@ -235,7 +240,7 @@ def tcp_txrx_ramp(sock, message, count, verbose=False):
      :return         None"""
     if verbose:
         print("[INFO] The following message of %d bytes will be sent out incrementally %d times:\n  Message=%s\n" %
-              (len(message), count, message.decode()))
+              (len(message), count, message.decode('ascii')))
     nrErr = 0
     loop = 0
     rxByteCnt = 0
@@ -260,7 +265,7 @@ def tcp_txrx_ramp(sock, message, count, verbose=False):
                         print("Loop=%d | RxBytes=%d" % (loop, len(data)))
                 else:
                     print("Loop=%d | RxBytes=%d" % (loop, len(data)))
-                    print(" KO | Received  Message=%s" % data.decode())
+                    print(" KO | Received  Message=%s" % data.decode('ascii'))
                     print("    | Expecting Message=%s" % subMsg)
                     nrErr += 1
             except IOError as e:
