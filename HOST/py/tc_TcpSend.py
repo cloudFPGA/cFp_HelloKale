@@ -43,8 +43,8 @@ def tcp_tx_loop(sock, message, count, verbose=False):
      :param verbose  Enables verbosity.
      :return         None"""
     if verbose:
-        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n" %
-              (len(message), count, message.decode()))
+        print("[INFO] The following message of %d bytes will be sent out %d times:\n  Message=%s\n"
+              % (len(message), count, message.decode()))
     nrErr = 0
     loop = 0
     txByteCnt = 0
@@ -81,7 +81,8 @@ def tcp_tx_slowpace(sock, message, count, pause, verbose=False):
      :param verbose  Enables verbosity.
      :return         None"""
     if verbose:
-        print("[INFO] TCP-TX-SLOW-PACE: The following message of %d bytes will be sent out %d times with an inter-gap time of %f seconds:\n  Message=%s\n" %
+        print("[INFO] TCP-TX-SLOW-PACE: The following message of %d bytes will be sent out %d times"
+              " with an inter-gap time of %f seconds:\n  Message=%s\n" %
               (len(message), count, pause, message.decode()))
     nrErr = 0
     loop  = 0
@@ -244,32 +245,35 @@ def tcp_tx_seg_size_ramp(sock, message, count, pause=0.0, verbose=False):
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser(description='A script to send TCP data to an FPGA module.')
 parser.add_argument('-fi', '--fpga_ipv4',   type=str, default='',
-                           help='The IPv4 address of the FPGA (a.k.a image_ip / e.g. 10.12.200.163)')
+                    help='The IPv4 address of the FPGA (a.k.a image_ip / e.g. 10.12.200.163)')
 parser.add_argument('-ii', '--inst_id',     type=int, default=0,
-                           help='The instance ID assigned by the cloudFPGA Resource Manager (e.g. 42)')
+                    help='The instance ID assigned by the cloudFPGA Resource Manager (e.g. 42)')
 parser.add_argument('-lc', '--loop_count',  type=int, default=10,
-                           help='The number of test runs (default is 10)')
+                    help='The number of test runs (default is 10)')
 parser.add_argument('-mi', '--mngr_ipv4',   type=str, default='10.12.0.132',
-                           help='The IPv4 address of the cloudFPGA Resource Manager (default is 10.12.0.132)')
+                    help='The IPv4 address of the cloudFPGA Resource Manager (default 10.12.0.132)')
 parser.add_argument('-mp', '--mngr_port',   type=int, default=8080,
-                           help='The TCP port of the cloudFPGA Resource Manager (default is 8080)')
+                    help='The TCP port of the cloudFPGA Resource Manager (default is 8080)')
+parser.add_argument('-nr', '--no_reset',    action="store_true",
+                    help='Do not reset the application role')
 parser.add_argument('-sd', '--seed',        type=int, default=-1,
-                           help='The initial number to seed the pseudorandom number generator.')
+                    help='The initial number to seed the pseudorandom number generator.')
 parser.add_argument('-st', '--sleep_time',  type=float, default=0.0,
-                           help='Enforce a sleep time in between two segments (in seconds)')
+                    help='Enforce a sleep time in between two segments (in seconds)')
 parser.add_argument('-sz', '--size',        type=int, default=-1,
-                           help='The size of the datagram to generate.')
+                    help='The size of the datagram to generate.')
 parser.add_argument('-un', '--user_name',   type=str, default='',
-                           help='A user-name as used to log in ZYC2 (.e.g \'fab\')')
+                    help='A user-name as used to log in ZYC2 (.e.g \'fab\')')
 parser.add_argument('-up', '--user_passwd', type=str, default='',
-                           help='The ZYC2 password attached to the user-name')
+                    help='The ZYC2 password attached to the user-name')
 parser.add_argument('-v',  '--verbose',     action="store_true",
-                           help='Enable verbosity')
+                    help='Enable verbosity')
 
 args = parser.parse_args()
 
 if args.user_name == '' or args.user_passwd == '':
-    print("\nWARNING: You must provide a ZYC2 user name and the corresponding password for this script to execute.\n")
+    print("\nWARNING: You must provide a ZYC2 user name and the corresponding password for this "
+          "script to execute.\n")
     exit(1)
 
 #  STEP-2a: Retrieve the IP address of the FPGA module (this will be the SERVER)
@@ -294,7 +298,8 @@ portResMngr = getResourceManagerPort(args)
 
 #  STEP-4: Trigger the FPGA role to restart (i.e. perform SW reset of the role)
 # -----------------------------------------------------------------------------
-restartApp(instId, ipResMngr, portResMngr, args.user_name, args.user_passwd)
+if not args.no_reset:
+    restartApp(instId, ipResMngr, portResMngr, args.user_name, args.user_passwd)
 
 #  STEP-5: Ping the FPGA
 # -----------------------------------------------------------------------------
@@ -370,7 +375,8 @@ if size == -1:
     size = random.randint(1, ZYC2_MSS)
 elif size > ZYC2_MSS:
     print('\nERROR: ')
-    print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS (.i.e %d bytes).\n" % ZYC2_MSS)
+    print("[ERROR] This test-case expects the transfer of segment which are less or equal to MSS "
+          "(.i.e %d bytes).\n" % ZYC2_MSS)
     exit(1)
 print("\t\t size = %d" % size)
 
