@@ -23,13 +23,13 @@
  * Language    : Vivado HLS
  *
  *               +-----------------------+
- *               |  UdpApplicationFlash  |     +--------+
+ *               |  TcpApplicationFlash  |     +--------+
  *               |        (TAF)          <-----+  MMIO  |
  *               +-----/|\------+--------+     +--------+
  *                      |       |
- *                      |       ||
+ *                      |       |
  *               +------+------\|/-------+
- *               |   UdpShellInterface   |
+ *               |   TcpShellInterface   |
  *               |       (TSIF)          |
  *               +-----/|\------+--------+
  *                      |       |
